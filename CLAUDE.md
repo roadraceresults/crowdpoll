@@ -567,7 +567,7 @@ Sessions persist via a single `session_token` cookie (httpOnly, secure, sameSite
 section `/privacy#cookies`) and the Terms of Service (`/terms`) are linked from a footer on every page; an account must accept
 the current Terms (`TERMS_VERSION`) before it can be used, and a user can delete their account from the Profile page.
 
-**Target deployment**: DigitalOcean App Platform (one autoscaled Web Service, 4–12 dedicated instances, spec in `.do/app.yaml`) with Managed PostgreSQL, Managed Valkey, Managed OpenSearch and Spaces + CDN, deployed from the `dev` branch of `https://github.com/roadraceresults/crowdpoll02`. Autodeploy is off (`deploy_on_push: false`): pushing `dev` deploys nothing, and each build and deploy is started by hand from the App Platform console's "Actions" dropdown. Development needs PostgreSQL only: the in-process cache/queue, PostgreSQL full-text search and instance-served TRENDING stand in for the other services.
+**Target deployment**: DigitalOcean App Platform (one autoscaled Web Service, 4–12 dedicated instances, spec in `.do/app.yaml`) with Managed PostgreSQL, Managed Valkey, Managed OpenSearch and Spaces + CDN, deployed from the `dev` branch of `https://github.com/roadraceresults/crowdpoll`. Autodeploy is off (`deploy_on_push: false`): pushing `dev` deploys nothing, and each build and deploy is started by hand from the App Platform console's "Actions" dropdown. Development needs PostgreSQL only: the in-process cache/queue, PostgreSQL full-text search and instance-served TRENDING stand in for the other services.
 
 ## Current State
 
