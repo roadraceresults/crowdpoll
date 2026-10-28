@@ -530,39 +530,51 @@ Prior implemented features are documented in
 
 ## Project Overview
 
-A reusable user-authentication system for web apps, built in TypeScript with PostgreSQL (Kysely) and the BetterAuth library. Initially it implements **passwordless native auth**: no passwords — every login sends a one-time magic link by email (via Amazon SES + nodemailer, in development as in production). Once OAuth providers approve the app, `ENV_SIGNIN_METHOD` switches it to the social providers (Google, Apple, Microsoft, Amazon) exclusively (`oauth`), or offers them beside the email link (`both`). A minimal web app client demonstrates login/logout, profile editing, and logged-in vs. guest content.
+CrowdPoll: a real-time opinion-poll site built in TypeScript (Node ≥ 22, ESM) with Express 5, PostgreSQL (Kysely) and BetterAuth, designed to serve very large audiences from a small autoscaled fleet. `README.md` describes the user-facing behaviour; `ARCHITECTURE.md` the deployment and request/vote/refresh paths. Sign-in is **passwordless**: a one-time magic link by email (Amazon SES + nodemailer, in development as in production), or, by `ENV_SIGNIN_METHOD`, the social providers (Google, Apple, Microsoft, Amazon) exclusively (`oauth`) or beside the email link (`both`).
 
 Sessions persist via a single `session_token` cookie (httpOnly, secure, sameSite=lax, up to 30 days). The cookie policy is `session_token` plus strictly necessary security cookies: the only others are `signin_binding` (httpOnly, secure, sameSite=lax, `Path=/api/auth`, 15 minutes), which binds an emailed sign-in link to the browser that requested it, and `oauth_state` (httpOnly, secure, sameSite=lax, 5 minutes), set only during a provider sign-in to protect it against forgery. The Privacy Policy (`/privacy`, with its Cookie Use
 section `/privacy#cookies`) and the Terms of Service (`/terms`) are linked from a footer on every page; an account must accept
 the current Terms (`TERMS_VERSION`) before it can be used, and a user can delete their account from the Profile page.
 
-**Note**: The directory name `crowdpoll02` and some leftovers (e.g. "Poll Administration Pages" in the `ENV_ADMINS` description) are relics of an earlier polling-app project that this repo pivoted away from. The authoritative spec is `requirements/001-high-level-requirements-user-auth.md`.
-
 **Target deployment**: DigitalOcean App Platform (one autoscaled Web Service, 4–12 dedicated instances, spec in `.do/app.yaml`) with Managed PostgreSQL, Managed Valkey, Managed OpenSearch and Spaces + CDN, deployed from the `dev` branch of `https://github.com/roadraceresults/crowdpoll02`. Autodeploy is off (`deploy_on_push: false`): pushing `dev` deploys nothing, and each build and deploy is started by hand from the App Platform console's "Actions" dropdown. Development needs PostgreSQL only: the in-process cache/queue, PostgreSQL full-text search and instance-served TRENDING stand in for the other services.
 
 ## Current State
 
-Features `001-user-auth`, `002-smtp-env-config`, `003-profile-menu-consolidation`, and
-`004-realtime-poll-voting` are **implemented** (all tasks in their respective `tasks.md`
-complete). `004-realtime-poll-voting` replaced the prior "Simple Web App Client" landing page
-with a full real-time opinion poll system — public/link-only/invitation-only polls, live
-client-polling results, single/multi-choice and final/dynamic-vote mechanics, an
-`ENV_ADMINS`-gated admin authoring/moderation surface, and JSON/Markdown result exports —
-while reusing `001-user-auth`'s login/session/profile system as-is. Layout: `src/` (config,
-server, auth/, email/, routes/ — `api.ts` for auth/profile, `pollsApi.ts` for polls — polls/
-for poll data access and business logic, public/ — poll grid/card + admin pages alongside the
-auth pages), `tests/` (Vitest + supertest + embedded-postgres + jsdom for the home page), `postman/openapi.json`,
-checked-in `launch.json.example` + `devScripts.example/launch-dev.ps1` templates for the
-git-ignored local copies.
+Every feature in the Spec Kit block above is implemented; the newest is listed first there.
+
+Layout:
+- `src/server.ts` builds one `AppContext` (session cache, load budget/floors/shedding, publishers, search, vote
+  consumer, Live Results registry) and mounts the routers; migrations run at start-up (`migrateToLatest`), and the
+  background sweeps (`src/polls/sweeps.ts`, each on its own advisory lock number) start beside it. `src/config.ts`
+  validates every `ENV_*` once (`loadConfig`, `ConfigError`).
+- Server areas: `auth/` (BetterAuth, session cache, allowlist, `emailKey`), `polls/` (store, service, access rules,
+  sweeps), `votes/` (queue → batched consumer), `cache/` (one interface: `memoryCache` in dev/tests, `valkeyCache` in
+  production), `search/` (OpenSearch or PostgreSQL full-text, fed by an outbox), `trending/` (Trending/Newest
+  recompute and publish), `load/`, `live/`, `refresh/`, `invitations/`, `legal/`, `email/`; routes in `routes/`
+  (`api.ts` auth/profile, `pollsApi.ts` polls and votes, `tabsApi.ts` home tabs, `pages.ts` HTML pages).
+- `src/db/migrations/NNN-*.ts` are registered in `src/db/migrations/index.ts`; schema types are in `src/db/schema.ts`.
+- `src/public/` is the browser client: plain HTML, vanilla JS and CSS with no framework and no bundler; Material 3
+  styling is layered as `*-m3.css` sheets after the production ones.
+- `tests/`: Vitest + supertest + embedded-postgres (each suite gets its own database; files run sequentially) and
+  jsdom for client scripts (`client-*.test.ts`, via `tests/helpers/browser.ts`). `*.integration.test.ts` skip unless
+  the real service URL (e.g. `ENV_VALKEY_URL`) is set.
+- `devScripts/` is git-ignored except named scripts (`.gitignore` needs a `!devScripts/<file>` line for each new one);
+  `launch.json.example` and `devScripts.example/launch-dev.ps1` are the templates for the git-ignored local copies.
 
 Commands:
 
 ```
 npm run dev     # tsx watch src/server.ts (needs ENV_* env; use devScripts/launch-dev.ps1)
 npm run build   # tsc + devScripts/build-assets.ts (dist/public with fingerprinted copies under assets/)
+npx tsc --noEmit    # type-check only (there is no linter)
 npm start       # node dist/server.js
 npm test        # vitest run — all suites under ./tests on an embedded PostgreSQL; no local services needed
-npm run reconcile   # recompute vote counters from the votes table (operator use)
+npx vitest run tests/auth.test.ts      # one file
+npx vitest run -t "name of the test"   # tests matching a name
+npm run reconcile       # recompute vote counters from the votes table (operator use)
+npm run publish-assets  # push fingerprinted assets to Spaces
+npm run file-manifest   # file manifest reports (feature 028)
+npm run prototypes      # serve prototypes/ locally
 ```
 
 New features still flow through the Spec Kit workflow below.
@@ -581,7 +593,7 @@ Features flow through these skills in order:
 /speckit-analyze   → cross-artifact consistency check
 /speckit-analyze-findings → resolves spec gaps and inconsistencies
 /speckit-implement → executes the tasks
-/speckit-tweaks      → implements tweaks to the codebase, with optional automated tests (frequently used)
+/speckit-tweak      → implements tweaks to the codebase, with optional automated tests (frequently used)
 ```
 
 Spec Kit is configured with the **PowerShell** script variant (`.specify/scripts/powershell/`) — the developer's primary environment is Windows 11, so generated dev tooling (e.g. `launch-dev.ps1`) targets PowerShell.
