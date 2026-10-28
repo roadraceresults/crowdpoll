@@ -69,6 +69,22 @@ export async function mayWatch(deps: AccessDeps, caller: Caller, pid: string): P
   return row !== undefined && (await mayWatchMany(deps, caller, [row])).has(pid);
 }
 
+/**
+ * Whether the caller may see this poll's results — the rule the card's results
+ * face follows: the poll is published, and it is public, or a private poll the
+ * caller reaches (creator, invitation, or a linked/voted/invited relation).
+ * Guests pass for public published polls only; a ban does not refuse, because
+ * bans block voting, not viewing.
+ */
+export async function mayViewResults(deps: AccessDeps, caller: Caller | undefined, pid: string): Promise<boolean> {
+  const row = await deps.db.selectFrom("polls").select([...ACCESS_COLUMNS]).where("id", "=", pid).executeTakeFirst();
+  if (!row || !isPublished(row)) return false;
+  if (row.poll_visibility !== "Private Poll") return true;
+  if (!caller?.email) return false;
+  const standing = await standingOf(deps.db, caller.email.toLowerCase(), [row.id]);
+  return reaches(row, caller.id, standing);
+}
+
 /** Polls the user voted in that they can still reach; a ban does not hide a poll, and having voted already reached a link-only poll. */
 export async function reachableMany(deps: AccessDeps, caller: Caller, rows: AccessRow[]): Promise<Set<string>> {
   const email = (caller.email ?? "").toLowerCase();

@@ -79,6 +79,7 @@ function removeInOneTransaction(db: Db, cache: Cache, user: { id: string; email:
         .where("poll_id", "=", pid)
         .where("email", "=", email)
         .execute();
+      await trx.updateTable("line_graph_selection").set({ email: placeholder }).where("poll_id", "=", pid).where("email", "=", email).execute();
     }
 
     // By email key: an invitation typed in another spelling of the address is theirs too (R10, R15).

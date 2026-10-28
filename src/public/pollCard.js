@@ -1420,6 +1420,15 @@ function initPollCard(viewport, opts){
     updateSubmitState();
   });
 
+  /* The colours this card assigned its choices, in display order, for the
+     maximized view's line graph — read from the one assignment the bars use,
+     so the two can never disagree. */
+  function resultColors(){
+    if (!data) return [];
+    const colors = assignResultColors(data, paletteOffset, palette);
+    return data.map((item, i) => ({ id: item.id, label: item.label, hex: colors[i] }));
+  }
+
   /* The owning tab tears the card down when a poll leaves its listing. */
   function unmount(){
     viewport.remove();
@@ -1432,6 +1441,7 @@ function initPollCard(viewport, opts){
     applyPoll,
     unmount,
     setMaximized,
+    resultColors,
     detail: () => poll,
     get isMaximized(){ return isMaximized; },
     element: viewport,

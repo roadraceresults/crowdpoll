@@ -5,6 +5,36 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261027-151601-POLL-LINE-GRAPH/plan.md` (research R1–R13, `data-model.md` — no stored-data change, no
+migration, two new settings — the HTTP contracts `contracts/api.md` A1–A2, the UI contracts
+`contracts/ui-contracts.md` C1–C9, and the quickstart live alongside it in `specs/20261027-151601-POLL-LINE-GRAPH/`).
+The requirements report is `requirements/20261027-151601-poll-line-graph/requirements-report.md`: 4 diagrams and
+16 findings, all resolved. Decisions that are easy to get wrong:
+- **One migration, added by TWEAK03**: `012-line-graph-tally` adds `line_graph_tally` (per poll, hour and choice,
+  the change in count, the voter count under choice id `""`) and `line_graph_selection` (each voter's latest
+  selection), backfilled from `vote_history`. A 14.9-million-row history exhausted the heap when it was loaded (R1).
+- **Access is `mayViewResults`, not `mayWatch`**: published + public (guests included), or creator/reachable private;
+  a ban does not hide the graph; every refusal — bad pid, unpublished, unreachable — is `404 Not found`; the route
+  takes no `?scale=` and answers every available scale at once, so a scale click sends no request (R2, R3, TWEAK04).
+- **The replay happens at write time, never per request**: every `vote_history` insert (`writeBatch`, `recordVote`,
+  `insertVoteHistory`) calls `recordLineGraphTally` in its transaction; a new writer or deleter of `vote_history` must
+  keep the tally too (`rebuildLineGraphTally` after deletions). The graph sums the tally into UTC buckets, each email's
+  latest `choice_ids` winning, `computeResults`'s formula at each bucket boundary, last bucket = "now" so the newest
+  point and `totalVoted` always equal the bar graph; labels are viewer-local `Intl.DateTimeFormat` (R4, R6).
+- **Cache before compute, access before cache**: read-through on the shared `Cache`, key `line-graph:<pid>`,
+  TTL = `lineGraphRefreshIntervalMs` (`ENV_LINE_GRAPH_REFRESH_INTERVAL`, default 60000, clamped up to
+  `ENV_MIN_LIVE_REFRESH_INTERVAL`); the route is `...dynamic("refresh")` with no `requireSession` (R3, R5, R10).
+- **Threshold on the current standing only** (`ENV_LINE_GRAPH_MIN_VOTE_PERCENTAGE`, default 1, `0` disables): a
+  qualifying choice is drawn across the whole window; lines never start or stop mid-window (R4).
+- **Colours come from the card**: the response carries only manual hexes (else null); `lineGraph.js` fills the rest
+  from the card's new `resultColors()` getter, so the lines can never disagree with the bars; identical hexes in both
+  themes, chrome from M3 tokens in the new `line-graph-m3.css` (in `LAYER_ORDER`; the `tabs.css` placeholder rules
+  for `.maximized-space-right` are removed) (R7, R9).
+- **One mount seam**: `tabs.js` `maximize()` calls `window.PollLineGraph?.mount(...)`, every close path funnels to
+  `unmount()`, which stops the refresh timer; hand-rolled SVG, no new dependency (R7, R8).
+- **Failure is quiet**: a failed refresh keeps the last drawn graph and retries next tick; a failed first load shows
+  "Graph unavailable right now"; a `404` shows the results-unavailable note and stops the timer (R11).
+One additive migration (TWEAK03), no new dependency; one new route, one new browser module, one new stylesheet, two settings.
 `specs/20261027-133129-SINGLE-EMAIL-INVITE/plan.md` (research R1–R11, `data-model.md` — three `poll_invitations`
 token columns, one migration — the HTTP contracts `contracts/api.md` A1–A3, the UI contracts `contracts/ui-contracts.md`
 C1–C2 and the email sentence M1, and the quickstart live alongside it in `specs/20261027-133129-SINGLE-EMAIL-INVITE/`).
@@ -43,6 +73,7 @@ that are easy to get wrong:
 - **Validate before any write**: every C4 error is one `[populate] Error:` line and exit 1; only the database host is
   printed; any target database is allowed (R10, R11).
 No server, route, configuration, data or migration change; no new dependency.
+The preceding feature is
 `specs/20261026-085056-POLL-INVITATIONS/plan.md` (research R1–R16, `data-model.md` — five `poll_invitations` columns,
 `polls.time_zone`, the `invitation_history` and `invitation_emails` tables, derived statuses, one migration — the HTTP
 contracts `contracts/api.md` A1–A5, the UI contracts `contracts/ui-contracts.md` C1–C9, the email messages M1–M2, and
@@ -649,6 +680,8 @@ All runtime configuration comes from `ENV_*` environment variables:
 | `ENV_TRENDING_POLLS_RECOMPUTE_INTERVAL` | `60000` | How often TRENDING is recomputed and published (ms); also the CDN `max-age` and the browser copy's lifetime |
 | `ENV_MAX_NEWEST_POLLS` | `50` | Polls in the Newest tab; must not exceed `ENV_MAX_POLLS_SEARCH_RESULTS` |
 | `ENV_NEWEST_POLLS_RECOMPUTE_INTERVAL` | `60000` | How often Newest is recomputed and published (ms; at least 1000); also the CDN `max-age` and the browser copy's lifetime |
+| `ENV_LINE_GRAPH_MIN_VOTE_PERCENTAGE` | `1` | Current share (whole percent) a choice must hold to be drawn on the maximized view's line graph; `0` draws every choice |
+| `ENV_LINE_GRAPH_REFRESH_INTERVAL` | `60000` | How often an open line graph refetches its series (ms); also the server-side cache TTL per poll. Clamped up to `ENV_MIN_LIVE_REFRESH_INTERVAL` |
 | `ENV_MIN_LIVE_REFRESH_INTERVAL` | `2000` | Floor between two Live Results refreshes from one user (ms) |
 | `ENV_MIN_MANUAL_REFRESH_INTERVAL` | `5000` | Floor between two manual tab refreshes from one user (ms). Must not be below `ENV_COUNTER_FLUSH_INTERVAL` |
 | `ENV_MIN_SEARCH_INTERVAL` | `2000` | Floor between two searches from one user (ms) |

@@ -57,6 +57,14 @@ delivery network.
   tab you are on; the tab comes back as you
   left it. Switching tabs or searching closes it too. A poll that leaves Trending or Newest while
   you have it open stays open until you close it.
+- **Vote history graph** — beside a maximized poll, a line graph shows how each choice's share of
+  the vote has moved over time, in the same colours as its bars, with a legend giving each line's
+  current share and the total vote count. Choose **1 Day**, **1 Week**, **1 Month** or **1 Year**
+  (only the ranges the poll's history covers are offered; the longest is shown first). Point at the
+  graph, or touch it on a phone, to read every line's share at that moment; times are in your own
+  time zone. The graph updates itself about once a minute while it is open. Anyone who may see a
+  poll's results may see its graph, guests included on public polls. Choices with less than 1% of
+  the current vote are left off.
 - **Result colours** — each result bar has a vivid colour of its own, on a pale tint of the same
   colour. Each poll takes its own run of colours from the palette, starting at a point set by the
   poll itself, so neighbouring cards look different, and a poll shows the same colours wherever
@@ -420,6 +428,8 @@ All settings are `ENV_*` environment variables. Intervals are in milliseconds un
 | `ENV_TRENDING_POLLS_RECOMPUTE_INTERVAL` | `60000` | TRENDING recompute and publication interval |
 | `ENV_MAX_NEWEST_POLLS` | `50` | Polls on the Newest tab; at most `ENV_MAX_POLLS_SEARCH_RESULTS` |
 | `ENV_NEWEST_POLLS_RECOMPUTE_INTERVAL` | `60000` | Newest recompute and publication interval (at least 1000) |
+| `ENV_LINE_GRAPH_MIN_VOTE_PERCENTAGE` | `1` | Current share (whole percent) a choice needs to be drawn on the vote history graph; `0` draws every choice |
+| `ENV_LINE_GRAPH_REFRESH_INTERVAL` | `60000` | How often an open vote history graph refreshes, and how long the server keeps one poll's graph (ms); never below `ENV_MIN_LIVE_REFRESH_INTERVAL` |
 | `ENV_MIN_LIVE_REFRESH_INTERVAL` | `2000` | Floor between two Live Results refreshes per visitor |
 | `ENV_MIN_MANUAL_REFRESH_INTERVAL` | `5000` | Floor between two manual refreshes per visitor |
 | `ENV_MIN_SEARCH_INTERVAL` | `2000` | Floor between two searches per visitor |

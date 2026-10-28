@@ -77,12 +77,14 @@ flowchart TB
     Delta["deltaClient.js<br/>version map, merge, card detail"]
     Vote["voteClient.js<br/>submit, floor, retry once"]
     Card["pollCard.js<br/>render only: Vote, Live Results (add | remove), Bookmark, Maximize; bar colours"]
+    Graph["lineGraph.js<br/>maximized view's vote-history graph: SVG, scales, crosshair, refresh timer"]
     Admin["adminList.js + adminCard.js<br/>admin list, structured search"]
   end
 
   subgraph Server["src"]
     Pipeline["load/: shedding, floors, budget, controller, pageLoads"]
-    TabsApi["routes/tabsApi.ts<br/>tabs, search, overlay, trending, live"]
+    TabsApi["routes/tabsApi.ts<br/>tabs, search, overlay, trending, live, line graph"]
+    LineGraph["polls/lineGraph.ts<br/>scales, UTC buckets, vote_history replay"]
     PollsApi["routes/pollsApi.ts<br/>vote, bookmarks, admin routes, admin search"]
     Api["routes/api.ts<br/>auth, profile, /api/config, /api/me"]
     Pages["routes/pages.ts + assets.ts<br/>HTML with fingerprinted references, ETag"]
@@ -100,7 +102,8 @@ flowchart TB
     Db["db/: schema, client, migrations, partitions"]
   end
 
-  Tabs --> Delta & Card
+  Tabs --> Delta & Card & Graph
+  Graph -- "GET line-graph" --> TabsApi
   Trending & SearchTab & Live --> Tabs
   Card --> Vote
   Tabs -- "POST refresh" --> TabsApi
@@ -108,12 +111,12 @@ flowchart TB
   Admin --> PollsApi
   App --> Api
   TabsApi & PollsApi --> Pipeline --> Sessions
-  TabsApi --> Deltas & Search & LiveS & TrendingS
+  TabsApi --> Deltas & Search & LiveS & TrendingS & LineGraph
   PollsApi --> VotePath & Store
   VotePath --> Counters & Versions
   Sweeps --> Counters & TrendingS & Search & Pipeline
-  Store & Counters & Versions & Search & LiveS & TrendingS & Sessions --> Cache
-  Store & Counters & Search & VotePath --> Db
+  Store & Counters & Versions & Search & LiveS & TrendingS & Sessions & LineGraph --> Cache
+  Store & Counters & Search & VotePath & LineGraph --> Db
 ```
 
 ## Patterns in use
@@ -137,6 +140,8 @@ flowchart TB
 erDiagram
   polls ||--o{ votes : "one row per participant"
   polls ||--o{ vote_history : "append-only, monthly partitions"
+  polls ||--o{ line_graph_tally : "per hour and choice, kept with vote_history"
+  polls ||--o{ line_graph_selection : "each voter's latest selection"
   polls ||--o{ poll_invitations : "status columns"
   polls ||--o{ invitation_history : "removed, already emailed"
   polls ||--o{ poll_bans : ""
@@ -224,6 +229,7 @@ boot from `src/db/migrations/`; a failing migration stops the process.
 | `listing:trending:*`, `listing:newest:*`, `search:<hash>` | the published TRENDING and Newest objects; a search's ids for ten seconds | the trending and newest sweeps; a search miss |
 | `queue:lag`; stream `votes`, group `writers` | the writers' lag; the queue | the consumer; the vote path |
 | `deleted-accounts` | addresses deleted in the last hour | account deletion; read by the consumer, which drops their queued votes |
+| `line-graph:<pid>` | one poll's line-graph series for every available scale, for `ENV_LINE_GRAPH_REFRESH_INTERVAL` | a line-graph request that missed |
 
 ## The vote path
 
@@ -340,8 +346,8 @@ never steals the focus.
 Any card can be shown on its own, in the tab it belongs to: a click on its title, its subtitle or
 the maximize button at the right of its title row, on either face. The tab's grid (`createGrid` in `tabs.js`) moves **the same
 card instance** out of its `.card-grid` into a `.maximized-card-grid` cloned from the page's
-`<template id="maximizedCardGrid">`, beside the hidden grid, with a
-placeholder panel beside it. While the card is maximized, its maximize buttons show a minimize
+`<template id="maximizedCardGrid">`, beside the hidden grid, with the vote-history line graph
+(below) in the column beside it. While the card is maximized, its maximize buttons show a minimize
 icon and close the view. Nothing is copied or fetched: the card stays in the grid's mounted
 map, so refreshes, votes and bookmarks keep reaching it, and its face and unsubmitted selection go
 with it. The card's `setMaximized(true)` adds `maximized-card-viewport` / `maximized-card-flip`
@@ -366,6 +372,57 @@ One page holds at most one maximized card (`maximized` in `tabs.js`), and every 
 browser cannot tell a recompute from a deletion, and a dropped poll stays shown until it is
 closed; its own votes and bookmarks are applied to it by `patchRetained`. Every other tab closes
 the view at once when its poll leaves. The address and the browser history are never changed.
+
+### The vote-history line graph
+
+The maximized view's right column shows how each choice's share moved over time. `tabs.js` calls
+`window.PollLineGraph?.mount(column, { pid, title, subtitle, card })` after `setMaximized(true)`,
+and `restore()`, the one way out, calls `unmount()`, which also stops the refresh timer.
+
+`GET /api/polls/:pid/line-graph` sits behind `...dynamic("refresh")` (shedding,
+the refresh floor and the budget) with no `requireSession`. Access is `mayViewResults` in
+`polls/access.ts`: a published public poll for anyone, guests included, or a private poll the
+caller can reach; a ban does not hide it. Every refusal, including a malformed id, is
+`404 { error: "Not found" }`, and access is checked before the cache. It takes no query: one answer
+carries every available scale, so switching scales in the browser sends no request and cannot meet
+the refresh floor.
+
+The graph never reads a poll's history at request time: a populated poll with 15 million
+`vote_history` rows would exhaust the server's memory. Instead the replay happens as votes are
+written. Every `vote_history` insert (`writeBatch`, `recordVote`, `insertVoteHistory`) calls
+`recordLineGraphTally` (`polls/lineGraphTally.ts`) in the same transaction. It replaces the
+address's previous selection in `line_graph_selection` and adds the change to `line_graph_tally`
+(per poll, hour and choice, with the voter count under the reserved id `""`), in the first hour
+boundary at or after the vote. A vote older than the address's latest one changes nothing. Migration
+`012-line-graph-tally` backfilled both tables from the history, and the populate script rebuilds a
+poll's tally after deleting its test votes (`rebuildLineGraphTally`). The tally is not subject to
+retention, so a graph keeps its history after the partitions it came from are dropped.
+
+`serveLineGraph` (`polls/lineGraph.ts`) reads the poll's first `vote_history` row (an index probe)
+to learn its span, and so which scales are offered: 1 Day always, 1 Week from one day of history,
+1 Month from seven days, 1 Year from 31 days; the default is the largest. It then reads
+`line-graph:<pid>`, and only on a miss sums the tally into each available scale's buckets, one grouped
+query per scale, at most buckets × choices rows each. Points are taken at UTC bucket boundaries (hourly for 1 Day
+and 1 Week, daily for 1 Month and 1 Year), from the first boundary after the window start or the
+first vote, whichever is later, plus a final point at "now", so the newest point and `totalVoted`
+equal the bar graph. A point counts every vote at or before its boundary, each address's latest
+selection winning, and uses `computeResults`'s formula (voters on a single-choice poll, selections
+on a multiple-choice one, rounded). A choice is drawn when its current share is above
+`ENV_LINE_GRAPH_MIN_VOTE_PERCENTAGE` (`0` draws all), and then across the whole window. The answer
+is cached for `ENV_LINE_GRAPH_REFRESH_INTERVAL` (clamped up to the live floor), so every viewer of a
+poll shares one computation per interval. A deleted account's anonymized votes count once per poll,
+because deletion gives each poll one placeholder address, in `line_graph_selection` too.
+
+`lineGraph.js` draws hand-rolled SVG: title, subtitle, a legend with each line's current share and
+the vote total, the plot, and a selector of the available scales. A line's colour is the choice's
+manual hex from the response, else the colour the card itself assigned (`card.resultColors()`), so
+lines and bars never disagree. A pointer over the plot places a crosshair at the nearest bucket with
+every line's share and the time (with the hour on hourly scales), formatted in the viewer's locale
+and time zone. A scale click redraws from the held response; a timer refetches it every
+`lineGraphRefreshIntervalMs` from `/api/config` and keeps the chosen scale. Fewer than two points shows "Not enough voting data to graph yet"; a `404` shows
+"Results are not available yet" and stops the timer; a failed first load shows "Graph unavailable
+right now", and a failed refresh keeps the last graph and tries again on the next tick. Its chrome
+is Material 3 tokens in `line-graph-m3.css`.
 
 ### Result bar percentages
 

@@ -1575,6 +1575,14 @@
                         ]
                       },
                       "description": "The enabled sign-in providers, in display order; empty in native mode"
+                    },
+                    "lineGraphMinVotePercentage": {
+                      "type": "integer",
+                      "description": "Whole-percent share a choice must exceed to be drawn on the line graph; 0 disables the filter."
+                    },
+                    "lineGraphRefreshIntervalMs": {
+                      "type": "integer",
+                      "description": "Line-graph refresh interval in milliseconds, already clamped to the live-refresh floor."
                     }
                   }
                 }
@@ -6477,6 +6485,142 @@
                       }
                     }
                   ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/polls/{pid}/line-graph": {
+      "get": {
+        "tags": [
+          "home"
+        ],
+        "operationId": "getPollLineGraph",
+        "summary": "The maximized view's vote-history line graph",
+        "description": "Read-only, guest-capable series of each drawn choice's cumulative vote share at UTC bucket boundaries, for every available scale at once, so switching scales needs no request. Summed from the poll's hourly tally (kept beside vote_history as votes are written) and shared by all viewers of a poll within one refresh interval. Served exactly when the caller may see the poll's results; every refusal — unknown, malformed or unpublished pid, unreachable private poll — is the same 404. Counted against the manual refresh floor.",
+        "parameters": [
+          {
+            "name": "pid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Every available scale's series; each scale's newest bucket is now and equals the bar graph's standing as of computation time. Fewer than two buckets in a scale means there is not enough data to graph it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "defaultScale",
+                    "availableScales",
+                    "totalVoted",
+                    "scales"
+                  ],
+                  "properties": {
+                    "defaultScale": {
+                      "type": "string",
+                      "enum": [
+                        "1d",
+                        "1w",
+                        "1m",
+                        "1y"
+                      ],
+                      "description": "The largest available scale, shown first."
+                    },
+                    "availableScales": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "1d",
+                          "1w",
+                          "1m",
+                          "1y"
+                        ]
+                      }
+                    },
+                    "totalVoted": {
+                      "type": "integer"
+                    },
+                    "scales": {
+                      "type": "object",
+                      "description": "One entry per available scale, keyed by its name.",
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": [
+                          "buckets",
+                          "series"
+                        ],
+                        "properties": {
+                          "buckets": {
+                            "type": "array",
+                            "description": "Epoch milliseconds, UTC hour/day aligned, ascending; the last element is now.",
+                            "items": {
+                              "type": "integer",
+                              "format": "int64"
+                            }
+                          },
+                          "series": {
+                            "type": "array",
+                            "description": "One entry per drawn choice, in the poll's choice order; points[i] pairs with buckets[i].",
+                            "items": {
+                              "type": "object",
+                              "required": [
+                                "id",
+                                "label",
+                                "color",
+                                "points"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "label": {
+                                  "type": "string"
+                                },
+                                "color": {
+                                  "type": "string",
+                                  "nullable": true,
+                                  "description": "The stored manual hex, else null."
+                                },
+                                "points": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "integer"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found — the one answer to every refusal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
                 }
               }
             }

@@ -1,0 +1,158 @@
+/* ==========================================================================
+   The maximized view's line graph (the right column lineGraph.js fills).
+   Material 3 tokens only: the lines' colours are data, set inline per choice
+   from the bar graph's own assignment, never from this sheet.
+   ========================================================================== */
+
+.line-graph{
+  display:grid;
+  gap:12px;
+}
+
+.line-graph-title{
+  margin:0;
+  font-family:var(--md-sys-typescale-font);
+  font-size:clamp(18px, 1.8vw, var(--md-sys-typescale-title-large-size));
+  font-weight:var(--md-sys-typescale-title-large-weight);
+  line-height:var(--md-sys-typescale-title-large-line-height);
+  color:var(--md-sys-color-on-surface);
+}
+
+.line-graph-subtitle{
+  margin:0;
+  font-family:var(--md-sys-typescale-font);
+  font-size:var(--md-sys-typescale-body-medium-size);
+  line-height:var(--md-sys-typescale-body-medium-line-height);
+  color:var(--md-sys-color-on-surface-variant);
+}
+
+.line-graph-note{
+  margin:0;
+  font-family:var(--md-sys-typescale-font);
+  font-size:var(--md-sys-typescale-body-medium-size);
+  line-height:var(--md-sys-typescale-body-medium-line-height);
+  color:var(--md-sys-color-on-surface-variant);
+}
+.line-graph-note[hidden]{ display:none; }
+
+.line-graph-legend{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:6px 14px;
+  font-family:var(--md-sys-typescale-font);
+  font-size:var(--md-sys-typescale-label-medium-size);
+  letter-spacing:var(--md-sys-typescale-label-medium-tracking);
+  color:var(--md-sys-color-on-surface);
+}
+.line-graph-legend[hidden]{ display:none; }
+
+.line-graph-legend-entry{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+}
+
+.line-graph-dot{
+  width:10px;
+  height:10px;
+  border-radius:50%;
+  flex:none;
+}
+
+.line-graph-legend-pct{
+  font-weight:var(--md-sys-typescale-label-medium-weight);
+  color:var(--md-sys-color-on-surface-variant);
+}
+
+.line-graph-total{
+  margin-left:auto;
+  color:var(--md-sys-color-on-surface-variant);
+}
+
+.line-graph-svg{
+  display:block;
+  width:100%;
+  height:auto;
+}
+
+.line-graph-svg text{
+  fill:var(--md-sys-color-on-surface-variant);
+  font-family:var(--md-sys-typescale-font);
+  font-size:var(--md-sys-typescale-label-small-size);
+}
+
+.line-graph-grid{
+  stroke:var(--md-sys-color-outline-variant);
+  stroke-width:1;
+}
+
+.line-graph-scales{
+  display:flex;
+  flex-wrap:wrap;
+  gap:4px;
+}
+.line-graph-scales[hidden]{ display:none; }
+
+.line-graph-scale{
+  appearance:none;
+  background:none;
+  border:0;
+  padding:6px 10px;
+  cursor:pointer;
+  font-family:var(--md-sys-typescale-font);
+  font-size:var(--md-sys-typescale-label-medium-size);
+  font-weight:var(--md-sys-typescale-label-medium-weight);
+  letter-spacing:var(--md-sys-typescale-label-medium-tracking);
+  color:var(--md-sys-color-on-surface-variant);
+}
+
+.line-graph-scale.is-selected{
+  color:var(--md-sys-color-primary);
+  text-decoration:underline;
+  text-underline-offset:4px;
+}
+
+.line-graph-plot{
+  position:relative;
+}
+
+.line-graph-crosshair{
+  stroke:var(--md-sys-color-outline);
+  stroke-width:1;
+  pointer-events:none;
+}
+
+.line-graph-tooltip{
+  position:absolute;
+  top:8px;
+  transform:translateX(-50%);
+  max-width:min(240px, 80%);
+  display:grid;
+  gap:4px;
+  padding:8px 10px;
+  border-radius:8px;
+  background:var(--md-sys-color-surface-container-high);
+  border:1px solid var(--md-sys-color-outline-variant);
+  pointer-events:none;
+  font-family:var(--md-sys-typescale-font);
+  font-size:var(--md-sys-typescale-label-medium-size);
+  letter-spacing:var(--md-sys-typescale-label-medium-tracking);
+  color:var(--md-sys-color-on-surface);
+}
+
+.line-graph-tooltip-time{
+  font-weight:var(--md-sys-typescale-label-medium-weight);
+  color:var(--md-sys-color-on-surface-variant);
+}
+
+.line-graph-tooltip-entry{
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+
+.line-graph-tooltip-pct{
+  margin-left:auto;
+  color:var(--md-sys-color-on-surface-variant);
+}

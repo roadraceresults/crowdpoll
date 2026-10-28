@@ -110,6 +110,10 @@ export interface AppConfig {
   newestRecomputeIntervalMs: number;
   floors: RefreshFloors;
   bursts: RefreshBursts;
+  /** Whole-percent share a choice must exceed to be drawn on the line graph; 0 disables the filter. */
+  lineGraphMinVotePercentage: number;
+  /** How often the maximized view's line graph refreshes, clamped up to the live-refresh floor. */
+  lineGraphRefreshIntervalMs: number;
   maxVotesPerIpPerMinute: number;
   maxLiveResultsPerUser: number;
   maxInvitationsPerDay: number;
@@ -177,6 +181,18 @@ function intVar(env: Env, name: string, fallback: number): number {
   if (!Number.isInteger(value) || value <= 0) {
     throw new ConfigError(
       `Invalid ${name}: "${raw}" — expected a positive integer.`
+    );
+  }
+  return value;
+}
+
+function nonNegativeIntVar(env: Env, name: string, fallback: number): number {
+  const raw = env[name];
+  if (raw === undefined || raw === "") return fallback;
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value < 0) {
+    throw new ConfigError(
+      `Invalid ${name}: "${raw}" — expected a non-negative integer.`
     );
   }
   return value;
@@ -373,6 +389,10 @@ export function loadConfig(env: Env = process.env): AppConfig {
     newestRecomputeIntervalMs,
     floors,
     bursts,
+    lineGraphMinVotePercentage: nonNegativeIntVar(env, "ENV_LINE_GRAPH_MIN_VOTE_PERCENTAGE", 1),
+    // Clamped up to the live floor so a misconfigured interval cannot undercut
+    // the tightest per-user refresh the service defends.
+    lineGraphRefreshIntervalMs: Math.max(intVar(env, "ENV_LINE_GRAPH_REFRESH_INTERVAL", 60_000), floors.live),
     maxVotesPerIpPerMinute: intVar(env, "ENV_MAX_VOTES_PER_IP_PER_MINUTE", 600),
     maxLiveResultsPerUser: intVar(env, "ENV_MAX_LIVE_RESULTS_PER_USER", 5),
     maxInvitationsPerDay: intVar(env, "ENV_MAX_INVITATIONS_PER_DAY", 200),

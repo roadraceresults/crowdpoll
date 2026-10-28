@@ -9,6 +9,7 @@ import { createDb, closeDb, type Db } from "../../src/db/client.js";
 import { CHOICE_LABEL_MAX, createDefaultPoll, TITLE_MAX } from "../../src/polls/service.js";
 import { findPollRow, insertPoll, updatePoll, type Choice } from "../../src/polls/store.js";
 import { reconcile } from "../../src/polls/counters.js";
+import { rebuildLineGraphTally } from "../../src/polls/lineGraphTally.js";
 import { refreshProjection } from "../../src/polls/versions.js";
 import { writeBatch } from "../../src/votes/consumer.js";
 
@@ -215,6 +216,7 @@ export async function populatePoll(deps: Deps, data: PollData, options: Options 
     const simulated = sql<boolean>`email like ${"test\\_%@" + SIMULATED_DOMAIN} escape '\\'`;
     const removed = await db.deleteFrom("votes").where("poll_id", "=", pid).where(simulated).executeTakeFirst();
     await db.deleteFrom("vote_history").where("poll_id", "=", pid).where(simulated).execute();
+    await rebuildLineGraphTally(db, pid);
     await db.deleteFrom("user_polls").where("poll_id", "=", pid).where("relation", "=", "voted").where(simulated).execute();
     votesDeleted = Number(removed.numDeletedRows);
     log(`[populate] Removed ${grouped(votesDeleted)} earlier test vote(s)`);

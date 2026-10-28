@@ -4,6 +4,7 @@ import type { AppConfig } from "../config.js";
 import type { Db } from "../db/client.js";
 import { ensureVoteHistoryPartition } from "../db/partitions.js";
 import { markEverVoted, upsertUserPolls } from "../polls/store.js";
+import { recordLineGraphTally } from "../polls/lineGraphTally.js";
 import { reconcile } from "../polls/counters.js";
 import { withoutDeletedAccounts } from "../legal/deletedAccounts.js";
 import { VOTE_GROUP, VOTE_STREAM } from "./queue.js";
@@ -106,6 +107,7 @@ export async function writeBatch(db: Db, queued: QueuedVote[]): Promise<void> {
         votes.map((v) => ({ poll_id: v.pid, email: v.email, user_name: v.userName, choice_ids: v.choiceIds, voted_at: v.votedAt }))
       )
       .execute();
+    await recordLineGraphTally(trx, votes);
     await markEverVoted(trx, [...new Set(votes.map((v) => v.pid))]);
     const latest = new Map<string, Date>();
     for (const v of votes) {
