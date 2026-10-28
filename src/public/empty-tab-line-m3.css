@@ -1,0 +1,29 @@
+/* Material 3 empty state as supporting text: https://m3.material.io/styles/typography/applying-type */
+
+/* ---------- 1. Supporting text ---------- */
+.tab-empty{
+  margin:0;
+  padding:16px;
+  border:0;
+  border-radius:var(--md-sys-shape-corner-medium);
+  background:transparent;
+  color:var(--md-sys-color-on-surface-variant);
+  font-family:var(--md-sys-typescale-font);
+  font-weight:var(--md-sys-typescale-body-medium-weight);
+  font-size:var(--md-sys-typescale-body-medium-size);
+  line-height:var(--md-sys-typescale-body-medium-line-height);
+  letter-spacing:var(--md-sys-typescale-body-medium-tracking);
+}
+
+/* ---------- 2. Alignment ---------- */
+.tab-empty{ text-align:center; }
+
+/* ---------- 3. Under a full grid ---------- */
+.card-grid:not(:empty) + .tab-empty{ margin-top:18px; }
+
+/* ---------- 4. Focus ---------- */
+.tab-empty:focus-visible{
+  outline:3px solid var(--md-sys-color-secondary);
+  outline-offset:2px;
+}
+.tab-empty:focus:not(:focus-visible){ outline:none; }

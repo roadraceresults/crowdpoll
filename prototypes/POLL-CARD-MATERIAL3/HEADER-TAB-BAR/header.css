@@ -1,0 +1,319 @@
+/*
+  HEADER — extracted from src/public/site.css (REQUIREMENT CrowdPoll Header and
+  Tab Bar): the :root tokens, the site header (brand, search box, Create Poll
+  link, header actions, guest buttons), .is-inert, and the session UI (user
+  name, avatar, avatar menu, cookie banner). Rules copied word for word.
+*/
+
+/* Same palette as pollGrid.css's :root — declared again here (not just
+   there) so the header renders correctly on pages that don't load
+   pollGrid.css. Only the properties actually used by rules in this file. */
+:root{
+  --ink:#1E2422;
+  --paper:#F1F3EE;
+  --paper-raised:#FFFFFF;
+  --moss:#3D5A46;
+  --moss-dark:#2C4234;
+  --line:#D8DCD3;
+  --muted:#6B7268;
+}
+
+/* ---------- Site header (moved from pollGrid.css, research.md R3) ----------
+   Same rules, byte-identical, just relocated so every page — not only the
+   ones that load pollGrid.css — can render the same header. */
+.site-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  flex-wrap:wrap;
+  margin-bottom:26px;
+}
+
+.brand{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex-shrink:0;
+}
+
+.brand-logo{
+  height:40px;
+  width:auto;
+  display:block;
+}
+
+.brand-wordmark{
+  height:40px;
+  width:auto;
+  display:block;
+}
+
+/* Same font family/weight as the filter-bar pills, just a step larger and
+   a shade darker since it's a primary nav item rather than a secondary
+   filter. */
+.header-nav{
+  display:flex;
+  align-items:center;
+  gap:18px;
+  flex-shrink:0;
+}
+
+.header-nav-link{
+  font-family:'Inter', sans-serif;
+  font-weight:600;
+  font-size:14.5px;
+  color:#4F564C;
+  text-decoration:none;
+  white-space:nowrap;
+  padding:0 40px;
+}
+
+.header-nav-link:hover{ color:var(--ink); }
+
+.header-search{
+  flex:1 1 auto;
+  max-width:640px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  height:40px;
+  padding:0 14px;
+  border-radius:10px;
+  border:1px solid var(--line);
+  background:var(--paper);
+}
+
+.header-search:focus-within{
+  border-color:#B7BDB5;
+  background:var(--paper-raised);
+}
+
+.search-icon{
+  width:16px;
+  height:16px;
+  flex-shrink:0;
+  color:var(--muted);
+}
+
+/* FIX013: the box is a live form. The magnifier submits; the X clears the terms;
+   the browser's own search-cancel glyph is hidden so there is one X. */
+.search-icon-btn{
+  flex-shrink:0;
+  display:flex;
+  padding:0;
+  border:0;
+  background:transparent;
+  color:var(--muted);
+  cursor:pointer;
+}
+.search-icon-btn:hover,
+.search-icon-btn:focus-visible{ color:var(--ink); }
+
+.header-search input{
+  flex:1 1 auto;
+  min-width:0;
+  padding:0;
+  border:none;
+  border-radius:0;
+  outline:none;
+  background:transparent;
+  font-family:'Inter', sans-serif;
+  font-size:13.5px;
+  font-weight:500;
+  color:var(--ink);
+}
+
+.header-search input::placeholder{ color:var(--muted); }
+.header-search input::-webkit-search-cancel-button{ -webkit-appearance:none; appearance:none; }
+
+.header-search-clear{
+  flex-shrink:0;
+  width:24px;
+  height:24px;
+  padding:0;
+  border:0;
+  border-radius:50%;
+  background:transparent;
+  color:var(--muted);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+}
+.header-search-clear:hover,
+.header-search-clear:focus-visible{ background:var(--paper); color:var(--ink); }
+.header-search-clear[hidden]{ display:none; }
+.header-search-clear svg{
+  width:15px;
+  height:15px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:2;
+  stroke-linecap:round;
+}
+
+.search-kbd{
+  flex-shrink:0;
+  font-family:'Inter', sans-serif;
+  font-size:13px;
+  color:#C3C8BC;
+}
+
+.header-actions{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-shrink:0;
+}
+
+/* Same visual language as the Poll Card's Submit button:
+   ink-filled pill for the primary action... */
+.btn-header-primary{
+  height:40px;
+  padding:0 16px;
+  border:none;
+  border-radius:12px;
+  background:var(--ink);
+  color:#F7F8F5;
+  font-family:'Inter', sans-serif;
+  font-weight:600;
+  font-size:13.5px;
+  white-space:nowrap;
+  cursor:pointer;
+}
+
+/* ...and a quieter, outlined twin for the secondary action. */
+.btn-header-ghost{
+  height:40px;
+  padding:0 16px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:var(--paper-raised);
+  color:var(--ink);
+  font-family:'Inter', sans-serif;
+  font-weight:600;
+  font-size:13.5px;
+  white-space:nowrap;
+  cursor:pointer;
+}
+
+.btn-header-ghost:hover{ background:var(--paper); }
+.btn-header-primary:hover{ background:var(--moss-dark); }
+
+.avatar-icon{
+  width:32px;
+  height:32px;
+  flex-shrink:0;
+  color:var(--ink);
+  cursor:pointer;
+  transition:color .15s ease;
+}
+
+.avatar-icon:hover{ color:var(--moss); }
+
+@media (max-width:767.98px){
+  .header-search{
+    order:3;
+    flex:1 1 100%;
+    max-width:none;
+    margin-top:4px;
+  }
+}
+
+@media (max-width:639.98px){
+  .site-header{ gap:12px; }
+  .header-actions{ gap:8px; }
+  .btn-header-ghost, .btn-header-primary{
+    height:36px;
+    padding:0 12px;
+    font-size:12.5px;
+  }
+  .avatar-icon{ width:28px; height:28px; }
+  .brand-logo{ height:32px; }
+  .brand-wordmark{ height:32px; }
+  .brand{ gap:5px; }
+  .header-nav-link{ font-size:13px; padding:0 16px; }
+}
+
+/* Greyed-out/inert reference elements kept for visual fidelity but not
+   wired to any feature this iteration: header "Create Poll" link,
+   category filter bar, card "Live Results" link (spec 004 Assumptions /
+   FR-035 / research.md R9). The "Search CrowdPoll" box is live (FIX013). */
+.is-inert{
+  opacity:0.5;
+  pointer-events:none;
+  cursor:default;
+}
+
+/* ---- Session UI (signed-in header area + cookie banner) ----
+   Copied from styles.css so poll pages don't need to load that sheet
+   (its element-level button/input rules bleed into the reference
+   components — e.g. button padding crushed the card's .icon-btn svg). */
+.header-user{
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:0.5rem;
+  font-family:'Inter', sans-serif;
+  font-weight:600;
+  font-size:13.5px;
+}
+.header-user .avatar{
+  width:2rem;
+  height:2rem;
+  border-radius:50%;
+  cursor:pointer;
+  border:1px solid var(--line);
+}
+.avatar-menu{
+  position:absolute;
+  top:2.4rem;
+  right:0;
+  background:var(--paper-raised);
+  border:1px solid var(--line);
+  border-radius:0.4rem;
+  box-shadow:0 4px 12px rgba(0, 0, 0, 0.12);
+  padding:0.25rem 0;
+  min-width:9rem;
+  z-index:10;
+}
+.avatar-menu a,
+.avatar-menu button{
+  display:block;
+  width:100%;
+  padding:0.45rem 0.9rem;
+  border:0;
+  background:none;
+  text-align:left;
+  font:inherit;
+  color:var(--ink);
+  cursor:pointer;
+  text-decoration:none;
+}
+.avatar-menu a:hover,
+.avatar-menu button:hover{ background:var(--paper); }
+
+#cookie-banner{
+  position:fixed;
+  inset:auto 0 0 0;
+  display:flex;
+  gap:1rem;
+  align-items:center;
+  justify-content:center;
+  flex-wrap:wrap;
+  padding:0.8rem 1rem;
+  background:var(--ink);
+  color:#fff;
+  font-family:'Inter', sans-serif;
+  z-index:20;
+}
+#cookie-banner button{
+  padding:0.55rem 1rem;
+  border:0;
+  border-radius:0.35rem;
+  background:#fff;
+  color:var(--ink);
+  font:inherit;
+  cursor:pointer;
+}

@@ -1,0 +1,266 @@
+/* Extracted from src/public/site.css: the :root tokens and the rules the poll card uses. */
+:root{
+  --ink:#1E2422;
+  --paper:#F1F3EE;
+  --paper-raised:#FFFFFF;
+  --moss:#3D5A46;
+  --moss-dark:#2C4234;
+  --line:#D8DCD3;
+  --muted:#6B7268;
+}
+
+.is-inert{
+  opacity:0.5;
+  pointer-events:none;
+  cursor:default;
+}
+
+/* FR-022: total participants who voted (and, for invitation-only polls,
+   not yet voted) shown alongside each poll's results. The reference
+   design has no equivalent element; typography mirrors .subtitle. */
+.poll-totals{
+  font-family:'Inter', sans-serif;
+  font-weight:500;
+  font-size:clamp(11px, 1vw, 12.5px);
+  line-height:1.4;
+  color:var(--muted);
+  margin:4px 0 0;
+}
+
+/* FIX022/FIX023: the lines under the action row. First line: the count on the
+   left (normal weight), "you voted" on the right in italics. Any other reason
+   the poll is listed in a personal tab (FIX020) — created by you, you are
+   invited — takes its own line, right-aligned and in italics. */
+.card-foot{ margin-top:8px; }
+.card-foot-row{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; }
+.card-foot .poll-totals{ margin:0; }
+.poll-voted,
+.poll-listed-because{
+  font-family:'Inter', sans-serif;
+  font-style:italic;
+  font-weight:500;
+  font-size:clamp(10.5px, 0.9vw, 12px);
+  line-height:1.4;
+  color:#9AA197;
+  margin:0;
+  text-align:right;
+}
+.poll-voted{ flex:0 0 auto; margin-left:auto; }
+.poll-listed-because{ margin-top:2px; }
+.poll-voted[hidden],
+.poll-listed-because[hidden]{ display:none; }
+
+/* 007-closed-state: pollCard.css's reference rules for these elements
+   (.live-link, and .btn-primary which .vote-btn/.submit-vote-btn both
+   carry) set display:flex unconditionally, which would otherwise defeat
+   the plain `hidden` attribute -- an author-origin rule always wins over
+   the `[hidden]{ display:none }` UA-stylesheet rule regardless of
+   specificity. .voting-scroll-wrap has no such override and needs none.
+
+   008-POLL-CARD-BACK-SIDE FR-001/FR-002: .poll-closed-message (both
+   variants, below) sets display:flex too and was missed here, so BOTH
+   closed-message elements rendered on every card -- open polls included.
+   On the back face the phantom is flex:1 1 auto next to the equally
+   flex:1 .voting-scroll-wrap, so it took roughly half the free space
+   plus its own 28px + 16px margin: that was the shortened choices
+   region and the empty band above the footer. One selector, because
+   the back variant carries this class too. */
+.live-link[hidden],
+.vote-btn[hidden],
+.submit-vote-btn[hidden],
+.poll-closed-message[hidden]{ display:none; }
+
+/* 008-POLL-CARD-BACK-SIDE FR-007: the two primary buttons carry the same
+   .btn-vote rules, so they matched only while pollCard.css's min-width:25%
+   floor exceeded both labels -- at narrow card widths "Submit vote" won and
+   "Vote" stayed short. The front button now contains a hidden copy of the
+   longer label and both children share one grid cell, so the column resolves
+   to max(label, sizer) and the pair matches at every width.
+
+   The grid is load-bearing, not stylistic: .btn-primary sets display:flex, and
+   a row flex container's max-content width is the SUM of its items -- a sizer
+   laid out beside the label would make this button about twice as wide as
+   intended. Scoped to .vote-btn so .submit-vote-btn stays a flex button and is
+   left alone; it already sizes to its own (longer) label.
+
+   Two cascade facts this relies on: site.css loads after pollCard.css
+   (index.html), so display:grid beats .btn-primary's display:flex at equal
+   specificity; and .vote-btn[hidden] above (0,2,0) still beats .vote-btn
+   (0,1,0), so 007-closed-state's hiding of the button keeps working. */
+.vote-btn{ display:grid; justify-content:center; align-content:center; }
+
+/* FIX017: the front action row is space-between with Live Results on the left
+   and Vote on the right; on the Live Results tab the link is hidden, which
+   would leave Vote as the first item, at the left. It keeps the right edge. */
+.card-front .actions .vote-btn{ margin-left:auto; }
+.vote-btn > *{ grid-area:1 / 1; }
+.btn-vote-sizer{ visibility:hidden; height:0; overflow:hidden; }
+
+/* FR-001: replaces "Live Results" (front) in place.
+   008-POLL-CARD-BACK-SIDE FR-008: typography now matches .poll-totals above
+   rather than .live-link-label, so the message reads as supporting
+   information. letter-spacing is dropped for the same reason -- it came from
+   .live-link-label and .poll-totals doesn't set it.
+   height:28px stays: this is a flex item in the footer row, so a fixed height
+   is what keeps the footer from moving when a poll closes (FR-006a), and it
+   guarantees the single line that requirement asks for. */
+.poll-closed-message{
+  color:var(--muted);
+  font-family:'Inter', sans-serif;
+  font-weight:500;
+  font-size:clamp(11px, 1vw, 12.5px);
+  line-height:1.4;
+  height:28px;
+  display:flex;
+  align-items:center;
+}
+
+/* 012 FR-042: the "momentarily unavailable" message. It occupies the same footer
+   slot as the closed message and inherits its box behaviour, so the footer does not
+   move when a poll enters or leaves editing. It is deliberately not styled as an
+   error: the state is transient and the voter's next action is simply to wait.
+   The two are mutually exclusive -- updateEditingState() hides the closed message
+   whenever this one is shown (FR-042a). */
+.poll-editing-message{
+  color:var(--muted);
+  font-family:'Inter', sans-serif;
+  font-weight:500;
+  font-size:clamp(11px, 1vw, 12.5px);
+  line-height:1.4;
+  min-height:28px;
+  display:flex;
+  align-items:center;
+}
+.poll-editing-message[hidden]{ display:none; }
+
+/* FR-006: replaces the choice bars (back) -- centered, roomier content
+   rather than a compact badge like the front variant.
+   008-POLL-CARD-BACK-SIDE FR-008: all typography declarations removed; they
+   are inherited from the base rule above so there is one place to change the
+   closed-message treatment. Only box behaviour is set here -- flex:1 1 auto is
+   what makes the message fill the shared region on a closed poll, and the
+   16px bottom margin matches .bar-scroll-wrap's so the footer doesn't move. */
+.poll-closed-message--back{
+  flex:1 1 auto;
+  min-height:0;
+  margin:0 0 16px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+}
+
+/* Non-text contrast: https://www.w3.org/TR/WCAG21/#non-text-contrast */
+.result-fill{
+  box-shadow:inset -2px 0 0 rgba(0,0,0,0.55);
+}
+
+/* 012 FR-057: the viewer may not vote in this poll — banned, not invited, or it is
+   full. Shares the footer slot with the closed and editing messages and inherits the
+   same restrained treatment: this is information, not an error the voter caused. */
+.poll-blocked-message{
+  color:var(--muted);
+  font-family:'Inter', sans-serif;
+  font-weight:1000;
+  font-size:clamp(14px, calc(1vw + 3px), 15.5px);
+  line-height:1.4;
+  min-height:28px;
+  display:flex;
+  align-items:center;
+}
+.poll-blocked-message[hidden]{ display:none; }
+
+/* 012 FR-058: a refused vote, on the back face. This one *is* a failure the voter
+   just hit, so it reads as an error rather than as supporting information. */
+.poll-vote-error{
+  color:#B0242E;
+  font-family:'Inter', sans-serif;
+  font-weight:1000;
+  font-size:clamp(14px, calc(1vw + 3px), 15.5px);
+  line-height:1.4;
+  margin:0 0 8px;
+}
+.poll-vote-error[hidden]{ display:none; }
+
+/* FIX03/FIX05: the Bookmark control is an icon at the right of the title row — a
+   tag with a star. Not bookmarked: a light grey outline (lighter than --muted,
+   so it reads as available rather than as text). Bookmarked: the tag in ink and
+   the star filled red. aria-pressed, set by the card, chooses between them. */
+.card-front .question-row,
+.card-back .question-row{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:8px;
+}
+.card-front .question-row .question,
+.card-back .question-row .question{ flex:1 1 auto; min-width:0; }
+.bookmark-btn{
+  flex:0 0 auto;
+  width:28px;
+  height:28px;
+  margin:-4px -4px 0 0;
+  padding:0;
+  border:0;
+  border-radius:8px;
+  background:transparent;
+  color:#9AA197;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer;
+}
+.bookmark-btn:hover,
+.bookmark-btn:focus-visible{ color:var(--muted); }
+.bookmark-btn svg{ width:24px; height:24px; display:block; }
+.bookmark-btn .bookmark-tag{
+  fill:none;
+  stroke:currentColor;
+  stroke-width:2;
+  stroke-linejoin:round;
+}
+.bookmark-btn .bookmark-hole{ fill:currentColor; }
+/* The star is drawn at half scale, so its stroke widths are doubled; the halo
+   underneath it knocks the tag's edge out where the two overlap. */
+.bookmark-btn .bookmark-halo{ fill:var(--paper-raised); stroke:var(--paper-raised); stroke-width:7; stroke-linejoin:round; }
+.bookmark-btn .bookmark-star{ fill:none; stroke:currentColor; stroke-width:3.4; stroke-linejoin:round; }
+.bookmark-btn[aria-pressed="true"]{ color:var(--ink); }
+.bookmark-btn[aria-pressed="true"] .bookmark-star{ fill:#E0342C; stroke:#E0342C; }
+.bookmark-btn[hidden]{ display:none; }
+.maximize-btn{
+  flex:0 0 auto;
+  width:28px;
+  height:28px;
+  margin:-4px -4px 0 0;
+  padding:0;
+  border:0;
+  border-radius:8px;
+  background:transparent;
+  color:#202020;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer;
+}
+.maximize-btn:hover{ background:rgba(0,0,0,0.06); }
+.maximize-btn:focus-visible{
+  background:rgba(0,0,0,0.06);
+  outline:2px solid var(--moss, #3D5A46);
+  outline-offset:2px;
+}
+.maximize-btn:active{ background:rgba(0,0,0,0.12); }
+.maximize-btn svg{ width:24px; height:24px; display:block; }
+.maximize-btn svg[hidden]{ display:none; }
+.card-viewport:not(.maximized-card-viewport) .question,
+.card-viewport:not(.maximized-card-viewport) .subtitle{ cursor:pointer; }
+.card-viewport:not(.maximized-card-viewport) .question:hover,
+.card-viewport:not(.maximized-card-viewport) .subtitle:hover{ text-decoration:underline; }
+
+/* 017: a vote accepted while the writers lag says so, in the footer slot the
+   other card messages use, until the next render of the card. */
+.poll-vote-notice{
+  color:var(--muted);
+  font-family:'Inter', sans-serif;
+  font-weight:600;
+  font-size:clamp(12px, calc(1vw + 2px), 13.5px);
+  line-height:1.4;
+  display:flex;
+  align-items:center;
+}
+.poll-vote-notice[hidden]{ display:none; }

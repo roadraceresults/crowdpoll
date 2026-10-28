@@ -1,0 +1,467 @@
+/* Material 3 header, tab bar and snackbars:
+   https://m3.material.io/components/tabs/specs
+   https://m3.material.io/components/search/specs
+   https://m3.material.io/components/menus/specs
+   https://m3.material.io/components/snackbar/specs */
+
+/* ---------- 2. Page and type ---------- */
+.site-header,
+.tab-bar-wrap,
+.tab-notice,
+#cookie-banner,
+.header-search input,
+.header-nav-link,
+.btn-header-ghost,
+.btn-header-primary,
+.header-user,
+.search-kbd{
+  font-family:var(--md-sys-typescale-font);
+}
+
+/* ---------- 3. Tab bar: M3 primary tabs, icon inline ---------- */
+.tab-bar-wrap{
+  align-items:flex-end;
+  gap:8px;
+}
+
+.tab-bar-wrap::after{
+  bottom:0;
+  height:1px;
+  background:var(--md-sys-color-outline-variant);
+}
+.tab-bar{
+  gap:0;
+  align-items:stretch;
+}
+.tab-bar .tab{
+  position:relative;
+  overflow:hidden;
+  height:48px;
+  padding:0 16px;
+  gap:8px;
+  border-radius:0;
+  background:none;
+  color:var(--md-sys-color-on-surface-variant);
+  font-family:var(--md-sys-typescale-font);
+  font-weight:500;
+  font-size:var(--md-sys-typescale-title-small-size);
+  line-height:var(--md-sys-typescale-title-small-line-height);
+  letter-spacing:var(--md-sys-typescale-title-small-tracking);
+}
+.tab-bar .tab.is-active{
+  background:none;
+  color:var(--md-sys-color-primary);
+}
+.tab-bar .tab:hover:not(.is-active):not(:disabled):not([aria-disabled="true"]){ background:none; }
+.tab-bar .tab.is-active::after{
+  content:'';
+  position:absolute;
+  left:16px;
+  right:16px;
+  bottom:0;
+  height:3px;
+  border-radius:3px 3px 0 0;
+  background:var(--md-sys-color-primary);
+}
+
+.tab-bar .tab:disabled,
+.tab-bar .tab[aria-disabled="true"]{
+  opacity:1;
+  color:color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+}
+.tab-bar .tab[aria-disabled="true"]{ cursor:not-allowed; }
+
+/* Scrollable tabs: with eight tabs the row is wider than a phone. M3 stacks the icon over
+   the label in a 64px tab at least 90px wide, left-aligned, and the bar scrolls sideways;
+   an edge fades where more tabs wait. */
+#tabBar{
+  margin-left:-16px;
+  scroll-padding:0 16px;
+  overscroll-behavior-x:contain;
+}
+#tabBar .tab{
+  flex-direction:column;
+  justify-content:center;
+  min-width:90px;
+  height:64px;
+  gap:2px;
+}
+#tabBar .tab .tab-icon{ width:24px; height:24px; }
+#tabBar .tab.is-active::after{ left:12px; right:12px; }
+.tab-bar-wrap.has-tabs-before #tabBar{
+  -webkit-mask-image:linear-gradient(to right, transparent 0, #000 var(--tab-fade, 24px));
+  mask-image:linear-gradient(to right, transparent 0, #000 var(--tab-fade, 24px));
+}
+.tab-bar-wrap.has-tabs-after #tabBar{
+  -webkit-mask-image:linear-gradient(to left, transparent 0, #000 var(--tab-fade, 24px));
+  mask-image:linear-gradient(to left, transparent 0, #000 var(--tab-fade, 24px));
+}
+.tab-bar-wrap.has-tabs-before.has-tabs-after #tabBar{
+  -webkit-mask-image:linear-gradient(to right, transparent 0, #000 var(--tab-fade, 24px), #000 calc(100% - var(--tab-fade, 24px)), transparent 100%);
+  mask-image:linear-gradient(to right, transparent 0, #000 var(--tab-fade, 24px), #000 calc(100% - var(--tab-fade, 24px)), transparent 100%);
+}
+
+/* ---------- 4. Tab icons: monochrome, 24px ---------- */
+.tab-icon [fill="#8093a7" i]{ fill:currentColor; }
+.tab-icon [fill="#e8edf2" i]{ fill:var(--paper); }
+.tab-icon [stroke="#9AA197" i]{ stroke:currentColor; }
+.tab .live-bars i:nth-child(n){ background:currentColor; }
+
+/* ---------- 5. Refresh: filled tonal icon button, 40px in the 48px row ---------- */
+.tab-bar-wrap .tab-refresh--icon{
+  position:relative;
+  overflow:hidden;
+  align-self:center;
+  width:40px;
+  height:40px;
+  border:0;
+  border-radius:var(--md-sys-shape-corner-full);
+  background:var(--md-sys-color-secondary-container);
+  color:var(--md-sys-color-on-secondary-container);
+}
+.tab-refresh--icon svg{ width:26px; height:26px; }
+.tab-bar-wrap .tab-refresh--icon:disabled{
+  opacity:1;
+  background:color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent);
+  color:color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+}
+
+/* ---------- 6. Search bar ---------- */
+.header-search,
+.header-search:focus-within{
+  height:56px;
+  padding:0 16px 0 8px;
+  gap:4px;
+  border:0;
+  border-radius:var(--md-sys-shape-corner-full);
+  background:var(--md-sys-color-surface-container-high);
+}
+.search-icon-btn,
+.header-search-clear{
+  position:relative;
+  overflow:hidden;
+  width:40px;
+  height:40px;
+  align-items:center;
+  justify-content:center;
+  border-radius:var(--md-sys-shape-corner-full);
+}
+.search-icon-btn{ color:var(--md-sys-color-on-surface); }
+.search-icon-btn:hover,
+.search-icon-btn:focus-visible{ color:var(--md-sys-color-on-surface); }
+.search-icon-btn .search-icon{ width:24px; height:24px; color:inherit; }
+.header-search-clear,
+.header-search-clear:hover,
+.header-search-clear:focus-visible{
+  background:transparent;
+  color:var(--md-sys-color-on-surface-variant);
+}
+.header-search-clear svg{ width:24px; height:24px; }
+.header-search input{
+  font-weight:400;
+  font-size:var(--md-sys-typescale-body-large-size);
+  line-height:var(--md-sys-typescale-body-large-line-height);
+  letter-spacing:var(--md-sys-typescale-body-large-tracking);
+  color:var(--md-sys-color-on-surface);
+}
+.header-search input::placeholder{ color:var(--md-sys-color-on-surface-variant); }
+.search-kbd{
+  margin-left:4px;
+  font-weight:500;
+  font-size:var(--md-sys-typescale-label-large-size);
+  letter-spacing:0.1px;
+  color:var(--md-sys-color-outline);
+}
+
+/* ---------- 7. Header controls and avatar menu ---------- */
+.btn-header-ghost,
+.btn-header-primary{
+  position:relative;
+  overflow:hidden;
+  height:40px;
+  padding:0 24px;
+  border-radius:var(--md-sys-shape-corner-full);
+  font-weight:500;
+  font-size:var(--md-sys-typescale-label-large-size);
+  line-height:20px;
+  letter-spacing:0.1px;
+}
+
+.btn-header-ghost,
+.btn-header-ghost:hover{
+  border:1px solid var(--md-sys-color-outline);
+  background:transparent;
+  color:var(--md-sys-color-primary);
+}
+
+.btn-header-primary,
+.btn-header-primary:hover{
+  background:var(--md-sys-color-primary);
+  color:var(--md-sys-color-on-primary);
+}
+@media (max-width:639.98px){
+  .btn-header-ghost,
+  .btn-header-primary{
+    height:40px;
+    padding:0 16px;
+    font-size:var(--md-sys-typescale-label-large-size);
+  }
+}
+
+.header-nav-link{
+  display:inline-flex;
+  align-items:center;
+  height:40px;
+  padding:0 12px;
+  margin:0 28px;
+  border-radius:var(--md-sys-shape-corner-full);
+  font-weight:500;
+  font-size:var(--md-sys-typescale-label-large-size);
+  letter-spacing:0.1px;
+  color:var(--md-sys-color-primary);
+}
+.header-nav-icon{ width:24px; height:24px; flex:0 0 auto; margin-right:8px; }
+.header-nav-link.is-inert{
+  opacity:1;
+  color:color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+}
+@media (max-width:639.98px){
+  .header-nav-link{ padding:0 12px; margin:0 4px; font-size:var(--md-sys-typescale-label-large-size); }
+}
+
+.header-user{
+  font-weight:500;
+  font-size:var(--md-sys-typescale-label-large-size);
+  letter-spacing:0.1px;
+  color:var(--md-sys-color-on-surface);
+}
+.header-user .avatar-btn{
+  position:relative;
+  display:inline-flex;
+  padding:0;
+  border:0;
+  border-radius:var(--md-sys-shape-corner-full);
+  background:none;
+  cursor:pointer;
+}
+.header-user .avatar-btn .avatar{
+  width:32px;
+  height:32px;
+  border:0;
+  transition:box-shadow 0.15s ease;
+}
+.header-user .avatar-btn:hover .avatar{
+  box-shadow:0 0 0 4px color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
+}
+.header-user .avatar-btn:focus-visible .avatar{
+  box-shadow:0 0 0 4px color-mix(in srgb, var(--md-sys-color-on-surface) 10%, transparent);
+}
+.header-user .avatar-btn:focus-visible{
+  outline:3px solid var(--md-sys-color-secondary);
+  outline-offset:2px;
+}
+
+.avatar-menu{
+  top:40px;
+  min-width:200px;
+  max-width:280px;
+  padding:4px 0;
+  border:1px solid var(--md-sys-color-outline-variant);
+  border-radius:var(--md-sys-shape-corner-medium);
+  background:var(--md-sys-color-surface);
+  box-shadow:0 2px 6px rgba(0,0,0,.15);
+}
+.avatar-menu a,
+.avatar-menu button{
+  position:relative;
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:10px 16px;
+  font-family:var(--md-sys-typescale-font);
+  font-weight:500;
+  font-size:calc(var(--md-sys-typescale-title-small-size) * var(--tab-label-scale, 1));
+  line-height:20px;
+  letter-spacing:0.1px;
+  white-space:nowrap;
+  color:var(--md-sys-color-on-surface-variant);
+}
+.avatar-menu-icon{ width:24px; height:24px; flex:0 0 auto; clip-path:circle(50%); }
+.avatar-menu a:hover,
+.avatar-menu button:hover{ background:none; }
+
+/* ---------- 8. Logo and wordmark in the dark scheme ---------- */
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .brand svg :is([fill="#000000" i], [fill="#020202" i], [fill="#030202" i], [fill="#030302" i], [fill="#30302F" i], [fill="#303030" i], [fill="#313030" i]){ fill:var(--md-sys-color-on-surface); } }
+:root[data-theme="dark"] .brand svg :is([fill="#000000" i], [fill="#020202" i], [fill="#030202" i], [fill="#030302" i], [fill="#30302F" i], [fill="#303030" i], [fill="#313030" i]){ fill:var(--md-sys-color-on-surface); }
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .brand svg [stroke="#000000" i]{ stroke:var(--md-sys-color-on-surface); } }
+:root[data-theme="dark"] .brand svg [stroke="#000000" i]{ stroke:var(--md-sys-color-on-surface); }
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .brand svg :is([fill="#FAFAFA" i], [fill="#FBFBFB" i], [fill="#FDFAFA" i], [fill="#F9F9F9" i], [fill="#EEEDED" i], [fill="#EAEAEA" i]){ fill:transparent; } }
+:root[data-theme="dark"] .brand svg :is([fill="#FAFAFA" i], [fill="#FBFBFB" i], [fill="#FDFAFA" i], [fill="#F9F9F9" i], [fill="#EEEDED" i], [fill="#EAEAEA" i]){ fill:transparent; }
+
+/* ---------- 9. Snackbars ---------- */
+.tab-notice,
+#cookie-banner{
+  position:fixed;
+  left:0;
+  right:0;
+  margin:0 auto;
+  width:min(672px, calc(100% - 32px));
+  min-height:48px;
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:0 8px;
+  border-radius:var(--md-sys-shape-corner-extra-small);
+  background:var(--md-sys-color-inverse-surface);
+  color:var(--md-sys-color-inverse-on-surface);
+  box-shadow:var(--md-sys-elevation-3);
+  font-weight:400;
+  font-size:var(--md-sys-typescale-body-medium-size);
+  line-height:var(--md-sys-typescale-body-medium-line-height);
+  letter-spacing:var(--md-sys-typescale-body-medium-tracking);
+  text-align:left;
+}
+.tab-notice{
+  z-index:30;
+  bottom:calc(16px + var(--cookie-banner-offset, 0px));
+  padding:14px 16px;
+  animation:m3-snackbar-in 150ms cubic-bezier(0.2, 0, 0, 1);
+}
+.tab-notice[hidden]{ display:none; }
+
+.tab-notice:has(.tab-notice-close){ padding:4px 4px 4px 16px; }
+.tab-notice-close{
+  position:relative;
+  overflow:hidden;
+  flex-shrink:0;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:40px;
+  height:40px;
+  margin-left:auto;
+  padding:0;
+  border:0;
+  border-radius:var(--md-sys-shape-corner-full);
+  background:transparent;
+  color:var(--md-sys-color-inverse-on-surface);
+  cursor:pointer;
+}
+.tab-notice-close svg{
+  width:24px;
+  height:24px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:2;
+  stroke-linecap:round;
+}
+
+#cookie-banner{
+  z-index:20;
+  bottom:16px;
+  justify-content:space-between;
+  padding:4px 8px 4px 16px;
+}
+#cookie-banner > span{
+  flex:1 1 240px;
+  padding:10px 0;
+}
+
+#cookie-banner button{
+  position:relative;
+  overflow:hidden;
+  height:40px;
+  margin-left:auto;
+  padding:0 12px;
+  border:0;
+  border-radius:var(--md-sys-shape-corner-full);
+  background:transparent;
+  color:var(--md-sys-color-inverse-primary);
+  font-weight:500;
+  font-size:var(--md-sys-typescale-label-large-size);
+  letter-spacing:0.1px;
+}
+
+@keyframes m3-snackbar-in{
+  from{ opacity:0; transform:translateY(8px); }
+  to{ opacity:1; transform:none; }
+}
+@media (prefers-reduced-motion: reduce){
+  .tab-notice{ animation:none; }
+}
+
+/* ---------- 10. State layers and focus ---------- */
+.tab-bar .tab::before,
+.tab-refresh--icon::before,
+.search-icon-btn::before,
+.header-search-clear::before,
+.btn-header-ghost::before,
+.btn-header-primary::before,
+.avatar-menu a::before,
+.avatar-menu button::before,
+#cookie-banner button::before,
+.tab-notice-close::before{
+  content:'';
+  position:absolute;
+  inset:0;
+  border-radius:inherit;
+  background:currentColor;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity 0.15s ease;
+}
+.tab-bar .tab:hover::before,
+.tab-refresh--icon:hover::before,
+.search-icon-btn:hover::before,
+.header-search-clear:hover::before,
+.btn-header-ghost:hover::before,
+.btn-header-primary:hover::before,
+.avatar-menu a:hover::before,
+.avatar-menu button:hover::before,
+#cookie-banner button:hover::before,
+.tab-notice-close:hover::before{ opacity:var(--md-sys-state-hover-state-layer-opacity); }
+
+.tab-bar .tab:focus-visible::before,
+.tab-refresh--icon:focus-visible::before,
+.search-icon-btn:focus-visible::before,
+.header-search-clear:focus-visible::before,
+.btn-header-ghost:focus-visible::before,
+.btn-header-primary:focus-visible::before,
+.avatar-menu a:focus-visible::before,
+.avatar-menu button:focus-visible::before,
+#cookie-banner button:focus-visible::before,
+.tab-notice-close:focus-visible::before{ opacity:var(--md-sys-state-focus-state-layer-opacity); }
+
+.tab-bar .tab:active::before,
+.tab-refresh--icon:active::before,
+.search-icon-btn:active::before,
+.header-search-clear:active::before,
+.btn-header-ghost:active::before,
+.btn-header-primary:active::before,
+.avatar-menu a:active::before,
+.avatar-menu button:active::before,
+#cookie-banner button:active::before,
+.tab-notice-close:active::before{ opacity:var(--md-sys-state-pressed-state-layer-opacity); }
+
+.tab-bar .tab:disabled::before,
+.tab-bar .tab[aria-disabled="true"]::before,
+.tab-refresh--icon:disabled::before{ opacity:0; }
+
+.tab-refresh--icon:focus-visible,
+.search-icon-btn:focus-visible,
+.header-search-clear:focus-visible,
+.btn-header-ghost:focus-visible,
+.btn-header-primary:focus-visible,
+#cookie-banner button:focus-visible,
+.tab-notice-close:focus-visible{
+  outline:3px solid var(--md-sys-color-secondary);
+  outline-offset:2px;
+}
+
+.tab-bar .tab:focus-visible,
+.avatar-menu a:focus-visible,
+.avatar-menu button:focus-visible{
+  outline:3px solid var(--md-sys-color-secondary);
+  outline-offset:-3px;
+}

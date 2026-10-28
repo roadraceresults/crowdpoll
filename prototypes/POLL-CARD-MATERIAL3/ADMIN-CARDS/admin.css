@@ -1,0 +1,875 @@
+/* Shared chrome for admin.html / admin-poll.html / admin-results.html —
+   plain form/table styling, not adopted from any reference design file
+   (the reference files only cover the voter-facing poll card/grid). */
+
+.admin-create-btn{ width:auto; padding:0 20px; margin-bottom:20px; }
+
+/* FIX010: Back and Create share one row above the view tabs; the tab bar itself
+   is the home page's (tabs.css), and the search form belongs to its tab. */
+.admin-toolbar{ display:flex; align-items:center; gap:14px; margin-bottom:14px; }
+.admin-toolbar .admin-back-link,
+.admin-toolbar .admin-create-btn{ margin-bottom:0; }
+.admin-tab-bar{ margin-bottom:16px; }
+.admin-search[hidden]{ display:none; }
+
+/* 014 FR-037: the create control is disabled while a card is being edited. .btn-primary
+   styles :disabled nowhere, and site.css's rule is scoped to .card-shell-action, so
+   without this the disabled button renders identically to a live one. */
+.admin-create-btn:disabled{ opacity:0.5; cursor:default; box-shadow:none; }
+
+/* Back to /admin — plain link (not History.back()) so the poll list always
+   re-fetches fresh data on return, placed above the Title field. */
+.admin-back-link{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:32px; height:32px; margin-bottom:10px; border-radius:8px; color:var(--ink);
+}
+.admin-back-link:hover{ background:var(--paper); }
+.admin-back-link svg{ width:20px; height:20px; }
+
+/* 012: tightened so the fields read as one form rather than a stack of
+   separate blocks. */
+.admin-field{ margin-bottom:10px; }
+.admin-field label{ display:block; font-weight:700; font-size:13px; margin-bottom:4px; }
+.admin-field textarea, .admin-field input, .admin-field select{
+  width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:8px;
+  font-family:inherit; font-size:13.5px; background:var(--paper-raised); color:var(--ink);
+}
+.admin-field textarea{ min-height:44px; resize:vertical; }
+/* Space is still reserved when empty, so a field does not jump when its error
+   appears — but less of it than before, since this sits under every field and was
+   the largest single contributor to the gaps between them. */
+.admin-field-error{ color:#B0242E; font-size:12.5px; min-height:1em; margin:2px 0 0; }
+.admin-field-row{ display:flex; gap:16px; flex-wrap:wrap; }
+.admin-field-row .admin-field{ flex:1 1 200px; }
+
+/* Label to the left of its box, on one line, to cut vertical space
+   (Title/Subtitle/Voter Count Limit). */
+.admin-field--inline{ display:flex; align-items:center; flex-wrap:wrap; gap:10px; }
+.admin-field--inline label{
+  flex:0 0 140px; margin-bottom:0;
+}
+.admin-field--inline textarea,
+.admin-field--inline input,
+.admin-field--inline select{
+  flex:1 1 auto; width:auto;
+}
+.admin-field--inline textarea{ min-height:36px; height:36px; }
+
+/* 012: a poll title is routinely more than one line, so the box starts at two
+   rather than making the author discover the scrollbar. Still resizable. */
+#pollTitle{ min-height:52px; height:52px; line-height:1.35; }
+.admin-field--inline .admin-field-error{ flex:0 0 100%; }
+
+/* Tighter vertical rhythm between Title/Subtitle/Choices specifically. */
+.admin-field--tight{ margin-bottom:4px; }
+
+.admin-choice-list{ list-style:none; margin:0 0 10px; padding:0; display:flex; flex-direction:column; gap:8px; }
+.admin-choice-list li{ display:flex; align-items:center; gap:8px; }
+
+/* Poll Choices editor (006-poll-choices-editor) — ported from
+   designDocs/smart-textbox.html. #choicesBox inherits its border/padding/
+   font from the shared .admin-field textarea rule above, and "Save Choices"
+   reuses .btn-header-ghost, so only the taller box height and the
+   hint/gutter layout need new rules here (research.md R4). */
+.choices-hint{ color:var(--muted); font-size:12.5px; margin:0 0 8px; }
+.choices-editor{ display:flex; align-items:flex-start; gap:14px; flex-wrap:wrap; }
+.choices-editor textarea{ flex:1 1 320px; min-width:260px; min-height:160px; }
+.choices-editor textarea.invalid{ border-color:#B0242E; }
+.choices-gutter{ flex:0 0 auto; display:flex; flex-direction:column; gap:10px; padding-top:2px; min-width:132px; }
+.choices-count{ font-variant-numeric:tabular-nums; font-size:12.5px; color:var(--muted); }
+.choices-count b{ color:var(--ink); font-weight:600; }
+.choices-count.invalid b{ color:#B0242E; }
+
+.admin-participant-list{ list-style:none; margin:0 0 14px; padding:0; }
+.admin-participant-list li{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:6px 0; border-bottom:1px solid var(--line); font-size:13.5px;
+}
+.admin-participant-list button{ font-size:12px; padding:4px 10px; height:auto; }
+
+/* Actions menu (kebab trigger + dropdown). The dropdown is positioned via
+   JS-computed `position:fixed` coordinates so it is never clipped by a card's
+   own bounds. */
+
+.actions-menu-trigger{
+  width:32px; height:32px; padding:0; margin:0; display:inline-flex;
+  align-items:center; justify-content:center; background:transparent;
+  border:1px solid transparent; border-radius:8px; cursor:pointer; color:var(--ink);
+}
+.actions-menu-trigger:hover, .actions-menu-trigger[aria-expanded="true"]{
+  background:var(--paper); border-color:var(--line);
+}
+.actions-menu-trigger svg{ width:18px; height:18px; pointer-events:none; }
+
+.actions-menu{
+  position:fixed; z-index:100; display:flex; flex-direction:column;
+  min-width:180px; background:var(--paper-raised); border:1px solid var(--line);
+  border-radius:10px; box-shadow:var(--shadow); padding:6px; gap:2px;
+}
+.actions-menu[hidden]{ display:none; }
+.actions-menu--flip-up{ box-shadow:0 -20px 50px -25px rgba(30,36,34,0.35); }
+
+.actions-menu a,
+.actions-menu button{
+  display:block; width:100%; margin:0; padding:8px 10px; border:none; border-radius:6px;
+  background:transparent; color:var(--ink); font-weight:500; font-size:13.5px;
+  text-align:left; text-decoration:none; cursor:pointer;
+}
+.actions-menu a:hover,
+.actions-menu button:hover{ background:var(--paper); text-decoration:none; }
+
+/* 011 T041: the publish bar sits with the back arrow, above the fields. */
+.admin-publish-bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 0 0 12px;
+}
+.admin-publish-bar button[disabled] {
+  opacity: 0.5;
+  cursor: default;
+}
+/* 011 FR-030: the reason a poll was rejected, at the top of the surface. */
+.admin-rejection-reason {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-left: 3px solid #b0261c;
+  background: #fae8e6;
+  color: #6d1712;
+  border-radius: 4px;
+}
+
+/* ── 012 US2: mechanics radio groups ─────────────────────────────────────────
+   FR-005 replaces three <select> controls with single-select radio groups, so
+   every option is visible without opening a menu. FR-004 freezes all three once
+   a poll has a vote, and the card then shows the value as a static label
+   (014: decided per fieldset by the card, see .mechanics-static below). */
+
+.admin-field-row--mechanics {
+  align-items: flex-start;
+}
+
+fieldset.mechanics-group {
+  border: 1px solid var(--rule, #d8d8d2);
+  border-radius: 4px;
+  padding: 8px 12px 10px;
+  margin: 0;
+  min-width: 0;
+}
+
+fieldset.mechanics-group legend {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.72;
+  padding: 0 4px;
+}
+
+.mechanics-radios {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* `.admin-field label` sets display:block, bold and a bottom margin — right for a
+   field caption, wrong for an option label. The <legend> is the caption here, so the
+   options reset back to normal weight and no stacking margin. */
+.mechanics-radios .radio-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 3px 4px;
+  margin-bottom: 0;
+  border-radius: 3px;
+  font-weight: 400;
+  font-size: 13px;
+  cursor: pointer;
+  line-height: 1.35;
+}
+
+.mechanics-radios .radio-option:hover {
+  background: var(--paper, #f4f4ef);
+}
+
+/* The shared `.admin-field input { width:100%; padding:8px 10px }` rule above is
+   meant for text boxes, but a radio group is a .admin-field too — so without this
+   every radio stretched to the full row width, shoving its label into a one-character
+   column at the far right edge. Reset the box explicitly rather than narrowing the
+   shared selector, which other fields depend on. */
+.mechanics-radios .radio-option input[type="radio"] {
+  width: auto;
+  flex: none;
+  margin: 2px 0 0;
+  padding: 0;
+}
+
+/* The label takes the remaining width. The long visibility values wrap on their
+   spaces and hyphens; `anywhere` is deliberately NOT used — it breaks mid-word, which
+   is what turned the width bug above into unreadable single-character columns. */
+.mechanics-radios .radio-option span {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+/* The static rendering is the exception, not the default. 014: the card decides
+   per fieldset — a poll that has been voted on renders its value with .is-frozen
+   and no radios at all — so it is keyed on that class, not on the <body>
+   [data-edit-mode] stamp the retired admin-poll page used to set. */
+.mechanics-static {
+  display: none;
+  width: auto;
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.mechanics-static.is-frozen { display: block; }
+
+/* FR-006: a Public Poll carries no voter limit, and the field says so by being
+   visibly inert rather than merely ignored. */
+/* The box takes four digits and no more — 500 is the ceiling, so a wider field only
+   invites values the server will refuse. The spinner is dropped because it cannot be
+   reached at this width and costs the digits their room. */
+#voterCountLimit {
+  flex: 0 0 auto;
+  width: 6ch;
+  appearance: textfield;
+  -moz-appearance: textfield;
+  text-align: center;
+}
+
+/* Sits beside the box, not inside it: a field sized for the three digits it accepts
+   cannot also hold an eleven-character hint. */
+.admin-field-hint {
+  flex: 0 0 auto;
+  font-size: 12.5px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.admin-field-hint:empty {
+  display: none;
+}
+
+#voterCountLimit::-webkit-outer-spin-button,
+#voterCountLimit::-webkit-inner-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+/* On a public poll the field reads "unlimited", so it widens just enough for the word.
+   No blanket opacity here: dimming the whole field on top of the placeholder's own
+   muted colour left the word barely legible, which defeats the point of showing it. */
+#voterCountLimitField.is-disabled #voterCountLimit {
+  width: 11ch;
+}
+
+#voterCountLimitField.is-disabled label {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+#voterCountLimit:disabled {
+  cursor: not-allowed;
+}
+
+#voterCountLimit:disabled::placeholder {
+  color: var(--ink);
+  opacity: 0.62;
+}
+
+#voterCountLimit:disabled {
+  background: var(--paper, #f4f4ef);
+}
+
+.admin-title-line {
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+/* FR-035: directly below the title, italic, a step smaller, minimal spacing. */
+.admin-subtitle-line {
+  font-style: italic;
+  font-size: 0.875em;
+  opacity: 0.78;
+  line-height: 1.25;
+  margin-top: 1px;
+}
+
+/* FR-036: the title's font, bold — rare enough that it earns the emphasis. */
+.admin-screening-line {
+  font-weight: 700;
+  line-height: 1.3;
+  margin-top: 4px;
+}
+
+.admin-row-error {
+  margin-top: 4px;
+  font-size: 0.875em;
+  color: var(--danger, #a5362a);
+}
+
+/* FR-024: always rendered, greyed when unavailable — which is what keeps columns
+   3-5 aligned down a table whose rows differ in height. */
+/* `color` is not optional here: styles.css styles every <button> as a filled accent
+   control with white text. Overriding `background` alone leaves that white text on a
+   transparent ground — an outlined box with nothing legible in it. */
+.admin-state-btn {
+  font: inherit;
+  font-size: 0.8125em;
+  padding: 3px 10px;
+  border: 1px solid var(--rule, #d8d8d2);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.admin-state-btn:hover:not(:disabled) {
+  background: var(--paper, #f4f4ef);
+}
+
+.admin-state-btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+/* ── 012 US5: title block, icons and empty dates ─────────────────────────────*/
+
+.admin-title-line {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.admin-title-link {
+  font-weight: 600;
+}
+
+/* FR-034: when neither editing nor updating is available the title is plain text,
+   so it must not keep the link's affordance. */
+.admin-title-line span {
+  font-weight: 600;
+}
+
+/* FR-038: an absent date is a statement, not a missing value — it reads as words,
+   set apart from a real timestamp without shouting. */
+.admin-date-absent {
+  font-style: italic;
+  opacity: 0.7;
+}
+
+/* Same as .admin-state-btn: the global button rule supplies white text, and this one
+   draws its border from currentColor too, so without an explicit colour it was an
+   invisible label inside an invisible box. */
+.admin-rescreen-btn {
+  font: inherit;
+  font-size: 0.8125em;
+  font-weight: 600;
+  padding: 2px 8px;
+  margin-right: 6px;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* FR-039: every icon is always rendered; a disabled one greys rather than vanishing,
+   so the column does not jump between rows. */
+td.admin-icon-cell {
+  white-space: nowrap;
+}
+
+.admin-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  margin-right: 2px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+.admin-icon-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.admin-icon-btn:hover:not(:disabled) {
+  background: var(--paper, #f4f4ef);
+  border-color: var(--rule, #d8d8d2);
+}
+
+.admin-icon-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* The pen sits inline with the title and should not carry the button box. */
+.admin-title-line .admin-icon-btn {
+  width: 20px;
+  height: 20px;
+  margin-right: 0;
+  flex: none;
+}
+
+/* ── 014: the poll administration card ──────────────────────────────────────
+   One card per poll in a single column. Width comes from .container, so the
+   card reflows instead of scrolling sideways as the table did. */
+
+.admin-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* REQUIREMENT002: the Poll Card's shadow and rounding (.card-face in pollCard.css):
+   the same hairline, var(--shadow) below it, 20px corners (18px under 480px).
+   A box-shadow takes no layout space, so the card's size is unchanged. */
+.poll-admin-card {
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  padding: 16px 18px;
+  /* REQUIREMENT006: fluid, capped at 420px and centred, like the Poll Card. */
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+@media (max-width: 479.98px) {
+  .poll-admin-card {
+    border-radius: 18px;
+  }
+}
+
+.card-status-line {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--paper, #f4f4ef);
+  border: 1px solid var(--line);
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.card-pen {
+  flex: 0 0 auto;
+}
+
+.card-state {
+  flex: 1 1 240px;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.card-state-value {
+  font-weight: 700;
+  font-size: 13.5px;
+}
+
+.card-state-detail {
+  font-size: 13px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.card-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.card-body {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.card-column {
+  flex: 1 1 320px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card-field {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+
+.card-field--stacked {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+}
+
+.card-field-label {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--muted);
+  flex: 0 0 auto;
+}
+
+.card-field-value {
+  font-size: 13.5px;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.card-choices .card-choice-list {
+  margin: 4px 0 0;
+  padding-left: 20px;
+  font-size: 13.5px;
+}
+
+.card-choices .card-choice-list li {
+  margin-bottom: 2px;
+  overflow-wrap: anywhere;
+}
+
+.card-schedule,
+.card-mechanics,
+.card-counts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.card-mechanics {
+  gap: 10px;
+}
+
+.card-state-buttons,
+.card-dates {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.card-dates .card-field {
+  flex: 1 1 160px;
+}
+
+@media (max-width: 639.98px) {
+  .card-body {
+    gap: 14px;
+  }
+  .poll-admin-card {
+    padding: 14px;
+  }
+}
+
+/* ── 014: roster sections inside the card's editing face ────────────────────
+   The list has a fixed height and no scrollbar, so paging never resizes the
+   card. --roster-rows carries the configured page size. */
+
+.card-rosters {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.roster-section {
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+.roster-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.roster-label {
+  margin: 0;
+  font-size: 14px;
+}
+
+.roster-toggle {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--rule, #d8d8d2);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  line-height: 1;
+}
+
+.roster-pager {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.roster-page-box {
+  width: 5ch;
+  padding: 2px 4px;
+  font: inherit;
+  text-align: center;
+}
+
+.roster-nav {
+  min-width: 26px;
+  height: 24px;
+  padding: 0 6px;
+  border: 1px solid var(--rule, #d8d8d2);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.roster-nav:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+.roster-list {
+  margin: 8px 0 0;
+  min-height: calc(var(--roster-rows, 10) * 2.1em);
+  overflow: hidden;
+}
+
+.roster-list--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.roster-message {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.roster-invite-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.roster-invite-row input {
+  flex: 1 1 220px;
+  padding: 6px 8px;
+}
+
+/* 017: the structured search above the poll list. */
+.admin-search{
+  margin:0 0 18px;
+  padding:14px 16px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:var(--paper-raised);
+}
+.admin-search-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  align-items:center;
+  margin-bottom:10px;
+}
+.admin-search-row:last-of-type{ margin-bottom:0; }
+.admin-search-row label{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  font-size:13px;
+  color:var(--muted);
+}
+.admin-search input,
+.admin-search select{
+  padding:7px 10px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:var(--paper);
+  color:var(--ink);
+  font:inherit;
+  font-size:13px;
+}
+.admin-search-text{ flex:1 1 240px; min-width:180px; }
+.admin-search-btn{ width:auto; height:36px; padding:0 16px; }
+.admin-search-clear{
+  padding:7px 14px;
+  border:1px solid var(--line);
+  border-radius:999px;
+  background:var(--paper);
+  color:var(--muted);
+  font:inherit;
+  font-size:13px;
+  cursor:pointer;
+}
+.admin-search-notice{
+  margin:0 0 14px;
+  font-size:13px;
+  color:var(--muted);
+}
+.admin-search-notice[hidden]{ display:none; }
+
+/* ── The admin cards' layout (REQUIREMENT Use Material 3 For the admin cards,
+   clarification 3a) ──────────────────────────────────────────────────────────
+   Only the arrangement of NON-ADMIN-POLL-EDITING/admin.css's wizard and
+   read-only face (REQUIREMENT006-021): containers, grids, gaps, sizes and the
+   320px floor. How every control looks is admin-card-m3.css. */
+
+/* REQUIREMENT006: the wizard. Settings Summary Section, Named Circles, step
+   panel, footer. */
+.poll-admin-card--new { display: flex; flex-direction: column; gap: 16px; }
+.poll-admin-card--new .card-status-line { margin: 0; }
+
+.wizard-summary { padding: 12px 14px; }
+.wizard-summary > :first-child { margin-top: 0; }
+.wizard-summary-text { margin: 6px 0 0; }
+.wizard-summary-title + .wizard-summary-text,
+.wizard-summary-subtitle + .wizard-summary-text { margin-top: 8px; }
+
+/* Named Circles: five equal columns, the short name above each circle
+   (REQUIREMENT008), a line joining the circles. */
+.wizard-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  position: relative;
+}
+.wizard-steps::before {
+  content: "";
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  top: 36px;                 /* label row (18px) + half the circle (18px) */
+  height: 2px;
+}
+.wizard-step { position: relative; }
+.wizard-step-btn {
+  width: 100%;
+  display: grid;
+  grid-template-rows: 18px 36px;
+  justify-items: center;
+  align-items: center;
+  padding: 0;
+}
+.wizard-step-label { grid-row: 1; white-space: nowrap; }
+.wizard-step-circle {
+  grid-row: 2;
+  box-sizing: border-box;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;        /* above the joining line */
+}
+
+/* Step panel */
+.wizard-panel { padding: 14px 14px 12px; display: flex; flex-direction: column; gap: 12px; }
+.wizard-panel-heading { margin: 0; }
+.wizard-panel-actions { display: flex; justify-content: flex-end; }
+.wizard-fields { display: flex; flex-direction: column; gap: 24px; }
+.wizard-how { display: flex; flex-direction: column; gap: 6px; }
+.wizard-question { margin: 6px 0 0; }
+.wizard-question:first-child { margin-top: 0; }
+.wizard-note { margin: 2px 0 0 40px; }
+.wizard-error { margin: 2px 0 0 40px; }
+.wizard-tz { margin: 6px 0 0; }
+.wizard-help dl { margin: 8px 0 0; }
+.wizard-help dt { margin-top: 8px; }
+.wizard-help dd { margin: 2px 0 0; }
+
+/* Radio lists (Steps 1, 4 and 5) */
+.m3-radio-list { display: flex; flex-direction: column; gap: 4px; }
+.m3-radio-item { display: flex; align-items: flex-start; gap: 12px; min-height: 48px; padding: 8px 8px 8px 4px; }
+.m3-radio-text { display: flex; flex-direction: column; gap: 2px; }
+.wizard-when .m3-radio-label { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 4px; }
+
+/* Copy link (Step 1) and Paste choices (Step 3) */
+.wizard-copy-link { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 0 8px 8px 40px; }
+.wizard-copy-note { margin: 0; }
+.wizard-copy-manual { box-sizing: border-box; width: 100%; }
+.wizard-paste { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-top: -12px; }
+
+/* Underlined fields (Steps 2 and 3) */
+.m3-field-box { display: flex; flex-direction: column; gap: 6px; padding: 0 0 6px; }
+.m3-field-input { display: block; box-sizing: border-box; width: 100%; margin: 0; padding: 0; resize: none; overflow: hidden; }
+.m3-field-below { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 6px 0 0; }
+.m3-field-support { margin: 0; }
+.m3-field-counter { flex: 0 0 auto; }
+.m3-field--choices .m3-field-input { min-height: calc(4 * 1.4em); }
+.m3-chip-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.m3-chip-input { flex: 1 1 80px; width: auto; min-width: 80px; height: 32px; }
+
+/* The switch row (Step 1, REQUIREMENT020) */
+.m3-switch-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 56px; padding: 8px 4px; }
+.m3-switch-text { display: flex; flex-direction: column; gap: 2px; }
+
+/* Footer: [Cancel] on the left, [Save] [Publish] on the right. */
+.wizard-footer { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.wizard-footer-right { display: flex; gap: 8px; }
+
+/* REQUIREMENT021: the read-only face, one column at every width. */
+.card-readonly { display: flex; flex-direction: column; gap: 12px; }
+.card-panel { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; }
+.card-dates-panel .card-state-buttons { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+/* The header stays on one line down to about 360px, then the icons wrap under
+   the state. */
+.card-readonly-header { align-items: center; margin-bottom: 12px; }
+.card-readonly-header .card-state { flex: 1 1 auto; }
+.card-readonly-header .card-actions { gap: 0; }
+
+/* REQUIREMENT007: the wizard works down to a 320px window and stops shrinking
+   below it (292px = 320px minus the two 14px page gutters). Below the floor the
+   page scrolls sideways instead of cutting the card off. */
+.poll-admin-card { min-width: 292px; }
+.page { overflow-x: auto; }
+
+/* Tighter spacing below 360px, so the wizard is comfortable at 320px. */
+@media (max-width: 359.98px) {
+  .poll-admin-card--new { padding: 12px; }
+  .wizard-footer .btn-header-ghost,
+  .wizard-footer .btn-header-primary { padding: 0 12px; }
+  .wizard-step-btn { grid-template-rows: 18px 32px; }
+  .wizard-step-circle { width: 32px; height: 32px; }
+  .wizard-steps::before { top: 34px; }   /* label row (18px) + half the circle (16px) */
+}

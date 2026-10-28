@@ -1,0 +1,74 @@
+/* Material 3 outlined card with text buttons:
+   https://m3.material.io/components/cards/specs
+   https://m3.material.io/components/buttons/specs */
+
+/* ---------- 1. Container ---------- */
+.live-idle-prompt{
+  padding:16px;
+  border:1px solid var(--md-sys-color-outline-variant);
+  border-radius:var(--md-sys-shape-corner-medium);
+  background:var(--md-sys-color-surface-container-low);
+  color:var(--md-sys-color-on-surface);
+  box-shadow:none;
+}
+
+/* ---------- 2. Text ---------- */
+.live-idle-text{
+  margin:0 0 8px;
+  font-family:var(--md-sys-typescale-font);
+  font-weight:var(--md-sys-typescale-body-medium-weight);
+  font-size:var(--md-sys-typescale-body-medium-size);
+  line-height:var(--md-sys-typescale-body-medium-line-height);
+  letter-spacing:var(--md-sys-typescale-body-medium-tracking);
+  color:var(--md-sys-color-on-surface);
+}
+
+/* ---------- 3. Actions, Cancel and Yes ---------- */
+.live-idle-actions{
+  gap:8px;
+  margin-inline-end:-4px;
+}
+.live-idle-prompt .tab-refresh{
+  position:relative;
+  overflow:hidden;
+  height:40px;
+  min-width:48px;
+  padding:0 12px;
+  border:0;
+  border-radius:var(--md-sys-shape-corner-full);
+  background:transparent;
+  color:var(--md-sys-color-primary);
+  font-family:var(--md-sys-typescale-font);
+  font-weight:var(--md-sys-typescale-label-large-weight);
+  font-size:var(--md-sys-typescale-label-large-size);
+  line-height:var(--md-sys-typescale-label-large-line-height);
+  letter-spacing:var(--md-sys-typescale-label-large-tracking);
+}
+
+/* ---------- 4. State layer and focus ---------- */
+.live-idle-prompt .tab-refresh::before{
+  content:'';
+  position:absolute;
+  inset:0;
+  border-radius:inherit;
+  background:currentColor;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity 0.15s ease;
+}
+.live-idle-prompt .tab-refresh:hover::before{ opacity:var(--md-sys-state-hover-state-layer-opacity); }
+.live-idle-prompt .tab-refresh:focus-visible::before{ opacity:var(--md-sys-state-focus-state-layer-opacity); }
+.live-idle-prompt .tab-refresh:active::before{ opacity:var(--md-sys-state-pressed-state-layer-opacity); }
+.live-idle-prompt .tab-refresh:focus-visible{
+  outline:3px solid var(--md-sys-color-secondary);
+  outline-offset:2px;
+}
+
+/* ---------- 5. Entrance ---------- */
+.live-idle-prompt{ animation:m3-idle-prompt-in 200ms var(--md-sys-motion-easing-emphasized-decelerate); }
+@keyframes m3-idle-prompt-in{
+  from{ opacity:0; transform:translateY(-8px); }
+}
+@media (prefers-reduced-motion: reduce){
+  .live-idle-prompt{ animation:none; }
+}

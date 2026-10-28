@@ -1,0 +1,48 @@
+/*
+  PAGE WRAPPERS — .page-decor, .page, .maximized-card-container, .maximized-card-grid
+  ======================================================
+  Extracted 2026-09-22 from src/public/tabs.css (lines 8-20, 33-56, 197-199)
+  so the single card sits inside the same page shell the application gives it:
+  the centred 1280px column, its padding, and the fixed background wash.
+
+  What is deliberately NOT here: the tab bar, the tab panels, the empty-state
+  line, the notice, the idle prompt, and the .card-grid — the whole point of
+  this copy is one card without them. The grid rule is at
+  src/public/tabs.css:185-189 if it is ever wanted back.
+
+  The --max-width token belongs to this sheet in production (tabs.css's :root);
+  the rest of the tokens come from poll-card.css, which is loaded first.
+*/
+
+:root{
+  --max-width:1280px;
+}
+
+.page-decor{
+  position:fixed; inset:0; pointer-events:none; z-index:0;
+  background:
+    radial-gradient(600px 400px at 12% 8%, rgba(61,90,70,0.06), transparent 60%),
+    radial-gradient(500px 380px at 90% 95%, rgba(232,163,61,0.08), transparent 60%);
+}
+
+/* ---------- Outer page + centering rule ---------- */
+.page{
+  position:relative;
+  z-index:1;
+  overflow-x:clip;
+  width:100%;
+  display:flex;
+  justify-content:center;
+}
+
+.maximized-card-container{
+  width:100%;
+  max-width:var(--max-width);   /* content never exceeds 1280px */
+  padding:32px 20px 60px;
+}
+
+.maximized-card-grid{ display:block; }
+
+@media (max-width:639.98px){
+  .maximized-card-container{ padding:20px 14px 40px; }
+}

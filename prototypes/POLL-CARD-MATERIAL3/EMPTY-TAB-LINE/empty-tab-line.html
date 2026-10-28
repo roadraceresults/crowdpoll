@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Empty-Tab Line</title>
+  <!-- REQUIREMENT empty-tab line (.tab-empty): the line each tab shows when it
+       has nothing to list, extracted from src/public/index.html, tabs.js and
+       tabs.css, in index.html's six tab panels, without the site header, tab
+       bar or footer. Open this file directly; no server is needed.
+       REQUIREMENT Use Material 3 For empty-tab line (.tab-empty):
+       ../pollCard-m3.css for the roles, type scale and tokens, then the line's
+       own Material 3 layer, empty-tab-line-m3.css, last. No script changes. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,440;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <!-- index.html's order (page and grid styles, then site.css), without
+       pollCard.css: no card is drawn. empty-tab-line.css holds the .tab-empty
+       rules, which the shared ../tabs.css lacks. -->
+  <link rel="stylesheet" href="../tabs.css">
+  <link rel="stylesheet" href="../site.css">
+  <link rel="stylesheet" href="../pollCard-m3.css">
+  <link rel="stylesheet" href="empty-tab-line.css">
+  <link rel="stylesheet" href="empty-tab-line-m3.css">
+  <style>
+    .prototype-bar{ display:flex; align-items:center; flex-wrap:wrap; gap:10px; padding:0 0 6px;
+      font:500 13px 'Inter', sans-serif; color:var(--muted); }
+    .prototype-bar select, .prototype-bar button{ font:inherit; padding:4px 8px; max-width:100%; }
+    .prototype-note{ min-height:18px; margin:0 0 12px; font:500 13px 'Inter', sans-serif; color:var(--muted); }
+
+    /* Static placeholders shaped like grid cards, for the Search line shown
+       below a full grid (clarification 2a), as in ../LIVE-RESULTS-IDLE-PROMPT/.
+       Not production markup. */
+    .placeholder-card{ display:flex; flex-direction:column; gap:10px; min-height:260px; padding:18px;
+      border:1px solid var(--line); border-radius:12px; background:var(--paper-raised); box-shadow:var(--shadow); }
+    .placeholder-title{ height:18px; width:70%; border-radius:4px; background:var(--ink); opacity:.75; }
+    .placeholder-line{ height:10px; width:45%; border-radius:4px; background:var(--muted); opacity:.5; }
+    .placeholder-bar{ height:28px; border-radius:6px; background:var(--amber-tint); }
+    .placeholder-bar:nth-of-type(odd){ background:rgba(61,90,70,0.18); }
+  </style>
+</head>
+<body>
+
+<div class="page-decor"></div>
+
+<div class="page">
+  <div class="container">
+    <div class="layout">
+
+      <div class="prototype-bar">
+        <label for="themePicker">Theme</label>
+        <select id="themePicker">
+          <option value="system">System</option>
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+        </select>
+        <label for="tabPicker">Tab</label>
+        <select id="tabPicker">
+          <option value="trending">Trending</option>
+          <option value="newest">Newest</option>
+          <option value="private">Private</option>
+          <option value="favourites">Favorites</option>
+          <option value="live">Live Results</option>
+          <option value="search">Search</option>
+        </select>
+        <label for="textPicker">Text</label>
+        <select id="textPicker"></select>
+        <button type="button" id="focusLine">Focus line</button>
+      </div>
+      <p class="prototype-note" id="prototypeNote" aria-live="polite"></p>
+
+      <main class="all-markets">
+        <!-- index.html's <main> and six tab panels, as is. -->
+        <section class="tab-panel" data-panel="trending"><div class="card-grid"></div><p class="tab-empty" hidden></p></section>
+        <section class="tab-panel" data-panel="newest" hidden><div class="card-grid"></div><p class="tab-empty" hidden></p></section>
+        <section class="tab-panel" data-panel="private" hidden><div class="card-grid"></div><p class="tab-empty" hidden></p></section>
+        <section class="tab-panel" data-panel="favourites" hidden><div class="card-grid"></div><p class="tab-empty" hidden></p></section>
+        <section class="tab-panel" data-panel="live" hidden><div class="card-grid"></div><p class="tab-empty" hidden></p></section>
+        <section class="tab-panel" data-panel="search" hidden><div class="card-grid"></div><p class="tab-empty" hidden></p></section>
+      </main>
+
+    </div>
+  </div>
+</div>
+
+<script src="emptyTabLine.js" defer></script>
+<script src="harness.js" defer></script>
+</body>
+</html>

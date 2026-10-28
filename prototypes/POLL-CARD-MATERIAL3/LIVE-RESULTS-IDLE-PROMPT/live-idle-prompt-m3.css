@@ -1,0 +1,93 @@
+/*
+  LIVE RESULTS IDLE PROMPT — MATERIAL 3 LAYER (REQUIREMENT Use Material 3 For
+  Live Results idle prompt): an M3 outlined card, inline above the grid, with
+  two text buttons. Loaded after ../pollCard-m3.css, whose roles, type scale
+  and shape and state tokens it reads, and after live-idle-prompt.css, which
+  stays a copy of production. The ripple is live-idle-prompt-m3.js;
+  .m3-ripple comes from ../pollCard-m3.css.
+
+  Order: 1 container, 2 text, 3 actions, Cancel and Yes, 4 state layer and
+  focus, 5 entrance.
+*/
+
+:root{
+  --md-sys-motion-easing-emphasized-decelerate:cubic-bezier(0.05, 0.7, 0.1, 1);
+}
+
+/* ---------- 1. Container (clarification 1a) ----------
+   An outlined card: a hairline instead of elevation, in both schemes. It
+   keeps production's place (first in the panel) and its 16px bottom margin. */
+.live-idle-prompt{
+  padding:16px;
+  border:1px solid var(--md-sys-color-outline-variant);
+  border-radius:var(--md-sys-shape-corner-medium);
+  background:var(--md-sys-color-surface-container-low);
+  color:var(--md-sys-color-on-surface);
+  box-shadow:none;
+}
+
+/* ---------- 2. Text (clarification 3a) ---------- */
+.live-idle-text{
+  margin:0 0 8px;
+  font-family:var(--md-sys-typescale-font);
+  font-weight:var(--md-sys-typescale-body-medium-weight);
+  font-size:var(--md-sys-typescale-body-medium-size);
+  line-height:var(--md-sys-typescale-body-medium-line-height);
+  letter-spacing:var(--md-sys-typescale-body-medium-tracking);
+  color:var(--md-sys-color-on-surface);
+}
+
+/* ---------- 3. Actions, Cancel and Yes (clarification 2a) ----------
+   Two text buttons, as Tabs.modal's OK. (0,2,0) outranks production's
+   .tab-refresh (0,1,0). The row reaches 4px into the padding so the label
+   of Yes, not its invisible edge, lines up with the text. */
+.live-idle-actions{
+  gap:8px;
+  margin-inline-end:-4px;
+}
+.live-idle-prompt .tab-refresh{
+  position:relative;
+  overflow:hidden;
+  height:40px;
+  min-width:48px;
+  padding:0 12px;
+  border:0;
+  border-radius:var(--md-sys-shape-corner-full);
+  background:transparent;
+  color:var(--md-sys-color-primary);
+  font-family:var(--md-sys-typescale-font);
+  font-weight:var(--md-sys-typescale-label-large-weight);
+  font-size:var(--md-sys-typescale-label-large-size);
+  line-height:var(--md-sys-typescale-label-large-line-height);
+  letter-spacing:var(--md-sys-typescale-label-large-tracking);
+}
+
+/* ---------- 4. State layer and focus ----------
+   As the card's buttons (../pollCard-m3.css section 6) and Tabs.modal's OK. */
+.live-idle-prompt .tab-refresh::before{
+  content:'';
+  position:absolute;
+  inset:0;
+  border-radius:inherit;
+  background:currentColor;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity 0.15s ease;
+}
+.live-idle-prompt .tab-refresh:hover::before{ opacity:var(--md-sys-state-hover-state-layer-opacity); }
+.live-idle-prompt .tab-refresh:focus-visible::before{ opacity:var(--md-sys-state-focus-state-layer-opacity); }
+.live-idle-prompt .tab-refresh:active::before{ opacity:var(--md-sys-state-pressed-state-layer-opacity); }
+.live-idle-prompt .tab-refresh:focus-visible{
+  outline:3px solid var(--md-sys-color-secondary);
+  outline-offset:2px;
+}
+
+/* ---------- 5. Entrance ----------
+   Enter only: showIdlePrompt() removes the card at once on Yes or Cancel. */
+.live-idle-prompt{ animation:m3-idle-prompt-in 200ms var(--md-sys-motion-easing-emphasized-decelerate); }
+@keyframes m3-idle-prompt-in{
+  from{ opacity:0; transform:translateY(-8px); }
+}
+@media (prefers-reduced-motion: reduce){
+  .live-idle-prompt{ animation:none; }
+}

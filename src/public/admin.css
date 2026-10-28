@@ -1,0 +1,431 @@
+/* Shared chrome for admin.html / admin-poll.html / admin-results.html —
+   plain form/table styling, not adopted from any reference design file
+   (the reference files only cover the voter-facing poll card/grid). */
+
+.admin-create-btn{ width:auto; padding:0 20px; margin-bottom:20px; }
+
+/* FIX010: Back and Create share one row above the view tabs; the tab bar itself
+   is the home page's (tabs.css), and the search form belongs to its tab. */
+.admin-toolbar{ display:flex; align-items:center; gap:14px; margin-bottom:14px; }
+.admin-toolbar .admin-back-link,
+.admin-toolbar .admin-create-btn{ margin-bottom:0; }
+/* Back stays at the page's edge; Create New Poll lines up with the cards' centred 420px column. */
+@media (min-width: 560px) {
+  .admin-toolbar{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,420px) minmax(0,1fr); }
+  .admin-toolbar .admin-back-link{ justify-self:start; }
+  .admin-toolbar .admin-create-btn{ grid-column:2; justify-self:start; }
+}
+/* The view tabs sit in the same centred 420px column as the cards and Create New Poll. */
+.admin-tab-bar{ width:min(420px,100%); margin:0 auto 16px; justify-content:center; }
+.admin-search[hidden]{ display:none; }
+
+/* 014 FR-037: the create control is disabled while a card is being edited. .btn-primary
+   styles :disabled nowhere, and site.css's rule is scoped to .card-shell-action, so
+   without this the disabled button renders identically to a live one. */
+.admin-create-btn:disabled{ opacity:0.5; cursor:default; box-shadow:none; }
+
+/* Back to /admin — plain link (not History.back()) so the poll list always
+   re-fetches fresh data on return, placed above the Title field. */
+/* The home page's Refresh treatment: a 40px filled tonal icon button with M3 state layers. */
+.admin-back-link{
+  position:relative; overflow:hidden;
+  display:inline-flex; align-items:center; justify-content:center;
+  width:40px; height:40px; margin-bottom:10px;
+  border-radius:var(--md-sys-shape-corner-full);
+  background:var(--md-sys-color-secondary-container);
+  color:var(--md-sys-color-on-secondary-container);
+}
+.admin-back-link::before{
+  content:''; position:absolute; inset:0; border-radius:inherit;
+  background:currentColor; opacity:0; pointer-events:none; transition:opacity 0.15s ease;
+}
+.admin-back-link:hover::before{ opacity:var(--md-sys-state-hover-state-layer-opacity); }
+.admin-back-link:focus-visible::before{ opacity:var(--md-sys-state-focus-state-layer-opacity); }
+.admin-back-link:active::before{ opacity:var(--md-sys-state-pressed-state-layer-opacity); }
+.admin-back-link:focus-visible{ outline:3px solid var(--md-sys-color-secondary); outline-offset:2px; }
+.admin-back-link svg{ width:26px; height:26px; }
+
+/* 012: tightened so the fields read as one form rather than a stack of
+   separate blocks. */
+.admin-field{ margin-bottom:10px; }
+.admin-field label{ display:block; font-weight:700; font-size:13px; margin-bottom:4px; }
+.admin-field textarea, .admin-field input, .admin-field select{
+  width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:8px;
+  font-family:inherit; font-size:13.5px; background:var(--paper-raised); color:var(--ink);
+}
+.admin-field textarea{ min-height:44px; resize:vertical; }
+
+.admin-field-row{ display:flex; gap:16px; flex-wrap:wrap; }
+.admin-field-row .admin-field{ flex:1 1 200px; }
+
+.admin-choice-list{ list-style:none; margin:0 0 10px; padding:0; display:flex; flex-direction:column; gap:8px; }
+.admin-choice-list li{ display:flex; align-items:center; gap:8px; }
+
+.admin-participant-list{ list-style:none; margin:0 0 14px; padding:0; }
+.admin-participant-list li{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:6px 0; border-bottom:1px solid var(--line); font-size:13.5px;
+}
+.admin-participant-list button{ font-size:12px; padding:4px 10px; height:auto; }
+
+/* Actions menu (kebab trigger + dropdown). The dropdown is positioned via
+   JS-computed `position:fixed` coordinates so it is never clipped by a card's
+   own bounds. */
+
+.actions-menu-trigger{
+  width:32px; height:32px; padding:0; margin:0; display:inline-flex;
+  align-items:center; justify-content:center; background:transparent;
+  border:1px solid transparent; border-radius:8px; cursor:pointer; color:var(--ink);
+}
+.actions-menu-trigger:hover, .actions-menu-trigger[aria-expanded="true"]{
+  background:var(--paper); border-color:var(--line);
+}
+.actions-menu-trigger svg{ width:18px; height:18px; pointer-events:none; }
+
+.actions-menu{
+  position:fixed; z-index:100; display:flex; flex-direction:column;
+  min-width:180px; background:var(--paper-raised); border:1px solid var(--line);
+  border-radius:10px; box-shadow:var(--shadow); padding:6px; gap:2px;
+}
+.actions-menu[hidden]{ display:none; }
+.actions-menu--flip-up{ box-shadow:0 -20px 50px -25px rgba(30,36,34,0.35); }
+
+.actions-menu a,
+.actions-menu button{
+  display:block; width:100%; margin:0; padding:8px 10px; border:none; border-radius:6px;
+  background:transparent; color:var(--ink); font-weight:500; font-size:13.5px;
+  text-align:left; text-decoration:none; cursor:pointer;
+}
+.actions-menu a:hover,
+.actions-menu button:hover{ background:var(--paper); text-decoration:none; }
+
+/* FR-024: always rendered, greyed when unavailable — which is what keeps columns
+   3-5 aligned down a table whose rows differ in height. */
+/* `color` is not optional here: styles.css styles every <button> as a filled accent
+   control with white text. Overriding `background` alone leaves that white text on a
+   transparent ground — an outlined box with nothing legible in it. */
+.admin-state-btn {
+  font: inherit;
+  font-size: 0.8125em;
+  padding: 3px 10px;
+  border: 1px solid var(--rule, #d8d8d2);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.admin-state-btn:hover:not(:disabled) {
+  background: var(--paper, #f4f4ef);
+}
+
+.admin-state-btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+/* ── 012 US5: icons and empty dates ───────────────────────────────────────*/
+
+/* FR-038: an absent date is a statement, not a missing value — it reads as words,
+   set apart from a real timestamp without shouting. */
+.admin-date-absent {
+  font-style: italic;
+  opacity: 0.7;
+}
+
+/* Same as .admin-state-btn: the global button rule supplies white text, and this one
+   draws its border from currentColor too, so without an explicit colour it was an
+   invisible label inside an invisible box. */
+.admin-rescreen-btn {
+  font: inherit;
+  font-size: 0.8125em;
+  font-weight: 600;
+  padding: 2px 8px;
+  margin-right: 6px;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* FR-039: every icon is always rendered; a disabled one greys rather than vanishing,
+   so the column does not jump between rows. */
+.admin-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  margin-right: 2px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+.admin-icon-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.admin-icon-btn:hover:not(:disabled) {
+  background: var(--paper, #f4f4ef);
+  border-color: var(--rule, #d8d8d2);
+}
+
+.admin-icon-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* ── 014: the poll administration card ──────────────────────────────────────
+   One card per poll in a single column. Width comes from .container, so the
+   card reflows instead of scrolling sideways as the table did. */
+
+.admin-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* The Poll Card's shadow and rounding (.card-face in pollCard.css):
+   the same hairline, var(--shadow) below it, 20px corners (18px under 480px).
+   A box-shadow takes no layout space, so the card's size is unchanged. */
+.poll-admin-card,
+.admin-search {
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  padding: 16px 18px;
+  /* Fluid, capped at 420px and centred, like the Poll Card. */
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+@media (max-width: 479.98px) {
+  .poll-admin-card,
+  .admin-search {
+    border-radius: 18px;
+  }
+}
+
+.card-status-line {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--paper, #f4f4ef);
+  border: 1px solid var(--line);
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.card-state {
+  flex: 1 1 240px;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.card-state-value {
+  font-weight: 700;
+  font-size: 13.5px;
+}
+
+.card-state-detail {
+  font-size: 13px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.card-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.card-field {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+
+.card-field-label {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--muted);
+  flex: 0 0 auto;
+}
+
+.card-field-value {
+  font-size: 13.5px;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.card-state-buttons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 639.98px) {
+  
+  .poll-admin-card,
+  .admin-search {
+    padding: 14px;
+  }
+}
+
+/* 017: the structured search above the poll list. */
+.admin-search{ margin-bottom:18px; }
+.admin-search-notice{
+  width:min(420px,100%);
+  margin:0 auto 14px;
+  text-align:center;
+}
+.admin-search-notice[hidden]{ display:none; }
+
+/* ── The admin cards' layout ─────────────────────────────────────────────────
+   Only the arrangement of the wizard and the read-only face: containers, grids,
+   gaps, sizes and the 320px floor. How every control looks is admin-card-m3.css. */
+
+/* The wizard: Settings Summary, Named Circles, step panel, footer. */
+.poll-admin-card--new { display: flex; flex-direction: column; gap: 16px; }
+.poll-admin-card--new .card-status-line { margin: 0; }
+
+.wizard-summary { padding: 12px 14px; }
+.wizard-summary > :first-child { margin-top: 0; }
+.wizard-summary-text { margin: 6px 0 0; }
+.wizard-summary-title + .wizard-summary-text,
+.wizard-summary-subtitle + .wizard-summary-text { margin-top: 8px; }
+
+/* Named Circles: six equal columns, the short name above each circle, a line
+   joining the circles. */
+.wizard-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  position: relative;
+}
+.wizard-steps::before {
+  content: "";
+  position: absolute;
+  left: 8.333%;
+  right: 8.333%;
+  top: 36px;                 /* label row (18px) + half the circle (18px) */
+  height: 2px;
+}
+.wizard-step { position: relative; }
+.wizard-step-btn {
+  width: 100%;
+  display: grid;
+  grid-template-rows: 18px 36px;
+  justify-items: center;
+  align-items: center;
+  padding: 0;
+}
+.wizard-step-label { grid-row: 1; white-space: nowrap; }
+.wizard-step-circle {
+  grid-row: 2;
+  box-sizing: border-box;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;        /* above the joining line */
+}
+
+/* Step panel */
+.wizard-panel { padding: 14px 14px 12px; display: flex; flex-direction: column; gap: 12px; }
+.wizard-panel-heading { margin: 0; }
+.wizard-panel-actions { display: flex; justify-content: flex-end; }
+.wizard-fields { display: flex; flex-direction: column; gap: 24px; }
+.wizard-how { display: flex; flex-direction: column; gap: 6px; }
+.wizard-question { margin: 6px 0 0; }
+.wizard-question:first-child { margin-top: 0; }
+.wizard-note { margin: 2px 0 0 40px; }
+.wizard-error { margin: 2px 0 0 40px; }
+.wizard-tz { margin: 6px 0 0; }
+.wizard-help dl { margin: 8px 0 0; }
+.wizard-help dt { margin-top: 8px; }
+.wizard-help dd { margin: 2px 0 0; }
+
+/* Radio lists (Steps 1, 4 and 5) */
+.m3-radio-list { display: flex; flex-direction: column; gap: 4px; }
+.m3-radio-item { display: flex; align-items: flex-start; gap: 12px; min-height: 48px; padding: 8px 8px 8px 4px; }
+.m3-radio-text { display: flex; flex-direction: column; gap: 2px; }
+.wizard-when .m3-radio-label { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 4px; }
+
+/* Copy link (Step 1) and Paste choices (Step 3) */
+.wizard-copy-link { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 0 8px 8px 40px; }
+.wizard-copy-note { margin: 0; }
+.wizard-copy-manual { box-sizing: border-box; width: 100%; }
+.wizard-paste { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-top: -12px; }
+
+/* Underlined fields (Steps 2 and 3) */
+.m3-field-box { display: flex; flex-direction: column; gap: 6px; padding: 0 0 6px; }
+.m3-field-input { display: block; box-sizing: border-box; width: 100%; margin: 0; padding: 0; resize: none; overflow: hidden; }
+.m3-field-below { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 6px 0 0; }
+.m3-field-support { margin: 0; }
+.m3-field-counter { flex: 0 0 auto; }
+.m3-field--choices .m3-field-input { min-height: calc(4 * 1.4em); }
+.m3-chip-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.m3-chip-input { flex: 1 1 80px; width: auto; min-width: 80px; height: 32px; }
+
+/* The switch row (Step 1) */
+.m3-switch-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 56px; padding: 8px 4px; }
+.m3-switch-text { display: flex; flex-direction: column; gap: 2px; }
+
+/* Footer: [Cancel] on the left, [Save] [Publish] on the right. */
+.wizard-footer { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.wizard-footer-right { display: flex; gap: 8px; }
+
+/* The read-only face, one column at every width. */
+.card-readonly { display: flex; flex-direction: column; gap: 12px; }
+.card-panel { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; }
+.card-dates-panel .card-state-buttons { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+/* The header stays on one line down to about 360px, then the icons wrap under
+   the state. */
+.card-readonly-header { align-items: center; margin-bottom: 12px; }
+.card-readonly-header .card-state { flex: 1 1 auto; }
+.card-readonly-header .card-actions { gap: 0; }
+
+/* The wizard works down to a 320px window and stops shrinking
+   below it (292px = 320px minus the two 14px page gutters). Below the floor the
+   page scrolls sideways instead of cutting the card off. */
+.poll-admin-card { min-width: 292px; }
+.page { overflow-x: auto; }
+
+/* Tighter spacing below 360px, so the wizard is comfortable at 320px. */
+@media (max-width: 359.98px) {
+  .poll-admin-card--new { padding: 12px; }
+  .wizard-footer .btn-header-ghost,
+  .wizard-footer .btn-header-primary { padding: 0 12px; }
+  .wizard-step-btn { grid-template-rows: 18px 32px; }
+  .wizard-step-circle { width: 32px; height: 32px; }
+  .wizard-steps::before { top: 34px; }   /* label row (18px) + half the circle (16px) */
+}

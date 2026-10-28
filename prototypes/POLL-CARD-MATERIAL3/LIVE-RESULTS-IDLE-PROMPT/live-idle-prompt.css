@@ -1,0 +1,35 @@
+/* Extracted from src/public/tabs.css (REQUIREMENT Live Results idle prompt):
+   the .tab-refresh pill that dresses Cancel and Yes, and the Live Results idle
+   prompt block. The shared ../tabs.css has neither. */
+  .tab-refresh{
+    flex-shrink:0;
+    padding:8px 16px;
+    border:1px solid var(--line);
+    border-radius:999px;
+    background:var(--paper-raised);
+    color:var(--moss-dark);
+    font:inherit;
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+  }
+
+  .tab-refresh:disabled{
+    opacity:.5;
+    cursor:not-allowed;
+  }
+
+  /* ---------- Live Results idle prompt ---------- */
+  .live-idle-prompt{
+    margin:0 0 16px;
+    padding:14px 16px;
+    border:1px solid var(--line);
+    border-radius:12px;
+    background:var(--paper-raised);
+    color:var(--ink);
+    font-size:14px;
+  }
+
+  .live-idle-text{ margin:0 0 10px; }
+
+  .live-idle-actions{ display:flex; gap:10px; justify-content:flex-end; }

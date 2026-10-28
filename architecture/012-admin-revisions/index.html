@@ -1,0 +1,1776 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin Revisions Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap">
+<style>
+  :root{
+    color-scheme: light;
+    --ground:#EEF0EC; --surface:#FAFBF9; --surface-2:#E5E9E3; --surface-3:#D8DED5;
+    --ink:#151A17; --ink-soft:#39413B; --muted:#657064;
+    --rule:#D2D8CE; --rule-strong:#9BA599;
+    --accent:#0B5E56; --accent-wash:#DCEBE7;
+    --warn:#8A5709; --warn-wash:#F6EBD5;
+    --stop:#9C3222; --stop-wash:#F7E2DD;
+    --good:#2E6B41; --good-wash:#DEEEE1;
+    --shadow:0 1px 2px rgba(21,26,23,.05), 0 12px 28px -20px rgba(21,26,23,.30);
+    --display:"Archivo","Helvetica Neue",Helvetica,Arial,sans-serif;
+    --sans:"Source Sans 3",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme: dark;
+      --ground:#0B0F0D; --surface:#121815; --surface-2:#1A221E; --surface-3:#232D28;
+      --ink:#E2E8E3; --ink-soft:#BAC3BC; --muted:#849086;
+      --rule:#222B26; --rule-strong:#414C45;
+      --accent:#57C9B8; --accent-wash:#0F2A27;
+      --warn:#DCA84C; --warn-wash:#31260F;
+      --stop:#EE9482; --stop-wash:#361711;
+      --good:#6BC28C; --good-wash:#122A1B;
+      --shadow:0 1px 2px rgba(0,0,0,.5), 0 12px 28px -20px rgba(0,0,0,.85);
+    }
+  }
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --ground:#0B0F0D; --surface:#121815; --surface-2:#1A221E; --surface-3:#232D28;
+    --ink:#E2E8E3; --ink-soft:#BAC3BC; --muted:#849086;
+    --rule:#222B26; --rule-strong:#414C45;
+    --accent:#57C9B8; --accent-wash:#0F2A27;
+    --warn:#DCA84C; --warn-wash:#31260F;
+    --stop:#EE9482; --stop-wash:#361711;
+    --good:#6BC28C; --good-wash:#122A1B;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 12px 28px -20px rgba(0,0,0,.85);
+  }
+
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth; scroll-padding-top:74px;}
+  @media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto;} *{transition:none !important;} }
+  body{margin:0; background:var(--ground); color:var(--ink);
+       font-family:var(--sans); font-size:16.5px; line-height:1.62;
+       -webkit-font-smoothing:antialiased;}
+
+  .wrap{max-width:1120px; margin:0 auto; padding:0 28px 120px;}
+  .measure{max-width:72ch;}
+
+  /* ---- sticky section nav -------------------------------------------- */
+  nav.jump{position:sticky; top:0; z-index:20; background:var(--ground);
+           border-bottom:1px solid var(--rule); margin-bottom:0;}
+  nav.jump .inner{max-width:1120px; margin:0 auto; padding:10px 28px;
+                  display:flex; gap:7px; overflow-x:auto; scrollbar-width:thin;}
+  nav.jump a{font-family:var(--mono); font-size:11px; letter-spacing:.06em;
+             text-transform:uppercase; color:var(--muted); text-decoration:none;
+             white-space:nowrap; padding:5px 9px; border:1px solid var(--rule);
+             border-radius:2px; background:var(--surface);}
+  nav.jump a:hover,nav.jump a:focus-visible{color:var(--accent); border-color:var(--accent);}
+
+  /* ---- masthead ------------------------------------------------------- */
+  header.doc{padding:64px 0 34px; border-bottom:3px solid var(--ink);
+             display:flex; flex-direction:column; gap:18px;}
+  .eyebrow{font-family:var(--mono); font-size:11.5px; font-weight:500;
+           letter-spacing:.16em; text-transform:uppercase; color:var(--accent); margin:0;}
+  h1{font-family:var(--display); font-variation-settings:"wdth" 112; font-weight:700;
+     font-size:clamp(34px,5.4vw,60px); line-height:1.02; letter-spacing:-.022em;
+     margin:0; text-wrap:balance;}
+  .standfirst{font-size:18.5px; color:var(--ink-soft); max-width:64ch; margin:0;}
+  .facts{display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
+         gap:16px 30px; padding-top:12px; border-top:1px solid var(--rule); margin-top:4px;}
+  .facts div{display:flex; flex-direction:column; gap:1px;}
+  .k{font-family:var(--mono); font-size:10px; letter-spacing:.13em;
+     text-transform:uppercase; color:var(--muted);}
+  .v{font-size:15px; color:var(--ink); font-weight:600;}
+
+  /* ---- sections ------------------------------------------------------- */
+  section{padding-top:58px;}
+  .sechead{display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;
+           border-bottom:1px solid var(--rule-strong); padding-bottom:9px; margin-bottom:22px;}
+  .secnum{font-family:var(--mono); font-size:12px; font-weight:600; color:var(--accent);
+          letter-spacing:.1em;}
+  h2{font-family:var(--display); font-variation-settings:"wdth" 106; font-weight:700;
+     font-size:clamp(23px,2.9vw,31px); line-height:1.14; letter-spacing:-.014em; margin:0;
+     text-wrap:balance;}
+  h3{font-family:var(--display); font-variation-settings:"wdth" 100; font-weight:600;
+     font-size:19.5px; line-height:1.25; margin:34px 0 8px; letter-spacing:-.008em;}
+  h4{font-family:var(--mono); font-size:11.5px; font-weight:600; letter-spacing:.12em;
+     text-transform:uppercase; color:var(--muted); margin:26px 0 6px;}
+  p{margin:0 0 15px;}
+  ul,ol{margin:0 0 15px; padding-left:22px;}
+  li{margin-bottom:6px;}
+  a{color:var(--accent);}
+  strong{font-weight:700; color:var(--ink);}
+  em{font-style:italic;}
+
+  code,.mono{font-family:var(--mono); font-size:.875em; background:var(--surface-2);
+             padding:1px 5px; border-radius:2px; color:var(--ink);}
+  pre{font-family:var(--mono); font-size:12.5px; line-height:1.6; background:var(--surface);
+      border:1px solid var(--rule); border-left:3px solid var(--accent); border-radius:2px;
+      padding:14px 16px; overflow-x:auto; margin:0 0 18px;}
+  pre code{background:none; padding:0; font-size:inherit;}
+
+  /* ---- tables --------------------------------------------------------- */
+  .tablewrap{overflow-x:auto; margin:0 0 20px; border:1px solid var(--rule);
+             border-radius:2px; background:var(--surface);}
+  table{border-collapse:collapse; width:100%; font-size:14.5px;
+        font-variant-numeric:tabular-nums;}
+  th{text-align:left; font-family:var(--mono); font-size:10.5px; font-weight:600;
+     letter-spacing:.1em; text-transform:uppercase; color:var(--muted);
+     padding:10px 13px; border-bottom:1px solid var(--rule-strong); white-space:nowrap;
+     background:var(--surface-2);}
+  td{padding:10px 13px; border-bottom:1px solid var(--rule); vertical-align:top;
+     color:var(--ink-soft);}
+  tbody tr:nth-child(even) td{background:var(--surface-2);}
+  tbody tr:last-child td{border-bottom:none;}
+  td strong,td b{color:var(--ink);}
+  td .mono{font-size:12.5px;}
+
+  /* ---- figures -------------------------------------------------------- */
+  figure{margin:26px 0 30px; background:var(--surface); border:1px solid var(--rule);
+         border-radius:2px; padding:22px 22px 14px; box-shadow:var(--shadow);}
+  figure svg{display:block; width:100%; max-width:100%; height:auto;
+             color:var(--ink-soft); font-family:var(--sans);}
+  figcaption{margin-top:14px; padding-top:11px; border-top:1px solid var(--rule);
+             font-size:13.5px; color:var(--muted); line-height:1.5;}
+  figcaption b{font-family:var(--mono); font-size:11px; letter-spacing:.1em;
+               text-transform:uppercase; color:var(--accent); display:block; margin-bottom:3px;}
+
+  /* ---- callouts ------------------------------------------------------- */
+  .note{border:1px solid var(--rule); border-left:3px solid var(--rule-strong);
+        background:var(--surface); padding:14px 17px; margin:0 0 20px; border-radius:2px;}
+  .note.warn{border-left-color:var(--warn); background:var(--warn-wash);}
+  .note.stop{border-left-color:var(--stop); background:var(--stop-wash);}
+  .note.good{border-left-color:var(--good); background:var(--good-wash);}
+  .note.accent{border-left-color:var(--accent); background:var(--accent-wash);}
+  .note p:last-child{margin-bottom:0;}
+  .note .lbl{font-family:var(--mono); font-size:10.5px; font-weight:600; letter-spacing:.12em;
+             text-transform:uppercase; display:block; margin-bottom:4px;}
+  .note.warn .lbl{color:var(--warn);} .note.stop .lbl{color:var(--stop);}
+  .note.good .lbl{color:var(--good);} .note.accent .lbl{color:var(--accent);}
+
+  .pill{display:inline-block; font-family:var(--mono); font-size:10.5px; font-weight:600;
+        letter-spacing:.07em; text-transform:uppercase; padding:2px 7px; border-radius:2px;
+        border:1px solid currentColor; white-space:nowrap;}
+  .pill.add{color:var(--good);} .pill.del{color:var(--stop);}
+  .pill.chg{color:var(--warn);} .pill.new{color:var(--accent);}
+
+  .grid2{display:grid; grid-template-columns:repeat(auto-fit,minmax(310px,1fr)); gap:18px;
+         margin-bottom:20px;}
+  .card{background:var(--surface); border:1px solid var(--rule); border-radius:2px;
+        padding:16px 18px;}
+  .card h4{margin-top:0;}
+  .card p:last-child{margin-bottom:0;}
+
+  .adr{border:1px solid var(--rule); border-radius:2px; background:var(--surface);
+       padding:16px 18px; margin-bottom:14px;}
+  .adr .id{font-family:var(--mono); font-size:11px; font-weight:600; letter-spacing:.11em;
+           color:var(--accent);}
+  .adr h3{margin:2px 0 10px; font-size:18px;}
+  .adr dl{margin:0; display:grid; grid-template-columns:auto 1fr; gap:4px 14px;}
+  .adr dt{font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase;
+          color:var(--muted); padding-top:4px;}
+  .adr dd{margin:0; color:var(--ink-soft);}
+
+  ol.numbered{list-style:none; padding-left:0; counter-reset:item;}
+  ol.numbered > li{counter-increment:item; position:relative; padding-left:36px; margin-bottom:13px;}
+  ol.numbered > li::before{content:counter(item,decimal-leading-zero);
+        position:absolute; left:0; top:2px; font-family:var(--mono); font-size:11.5px;
+        font-weight:600; color:var(--accent); letter-spacing:.06em;}
+
+  footer.doc{margin-top:70px; padding-top:22px; border-top:3px solid var(--ink);
+             font-size:13.5px; color:var(--muted);}
+  a:focus-visible,summary:focus-visible{outline:2px solid var(--accent); outline-offset:3px;}
+</style>
+</head>
+<body>
+
+<nav class="jump" aria-label="Section navigation">
+  <div class="inner">
+    <a href="#scope">1 Scope</a>
+    <a href="#components">2 Components</a>
+    <a href="#model">3 Domain model</a>
+    <a href="#lifecycle">4 Lifecycle</a>
+    <a href="#runtime">5 Runtime views</a>
+    <a href="#api">6 API deltas</a>
+    <a href="#capabilities">7 Capabilities</a>
+    <a href="#presentation">8 Presentation</a>
+    <a href="#observability">9 Observability</a>
+    <a href="#decisions">10 Decisions</a>
+    <a href="#assumptions">11 Assumptions</a>
+    <a href="#gaps">12 Gaps</a>
+    <a href="#clarify">13 Clarifications</a>
+    <a href="#readiness">14 Readiness</a>
+    <a href="#report">15 Report</a>
+  </div>
+</nav>
+
+<div class="wrap">
+
+<header class="doc">
+  <p class="eyebrow">CrowdPoll · Feature 012 · Architecture artifact</p>
+  <h1>Admin Revisions Architecture</h1>
+  <p class="standfirst">Thirteen requirement groups that collapse two poll-configuration
+  axes into one, fold two save paths into one, promote five poll actions from a menu into
+  one-click controls, and close two live defects. This document draws the mechanisms so the
+  requirements can be checked before a spec is written.</p>
+  <div class="facts">
+    <div><span class="k">Source requirements</span><span class="v">designDocs/012-high-level-requirements-ADMIN-REVISIONS.md</span></div>
+    <div><span class="k">Builds on</span><span class="v">011-SIMPLIFY-POLL-STATES</span></div>
+    <div><span class="k">Data migration</span><span class="v">None — collections are dropped</span></div>
+    <div><span class="k">Next phase</span><span class="v">/speckit-specify</span></div>
+    <div><span class="k">Diagrams</span><span class="v">9</span></div>
+    <div><span class="k">Open clarifications</span><span class="v">0</span></div>
+    <div><span class="k">Generated</span><span class="v">2026-09-03 · REGENERATE</span></div>
+  </div>
+</header>
+
+<!-- ==================================================================== -->
+<section id="scope">
+  <div class="sechead"><span class="secnum">01</span><h2>Scope and shape of the change</h2></div>
+
+  <p class="measure">012 is not one feature. It is a set of thirteen independent requirement
+  groups that happen to land on the same three surfaces: the admin poll list
+  (<code>admin.html</code> / <code>adminList.js</code>), the poll editing surface
+  (<code>admin-poll.html</code> / <code>adminPoll.js</code>), and the public poll grid
+  (<code>index.html</code> / <code>pollGrid.js</code> / <code>pollCard.js</code>). Grouping
+  them is what makes the shared consequences visible: three of them independently require the
+  same repair to the edit-lock check, and two of them independently push work from the client
+  onto the server.</p>
+
+  <p class="measure">Two groups are defect reports rather than new behaviour (R5, R7), and both
+  have the same root cause. Two are pure data-model changes (R3, R6). The rest are presentation
+  and contract work. Every group is listed below with the blast radius that the code review
+  behind this document established.</p>
+
+  <h3>Requirement groups</h3>
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr><th>ID</th><th>Requirement group</th><th>Kind</th><th>Blast radius</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="mono"><b>R1</b></td><td><b>Save Choices folds into Save and Publish</b> — one dirty flag, one write path, <code>PUT …/choices</code> removed.</td><td><span class="pill chg">change</span></td><td><code>pollsApi.ts</code>, <code>service.ts</code>, <code>adminPoll.js</code>, <code>admin-poll.html</code>, <code>openapi.json</code></td></tr>
+        <tr><td class="mono"><b>R2</b></td><td><b>Cancel is always enabled</b> on both editing surfaces and behaves as the back button.</td><td><span class="pill chg">change</span></td><td><code>adminPoll.js</code></td></tr>
+        <tr><td class="mono"><b>R3</b></td><td><b><code>pollVisibility</code> replaces <code>accessMode</code> + <code>resultsVisibility</code></b> — five literal values, no impossible combinations, no auto-correction.</td><td><span class="pill new">model</span></td><td><code>store.ts</code>, <code>service.ts</code> (25 refs), <code>pollsApi.ts</code>, <code>adminPoll.js</code>, <code>admin-poll.html</code>, 11 test files</td></tr>
+        <tr><td class="mono"><b>R4</b></td><td><b>Radio groups</b> for choice mode, vote mutability and poll visibility; visibility renders as a static label on the update surface.</td><td><span class="pill chg">change</span></td><td><code>admin-poll.html</code>, <code>adminPoll.js</code>, <code>admin.css</code></td></tr>
+        <tr><td class="mono"><b>R5</b></td><td><b>Add Participant is blocked</b> by the edit lock — defect. Gate the invite row on invitation-only visibility.</td><td><span class="pill del">defect</span></td><td><code>pollsApi.ts</code>, <code>adminPoll.js</code></td></tr>
+        <tr><td class="mono"><b>R6</b></td><td><b>Voter Count Limit</b> — disabled and null for <code>PUBLIC POLL</code>; for the four private values a blank field means 500, an entered value must be an integer in 1…500, and 500 is the ceiling in every case. The public→private auto-fill is deleted.</td><td><span class="pill chg">change</span></td><td><code>service.ts</code>, <code>adminPoll.js</code></td></tr>
+        <tr><td class="mono"><b>R7</b></td><td><b>Ban from Voting silently fails</b> — defect, same root cause as R5, plus a refusal written into a hidden element.</td><td><span class="pill del">defect</span></td><td><code>pollsApi.ts</code>, <code>adminPoll.js</code>, <code>admin-poll.html</code></td></tr>
+        <tr><td class="mono"><b>R8</b></td><td><b>Voting while a poll is EDITING</b> — one "Try Again" message, the front face in every case, and an explicit rule admitting <code>EDITING</code> polls to both public endpoints when the pre-edit state was public.</td><td><span class="pill new">new</span></td><td><code>pollsApi.ts</code>, <code>service.ts</code>, <code>pollCard.js</code>, <code>pollGrid.js</code></td></tr>
+        <tr><td class="mono"><b>R9</b></td><td><b><code>isAdmin</code> on <code>GET /api/me</code></b> and a Poll Administration item in the avatar menu, from a predicate shared with the route guard.</td><td><span class="pill add">add</span></td><td><code>service.ts</code>, <code>api.ts</code>, <code>app.js</code>, <code>openapi.json</code></td></tr>
+        <tr><td class="mono"><b>R10</b></td><td><b>Admin list re-layout</b> — ten columns, zebra striping per poll, a stacked title block, three state buttons, four action icons, kebab retained.</td><td><span class="pill chg">change</span></td><td><code>admin.html</code>, <code>adminList.js</code>, <code>admin.css</code></td></tr>
+        <tr><td class="mono"><b>R11</b></td><td><b>Every row capability is server-computed</b> — <code>canOpen</code> and <code>canClose</code> join the existing five booleans.</td><td><span class="pill add">add</span></td><td><code>pollsApi.ts</code>, <code>service.ts</code>, <code>openapi.json</code></td></tr>
+        <tr><td class="mono"><b>R12</b></td><td><b>Logging — withdrawn.</b> The requirements now state that no logging is to be added here; a dedicated logging requirements document will follow. Retained as an ID so traceability against the previous revision holds.</td><td><span class="pill del">withdrawn</span></td><td>none</td></tr>
+        <tr><td class="mono"><b>R13</b></td><td><b>Home grid becomes a polling list</b> — membership refreshed on <code>ENV_POLLING_INTERVAL</code>; surviving cards keep flip state and in-progress selection.</td><td><span class="pill chg">change</span></td><td><code>pollGrid.js</code>, <code>pollCard.js</code>, <code>pollsApi.ts</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Explicitly out of scope</h3>
+  <ul class="measure">
+    <li>Data migration. The requirements state the old model is deprecated and old data in all
+      collections may simply be deleted. Both <code>polls</code> and <code>voteHistory</code> are
+      dropped at deploy; no dual-read, no back-fill, no compatibility shim.</li>
+    <li>Behaviour behind <code>SHOW WHO VOTED</code>. The two <em>show</em> variants are persisted
+      and rendered but drive nothing; they are reserved for a future feature.</li>
+    <li>The authentication system (001), SMTP configuration (002) and the profile menu's other
+      items (003) — R9 adds one entry to an existing menu and nothing else.</li>
+    <li><b>Logging, entirely.</b> This revision withdraws it — no logging is added to any
+      server-side endpoint by 012, and a dedicated requirements document will cover it. §9 keeps
+      the volume analysis for that document to build on.</li>
+  </ul>
+</section>
+
+<!-- ==================================================================== -->
+<section id="components">
+  <div class="sechead"><span class="secnum">02</span><h2>Component view</h2></div>
+
+  <p class="measure">The layering does not change. What changes is where decisions are made:
+  R11 moves the last of the row-enablement rules out of <code>adminList.js</code>, R1 removes a
+  second write path out of <code>adminPoll.js</code>, and R6 moves the voter-limit ceiling out of
+  the browser. In every case the browser gets simpler and <code>service.ts</code> gets one more
+  rule.</p>
+
+  <figure>
+    <svg viewBox="0 0 980 610" role="img" aria-label="Component diagram showing browser pages, Express routers, the poll domain modules and MongoDB, with the components changed by feature 012 highlighted and the request edges labelled">
+      <defs>
+        <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+        </marker>
+        <marker id="ar-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/>
+        </marker>
+      </defs>
+
+      <!-- lane labels -->
+      <text x="16" y="26" font-size="11.5" font-family="monospace" letter-spacing="1.6" fill="currentColor" opacity=".62">BROWSER</text>
+      <text x="352" y="26" font-size="11.5" font-family="monospace" letter-spacing="1.6" fill="currentColor" opacity=".62">EXPRESS ROUTERS</text>
+      <text x="672" y="26" font-size="11.5" font-family="monospace" letter-spacing="1.6" fill="currentColor" opacity=".62">DOMAIN + STORAGE</text>
+      <line x1="336" y1="36" x2="336" y2="588" stroke="currentColor" stroke-width="1" opacity=".18" stroke-dasharray="3 5"/>
+      <line x1="656" y1="36" x2="656" y2="588" stroke="currentColor" stroke-width="1" opacity=".18" stroke-dasharray="3 5"/>
+
+      <!-- browser boxes -->
+      <rect x="16" y="46" width="300" height="66" rx="2" fill="none" stroke="var(--accent)" stroke-width="2"/>
+      <text x="30" y="70" font-size="13.5" font-weight="600" fill="var(--accent)">adminList.js</text>
+      <text x="30" y="90" font-size="11.5" fill="currentColor" opacity=".78">10-column list · state buttons · icons</text>
+      <text x="30" y="105" font-size="11" font-family="monospace" fill="var(--accent)">R10 R11 R2</text>
+
+      <rect x="16" y="128" width="300" height="66" rx="2" fill="none" stroke="var(--accent)" stroke-width="2"/>
+      <text x="30" y="152" font-size="13.5" font-weight="600" fill="var(--accent)">adminPoll.js</text>
+      <text x="30" y="172" font-size="11.5" fill="currentColor" opacity=".78">one dirty flag · radio groups · participants</text>
+      <text x="30" y="187" font-size="11" font-family="monospace" fill="var(--accent)">R1 R2 R4 R5 R6 R7</text>
+
+      <rect x="16" y="210" width="300" height="66" rx="2" fill="none" stroke="var(--accent)" stroke-width="2"/>
+      <text x="30" y="234" font-size="13.5" font-weight="600" fill="var(--accent)">pollGrid.js + pollCard.js</text>
+      <text x="30" y="254" font-size="11.5" fill="currentColor" opacity=".78">membership polling · EDITING face</text>
+      <text x="30" y="269" font-size="11" font-family="monospace" fill="var(--accent)">R8 R13</text>
+
+      <rect x="16" y="292" width="300" height="58" rx="2" fill="none" stroke="var(--accent)" stroke-width="2"/>
+      <text x="30" y="316" font-size="13.5" font-weight="600" fill="var(--accent)">app.js</text>
+      <text x="30" y="336" font-size="11.5" fill="currentColor" opacity=".78">avatar menu · Poll Administration item</text>
+
+      <!-- router boxes -->
+      <rect x="352" y="46" width="288" height="148" rx="2" fill="none" stroke="var(--accent)" stroke-width="2"/>
+      <text x="366" y="70" font-size="13.5" font-weight="600" fill="var(--accent)">routes/pollsApi.ts</text>
+      <text x="366" y="90" font-size="11.5" fill="currentColor" opacity=".78">GET /api/polls · GET /api/polls/:pid</text>
+      <text x="366" y="107" font-size="11.5" fill="currentColor" opacity=".78">POST /api/polls/:pid/vote</text>
+      <text x="366" y="124" font-size="11.5" fill="currentColor" opacity=".78">GET /api/admin/polls (+ capabilities)</text>
+      <text x="366" y="141" font-size="11.5" fill="currentColor" opacity=".78">PATCH /api/admin/polls/:pid</text>
+      <text x="366" y="158" font-size="11.5" fill="currentColor" opacity=".78">POST …/publish · participants ×3</text>
+      <text x="366" y="180" font-size="11" font-family="monospace" fill="var(--stop)">− PUT …/choices</text>
+
+      <rect x="352" y="210" width="288" height="58" rx="2" fill="none" stroke="var(--accent)" stroke-width="2"/>
+      <text x="366" y="234" font-size="13.5" font-weight="600" fill="var(--accent)">routes/api.ts</text>
+      <text x="366" y="254" font-size="11.5" fill="currentColor" opacity=".78">GET /api/me → + isAdmin  (R9)</text>
+
+      <rect x="352" y="284" width="288" height="50" rx="2" fill="none" stroke="currentColor" stroke-width="1.4" opacity=".55"/>
+      <text x="366" y="308" font-size="13.5" font-weight="600" fill="currentColor" opacity=".8">routes/pages.ts</text>
+      <text x="366" y="325" font-size="11.5" fill="currentColor" opacity=".62">unchanged — still server-gated</text>
+
+      <!-- domain boxes -->
+      <rect x="672" y="46" width="292" height="150" rx="2" fill="none" stroke="var(--accent)" stroke-width="2"/>
+      <text x="686" y="70" font-size="13.5" font-weight="600" fill="var(--accent)">polls/service.ts</text>
+      <text x="686" y="90" font-size="11.5" fill="currentColor" opacity=".78">validatePollFields (+ choices)</text>
+      <text x="686" y="107" font-size="11.5" fill="currentColor" opacity=".78">validateStateAction (OPEN added)</text>
+      <text x="686" y="124" font-size="11.5" fill="currentColor" opacity=".78">validateVoteSubmission (EDITING)</text>
+      <text x="686" y="141" font-size="11.5" fill="currentColor" opacity=".78">capabilitiesFor(poll, hasVoted)</text>
+      <text x="686" y="163" font-size="11.5" fill="currentColor" opacity=".78">isAdminEmail(email, config)</text>
+      <text x="686" y="184" font-size="11" font-family="monospace" fill="var(--stop)">− access/visibility auto-switch</text>
+
+      <rect x="672" y="212" width="292" height="76" rx="2" fill="none" stroke="var(--accent)" stroke-width="2"/>
+      <text x="686" y="236" font-size="13.5" font-weight="600" fill="var(--accent)">polls/store.ts</text>
+      <text x="686" y="256" font-size="11.5" fill="currentColor" opacity=".78">Poll: + pollVisibility</text>
+      <text x="686" y="273" font-size="11.5" fill="var(--stop)">− accessMode  − resultsVisibility</text>
+
+      <rect x="672" y="304" width="292" height="62" rx="2" fill="none" stroke="currentColor" stroke-width="1.4" opacity=".55"/>
+      <text x="686" y="328" font-size="13.5" font-weight="600" fill="currentColor" opacity=".8">polls/sweeps.ts</text>
+      <text x="686" y="347" font-size="11.5" fill="currentColor" opacity=".62">unchanged — convergence comes from §4</text>
+
+      <rect x="672" y="382" width="292" height="46" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.2" opacity=".8"/>
+      <text x="686" y="410" font-size="13" font-weight="600" fill="currentColor">MongoDB · polls, voteHistory</text>
+
+      <!-- edges browser -> routers -->
+      <line x1="316" y1="79" x2="352" y2="100" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#ar-a)"/>
+      <line x1="316" y1="161" x2="352" y2="140" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#ar-a)"/>
+      <line x1="316" y1="243" x2="352" y2="115" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#ar-a)"/>
+      <line x1="316" y1="321" x2="352" y2="239" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#ar-a)"/>
+      <line x1="316" y1="330" x2="352" y2="309" stroke="currentColor" stroke-width="1.2" opacity=".5" marker-end="url(#ar)"/>
+
+      <!-- routers -> domain -->
+      <line x1="640" y1="112" x2="672" y2="112" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#ar-a)"/>
+      <line x1="640" y1="239" x2="672" y2="160" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#ar-a)"/>
+      <line x1="640" y1="309" x2="672" y2="180" stroke="currentColor" stroke-width="1.2" opacity=".5" marker-end="url(#ar)"/>
+      <line x1="818" y1="196" x2="818" y2="212" stroke="currentColor" stroke-width="1.4" marker-end="url(#ar)"/>
+      <line x1="818" y1="288" x2="818" y2="382" stroke="currentColor" stroke-width="1.4" marker-end="url(#ar)"/>
+      <line x1="760" y1="366" x2="760" y2="382" stroke="currentColor" stroke-width="1.4" marker-end="url(#ar)"/>
+
+      <!-- polling annotations -->
+      <text x="330" y="248" font-size="10.5" font-family="monospace" fill="var(--accent)" text-anchor="end">every ENV_POLLING_INTERVAL</text>
+      <text x="330" y="66" font-size="10.5" font-family="monospace" fill="var(--accent)" text-anchor="end">every ENV_POLL_ADMIN_PAGE_REFRESH_INTERVAL</text>
+
+      <!-- legend -->
+      <rect x="16" y="470" width="948" height="120" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-opacity=".2"/>
+      <text x="34" y="496" font-size="11" font-family="monospace" letter-spacing="1.4" fill="currentColor" opacity=".62">LEGEND</text>
+      <rect x="34" y="510" width="26" height="14" rx="2" fill="none" stroke="var(--accent)" stroke-width="2"/>
+      <text x="70" y="521" font-size="12" fill="currentColor">touched by 012</text>
+      <rect x="210" y="510" width="26" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.4" opacity=".55"/>
+      <text x="246" y="521" font-size="12" fill="currentColor">unchanged</text>
+      <text x="370" y="521" font-size="12" fill="var(--stop)">−  removed in 012</text>
+      <text x="34" y="552" font-size="12" fill="currentColor">Arrows point in the direction of the request. Every admin edge passes</text>
+      <text x="34" y="570" font-size="12" fill="currentColor">through <tspan font-family="monospace" font-size="11.5">requireAdmin</tspan>; R9's <tspan font-family="monospace" font-size="11.5">isAdmin</tspan> flag never replaces that gate.</text>
+      <text x="540" y="552" font-size="12" fill="currentColor">Three sweeps run inside the server process on their own</text>
+      <text x="540" y="570" font-size="12" fill="currentColor">timers and write <tspan font-family="monospace" font-size="11.5">pollState</tspan> directly — no route involved.</text>
+    </svg>
+    <figcaption><b>Figure 2.1</b> Where 012 lands. The client loses two responsibilities
+    (a second save path, the voter-limit ceiling) and the domain layer gains three rules
+    (state-action transitions, poll-visibility validation, the shared admin predicate). No new
+    module and no new process are introduced.</figcaption>
+  </figure>
+</section>
+
+<!-- ==================================================================== -->
+<section id="model">
+  <div class="sechead"><span class="secnum">03</span><h2>Domain model</h2></div>
+
+  <p class="measure">R3 is the only structural change to the <code>Poll</code> document, and it
+  is a collapse rather than an addition. Today two independent enums describe a poll's audience
+  and its transparency, and one of their six combinations is impossible. The server does not
+  reject that combination — it silently rewrites the <em>other</em> field, which is why
+  <code>adminPoll.js</code> has to re-fetch after every change to either select. Collapsing the
+  pair removes the impossible cell, and with it the auto-correction, the re-fetch, and the class
+  of bug where a user's explicit choice is overwritten without being told.</p>
+
+  <figure>
+    <svg viewBox="0 0 980 470" role="img" aria-label="The two-by-three matrix of accessMode against resultsVisibility with the impossible public-transparent cell struck out, transformed into a flat list of five pollVisibility values">
+      <defs>
+        <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/>
+        </marker>
+        <pattern id="hatch" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+          <line x1="0" y1="0" x2="0" y2="7" stroke="var(--stop)" stroke-width="2.4" opacity=".38"/>
+        </pattern>
+      </defs>
+
+      <text x="16" y="24" font-size="11.5" font-family="monospace" letter-spacing="1.6" fill="currentColor" opacity=".62">TODAY — TWO ENUMS, SIX COMBINATIONS</text>
+
+      <!-- column headers -->
+      <text x="284" y="66" font-size="12" font-weight="600" text-anchor="middle" fill="currentColor">ANONYMOUS-POLL</text>
+      <text x="412" y="66" font-size="12" font-weight="600" text-anchor="middle" fill="currentColor">TRANSPARENT-POLL</text>
+      <text x="348" y="46" font-size="10.5" font-family="monospace" letter-spacing="1.2" text-anchor="middle" fill="currentColor" opacity=".6">resultsVisibility</text>
+
+      <!-- row labels -->
+      <text x="212" y="106" font-size="12" text-anchor="end" fill="currentColor">PUBLIC_POLL</text>
+      <text x="212" y="166" font-size="12" text-anchor="end" fill="currentColor">…ANYONE_WITH_THE_LINK</text>
+      <text x="212" y="226" font-size="12" text-anchor="end" fill="currentColor">…INVITATION_ONLY</text>
+      <text x="120" y="266" font-size="10.5" font-family="monospace" letter-spacing="1.2" text-anchor="middle" fill="currentColor" opacity=".6">accessMode</text>
+
+      <!-- cells -->
+      <rect x="226" y="86" width="116" height="34" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-opacity=".3"/>
+      <rect x="354" y="86" width="116" height="34" rx="2" fill="url(#hatch)" stroke="var(--stop)" stroke-width="1.6"/>
+      <rect x="226" y="146" width="116" height="34" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-opacity=".3"/>
+      <rect x="354" y="146" width="116" height="34" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-opacity=".3"/>
+      <rect x="226" y="206" width="116" height="34" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-opacity=".3"/>
+      <rect x="354" y="206" width="116" height="34" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-opacity=".3"/>
+
+      <text x="412" y="108" font-size="16" font-weight="700" text-anchor="middle" fill="var(--stop)">✕</text>
+
+      <text x="226" y="300" font-size="12" fill="var(--stop)">The struck cell is not rejected today — the server</text>
+      <text x="226" y="318" font-size="12" fill="var(--stop)">rewrites the field the user did <tspan font-style="italic">not</tspan> just touch, so</text>
+      <text x="226" y="336" font-size="12" fill="var(--stop)">the page must re-fetch after every change.</text>
+
+      <!-- arrow -->
+      <line x1="500" y1="163" x2="566" y2="163" stroke="var(--accent)" stroke-width="2.2" marker-end="url(#ar2)"/>
+      <text x="533" y="150" font-size="11" font-family="monospace" text-anchor="middle" fill="var(--accent)">collapse</text>
+      <text x="533" y="184" font-size="11" font-family="monospace" text-anchor="middle" fill="var(--accent)">6 − 1 = 5</text>
+
+      <!-- new enum -->
+      <text x="588" y="24" font-size="11.5" font-family="monospace" letter-spacing="1.6" fill="var(--accent)">AFTER R3 — ONE ENUM, FIVE VALUES</text>
+      <text x="588" y="46" font-size="10.5" font-family="monospace" letter-spacing="1.2" fill="currentColor" opacity=".6">pollVisibility · stored and rendered verbatim</text>
+
+      <rect x="588" y="60" width="376" height="36" rx="2" fill="var(--accent-wash)" stroke="var(--accent)" stroke-width="1.6"/>
+      <text x="602" y="83" font-size="12" font-family="monospace" fill="var(--ink)">PUBLIC POLL</text>
+
+      <rect x="588" y="104" width="376" height="36" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-opacity=".3"/>
+      <text x="602" y="127" font-size="11" font-family="monospace" fill="var(--ink)">PRIVATE POLL - ANYONE WITH THE LINK - DO NOT SHOW WHO VOTED</text>
+
+      <rect x="588" y="148" width="376" height="36" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-opacity=".3"/>
+      <text x="602" y="171" font-size="11" font-family="monospace" fill="var(--ink)">PRIVATE POLL - ANYONE WITH THE LINK - SHOW WHO VOTED</text>
+
+      <rect x="588" y="192" width="376" height="36" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-opacity=".3"/>
+      <text x="602" y="215" font-size="11" font-family="monospace" fill="var(--ink)">PRIVATE POLL - INVITATION ONLY - DO NOT SHOW WHO VOTED</text>
+
+      <rect x="588" y="236" width="376" height="36" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-opacity=".3"/>
+      <text x="602" y="259" font-size="11" font-family="monospace" fill="var(--ink)">PRIVATE POLL - INVITATION ONLY - SHOW WHO VOTED</text>
+
+      <text x="588" y="300" font-size="12" fill="currentColor">Anonymity is implied by <tspan font-weight="600">PUBLIC POLL</tspan> and stated by the</text>
+      <text x="588" y="318" font-size="12" fill="currentColor">suffix on the other four. No label map, no auto-correction,</text>
+      <text x="588" y="336" font-size="12" fill="currentColor">no re-fetch after a change.</text>
+
+      <!-- consumers strip -->
+      <rect x="16" y="366" width="948" height="90" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-opacity=".2"/>
+      <text x="34" y="392" font-size="11" font-family="monospace" letter-spacing="1.4" fill="currentColor" opacity=".62">WHAT READS THE FIELD AFTER THE COLLAPSE</text>
+      <text x="34" y="414" font-size="12" fill="currentColor">· <tspan font-family="monospace" font-size="11.5">GET /api/polls</tspan> lists only <tspan font-weight="600">PUBLIC POLL</tspan></text>
+      <text x="34" y="434" font-size="12" fill="currentColor">· invite row + invited-list rendering: the two <tspan font-weight="600">INVITATION ONLY</tspan> values</text>
+      <text x="500" y="414" font-size="12" fill="currentColor">· voter-count limit: enforced for the four <tspan font-weight="600">PRIVATE</tspan> values</text>
+      <text x="500" y="434" font-size="12" fill="currentColor">· <tspan font-family="monospace" font-size="11.5">notYetVoted</tspan> in admin results: the two <tspan font-weight="600">INVITATION ONLY</tspan> values</text>
+    </svg>
+    <figcaption><b>Figure 3.1</b> R3 as a collapse, not a rename. The value that disappears is
+    the impossible <em>public + transparent</em> cell, and the code that disappears with it is
+    <code>validatePollFields</code>' auto-switch block and the client re-fetch it forced.</figcaption>
+  </figure>
+
+  <h3>Field-level delta on the <code>Poll</code> document</h3>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Field</th><th>Change</th><th>Type after 012</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">accessMode</td><td><span class="pill del">removed</span></td><td>—</td><td>Folded into <code>pollVisibility</code>. 25 references across <code>service.ts</code> plus 8 test files.</td></tr>
+        <tr><td class="mono">resultsVisibility</td><td><span class="pill del">removed</span></td><td>—</td><td>Folded into the <code>SHOW / DO NOT SHOW WHO VOTED</code> suffix. Currently drives nothing but the auto-switch.</td></tr>
+        <tr><td class="mono">pollVisibility</td><td><span class="pill add">added</span></td><td><code>PollVisibility</code> — a union of the five literals, stored verbatim including spaces and hyphens</td><td>Default for a new poll: <code>PUBLIC POLL</code>, matching today's default <code>PUBLIC_POLL</code> + <code>ANONYMOUS-POLL</code> pair. Frozen once the poll has ever been voted on.</td></tr>
+        <tr><td class="mono">voterCountLimit</td><td><span class="pill chg">semantics</span></td><td><code>number | null</code> — unchanged shape</td><td>For <code>PUBLIC POLL</code>: always <code>null</code>, field disabled. For the four private values: <code>null</code> means <em>500</em>, not unlimited — the field is never auto-filled, so a blank box and a stored 500 are the same effective limit. An entered value must be an integer in 1…500, enforced on the server as well as in the browser.</td></tr>
+        <tr><td class="mono">choices</td><td><span class="pill chg">write path</span></td><td>unchanged</td><td>Written by <code>POST …/publish</code> instead of <code>PUT …/choices</code> (R1). Still immutable once the poll has been voted on.</td></tr>
+        <tr><td class="mono">startAt, endAt</td><td><span class="pill chg">write path</span></td><td>unchanged</td><td>Now also written by <code>PATCH …/:pid</code> under the three per-transition rules in §4.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note accent">
+    <span class="lbl">Naming convention</span>
+    <p>The five values carry spaces and hyphens, unlike the <code>SCREAMING_SNAKE</code> style of
+    the enums they replace. That is deliberate and it has precedent: <code>pollState</code>
+    already stores <code>"WAITING TO OPEN"</code> and <code>"AWAITING APPROVAL"</code> verbatim
+    and renders them unchanged. Persisting the display string is what lets the requirement say
+    "no code-to-label map is introduced" and have it be true at every layer — store, API, and
+    radio label.</p>
+  </div>
+
+  <h3>Invariants that must hold after 012</h3>
+  <ol class="numbered measure">
+    <li><b>Exactly one visibility field.</b> No document carries <code>accessMode</code> or
+      <code>resultsVisibility</code>; no code path reads them. Because the collections are
+      dropped, this is checkable by grep rather than by query.</li>
+    <li><b><code>pollVisibility</code> is frozen once <code>voteHistory</code> has ever held a row
+      for the poll.</b> It inherits <code>accessMode</code>'s existing rule; the freeze is what
+      the update surface's static label reflects.</li>
+    <li><b><code>voterCountLimit</code> is <code>null</code> whenever <code>pollVisibility</code>
+      is <code>PUBLIC POLL</code>.</b> Switching to public clears any stored limit rather than
+      preserving it for a later switch back, and switching the other way leaves the field blank —
+      the old public→private auto-fill of 500 is deleted.</li>
+    <li><b>A non-null <code>voterCountLimit</code> is an integer in 1…500</b>, enforced in the
+      browser and again in <code>validatePollFields</code>, where the server check is
+      authoritative. <b>A null limit on a private poll binds at 500</b>, so no private poll
+      admits a 501st voter by any path.</li>
+    <li><b>The invited list is non-empty only for the two <code>INVITATION ONLY</code>
+      values</b> — but the list is <em>retained</em>, not cleared, when visibility moves away
+      from invitation-only, so a switch back does not lose it.</li>
+    <li><b>No poll is ever written with a state the schedule sweep would immediately
+      contradict.</b> §4 proves this for all three manual transitions.</li>
+  </ol>
+</section>
+
+<!-- ==================================================================== -->
+<section id="lifecycle">
+  <div class="sechead"><span class="secnum">04</span><h2>Lifecycle and the three manual transitions</h2></div>
+
+  <p class="measure">011 established eight stored states and a sweep that <em>writes</em> the
+  schedule-appropriate state every <code>ENV_POLL_DATE_CHECK_POLLING_INTERVAL</code>. R10 adds
+  three one-click buttons that write <code>pollState</code> directly. Those two mechanisms are
+  in tension by construction: the sweep re-derives state from <code>startAt</code> and
+  <code>endAt</code> and will happily undo an administrator's click within one tick. The
+  requirements resolve this without an override flag, by making each manual transition write the
+  schedule fields into a shape the sweep then <em>agrees</em> with.</p>
+
+  <figure>
+    <svg viewBox="0 0 980 520" role="img" aria-label="Poll state machine showing the eight states with the automatic transitions in grey and the three new manual button transitions in accent colour, each labelled with the schedule fields it writes">
+      <defs>
+        <marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+        </marker>
+        <marker id="ar3a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/>
+        </marker>
+      </defs>
+
+      <!-- states row 1 -->
+      <rect x="20" y="60" width="132" height="42" rx="3" fill="var(--surface-2)" stroke="currentColor" stroke-opacity=".45"/>
+      <text x="86" y="86" font-size="12" font-weight="600" text-anchor="middle" fill="currentColor">INITIALIZED</text>
+
+      <rect x="212" y="60" width="152" height="42" rx="3" fill="var(--surface-2)" stroke="currentColor" stroke-opacity=".45"/>
+      <text x="288" y="86" font-size="12" font-weight="600" text-anchor="middle" fill="currentColor">AWAITING APPROVAL</text>
+
+      <rect x="212" y="146" width="152" height="42" rx="3" fill="var(--stop-wash)" stroke="var(--stop)" stroke-opacity=".7"/>
+      <text x="288" y="172" font-size="12" font-weight="600" text-anchor="middle" fill="currentColor">REJECTED</text>
+
+      <rect x="424" y="60" width="146" height="42" rx="3" fill="var(--surface-2)" stroke="currentColor" stroke-opacity=".45"/>
+      <text x="497" y="86" font-size="12" font-weight="600" text-anchor="middle" fill="currentColor">WAITING TO OPEN</text>
+
+      <rect x="638" y="60" width="120" height="42" rx="3" fill="var(--good-wash)" stroke="var(--good)" stroke-opacity=".7"/>
+      <text x="698" y="86" font-size="12" font-weight="600" text-anchor="middle" fill="currentColor">OPEN</text>
+
+      <rect x="638" y="188" width="120" height="42" rx="3" fill="var(--surface-2)" stroke="currentColor" stroke-opacity=".45"/>
+      <text x="698" y="214" font-size="12" font-weight="600" text-anchor="middle" fill="currentColor">CLOSED</text>
+
+      <rect x="828" y="188" width="126" height="42" rx="3" fill="var(--surface-3)" stroke="currentColor" stroke-opacity=".45"/>
+      <text x="891" y="214" font-size="12" font-weight="600" text-anchor="middle" fill="currentColor">ARCHIVED</text>
+
+      <rect x="20" y="188" width="132" height="42" rx="3" fill="var(--warn-wash)" stroke="var(--warn)" stroke-opacity=".8"/>
+      <text x="86" y="214" font-size="12" font-weight="600" text-anchor="middle" fill="currentColor">EDITING</text>
+
+      <!-- automatic edges -->
+      <line x1="152" y1="81" x2="212" y2="81" stroke="currentColor" stroke-width="1.3" marker-end="url(#ar3)"/>
+      <text x="182" y="72" font-size="10" font-family="monospace" text-anchor="middle" fill="currentColor" opacity=".7">publish</text>
+
+      <line x1="288" y1="102" x2="288" y2="146" stroke="currentColor" stroke-width="1.3" marker-end="url(#ar3)"/>
+      <text x="296" y="128" font-size="10" font-family="monospace" fill="currentColor" opacity=".7">screening fails</text>
+
+      <line x1="364" y1="81" x2="424" y2="81" stroke="currentColor" stroke-width="1.3" marker-end="url(#ar3)"/>
+      <text x="394" y="72" font-size="10" font-family="monospace" text-anchor="middle" fill="currentColor" opacity=".7">approved</text>
+
+      <line x1="570" y1="81" x2="638" y2="81" stroke="currentColor" stroke-width="1.3" marker-end="url(#ar3)"/>
+      <text x="604" y="72" font-size="10" font-family="monospace" text-anchor="middle" fill="currentColor" opacity=".7">startAt ≤ now</text>
+
+      <line x1="698" y1="102" x2="698" y2="188" stroke="currentColor" stroke-width="1.3" marker-end="url(#ar3)"/>
+      <text x="706" y="150" font-size="10" font-family="monospace" fill="currentColor" opacity=".7">now &gt; endAt</text>
+
+      <line x1="86" y1="188" x2="86" y2="102" stroke="currentColor" stroke-width="1.3" stroke-dasharray="4 3" marker-end="url(#ar3)"/>
+      <text x="10" y="150" font-size="10" font-family="monospace" fill="currentColor" opacity=".7">lock released</text>
+      <text x="10" y="164" font-size="10" font-family="monospace" fill="currentColor" opacity=".7">→ prior state</text>
+
+      <!-- manual edges (accent) -->
+      <path d="M 497 102 Q 497 260 660 240" fill="none" stroke="var(--accent)" stroke-width="2" marker-end="url(#ar3a)"/>
+      <path d="M 570 92 Q 610 118 645 100" fill="none" stroke="var(--accent)" stroke-width="2" marker-end="url(#ar3a)"/>
+      <path d="M 758 200 Q 800 140 758 96" fill="none" stroke="var(--accent)" stroke-width="2" marker-end="url(#ar3a)"/>
+      <line x1="758" y1="209" x2="828" y2="209" stroke="var(--accent)" stroke-width="2" marker-end="url(#ar3a)"/>
+
+      <text x="604" y="112" font-size="10.5" font-family="monospace" text-anchor="middle" fill="var(--accent)">OPEN</text>
+      <text x="806" y="140" font-size="10.5" font-family="monospace" text-anchor="middle" fill="var(--accent)">OPEN</text>
+      <text x="560" y="258" font-size="10.5" font-family="monospace" fill="var(--accent)">CLOSE</text>
+      <text x="793" y="200" font-size="10.5" font-family="monospace" text-anchor="middle" fill="var(--accent)">ARCHIVE</text>
+
+      <!-- schedule writes panel -->
+      <rect x="20" y="292" width="934" height="212" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-opacity=".2"/>
+      <text x="38" y="318" font-size="11" font-family="monospace" letter-spacing="1.4" fill="var(--accent)">WHAT EACH BUTTON WRITES — AND WHY THE SWEEP THEN AGREES</text>
+
+      <text x="38" y="348" font-size="12.5" font-weight="700" fill="var(--accent)">OPEN</text>
+      <text x="38" y="368" font-size="12" fill="currentColor">startAt := null (always)</text>
+      <text x="38" y="386" font-size="12" fill="currentColor">endAt := null if endAt &lt; now</text>
+      <text x="38" y="412" font-size="11.5" font-style="italic" fill="currentColor" opacity=".75">no startAt → not WAITING;</text>
+      <text x="38" y="428" font-size="11.5" font-style="italic" fill="currentColor" opacity=".75">no past endAt → not CLOSED.</text>
+      <text x="38" y="452" font-size="11.5" font-family="monospace" fill="var(--good)">sweep ⇒ OPEN ✓</text>
+
+      <text x="338" y="348" font-size="12.5" font-weight="700" fill="var(--accent)">CLOSE</text>
+      <text x="338" y="368" font-size="12" fill="currentColor">endAt := now (always)</text>
+      <text x="338" y="386" font-size="12" fill="currentColor">startAt := null if startAt &gt; now</text>
+      <text x="338" y="412" font-size="11.5" font-style="italic" fill="currentColor" opacity=".75">endAt is in the past on the next</text>
+      <text x="338" y="428" font-size="11.5" font-style="italic" fill="currentColor" opacity=".75">tick, and no start is pending.</text>
+      <text x="338" y="452" font-size="11.5" font-family="monospace" fill="var(--good)">sweep ⇒ CLOSED ✓</text>
+
+      <text x="638" y="348" font-size="12.5" font-weight="700" fill="var(--accent)">ARCHIVE</text>
+      <text x="638" y="368" font-size="12" fill="currentColor">startAt, endAt untouched</text>
+      <text x="638" y="386" font-size="12" fill="var(--stop)">− no more endAt := now</text>
+      <text x="638" y="412" font-size="11.5" font-style="italic" fill="currentColor" opacity=".75">ARCHIVED is outside the sweep's</text>
+      <text x="638" y="428" font-size="11.5" font-style="italic" fill="currentColor" opacity=".75">candidate set entirely.</text>
+      <text x="638" y="452" font-size="11.5" font-family="monospace" fill="var(--good)">sweep ⇒ not a candidate ✓</text>
+
+      <text x="38" y="484" font-size="11.5" fill="currentColor" opacity=".8">The sweep's candidate filter is <tspan font-family="monospace" font-size="11">pollState ∈ {WAITING TO OPEN, OPEN, CLOSED}</tspan>, and its verdict is <tspan font-family="monospace" font-size="11">evaluateSchedule(startAt, endAt, now)</tspan>.</text>
+    </svg>
+    <figcaption><b>Figure 4.1</b> The three manual edges added by R10, drawn against the
+    automatic lifecycle. Each button's schedule writes are chosen so the very next sweep tick
+    re-derives the state the administrator just chose — which is why no manual-override flag is
+    needed anywhere in the model.</figcaption>
+  </figure>
+
+  <h3>Why the archive rule had to change</h3>
+
+  <p class="measure">Today <code>validateStateAction</code> stamps <code>endAt = now</code> for
+  both <code>CLOSED</code> and <code>ARCHIVED</code>. For archiving that is a data-integrity
+  bug independent of 012: a poll that genuinely closed on the 1st and is archived on the 20th
+  has its recorded close date rewritten to the 20th, and the JSON and Markdown exports carry the
+  wrong date forever. R10 replaces the blanket rule with the three per-transition rules above,
+  and archiving preserves <code>endAt</code>.</p>
+
+  <figure>
+    <svg viewBox="0 0 960 300" role="img" aria-label="Two timelines comparing a CLOSED to OPEN transition without clearing a past endAt, where the sweep re-closes the poll within one tick, against the specified rule where the poll stays open">
+      <defs>
+        <marker id="ar4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+        </marker>
+      </defs>
+
+      <text x="16" y="22" font-size="11.5" font-family="monospace" letter-spacing="1.5" fill="var(--stop)">WITHOUT THE RULE — ADMIN CLICKS OPEN ON A CLOSED POLL (endAt IN THE PAST)</text>
+      <line x1="40" y1="66" x2="880" y2="66" stroke="currentColor" stroke-width="1.4" marker-end="url(#ar4)"/>
+      <circle cx="130" cy="66" r="5" fill="var(--accent)"/>
+      <text x="130" y="52" font-size="11.5" text-anchor="middle" fill="currentColor">click OPEN</text>
+      <text x="130" y="90" font-size="11" font-family="monospace" text-anchor="middle" fill="currentColor" opacity=".75">state := OPEN</text>
+      <text x="130" y="106" font-size="11" font-family="monospace" text-anchor="middle" fill="var(--stop)">endAt kept (past)</text>
+      <circle cx="470" cy="66" r="5" fill="currentColor"/>
+      <text x="470" y="52" font-size="11.5" text-anchor="middle" fill="currentColor">next sweep tick</text>
+      <text x="470" y="90" font-size="11" font-family="monospace" text-anchor="middle" fill="currentColor" opacity=".75">now &gt; endAt</text>
+      <text x="470" y="106" font-size="11" font-family="monospace" text-anchor="middle" fill="var(--stop)">state := CLOSED</text>
+      <circle cx="790" cy="66" r="5" fill="currentColor" opacity=".5"/>
+      <text x="790" y="52" font-size="11.5" text-anchor="middle" fill="currentColor" opacity=".7">admin refresh</text>
+      <text x="790" y="90" font-size="11" font-family="monospace" text-anchor="middle" fill="var(--stop)">row reads CLOSED</text>
+      <text x="790" y="106" font-size="11" font-style="italic" text-anchor="middle" fill="var(--stop)">"the button did nothing"</text>
+
+      <line x1="16" y1="140" x2="944" y2="140" stroke="currentColor" stroke-opacity=".2"/>
+
+      <text x="16" y="176" font-size="11.5" font-family="monospace" letter-spacing="1.5" fill="var(--good)">WITH THE RULE AS SPECIFIED</text>
+      <line x1="40" y1="220" x2="880" y2="220" stroke="currentColor" stroke-width="1.4" marker-end="url(#ar4)"/>
+      <circle cx="130" cy="220" r="5" fill="var(--accent)"/>
+      <text x="130" y="206" font-size="11.5" text-anchor="middle" fill="currentColor">click OPEN</text>
+      <text x="130" y="244" font-size="11" font-family="monospace" text-anchor="middle" fill="currentColor" opacity=".75">state := OPEN</text>
+      <text x="130" y="260" font-size="11" font-family="monospace" text-anchor="middle" fill="var(--good)">startAt := null, endAt := null</text>
+      <circle cx="470" cy="220" r="5" fill="currentColor"/>
+      <text x="470" y="206" font-size="11.5" text-anchor="middle" fill="currentColor">next sweep tick</text>
+      <text x="470" y="244" font-size="11" font-family="monospace" text-anchor="middle" fill="currentColor" opacity=".75">no startAt, no endAt</text>
+      <text x="470" y="260" font-size="11" font-family="monospace" text-anchor="middle" fill="var(--good)">evaluateSchedule ⇒ OPEN</text>
+      <circle cx="790" cy="220" r="5" fill="currentColor" opacity=".5"/>
+      <text x="790" y="206" font-size="11.5" text-anchor="middle" fill="currentColor" opacity=".7">admin refresh</text>
+      <text x="790" y="244" font-size="11" font-family="monospace" text-anchor="middle" fill="var(--good)">row reads OPEN</text>
+      <text x="790" y="260" font-size="11" font-style="italic" text-anchor="middle" fill="var(--good)">the click held</text>
+    </svg>
+    <figcaption><b>Figure 4.2</b> The one case that makes the schedule rules mandatory rather
+    than cosmetic. Clearing a past <code>endAt</code> is what stops the sweep from reverting a
+    reopen within one <code>ENV_POLL_DATE_CHECK_POLLING_INTERVAL</code>.</figcaption>
+  </figure>
+
+  <h3>Transition guards</h3>
+  <p class="measure"><code>validateStateAction</code> currently accepts only
+  <code>CLOSED</code> and <code>ARCHIVED</code>. It gains <code>OPEN</code> and a from-state
+  guard per target, and the same predicate produces the row capabilities in §7 — one rule, two
+  consumers, no drift.</p>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Target</th><th>Allowed from</th><th>Writes</th><th>Refusal</th></tr></thead>
+      <tbody>
+        <tr><td><b>OPEN</b></td><td class="mono">WAITING TO OPEN, CLOSED</td><td><code>startAt := null</code>; <code>endAt := null</code> iff <code>endAt &lt; now</code></td><td>409 from any other state</td></tr>
+        <tr><td><b>CLOSED</b></td><td class="mono">WAITING TO OPEN, OPEN</td><td><code>endAt := now</code>; <code>startAt := null</code> iff <code>startAt &gt; now</code></td><td>409 from any other state</td></tr>
+        <tr><td><b>ARCHIVED</b></td><td class="mono">CLOSED</td><td><code>pollState</code> only</td><td>409 from any other state (unchanged from 011)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <span class="lbl">Consequence worth stating in the spec</span>
+    <p>Reopening a poll whose <code>endAt</code> was in the past leaves it with
+    <em>no end date at all</em> — it becomes an open-ended poll until an administrator sets a new
+    end through the update surface. This follows directly from the stated rule and is almost
+    certainly intended (an end date in the past cannot coexist with "open"), but it is a real,
+    user-visible consequence that the spec should say out loud rather than leave to be
+    discovered.</p>
+  </div>
+</section>
+
+<!-- ==================================================================== -->
+<section id="runtime">
+  <div class="sechead"><span class="secnum">05</span><h2>Runtime views</h2></div>
+
+  <h3>5.1 — One write path on the editing surface (R1, R2)</h3>
+
+  <p class="measure">The editing page has two save paths today: <code>PUT …/choices</code>
+  behind its own <em>Save Choices</em> button, and <code>POST …/publish</code> behind
+  <em>Save and Publish</em>. Because only the second is wired to the page's <code>dirty</code>
+  flag, editing <em>only</em> the choices leaves <em>Save and Publish</em> disabled — the reason
+  R1 explicitly calls out "editing only the choices must enable Save and Publish". Folding the
+  paths together fixes that as a side effect of removing the route.</p>
+
+  <figure>
+    <svg viewBox="0 0 960 350" role="img" aria-label="Before and after comparison of the editing page save paths: today two endpoints with a separate choices save, after R1 a single publish call carrying the choice labels">
+      <defs>
+        <marker id="ar5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+        </marker>
+        <marker id="ar5a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/>
+        </marker>
+      </defs>
+
+      <text x="16" y="22" font-size="11.5" font-family="monospace" letter-spacing="1.5" fill="currentColor" opacity=".6">TODAY</text>
+
+      <rect x="16" y="40" width="150" height="118" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-opacity=".35"/>
+      <text x="30" y="62" font-size="12" font-weight="600" fill="currentColor">adminPoll.js</text>
+      <text x="30" y="84" font-size="11.5" fill="currentColor" opacity=".8">dirty flag</text>
+      <text x="30" y="102" font-size="11.5" fill="var(--stop)">choices: separate</text>
+      <text x="30" y="126" font-size="11" font-family="monospace" fill="currentColor" opacity=".7">Save Choices</text>
+      <text x="30" y="144" font-size="11" font-family="monospace" fill="currentColor" opacity=".7">Save and Publish</text>
+
+      <line x1="166" y1="76" x2="290" y2="76" stroke="var(--stop)" stroke-width="1.6" marker-end="url(#ar5)"/>
+      <text x="228" y="66" font-size="10.5" font-family="monospace" text-anchor="middle" fill="var(--stop)">labels[]</text>
+      <line x1="166" y1="130" x2="290" y2="130" stroke="currentColor" stroke-width="1.6" marker-end="url(#ar5)"/>
+      <text x="228" y="120" font-size="10.5" font-family="monospace" text-anchor="middle" fill="currentColor" opacity=".75">fields</text>
+
+      <rect x="290" y="58" width="180" height="36" rx="2" fill="var(--stop-wash)" stroke="var(--stop)" stroke-width="1.5"/>
+      <text x="380" y="81" font-size="11.5" font-family="monospace" text-anchor="middle" fill="currentColor">PUT …/choices</text>
+
+      <rect x="290" y="112" width="180" height="36" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-opacity=".4"/>
+      <text x="380" y="135" font-size="11.5" font-family="monospace" text-anchor="middle" fill="currentColor">POST …/publish</text>
+
+      <text x="290" y="180" font-size="11.5" fill="var(--stop)">Two resolveEditContext calls, two validation sites,</text>
+      <text x="290" y="197" font-size="11.5" fill="var(--stop)">and a dirty flag that does not cover the choices box.</text>
+
+      <line x1="16" y1="222" x2="944" y2="222" stroke="currentColor" stroke-opacity=".2"/>
+
+      <text x="16" y="252" font-size="11.5" font-family="monospace" letter-spacing="1.5" fill="var(--accent)">AFTER R1</text>
+
+      <rect x="16" y="266" width="150" height="70" rx="2" fill="var(--accent-wash)" stroke="var(--accent)" stroke-width="1.8"/>
+      <text x="30" y="288" font-size="12" font-weight="600" fill="currentColor">adminPoll.js</text>
+      <text x="30" y="308" font-size="11.5" fill="currentColor">one dirty flag,</text>
+      <text x="30" y="324" font-size="11.5" fill="currentColor">choices included</text>
+
+      <line x1="166" y1="300" x2="290" y2="300" stroke="var(--accent)" stroke-width="2" marker-end="url(#ar5a)"/>
+      <text x="228" y="290" font-size="10.5" font-family="monospace" text-anchor="middle" fill="var(--accent)">fields + labels[]</text>
+
+      <rect x="290" y="282" width="180" height="36" rx="2" fill="var(--accent-wash)" stroke="var(--accent)" stroke-width="1.8"/>
+      <text x="380" y="305" font-size="11.5" font-family="monospace" text-anchor="middle" fill="currentColor">POST …/publish</text>
+
+      <line x1="470" y1="300" x2="560" y2="300" stroke="var(--accent)" stroke-width="2" marker-end="url(#ar5a)"/>
+      <rect x="560" y="266" width="200" height="70" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-opacity=".4"/>
+      <text x="574" y="288" font-size="12" font-weight="600" fill="currentColor">validatePollFields</text>
+      <text x="574" y="308" font-size="11.5" fill="currentColor" opacity=".8">absorbs replaceChoices,</text>
+      <text x="574" y="324" font-size="11.5" fill="currentColor" opacity=".8">EDIT mode only</text>
+
+      <line x1="760" y1="300" x2="850" y2="300" stroke="var(--accent)" stroke-width="2" marker-end="url(#ar5a)"/>
+      <rect x="850" y="276" width="104" height="48" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-opacity=".4"/>
+      <text x="902" y="305" font-size="11.5" font-family="monospace" text-anchor="middle" fill="currentColor">one $set</text>
+    </svg>
+    <figcaption><b>Figure 5.1</b> R1 removes an edge. The choice list joins the publish payload,
+    <code>replaceChoices</code> is called from inside <code>validatePollFields</code>, and the
+    poll document is written once instead of twice — so a half-applied save (choices stored,
+    fields rejected) becomes impossible.</figcaption>
+  </figure>
+
+  <div class="note">
+    <span class="lbl">Two details the spec must pin down</span>
+    <p><b>Choice immutability still applies.</b> <code>PUT …/choices</code> refuses when the poll
+    has ever been voted on. After the fold, that check moves into the publish handler's
+    <code>UPDATE</code> branch: the allowed-field whitelist grows a rejection for
+    <code>labels</code>, alongside the existing rejection for everything outside
+    title / subtitle / startAt / endAt.</p>
+    <p><b>Cancel must still release the lock.</b> R2 enables <em>Cancel</em> before any edit is
+    made. Because the page holds an editing session from the moment it loads, an always-enabled
+    Cancel is now the most likely way a session ends — it must run the same
+    <code>DELETE …/edit-session</code> teardown as the back button, or every cancelled edit will
+    leave a poll stuck in <code>EDITING</code> until the stale-lock sweep reclaims it one
+    heartbeat interval later.</p>
+  </div>
+
+  <h3>5.2 — Participant moderation under an active edit lock (R5, R7)</h3>
+
+  <p class="measure">R5 and R7 are reported as two bugs. They are one bug, in
+  <code>refuseWhenNotConfigurable</code>, reached by three endpoints. The editing page acquires
+  an edit-session lock on load, which sets <code>pollState = "EDITING"</code>; the three
+  participant endpoints then refuse every request from that same page with <em>"This poll is
+  currently being edited. Please try again shortly."</em> The invite row surfaces the refusal,
+  which is R5's visible error. The ban button writes the refusal into
+  <code>#inviteError</code> — an element hidden whenever the poll is not invitation-only — which
+  is R7's silent failure.</p>
+
+  <figure>
+    <svg viewBox="0 0 980 480" role="img" aria-label="Sequence diagram contrasting today's participant request, refused by refuseWhenNotConfigurable because the page's own edit lock set the state to EDITING, with the fixed flow where the client sends its clientGuid and resolveEditContext recognises the lock holder">
+      <defs>
+        <marker id="ar6" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+        </marker>
+        <marker id="ar6s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--stop)"/>
+        </marker>
+        <marker id="ar6g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--good)"/>
+        </marker>
+      </defs>
+
+      <!-- lifelines -->
+      <text x="112" y="24" font-size="12" font-weight="600" text-anchor="middle" fill="currentColor">adminPoll.js</text>
+      <text x="450" y="24" font-size="12" font-weight="600" text-anchor="middle" fill="currentColor">participant endpoint</text>
+      <text x="800" y="24" font-size="12" font-weight="600" text-anchor="middle" fill="currentColor">poll document</text>
+      <line x1="112" y1="36" x2="112" y2="454" stroke="currentColor" stroke-opacity=".28" stroke-dasharray="3 4"/>
+      <line x1="450" y1="36" x2="450" y2="454" stroke="currentColor" stroke-opacity=".28" stroke-dasharray="3 4"/>
+      <line x1="800" y1="36" x2="800" y2="454" stroke="currentColor" stroke-opacity=".28" stroke-dasharray="3 4"/>
+
+      <!-- setup -->
+      <line x1="112" y1="62" x2="440" y2="62" stroke="currentColor" stroke-width="1.4" marker-end="url(#ar6)"/>
+      <text x="276" y="54" font-size="11" font-family="monospace" text-anchor="middle" fill="currentColor">POST …/edit-session  { clientGuid }</text>
+      <line x1="450" y1="86" x2="790" y2="86" stroke="currentColor" stroke-width="1.4" marker-end="url(#ar6)"/>
+      <text x="620" y="78" font-size="11" font-family="monospace" text-anchor="middle" fill="currentColor">pollState := EDITING</text>
+      <text x="812" y="90" font-size="11" font-family="monospace" fill="var(--warn)">clientGUID = G</text>
+
+      <line x1="16" y1="108" x2="964" y2="108" stroke="currentColor" stroke-opacity=".18"/>
+
+      <!-- broken path -->
+      <text x="16" y="132" font-size="11.5" font-family="monospace" letter-spacing="1.4" fill="var(--stop)">TODAY — R5 AND R7</text>
+      <line x1="112" y1="162" x2="440" y2="162" stroke="var(--stop)" stroke-width="1.6" marker-end="url(#ar6s)"/>
+      <text x="276" y="154" font-size="11" font-family="monospace" text-anchor="middle" fill="var(--stop)">DELETE …/participants/:email   (no clientGuid)</text>
+      <rect x="358" y="176" width="256" height="34" rx="2" fill="var(--stop-wash)" stroke="var(--stop)" stroke-opacity=".7"/>
+      <text x="486" y="198" font-size="11" font-family="monospace" text-anchor="middle" fill="currentColor">refuseWhenNotConfigurable → EDITING</text>
+      <line x1="440" y1="230" x2="122" y2="230" stroke="var(--stop)" stroke-width="1.6" marker-end="url(#ar6s)"/>
+      <text x="276" y="222" font-size="11" font-family="monospace" text-anchor="middle" fill="var(--stop)">409 "currently being edited"</text>
+      <text x="16" y="254" font-size="11.5" fill="var(--stop)">R5: shown in the invite row.  R7: written to #inviteError, which is <tspan font-style="italic">display:none</tspan> unless the poll is invitation-only — nothing appears to happen.</text>
+
+      <line x1="16" y1="276" x2="964" y2="276" stroke="currentColor" stroke-opacity=".18"/>
+
+      <!-- fixed path -->
+      <text x="16" y="300" font-size="11.5" font-family="monospace" letter-spacing="1.4" fill="var(--good)">AFTER THE FIX</text>
+      <line x1="112" y1="330" x2="440" y2="330" stroke="var(--good)" stroke-width="1.8" marker-end="url(#ar6g)"/>
+      <text x="276" y="322" font-size="11" font-family="monospace" text-anchor="middle" fill="var(--good)">DELETE …/participants/:email   { clientGuid: G }</text>
+      <rect x="330" y="344" width="300" height="50" rx="2" fill="var(--good-wash)" stroke="var(--good)" stroke-opacity=".8"/>
+      <text x="480" y="364" font-size="11" font-family="monospace" text-anchor="middle" fill="currentColor">resolveEditContext(poll, G, hasEverVoted)</text>
+      <text x="480" y="382" font-size="11" font-family="monospace" text-anchor="middle" fill="currentColor">holdsLock ⇒ judge the pre-edit state</text>
+      <line x1="450" y1="414" x2="790" y2="414" stroke="var(--good)" stroke-width="1.6" marker-end="url(#ar6g)"/>
+      <text x="620" y="406" font-size="11" font-family="monospace" text-anchor="middle" fill="var(--good)">ban applied</text>
+      <line x1="440" y1="440" x2="122" y2="440" stroke="var(--good)" stroke-width="1.6" marker-end="url(#ar6g)"/>
+      <text x="276" y="432" font-size="11" font-family="monospace" text-anchor="middle" fill="var(--good)">204 · page reloads both lists</text>
+    </svg>
+    <figcaption><b>Figure 5.2</b> One root cause, three endpoints. <code>resolveEditContext</code>
+    already solves exactly this problem for publish; extending it to <code>POST …/invited</code>,
+    <code>DELETE …/participants/:email</code> and <code>DELETE …/banned/:email</code> — with the
+    three client calls sending <code>clientGuid</code> — makes participant moderation work from
+    the page that owns the lock while still refusing a stale tab.</figcaption>
+  </figure>
+
+  <div class="note accent">
+    <span class="lbl">Design point: which modes may moderate</span>
+    <p><code>resolveEditContext</code> returns <code>EDIT</code> or <code>UPDATE</code>.
+    Participant moderation must be accepted in <em>both</em> — banning a voter from a poll that
+    already has votes is the main reason the feature exists. Only the invite row is narrowed
+    further, and by visibility rather than by mode: it renders for the two
+    <code>INVITATION ONLY</code> values and is absent otherwise. The ban and un-ban actions stay
+    available for all five values, including <code>PUBLIC POLL</code>. Refusals for
+    <code>AWAITING APPROVAL</code> and <code>ARCHIVED</code> survive unchanged, because
+    <code>editModeFor</code> still produces them.</p>
+    <p>R7 also needs a presentation fix that has nothing to do with the lock: the ban button must
+    write its error into an element that is visible in every visibility mode, not into the invite
+    row's <code>#inviteError</code>.</p>
+  </div>
+
+  <h3>5.3 — Voting while a poll is EDITING (R8)</h3>
+
+  <p class="measure">An administrator opening the editing page moves a live poll to
+  <code>EDITING</code> instantly, while voters have the grid open. R8 enumerates four windows,
+  each needing its own reaction, and closes them with a single summary rule: <em>any time there
+  is a user action on the poll card, or the card is refreshed, a poll in <code>EDITING</code>
+  renders its front face carrying the "Try Again" message.</em> Every window therefore ends on
+  the front face — the message is the same string in all four — and the only thing that varies is
+  what triggers the flip. The second invariant is quieter but just as binding: <em>a voter never
+  loses a selection they had made.</em></p>
+
+  <div class="note accent">
+    <span class="lbl">The one message</span>
+    <p>R8 defines exactly one string, used on the card face and on every refusal:<br>
+    <b>"This poll is momentarily unavailable to cast a vote. Please try again shortly."</b></p>
+  </div>
+
+  <figure>
+    <svg viewBox="0 0 980 430" role="img" aria-label="Timeline of an EDITING interval marking four race windows: card refresh while editing, a Vote click, a Submit Vote click from the flipped back face, and a submit already in flight, each of which ends on the card front face carrying the same Try Again message">
+      <defs>
+        <marker id="ar7" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+        </marker>
+      </defs>
+
+      <!-- editing band -->
+      <rect x="150" y="46" width="640" height="34" rx="2" fill="var(--warn-wash)" stroke="var(--warn)" stroke-opacity=".65"/>
+      <text x="470" y="68" font-size="12" font-weight="600" text-anchor="middle" fill="currentColor">pollState = EDITING</text>
+      <text x="150" y="38" font-size="10.5" font-family="monospace" fill="currentColor" opacity=".7">admin opens editPoll</text>
+      <text x="790" y="38" font-size="10.5" font-family="monospace" text-anchor="end" fill="currentColor" opacity=".7">lock released → OPEN</text>
+
+      <line x1="30" y1="98" x2="950" y2="98" stroke="currentColor" stroke-width="1.4" marker-end="url(#ar7)"/>
+      <line x1="150" y1="80" x2="150" y2="104" stroke="var(--warn)" stroke-width="1.6"/>
+      <line x1="790" y1="80" x2="790" y2="104" stroke="var(--warn)" stroke-width="1.6"/>
+
+      <!-- windows -->
+      <circle cx="222" cy="98" r="5.5" fill="var(--accent)"/>
+      <text x="222" y="124" font-size="11.5" font-weight="700" text-anchor="middle" fill="var(--accent)">W1</text>
+      <circle cx="392" cy="98" r="5.5" fill="var(--accent)"/>
+      <text x="392" y="124" font-size="11.5" font-weight="700" text-anchor="middle" fill="var(--accent)">W2</text>
+      <circle cx="562" cy="98" r="5.5" fill="var(--accent)"/>
+      <text x="562" y="124" font-size="11.5" font-weight="700" text-anchor="middle" fill="var(--accent)">W3</text>
+      <circle cx="722" cy="98" r="5.5" fill="var(--accent)"/>
+      <text x="722" y="124" font-size="11.5" font-weight="700" text-anchor="middle" fill="var(--accent)">W4</text>
+      <circle cx="880" cy="98" r="5.5" fill="var(--good)"/>
+      <text x="880" y="124" font-size="11.5" font-weight="700" text-anchor="middle" fill="var(--good)">W5</text>
+
+      <!-- panels -->
+      <rect x="16" y="148" width="182" height="128" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-opacity=".25"/>
+      <text x="30" y="170" font-size="11.5" font-weight="700" fill="var(--accent)">W1 · next grid refresh</text>
+      <text x="30" y="192" font-size="11" fill="currentColor">Card forced to the front face.</text>
+      <text x="30" y="209" font-size="11" fill="currentColor">Vote and Live Results are</text>
+      <text x="30" y="226" font-size="11" fill="currentColor">not rendered.</text>
+      <text x="30" y="250" font-size="10.5" font-style="italic" fill="var(--ink-soft)">"Try Again" message in</text>
+      <text x="30" y="265" font-size="10.5" font-style="italic" fill="var(--ink-soft)">their place.</text>
+
+      <rect x="210" y="148" width="182" height="128" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-opacity=".25"/>
+      <text x="224" y="170" font-size="11.5" font-weight="700" fill="var(--accent)">W2 · Vote clicked</text>
+      <text x="224" y="192" font-size="11" fill="currentColor">Click lands in the split</text>
+      <text x="224" y="209" font-size="11" fill="currentColor">second before W1 lands.</text>
+      <text x="224" y="226" font-size="11" fill="currentColor">Card must not flip.</text>
+      <text x="224" y="250" font-size="10.5" font-style="italic" fill="var(--ink-soft)">"Try Again" message on</text>
+      <text x="224" y="265" font-size="10.5" font-style="italic" fill="var(--ink-soft)">the front face.</text>
+
+      <rect x="404" y="148" width="182" height="128" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-opacity=".25"/>
+      <text x="418" y="170" font-size="11.5" font-weight="700" fill="var(--accent)">W3 · Submit from back</text>
+      <text x="418" y="192" font-size="11" fill="currentColor">Voter was already flipped.</text>
+      <text x="418" y="209" font-size="11" fill="currentColor">Show the message, then flip</text>
+      <text x="418" y="226" font-size="11" fill="var(--accent)">to the front face.</text>
+      <text x="418" y="250" font-size="10.5" fill="currentColor" opacity=".75">Selection preserved.</text>
+
+      <rect x="598" y="148" width="182" height="128" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-opacity=".25"/>
+      <text x="612" y="170" font-size="11.5" font-weight="700" fill="var(--accent)">W4 · submit in flight</text>
+      <text x="612" y="192" font-size="11" fill="currentColor">State flipped after the click</text>
+      <text x="612" y="209" font-size="11" fill="currentColor">but before the handler ran.</text>
+      <text x="612" y="226" font-size="11" fill="currentColor">Server is the only arbiter.</text>
+      <text x="612" y="250" font-size="10.5" fill="var(--accent)">409 → front face + message.</text>
+
+      <rect x="792" y="148" width="172" height="128" rx="2" fill="var(--good-wash)" stroke="var(--good)" stroke-opacity=".6"/>
+      <text x="806" y="170" font-size="11.5" font-weight="700" fill="var(--good)">W5 · reopened</text>
+      <text x="806" y="192" font-size="11" fill="currentColor">Next refresh restores the</text>
+      <text x="806" y="209" font-size="11" fill="currentColor">front face with Vote.</text>
+      <text x="806" y="233" font-size="11" fill="currentColor">The in-progress selection</text>
+      <text x="806" y="250" font-size="11" fill="currentColor">from W1 is restored.</text>
+
+      <!-- invariant strip -->
+      <rect x="16" y="298" width="948" height="112" rx="2" fill="var(--accent-wash)" stroke="var(--accent)" stroke-opacity=".45"/>
+      <text x="34" y="324" font-size="11" font-family="monospace" letter-spacing="1.4" fill="var(--accent)">THE SERVER-SIDE HALF — WITHOUT IT, W4 CANNOT BE CLOSED</text>
+      <text x="34" y="348" font-size="12" fill="currentColor"><tspan font-family="monospace" font-size="11.5">validateVoteSubmission</tspan> today rejects any non-OPEN state with the generic <tspan font-style="italic">"This poll is not open for voting."</tspan></text>
+      <text x="34" y="368" font-size="12" fill="currentColor">R8 needs an <tspan font-family="monospace" font-size="11.5">EDITING</tspan> branch <tspan font-style="italic">before</tspan> that generic one, returning the "Try Again" message plus a marker the card reads as</text>
+      <text x="34" y="388" font-size="12" fill="currentColor">"render the front face" — so it is distinguishable from "this poll has closed", which the card treats differently.</text>
+    </svg>
+    <figcaption><b>Figure 5.3</b> The four windows R8 enumerates, plus the reopen that closes the
+    loop. All four converge on the same outcome — front face, one message — which is what makes
+    the summary rule testable as a single invariant. W1–W3 are client reactions; W4 can only be
+    closed on the server, because by definition the client's information was already stale when
+    it acted.</figcaption>
+  </figure>
+
+  <div class="note good">
+    <span class="lbl">The listing rule R8 depends on — now specified</span>
+    <p>None of this works if the card is not on the grid to begin with, and 011 FR-003 withholds
+    <code>EDITING</code> from the public listing entirely: <code>GET /api/polls</code> filters on
+    <code>pollState ∈ {WAITING TO OPEN, OPEN, CLOSED}</code> and <code>GET /api/polls/:pid</code>
+    404s anything outside it. The requirements now close this directly — both endpoints admit
+    <code>EDITING</code> <b>only when <code>pollStateBeforeEditUpdate</code> is itself one of the
+    three public states</b>. A poll that was public before the edit stays visible and shows the
+    message; a poll that was never public (<code>INITIALIZED</code>, <code>REJECTED</code>) stays
+    hidden, so 011's intent survives intact.</p>
+    <p>Implementation note: this makes <code>pollStateBeforeEditUpdate</code> — until now purely
+    an internal restore field — part of a <em>public</em> read path. It must never be emitted in
+    the response; it is a filter input only.</p>
+  </div>
+
+  <h3>5.4 — The home grid becomes a polling list (R13)</h3>
+
+  <p class="measure">Today the grid fetches <code>GET /api/polls</code> exactly once, at load,
+  and each mounted card then polls <code>GET /api/polls/:pid</code> on its own timer. A poll
+  created, opened or closed after page load never appears or disappears until a manual reload —
+  which is what R13 fixes. Doing it naively adds a request per interval on top of the N the cards
+  already make; the list response already carries the full card payload, so the same change can
+  remove the fan-out instead of adding to it.</p>
+
+  <figure>
+    <svg viewBox="0 0 960 400" role="img" aria-label="Before and after of home grid fetching: today one list fetch at load plus N per-card polls per interval, after R13 one list fetch per interval feeding all cards with membership diffing and preserved card state">
+      <defs>
+        <marker id="ar8" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+        </marker>
+        <marker id="ar8a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/>
+        </marker>
+      </defs>
+
+      <text x="16" y="22" font-size="11.5" font-family="monospace" letter-spacing="1.5" fill="currentColor" opacity=".6">TODAY — N + 1 REQUESTS, FIXED MEMBERSHIP</text>
+
+      <rect x="16" y="38" width="142" height="40" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-opacity=".35"/>
+      <text x="87" y="63" font-size="12" font-weight="600" text-anchor="middle" fill="currentColor">pollGrid.js</text>
+      <line x1="158" y1="58" x2="300" y2="58" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar8)"/>
+      <text x="229" y="50" font-size="10.5" font-family="monospace" text-anchor="middle" fill="var(--stop)">once, at load</text>
+      <rect x="300" y="40" width="176" height="36" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-opacity=".35"/>
+      <text x="388" y="63" font-size="11.5" font-family="monospace" text-anchor="middle" fill="currentColor">GET /api/polls</text>
+
+      <rect x="16" y="98" width="142" height="34" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-opacity=".35"/>
+      <text x="87" y="120" font-size="11.5" text-anchor="middle" fill="currentColor">card 1</text>
+      <rect x="16" y="140" width="142" height="34" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-opacity=".35"/>
+      <text x="87" y="162" font-size="11.5" text-anchor="middle" fill="currentColor">card 2</text>
+      <rect x="16" y="182" width="142" height="34" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-opacity=".35"/>
+      <text x="87" y="204" font-size="11.5" text-anchor="middle" fill="currentColor">card N</text>
+
+      <line x1="158" y1="115" x2="300" y2="132" stroke="currentColor" stroke-width="1.3" marker-end="url(#ar8)"/>
+      <line x1="158" y1="157" x2="300" y2="147" stroke="currentColor" stroke-width="1.3" marker-end="url(#ar8)"/>
+      <line x1="158" y1="199" x2="300" y2="162" stroke="currentColor" stroke-width="1.3" marker-end="url(#ar8)"/>
+      <rect x="300" y="122" width="176" height="52" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-opacity=".35"/>
+      <text x="388" y="144" font-size="11.5" font-family="monospace" text-anchor="middle" fill="currentColor">GET /api/polls/:pid</text>
+      <text x="388" y="163" font-size="10.5" font-family="monospace" text-anchor="middle" fill="var(--stop)">× N, every interval</text>
+
+      <text x="500" y="112" font-size="11.5" fill="var(--stop)">New polls never appear. Closed polls never</text>
+      <text x="500" y="130" font-size="11.5" fill="var(--stop)">disappear. Request count grows with the grid.</text>
+
+      <line x1="16" y1="238" x2="944" y2="238" stroke="currentColor" stroke-opacity=".2"/>
+
+      <text x="16" y="268" font-size="11.5" font-family="monospace" letter-spacing="1.5" fill="var(--accent)">AFTER R13 — ONE REQUEST PER INTERVAL, LIVE MEMBERSHIP</text>
+
+      <rect x="16" y="284" width="142" height="52" rx="2" fill="var(--accent-wash)" stroke="var(--accent)" stroke-width="1.8"/>
+      <text x="87" y="306" font-size="12" font-weight="600" text-anchor="middle" fill="currentColor">pollGrid.js</text>
+      <text x="87" y="324" font-size="10.5" font-family="monospace" text-anchor="middle" fill="currentColor">diff by pid</text>
+
+      <line x1="158" y1="310" x2="300" y2="310" stroke="var(--accent)" stroke-width="2" marker-end="url(#ar8a)"/>
+      <text x="229" y="302" font-size="10.5" font-family="monospace" text-anchor="middle" fill="var(--accent)">every interval</text>
+      <rect x="300" y="292" width="216" height="36" rx="2" fill="var(--accent-wash)" stroke="var(--accent)" stroke-width="1.8"/>
+      <text x="408" y="315" font-size="11.5" font-family="monospace" text-anchor="middle" fill="currentColor">GET /api/polls  (+ myChoiceIds)</text>
+
+      <line x1="300" y1="352" x2="158" y2="352" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#ar8a)"/>
+      <text x="229" y="368" font-size="10.5" font-family="monospace" text-anchor="middle" fill="var(--accent)">full PollDetail per poll</text>
+
+      <text x="540" y="300" font-size="11.5" fill="currentColor">· pid present, card present → update in place</text>
+      <text x="540" y="320" font-size="11.5" fill="currentColor">· pid new → mount a card</text>
+      <text x="540" y="340" font-size="11.5" fill="currentColor">· pid gone → unmount and stop its timer</text>
+      <text x="540" y="364" font-size="11.5" fill="var(--good)">· surviving card keeps flip state + selection</text>
+    </svg>
+    <figcaption><b>Figure 5.4</b> R13 as stated adds a periodic list fetch. Because
+    <code>buildPollDetail</code> already produces the complete card payload, feeding the cards
+    from the list response instead collapses N + 1 requests per interval down to one — provided
+    <code>GET /api/polls</code> starts resolving the caller's session so it can include
+    <code>myChoiceIds</code>, which is the only field the per-card fetch adds today.</figcaption>
+  </figure>
+
+  <div class="note warn">
+    <span class="lbl">Do not lose these two card behaviours</span>
+    <p><code>pollCard.js</code> already preserves an in-progress selection across a refresh
+    <em>only while the card is flipped</em>. R8's W1 forces a flip back to the front while the
+    poll is being edited, and R8's assumption section states the selection must survive that and
+    be restored at W5. The preservation rule therefore has to be decoupled from the flip state —
+    an explicit "pending selection" held per card, independent of which face is showing.</p>
+  </div>
+</section>
+
+<!-- ==================================================================== -->
+<section id="api">
+  <div class="sechead"><span class="secnum">06</span><h2>API contract deltas</h2></div>
+
+  <p class="measure">Every change below must land in <code>postman/openapi.json</code> in the same
+  change — the repository has a contract test (<code>tests/openapi-contract.test.ts</code>) that
+  exists to keep the document and the routes from drifting.</p>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Endpoint</th><th>Change</th><th>Detail</th><th>Req</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">PUT /api/admin/polls/:pid/choices</td><td><span class="pill del">removed</span></td><td>Deleted outright. Its <code>resolveEditContext</code> gate and <code>replaceChoices</code> call move into the publish handler.</td><td class="mono">R1</td></tr>
+        <tr><td class="mono">POST /api/admin/polls/:pid/publish</td><td><span class="pill chg">body</span></td><td>Accepts <code>labels: string[]</code> alongside the existing fields in <code>EDIT</code> mode; rejects it in <code>UPDATE</code> mode with the same 400 shape as the other disallowed fields. Accepts <code>pollVisibility</code> in place of <code>accessMode</code> / <code>resultsVisibility</code>.</td><td class="mono">R1 R3</td></tr>
+        <tr><td class="mono">PATCH /api/admin/polls/:pid</td><td><span class="pill chg">values</span></td><td><code>pollState</code> now accepts <code>OPEN</code> as well as <code>CLOSED</code> and <code>ARCHIVED</code>; the response reflects the per-transition schedule writes. <code>endAt</code> is no longer stamped on archive.</td><td class="mono">R10</td></tr>
+        <tr><td class="mono">GET /api/admin/polls</td><td><span class="pill add">fields</span></td><td>Row objects gain <code>canOpen</code> and <code>canClose</code>. <code>pollVisibility</code> replaces the two old enums wherever the list exposes them.</td><td class="mono">R11 R3</td></tr>
+        <tr><td class="mono">POST /api/admin/polls/:pid/invited</td><td rowspan="3"><span class="pill chg">body</span></td><td rowspan="3">Each accepts <code>clientGuid</code> and is gated by <code>resolveEditContext</code> instead of <code>refuseWhenNotConfigurable</code>, accepting both <code>EDIT</code> and <code>UPDATE</code> modes. <code>DELETE</code> requests therefore carry a JSON body — or, if a body on <code>DELETE</code> is undesirable, <code>clientGuid</code> as a query parameter; the spec should pick one and use it for all three.</td><td rowspan="3" class="mono">R5 R7</td></tr>
+        <tr><td class="mono">DELETE …/participants/:emailAddress</td></tr>
+        <tr><td class="mono">DELETE …/banned/:emailAddress</td></tr>
+        <tr><td class="mono">GET /api/me</td><td><span class="pill add">field</span></td><td><code>isAdmin: boolean</code>, computed by <code>isAdminEmail(email, config)</code>. Still 401 for guests, so the flag is simply absent.</td><td class="mono">R9</td></tr>
+        <tr><td class="mono">GET /api/polls</td><td><span class="pill chg">filter</span></td><td>Filters on <code>pollVisibility = "PUBLIC POLL"</code>, and admits <code>EDITING</code> polls whose <code>pollStateBeforeEditUpdate</code> is one of the three public states. Resolves the caller's session so each entry can carry <code>myChoiceIds</code>.</td><td class="mono">R3 R8 R13</td></tr>
+        <tr><td class="mono">GET /api/polls/:pid</td><td><span class="pill chg">filter</span></td><td>Same <code>EDITING</code> admission as above, so the standalone <code>?PID=</code> view shows the "Try Again" message instead of 404. (The requirements name this route <code>/api/polls/:pollId</code>; the implemented parameter is <code>:pid</code>.)</td><td class="mono">R8</td></tr>
+        <tr><td class="mono">POST /api/polls/:pid/vote</td><td><span class="pill add">error</span></td><td>New 409 for <code>pollState = EDITING</code> carrying the "Try Again" message and instructing the client to render the front face, checked before the generic not-open refusal. Voter-count enforcement widens from one private mode to all four, with a blank limit treated as 500.</td><td class="mono">R6 R8</td></tr>
+        <tr><td class="mono">GET /api/admin/polls/:pid/results</td><td><span class="pill chg">gate</span></td><td><code>notYetVoted</code> is included for the two <code>INVITATION ONLY</code> values, replacing the <code>accessMode</code> check.</td><td class="mono">R3</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ==================================================================== -->
+<section id="capabilities">
+  <div class="sechead"><span class="secnum">07</span><h2>Server-computed row capabilities</h2></div>
+
+  <p class="measure">011 already sends five booleans per admin row so the client renders the
+  action menu without re-deriving any state rule. R10 adds five one-click controls and four
+  icons, every one of which has an enablement condition — so R11 extends the same principle
+  rather than letting <code>adminList.js</code> start reasoning about <code>pollState</code>
+  again. Extract the whole set into one <code>capabilitiesFor(poll, hasEverBeenVotedOn)</code>
+  in <code>service.ts</code>, called by the list endpoint and asserted directly by tests.</p>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Capability</th><th>True when</th><th>Drives</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">canEdit</td><td><code>editModeFor</code> yields <code>EDIT</code> — not <code>EDITING</code>/<code>AWAITING APPROVAL</code>/<code>ARCHIVED</code>, and never voted on</td><td>Pen icon + title link → <code>/admin/poll</code></td><td>existing</td></tr>
+        <tr><td class="mono">canUpdate</td><td>as above but the poll has been voted on</td><td>Pen icon + title link → <code>/admin/poll/update</code></td><td>existing</td></tr>
+        <tr><td class="mono">canOpen</td><td><code>pollState ∈ {WAITING TO OPEN, CLOSED}</code></td><td>OPEN button (column 3)</td><td><span class="pill add">new</span></td></tr>
+        <tr><td class="mono">canClose</td><td><code>pollState ∈ {WAITING TO OPEN, OPEN}</code></td><td>CLOSE button (column 4)</td><td><span class="pill add">new</span></td></tr>
+        <tr><td class="mono">canArchive</td><td><code>pollState = CLOSED</code></td><td>ARCHIVE button (column 5)</td><td>existing</td></tr>
+        <tr><td class="mono">canDelete</td><td><code>pollState ∈ {INITIALIZED, REJECTED, ARCHIVED}</code></td><td>Trash icon</td><td>existing</td></tr>
+        <tr><td class="mono">canRescreen</td><td><code>pollState = REJECTED</code> and attempts ≥ <code>ENV_MAX_ACCEPTABILITY_SCREENING_ATTEMPTS</code></td><td>Re-attempt Screening button on the second title line</td><td>existing</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <span class="lbl">Note the overlap, it is intentional</span>
+    <p><code>WAITING TO OPEN</code> satisfies both <code>canOpen</code> and
+    <code>canClose</code>: an administrator may start a scheduled poll early or abandon it before
+    it starts. <code>EDITING</code>, <code>AWAITING APPROVAL</code>, <code>INITIALIZED</code>,
+    <code>REJECTED</code> and <code>ARCHIVED</code> satisfy none of the three state buttons, so a
+    row in any of those states shows three greyed controls — which is also what makes the
+    columns line up across rows, since every button is always rendered.</p>
+    <p>Duplicate, Copy Link and View Results have no state condition and are always enabled; the
+    requirements give an enablement rule only for Delete.</p>
+  </div>
+</section>
+
+<!-- ==================================================================== -->
+<section id="presentation">
+  <div class="sechead"><span class="secnum">08</span><h2>Presentation architecture</h2></div>
+
+  <h3>8.1 — Anatomy of an admin row</h3>
+
+  <p class="measure">The list goes from nine columns to ten, and from one line per poll to up to
+  three. Subtitle and the two screening columns leave the header row and become stacked lines
+  inside column 1, which is what makes the row variable-height — and why the requirement
+  specifies that zebra striping alternates <em>per poll</em>, not per rendered line.</p>
+
+  <figure>
+    <svg viewBox="0 0 1000 380" role="img" aria-label="Anatomy of the redesigned admin list row showing ten numbered columns, the stacked title block containing title, subtitle and an optional screening line, the three state buttons, the date columns and the four action icons">
+      <!-- header -->
+      <rect x="16" y="34" width="968" height="28" fill="var(--surface-3)"/>
+      <text x="30" y="53" font-size="10.5" font-family="monospace" letter-spacing="1" fill="currentColor" opacity=".72">TITLE</text>
+      <text x="330" y="53" font-size="10.5" font-family="monospace" letter-spacing="1" fill="currentColor" opacity=".72">STATE</text>
+      <text x="432" y="53" font-size="10.5" font-family="monospace" letter-spacing="1" fill="currentColor" opacity=".72">OPEN</text>
+      <text x="500" y="53" font-size="10.5" font-family="monospace" letter-spacing="1" fill="currentColor" opacity=".72">CLOSE</text>
+      <text x="572" y="53" font-size="10.5" font-family="monospace" letter-spacing="1" fill="currentColor" opacity=".72">ARCHIVE</text>
+      <text x="664" y="53" font-size="10.5" font-family="monospace" letter-spacing="1" fill="currentColor" opacity=".72">CREATED</text>
+      <text x="748" y="53" font-size="10.5" font-family="monospace" letter-spacing="1" fill="currentColor" opacity=".72">START</text>
+      <text x="820" y="53" font-size="10.5" font-family="monospace" letter-spacing="1" fill="currentColor" opacity=".72">END</text>
+      <text x="890" y="53" font-size="10.5" font-family="monospace" letter-spacing="1" fill="currentColor" opacity=".72">ACTIONS</text>
+
+      <!-- row A (odd, three lines) -->
+      <rect x="16" y="62" width="968" height="86" fill="var(--surface)" stroke="currentColor" stroke-opacity=".14"/>
+      <path d="M32 82 l12 -12 4 4 -12 12 -5 1 1 -5z" fill="var(--accent)"/>
+      <text x="56" y="84" font-size="13" font-weight="600" fill="var(--accent)" text-decoration="underline">Which venue for the September meet-up?</text>
+      <text x="56" y="102" font-size="11" font-style="italic" fill="currentColor" opacity=".72">Pick one — we book on Friday</text>
+      <text x="56" y="124" font-size="12" font-weight="700" fill="var(--stop)">REJECTED: names a private individual</text>
+      <rect x="180" y="112" width="132" height="18" rx="2" fill="var(--stop-wash)" stroke="var(--stop)" stroke-opacity=".7"/>
+      <text x="246" y="125" font-size="10" font-family="monospace" text-anchor="middle" fill="currentColor">Re-attempt Screening</text>
+
+      <text x="330" y="88" font-size="11.5" font-weight="600" fill="currentColor">REJECTED</text>
+      <rect x="428" y="76" width="46" height="20" rx="2" fill="none" stroke="currentColor" stroke-opacity=".3"/>
+      <text x="451" y="90" font-size="10" text-anchor="middle" fill="currentColor" opacity=".38">OPEN</text>
+      <rect x="496" y="76" width="52" height="20" rx="2" fill="none" stroke="currentColor" stroke-opacity=".3"/>
+      <text x="522" y="90" font-size="10" text-anchor="middle" fill="currentColor" opacity=".38">CLOSE</text>
+      <rect x="568" y="76" width="62" height="20" rx="2" fill="none" stroke="currentColor" stroke-opacity=".3"/>
+      <text x="599" y="90" font-size="10" text-anchor="middle" fill="currentColor" opacity=".38">ARCHIVE</text>
+      <text x="664" y="90" font-size="11" fill="currentColor" opacity=".8">02 Sep 14:22</text>
+      <text x="748" y="90" font-size="11" font-style="italic" fill="currentColor" opacity=".65">started</text>
+      <text x="820" y="90" font-size="11" font-style="italic" fill="currentColor" opacity=".65">does not end</text>
+      <circle cx="898" cy="86" r="7" fill="none" stroke="currentColor" stroke-opacity=".5"/>
+      <circle cx="918" cy="86" r="7" fill="none" stroke="currentColor" stroke-opacity=".5"/>
+      <circle cx="938" cy="86" r="7" fill="none" stroke="currentColor" stroke-opacity=".5"/>
+      <circle cx="958" cy="86" r="7" fill="none" stroke="var(--stop)" stroke-opacity=".8"/>
+      <circle cx="974" cy="80" r="1.6" fill="currentColor"/><circle cx="974" cy="86" r="1.6" fill="currentColor"/><circle cx="974" cy="92" r="1.6" fill="currentColor"/>
+
+      <!-- row B (even, two lines, zebra) -->
+      <rect x="16" y="148" width="968" height="62" fill="var(--surface-2)" stroke="currentColor" stroke-opacity=".14"/>
+      <path d="M32 172 l12 -12 4 4 -12 12 -5 1 1 -5z" fill="var(--accent)"/>
+      <text x="56" y="174" font-size="13" font-weight="600" fill="var(--accent)" text-decoration="underline">Best day for the retro</text>
+      <text x="56" y="192" font-size="11" font-style="italic" fill="currentColor" opacity=".72">Multiple choice, dynamic vote</text>
+      <text x="330" y="176" font-size="11.5" font-weight="600" fill="var(--good)">OPEN</text>
+      <rect x="428" y="164" width="46" height="20" rx="2" fill="none" stroke="currentColor" stroke-opacity=".3"/>
+      <text x="451" y="178" font-size="10" text-anchor="middle" fill="currentColor" opacity=".38">OPEN</text>
+      <rect x="496" y="164" width="52" height="20" rx="2" fill="var(--accent-wash)" stroke="var(--accent)" stroke-width="1.4"/>
+      <text x="522" y="178" font-size="10" text-anchor="middle" fill="var(--accent)" font-weight="600">CLOSE</text>
+      <rect x="568" y="164" width="62" height="20" rx="2" fill="none" stroke="currentColor" stroke-opacity=".3"/>
+      <text x="599" y="178" font-size="10" text-anchor="middle" fill="currentColor" opacity=".38">ARCHIVE</text>
+      <text x="664" y="178" font-size="11" fill="currentColor" opacity=".8">28 Aug 09:05</text>
+      <text x="748" y="178" font-size="11" fill="currentColor" opacity=".8">01 Sep 08:00</text>
+      <text x="820" y="178" font-size="11" font-style="italic" fill="currentColor" opacity=".65">does not end</text>
+      <circle cx="898" cy="174" r="7" fill="none" stroke="var(--accent)" stroke-opacity=".85"/>
+      <circle cx="918" cy="174" r="7" fill="none" stroke="var(--accent)" stroke-opacity=".85"/>
+      <circle cx="938" cy="174" r="7" fill="none" stroke="var(--accent)" stroke-opacity=".85"/>
+      <circle cx="958" cy="174" r="7" fill="none" stroke="currentColor" stroke-opacity=".3"/>
+      <circle cx="974" cy="168" r="1.6" fill="currentColor"/><circle cx="974" cy="174" r="1.6" fill="currentColor"/><circle cx="974" cy="180" r="1.6" fill="currentColor"/>
+
+      <!-- column numbers -->
+      <text x="30" y="228" font-size="10.5" font-family="monospace" fill="var(--accent)">1</text>
+      <text x="330" y="228" font-size="10.5" font-family="monospace" fill="var(--accent)">2</text>
+      <text x="448" y="228" font-size="10.5" font-family="monospace" fill="var(--accent)">3</text>
+      <text x="519" y="228" font-size="10.5" font-family="monospace" fill="var(--accent)">4</text>
+      <text x="596" y="228" font-size="10.5" font-family="monospace" fill="var(--accent)">5</text>
+      <text x="664" y="228" font-size="10.5" font-family="monospace" fill="var(--accent)">6</text>
+      <text x="748" y="228" font-size="10.5" font-family="monospace" fill="var(--accent)">7</text>
+      <text x="820" y="228" font-size="10.5" font-family="monospace" fill="var(--accent)">8</text>
+      <text x="924" y="228" font-size="10.5" font-family="monospace" fill="var(--accent)">9</text>
+      <text x="972" y="228" font-size="10.5" font-family="monospace" fill="var(--accent)">10</text>
+
+      <!-- annotations -->
+      <rect x="16" y="248" width="480" height="120" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-opacity=".2"/>
+      <text x="32" y="272" font-size="11" font-family="monospace" letter-spacing="1.3" fill="var(--accent)">COLUMN 1 — THE STACKED TITLE BLOCK</text>
+      <text x="32" y="294" font-size="11.5" fill="currentColor">Line 1  pen icon + title, both linking to edit or update</text>
+      <text x="32" y="312" font-size="11.5" fill="currentColor">Line 2  subtitle, italic, one step smaller, tight leading</text>
+      <text x="32" y="330" font-size="11.5" fill="currentColor">Line 3  screening line, title-sized and bold — rendered only</text>
+      <text x="32" y="346" font-size="11.5" fill="currentColor">          when AWAITING APPROVAL or REJECTED</text>
+
+      <rect x="510" y="248" width="474" height="120" rx="2" fill="var(--surface-2)" stroke="currentColor" stroke-opacity=".2"/>
+      <text x="526" y="272" font-size="11" font-family="monospace" letter-spacing="1.3" fill="var(--accent)">COLUMN 9 — ICONS, ALWAYS RENDERED</text>
+      <text x="526" y="294" font-size="11.5" fill="currentColor">Duplicate · Copy Poll Link · View Results · Delete</text>
+      <text x="526" y="312" font-size="11.5" fill="currentColor">Inline SVG — Font Awesome is not present in the project.</text>
+      <text x="526" y="330" font-size="11.5" fill="currentColor">Delete is enabled only for INITIALIZED / REJECTED / ARCHIVED</text>
+      <text x="526" y="346" font-size="11.5" fill="currentColor">and keeps its confirmation. Every icon carries a tooltip.</text>
+    </svg>
+    <figcaption><b>Figure 8.1</b> The ten-column row. The two sample rows show the zebra pair and
+    the two extremes of column 1 — a rejected poll carrying all three lines, and an open poll
+    carrying two. Greyed controls are still rendered, which is what keeps columns 3–5 aligned
+    down the table.</figcaption>
+  </figure>
+
+  <h4>Empty-date rendering</h4>
+  <p class="measure">Columns 7 and 8 render lower-case sentinels rather than the current
+  em-dash: an empty <code>startAt</code> reads <em>started</em>, an empty <code>endAt</code>
+  reads <em>does not end</em>. Both are statements about the poll rather than about the absence
+  of data, which is what makes them worth the change — and both become considerably more common
+  after R10, since the OPEN transition clears <code>startAt</code> unconditionally.</p>
+
+  <h4>The kebab menu keeps its job</h4>
+  <p class="measure">Promoting seven actions to one-click controls does not remove the menu. It
+  keeps every action in words, which is the only place an administrator can read what an icon
+  does without hovering it. Icons and menu items dispatch the same handlers; the menu is a second
+  affordance for the same capability set, never a second rule set.</p>
+
+  <h3>8.2 — Radio groups on the editing surfaces</h3>
+
+  <p class="measure">Three selects become three single-select radio groups (R4). The mechanical
+  consequence is small — the same draft field, the same dirty flag, the same publish payload —
+  but there is one behavioural consequence worth naming: with a select, a change costs two
+  clicks and is easy to abandon; with radios, a stray click is one click from changing a poll's
+  visibility. The always-enabled Cancel of R2 is what makes that recoverable, which is a good
+  reason to treat R2 and R4 as one story rather than two. The exposure is bounded to the edit
+  surface only — once a poll has a vote, all three groups become static labels.</p>
+
+  <div class="grid2">
+    <div class="card">
+      <h4>Edit surface — no votes yet</h4>
+      <p>All three render as radio groups. <code>Voter Count Limit</code> is enabled unless
+      <code>pollVisibility</code> is <code>PUBLIC POLL</code>, in which case it is disabled,
+      greyed and cleared to null. The invite row renders for the two
+      <code>INVITATION ONLY</code> values.</p>
+    </div>
+    <div class="card">
+      <h4>Update surface — poll has votes</h4>
+      <p>All three render as static labels: the requirements now freeze <code>choiceMode</code>
+      and <code>voteMutability</code> alongside <code>pollVisibility</code> once a poll has been
+      voted on. That aligns the surface exactly with the publish endpoint, which already accepts
+      only title, subtitle, startAt and endAt in this mode — so no field on the page is rendered
+      as editable when the server would refuse to write it.</p>
+    </div>
+  </div>
+
+  <h3>8.3 — The Poll Administration menu item (R9)</h3>
+
+  <p class="measure">The requirement is precise and the architecture adds nothing to it: one
+  shared predicate, one boolean on <code>GET /api/me</code>, one conditional menu item between
+  <em>Edit Profile</em> and <em>Logout</em>, and no change whatsoever to the server-side gate.
+  The one thing worth restating in the spec is the security posture the requirement already
+  states — <code>isAdmin</code> is a rendering hint. Forging it in devtools reveals a menu entry
+  whose target, <code>GET /admin</code> behind <code>requireAdmin</code>, still returns 403.</p>
+
+  <pre><code>// service.ts — one predicate, two callers
+export function isAdminEmail(email: string | undefined, config: AppConfig): boolean {
+  if (!email) return false;
+  return config.admins.includes(email.trim().toLowerCase());
+}
+
+// createRequireAdmin  → the authorization decision   (unchanged behaviour)
+// GET /api/me         → the isAdmin rendering hint   (new)</code></pre>
+
+  <p class="measure"><code>config.admins</code> is already trimmed and lower-cased at load, so
+  the predicate's only job is to normalise the incoming address the same way — which is exactly
+  what <code>createRequireAdmin</code> does inline today. Extracting it is a refactor with no
+  behaviour change, and it is what makes "the two can never drift" true rather than aspirational.</p>
+</section>
+
+<!-- ==================================================================== -->
+<section id="observability">
+  <div class="sechead"><span class="secnum">09</span><h2>Observability</h2></div>
+
+  <div class="note accent">
+    <span class="lbl">R12 withdrawn in this revision</span>
+    <p>The requirements now state that <b>no logging is to be added to the server-side endpoints
+    by 012</b>, and that a dedicated requirements document will cover logging in full. The
+    previous revision of this architecture specified a log line for the two poll-list queries;
+    that is removed from scope, and nothing in 012 changes the current logging behaviour.</p>
+  </div>
+
+  <p class="measure">The section is kept rather than deleted because the analysis behind it
+  survives the withdrawal, and the logging document that follows will need it. The two poll-list
+  endpoints are the worst possible place to start logging naively, and it is worth knowing why
+  before that document is written.</p>
+
+  <h3>Why the two list endpoints need a volume rule</h3>
+
+  <p class="measure">Neither endpoint is requested on demand. The home grid re-fetches
+  <code>GET /api/polls</code> every <code>ENV_POLLING_INTERVAL</code> (5 s) per open tab once R13
+  lands, and the admin list re-fetches <code>GET /api/admin/polls</code> every
+  <code>ENV_POLL_ADMIN_PAGE_REFRESH_INTERVAL</code> (5 s) per open tab today. A log line per
+  matched poll therefore costs, for a modest 20-poll deployment with three tabs open:</p>
+
+  <p class="measure" style="font-family:var(--mono); font-size:13px;">20 polls × 12 fetches/min ×
+  3 tabs = <b>720 log lines per minute</b>, indefinitely, on an idle system.</p>
+
+  <p class="measure">On DigitalOcean App Platform that fills the log retention window with
+  unchanging rows within hours, and buries anything diagnostic. Three shapes bound it, in
+  increasing order of machinery:</p>
+
+  <ol class="numbered measure">
+    <li><b>One summary line per request</b> carrying every matched triple — same information,
+      36 lines per minute instead of 720, still greppable.</li>
+    <li><b>Log only on change</b> — emit when the match set differs from the previous request.
+      Near-zero on an idle system, but needs per-process state.</li>
+    <li><b>Sample or level-gate</b> — a <code>debug</code> level that is off in production.
+      Standard, and the natural fit once a real logging library is introduced.</li>
+  </ol>
+
+  <p class="measure">Whichever the logging document picks, the rule it must state is that
+  <em>polled</em> endpoints do not get per-item logging at info level. That is the finding worth
+  carrying forward.</p>
+</section>
+
+<!-- ==================================================================== -->
+<section id="decisions">
+  <div class="sechead"><span class="secnum">10</span><h2>Architecture decisions</h2></div>
+
+  <div class="adr">
+    <span class="id">AD-01</span>
+    <h3>Persist the five visibility values as display strings</h3>
+    <dl>
+      <dt>Decision</dt><dd><code>pollVisibility</code> stores <code>"PUBLIC POLL"</code> and the four <code>"PRIVATE POLL - …"</code> strings verbatim; no code-to-label map exists at any layer.</dd>
+      <dt>Why</dt><dd>The requirement states it directly, and <code>pollState</code> sets the precedent — it already stores and renders <code>"WAITING TO OPEN"</code> unchanged. A map would reintroduce the drift the collapse is meant to remove.</dd>
+      <dt>Cost</dt><dd>The strings are long and appear in query filters and test fixtures. Export them as a <code>POLL_VISIBILITIES</code> const array beside <code>POLL_STATES</code> so no literal is ever retyped.</dd>
+    </dl>
+  </div>
+
+  <div class="adr">
+    <span class="id">AD-02</span>
+    <h3>No override flag for manual state transitions</h3>
+    <dl>
+      <dt>Decision</dt><dd>The three buttons write <code>startAt</code> and <code>endAt</code> such that <code>evaluateSchedule</code> re-derives the state just chosen. No <code>manualOverride</code> field is added and the sweep is not modified.</dd>
+      <dt>Why</dt><dd>An override flag needs a lifecycle of its own — when is it cleared, does editing the schedule clear it, does archiving? The schedule-field rules need none of that, and they leave the poll's dates telling the truth about the poll.</dd>
+      <dt>Cost</dt><dd>Reopening a poll discards a past end date (§4). This must be stated in the spec as intended behaviour, not left to be found.</dd>
+    </dl>
+  </div>
+
+  <div class="adr">
+    <span class="id">AD-03</span>
+    <h3>Extend <code>resolveEditContext</code> rather than relax <code>refuseWhenNotConfigurable</code></h3>
+    <dl>
+      <dt>Decision</dt><dd>All three participant endpoints adopt the lock-aware check and accept a <code>clientGuid</code>; <code>refuseWhenNotConfigurable</code> is deleted.</dd>
+      <dt>Why</dt><dd>Simply dropping the <code>EDITING</code> refusal would let a <em>stale</em> tab moderate a poll another administrator now holds. <code>resolveEditContext</code> already draws exactly the right line — the lock holder proceeds, everyone else is refused — and reusing it means one rule, not two.</dd>
+      <dt>Cost</dt><dd>Two <code>DELETE</code> routes must carry <code>clientGuid</code>. Pick body or query for all three consistently (see §6).</dd>
+    </dl>
+  </div>
+
+  <div class="adr">
+    <span class="id">AD-04</span>
+    <h3>The server is the only arbiter of a vote during EDITING</h3>
+    <dl>
+      <dt>Decision</dt><dd><code>validateVoteSubmission</code> gains an explicit <code>EDITING</code> branch returning 409 with the retry message; the card's front-face suppression is a courtesy, not a guarantee.</dd>
+      <dt>Why</dt><dd>W4 — the state changing between click and handler — is unreachable by any client-side check, and a voter following a direct <code>?PID=</code> link may never have seen the grid at all.</dd>
+      <dt>Cost</dt><dd>A distinguishable error message, which the card must map to "return to the back face and retry" rather than the closed-poll treatment.</dd>
+    </dl>
+  </div>
+
+  <div class="adr">
+    <span class="id">AD-05</span>
+    <h3>Feed the grid's cards from the list response</h3>
+    <dl>
+      <dt>Decision</dt><dd><code>GET /api/polls</code> resolves the caller's session and returns full <code>PollDetail</code> objects including <code>myChoiceIds</code>; cards render from the list payload instead of each polling its own endpoint.</dd>
+      <dt>Why</dt><dd>R13 as written would add one request per interval on top of N. The list endpoint already builds the identical payload, so the same work collapses N + 1 into 1 and removes a class of inconsistency where a card and the grid disagree about the same poll.</dd>
+      <dt>Cost</dt><dd>A public endpoint now reads the session. It already does so on the single-poll route, and the response for a guest is unchanged.</dd>
+    </dl>
+  </div>
+
+  <div class="adr">
+    <span class="id">AD-06</span>
+    <h3>One capability function, two consumers</h3>
+    <dl>
+      <dt>Decision</dt><dd><code>capabilitiesFor(poll, hasEverBeenVotedOn)</code> in <code>service.ts</code> produces all seven booleans; the list endpoint spreads it, and <code>validateStateAction</code> enforces the same from-state guards.</dd>
+      <dt>Why</dt><dd>R11's stated goal is that the client re-derives no state rules. A shared function makes the button's enablement and the endpoint's refusal provably the same predicate, and gives the tests one place to assert.</dd>
+      <dt>Cost</dt><dd>None material — this is the existing inline block in <code>GET /api/admin/polls</code>, extracted and extended.</dd>
+    </dl>
+  </div>
+
+  <div class="adr">
+    <span class="id">AD-07</span>
+    <h3>Drop both collections; no migration path is written</h3>
+    <dl>
+      <dt>Decision</dt><dd><code>polls</code> and <code>voteHistory</code> are deleted at deploy, per the requirements' opening paragraph. No dual-read, no back-fill, no tolerance for documents carrying the old fields.</dd>
+      <dt>Why</dt><dd>The requirement grants it explicitly, and the alternative costs a mapping layer for a field that exists only to be read.</dd>
+      <dt>Cost</dt><dd>Irreversible for any data in the target environment. The spec's quickstart should say so in the deploy step, in as many words.</dd>
+    </dl>
+  </div>
+</section>
+
+<!-- ==================================================================== -->
+<section id="assumptions">
+  <div class="sechead"><span class="secnum">11</span><h2>Assumptions</h2></div>
+
+  <p class="measure">The requirements document carries its own <em>Assumptions</em> section;
+  those are treated as requirements here and are not repeated. The following are additional
+  defaults this architecture adopts where the requirements are silent. Each is a reasonable
+  default, not a guess at intent — but each should be confirmed or corrected during
+  <code>/speckit-specify</code>.</p>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>#</th><th>Assumption</th><th>If wrong</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">A1</td><td>A newly created poll defaults to <code>pollVisibility = "PUBLIC POLL"</code>, matching today's <code>PUBLIC_POLL</code> + <code>ANONYMOUS-POLL</code> default pair.</td><td>One line in <code>createDefaultPoll</code>.</td></tr>
+        <tr><td class="mono">A2</td><td>Cancel still prompts to discard when the page is dirty. The requirements now pin <em>which</em> control it mimics — the in-page back icon in the header, explicitly not the browser back button — but not whether the discard guard survives.</td><td>Remove the <code>confirmDiscard</code> call; unsaved edits are then lost silently on a one-click, always-enabled button.</td></tr>
+        <tr><td class="mono">A3</td><td>Cancel releases the editing session before navigating, exactly as the header back icon does.</td><td>Cancelled edits leave polls stuck in <code>EDITING</code> until the stale-lock sweep reclaims them.</td></tr>
+        <tr><td class="mono">A4</td><td><code>voterCountLimit</code> is not cross-checked against the invited list or the existing voter count; a limit below the current number of voters is accepted and simply blocks further new voters. This follows the requirements' own rule that a poll reopened at its limit admits no new voters.</td><td>Adds a validation rule and an error message on the edit surface.</td></tr>
+        <tr><td class="mono">A5</td><td>For the two <code>INVITATION ONLY</code> values both the invited list and the 500 limit apply, whichever binds first. Since the invited list is already capped at 500, the two bounds coincide and the limit is only visible when the administrator lowers it.</td><td>Limit becomes link-only again, contradicting the requirements' own assumption.</td></tr>
+        <tr><td class="mono">A6</td><td>Switching away from an <code>INVITATION ONLY</code> value retains <code>invitedVoterList</code> and <code>bannedVoterList</code> rather than clearing them.</td><td>A visibility switch becomes destructive and unrecoverable.</td></tr>
+        <tr><td class="mono">A7</td><td>A blank <code>voterCountLimit</code> on a private poll is <em>stored</em> as <code>null</code> and resolved to 500 at vote time, rather than being persisted as 500 — the requirements say the field is never auto-filled.</td><td>Persist 500 on save instead; the visible difference is only what a later reader of the document sees.</td></tr>
+        <tr><td class="mono">A8</td><td>The 409 that refuses a vote during <code>EDITING</code> carries a machine-readable marker (a distinct error code or a boolean), not just the message text, so the card can select the front-face treatment without string-matching.</td><td>The client string-matches the message, which breaks the moment the wording is edited.</td></tr>
+        <tr><td class="mono">A9</td><td>The screening line's <code>&lt;elapsed&gt;</code> measures from <code>pollApprovalTimestamp</code> and reads <em>queued</em> before a screening attempt has been claimed — the existing <code>waitingFor</code> behaviour, relocated into column 1.</td><td>A new timestamp field is needed; nothing records when a poll entered <code>AWAITING APPROVAL</code>.</td></tr>
+        <tr><td class="mono">A10</td><td>Duplicate, Copy Poll Link and View Results are enabled in every state; only Delete carries an enablement rule.</td><td>Three more capability booleans.</td></tr>
+        <tr><td class="mono">A11</td><td>Copy Poll Link copies the same <code>/?PID=…</code> URL the existing menu item copies, unchanged by visibility.</td><td>Per-visibility link shapes.</td></tr>
+        <tr><td class="mono">A12</td><td>Icons are inline SVG defined once in the page and referenced with <code>&lt;use&gt;</code>; tooltips are the native <code>title</code> attribute plus <code>aria-label</code>.</td><td>Cosmetic only.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ==================================================================== -->
+<section id="gaps">
+  <div class="sechead"><span class="secnum">12</span><h2>Inconsistencies, ambiguities and unspecified aspects</h2></div>
+
+  <div class="note accent">
+    <span class="lbl">How these are classified</span>
+    <p><b>Inconsistencies</b> are places where the requirements document contradicts
+    <em>itself</em>. Conflicts between the requirements and the system as currently built are a
+    different thing — they are the work the feature exists to do — and are listed separately
+    below as <b>deltas</b>, which do not count against the success criteria.</p>
+  </div>
+
+  <h3>Inconsistencies within the requirements document</h3>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>#</th><th>Finding</th><th>Resolution taken here</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">I1</td><td><b>The pen icon's disabled case is stated as exhaustive.</b> "If <code>editPoll</code> and <code>updatePoll</code> are not available, the <code>pen</code> icon will be disabled. <em>This is the case for a poll that is <code>pollState</code>=<code>ARCHIVED</code></em>." But the same document describes polls in <code>AWAITING APPROVAL</code> (a screening is running) and <code>EDITING</code> (another tab holds the lock), neither of which can open an editing surface either.</td><td>Read "this is the case for" as illustrative, not exhaustive. The pen follows <code>canEdit || canUpdate</code>, which is already false for all three states — so the capability booleans give the correct behaviour without a special case.</td></tr>
+        <tr><td class="mono">I2</td><td><b>"Only the front-side" is asserted absolutely, then contradicted.</b> "When editing, the poll card will only be rendered on the front-side" cannot hold in the window the document itself describes — a voter already on the back face stays there until they act or the grid refreshes, which is exactly why the Submit-Vote and refresh rules exist.</td><td>Read the absolute statement as the steady state and the summary rule as the mechanism: the front face is guaranteed <em>from the next user action or refresh onward</em>, not instantaneously. Nothing pushes state to an idle card.</td></tr>
+        <tr><td class="mono">I3</td><td><b>The new enum is defined in terms of a token it removes.</b> The document requires that the five values be self-contained — "no code-to-label map is introduced", "the UI renders the values exactly as written" — yet glosses <code>PUBLIC POLL</code> as "(assumes ANONYMOUS-POLL, the list of who votes will NOT be shown", naming a value from the model being deleted. The line is also missing its closing parenthesis and backtick.</td><td>Treat the parenthetical as prose explaining the value, not as part of it. The stored string is exactly <code>PUBLIC POLL</code>; anonymity is implied by the value, not recorded separately anywhere.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Deltas against the implemented system <span style="font-weight:400; color:var(--muted); font-size:15px;">— not counted as inconsistencies</span></h3>
+  <p class="measure">Each of these is a place where 012 deliberately overturns behaviour that
+  011 or earlier established. They are listed because they are the parts most likely to be missed
+  during implementation — the code that has to change is code that currently passes its tests.</p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>#</th><th>Delta</th><th>What must change</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">D1</td><td><b>R8 vs. 011 FR-003.</b> 011 withholds <code>EDITING</code> from <code>GET /api/polls</code> and 404s it on <code>GET /api/polls/:pid</code>.</td><td>Admit <code>EDITING</code> when <code>pollStateBeforeEditUpdate</code> is one of the three public states — now specified explicitly by the requirements.</td></tr>
+        <tr><td class="mono">D2</td><td><b>R4 vs. the current edit surfaces.</b> Three selects, and an update surface that renders mechanics fields it cannot save.</td><td>Radio groups on the edit surface; all three as static labels on the update surface, matching what publish will actually accept.</td></tr>
+        <tr><td class="mono">D3</td><td><b>R6 vs. the current auto-fill.</b> <code>validatePollFields</code> auto-fills <code>500</code> whenever a poll moves from public to private.</td><td>Delete the auto-fill — the requirements name the function and the behaviour directly. The field stays blank and binds at 500 implicitly.</td></tr>
+        <tr><td class="mono">D4</td><td><b>R6 vs. enforcement scope.</b> Vote-time enforcement is gated on <code>PRIVATE_POLL_ANYONE_WITH_THE_LINK</code> alone.</td><td>Widen to all four private values, and resolve a null limit to 500 rather than to "unlimited".</td></tr>
+        <tr><td class="mono">D5</td><td><b>R10 vs. the archive endpoint.</b> The existing <code>PATCH</code> stamps <code>endAt = now</code> for <code>ARCHIVED</code> as well as <code>CLOSED</code>, rewriting a poll's real close date and corrupting the exports that carry it.</td><td>Replace with the three per-transition rules; archiving leaves the schedule alone.</td></tr>
+        <tr><td class="mono">D6</td><td><b>R13/R8 vs. card state preservation.</b> <code>pollCard.js</code> keeps an in-progress selection across a refresh only while the card is flipped; R8 forces an unflip and still requires the selection to survive.</td><td>Hold the pending selection per card, independent of the visible face.</td></tr>
+        <tr><td class="mono">D7</td><td><b>R8 vs. field exposure.</b> <code>pollStateBeforeEditUpdate</code> becomes an input to a public read path for the first time.</td><td>Use it as a filter only; it must never appear in a voter-facing response.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Ambiguities resolved by default</h3>
+  <ul class="measure">
+    <li><b>What a blank <code>voterCountLimit</code> is stored as on a private poll.</b> The
+      document says the field "will not be auto-filled with 500" and also that "if the field is
+      left blank, then the limit will be 500" — so the stored value and the effective value
+      differ. Read as: persist <code>null</code>, resolve to 500 at vote time (A7).</li>
+    <li><b>The scope of "the same function as the back icon."</b> The requirements now pin which
+      control Cancel mimics — the header's back icon, explicitly not the browser's — but not
+      whether the unsaved-changes prompt survives, nor that the editing session is released.
+      Read as: same destination, same session teardown, prompt retained when dirty (A2, A3).</li>
+    <li><b>Whether the <code>PUBLIC POLL</code> parenthetical is part of the stored value.</b>
+      The unclosed backtick and parenthesis leave the literal's boundary unclear. Read as prose;
+      the stored string is <code>PUBLIC POLL</code> (I3).</li>
+    <li><b>Whether the two <code>SHOW WHO VOTED</code> variants differ at all yet.</b> The
+      document states the flag "is not currently used" while listing it as a distinguishing part
+      of four values. Read as: persisted and rendered, behaviourally inert — including in the
+      admin results page, whose <code>notYetVoted</code> list stays gated on invitation-only.</li>
+    <li><b>Zebra striping colours.</b> Unspecified. Taken from the existing <code>admin.css</code>
+      surface tokens rather than introducing new ones.</li>
+  </ul>
+
+  <h3>Unspecified aspects worth a line in the spec</h3>
+  <ul class="measure">
+    <li><b>The kebab menu's column number is never stated.</b> Columns 1–9 are numbered
+      explicitly; the kebab is described only as "at the far right". Implied 10th.</li>
+    <li><b>"All three participant endpoints" are never enumerated.</b> The instruction to adopt
+      <code>resolveEditContext</code> also sits under the state-transition heading rather than
+      with the Add Participant and Ban defects it belongs to. Taken as
+      <code>POST …/invited</code>, <code>DELETE …/participants/:email</code> and
+      <code>DELETE …/banned/:email</code>.</li>
+    <li><b>The shape of the value the vote endpoint returns during <code>EDITING</code>.</b> The
+      requirements say the handler "will return a value that instructs the client-side to render
+      the poll card front-side" but not what that value is. Default: a 409 with a distinct error
+      code alongside the message, so the client never string-matches (A8).</li>
+    <li><b>Whether the <code>updatePoll</code> page renders the choices box at all.</b> R1 folds
+      choice saving into Save and Publish "on the <code>editPoll</code> page"; choices are
+      immutable once voted on. Default: render them read-only, and reject <code>labels</code> in
+      the publish handler's <code>UPDATE</code> branch.</li>
+    <li><b>What <code>&lt;elapsed&gt;</code> on the screening line measures from.</b> No field
+      records when a poll entered <code>AWAITING APPROVAL</code>. Default: the existing
+      <code>waitingFor</code> behaviour — measured from <code>pollApprovalTimestamp</code>,
+      showing <em>queued</em> before a screening attempt is claimed (A9).</li>
+    <li><b>The default <code>pollVisibility</code> for a newly created poll.</b> Not stated.
+      Default: <code>PUBLIC POLL</code>, matching today's default pair (A1).</li>
+  </ul>
+</section>
+
+<!-- ==================================================================== -->
+<section id="clarify">
+  <div class="sechead"><span class="secnum">13</span><h2>Clarifications needed</h2></div>
+
+  <div class="note good">
+    <span class="lbl">None — 0 open [NEEDS CLARIFICATION] items</span>
+    <p>This revision of the requirements answers every question the previous pass raised. Each
+    remaining open point has a reasonable default, is recorded in §11 or §12, and does not need a
+    product-owner decision to proceed.</p>
+  </div>
+
+  <p class="measure">The five items carried by the previous revision, and what closed them:</p>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Was</th><th>Question</th><th>Answered by</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">C1</td><td>On the update surface, are Choice Mode and Vote Mutability editable, or static like Poll Visibility?</td><td><b>Static.</b> "<code>pollVisibility</code>, <code>choiceMode</code> and <code>voteMutability</code> will be frozen after the poll has received a vote… the <code>updatePoll</code> page will not render these radio button group but rather the value will simply be rendered as a static label."</td></tr>
+        <tr><td class="mono">C2</td><td>Does an <code>EDITING</code> poll appear in the public listing, given 011 withholds it?</td><td><b>Yes, conditionally.</b> Both endpoints "will admit EDITING… ONLY when pollStateBeforeEditUpdate is itself one of the three public states."</td></tr>
+        <tr><td class="mono">C3</td><td>One log line per matched poll, or one summary line per request?</td><td><b>Neither — withdrawn.</b> "These requirements will not require any logging to be added to the server-side end-points."</td></tr>
+        <tr><td class="mono">C4</td><td>Does Cancel's "same function as the back button" also drop the discard prompt?</td><td><b>Partly.</b> The control is now pinned — the header's back icon, "not… the browser back button". The discard-prompt question remains, but with a clear default (keep it), so it is recorded as an ambiguity rather than a blocking question.</td></tr>
+        <tr><td class="mono">C5</td><td>Body or query string for <code>clientGuid</code> on the two participant <code>DELETE</code> routes?</td><td><b>Body.</b> "For the two DELETE routes, the clientGuid should travel in the body… one shape across all lock-aware calls."</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="measure">Four further points that the previous pass listed as unspecified are now
+  settled directly in the requirements' own assumptions: the losing row in a concurrent
+  OPEN/CLOSE race shows the refusal inline; accessible names are explicitly not required yet,
+  though tooltips are; the widened table scrolls horizontally below roughly 900 px and responsive
+  design is deferred to its own document; and a poll reopened after reaching its voter limit
+  stays at that limit and admits no new voters.</p>
+</section>
+
+<!-- ==================================================================== -->
+<section id="readiness">
+  <div class="sechead"><span class="secnum">14</span><h2>Traceability and readiness</h2></div>
+
+  <h3>Coverage</h3>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Group</th><th>Addressed in</th><th>Verifiable by</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">R1</td><td>§5.1 · AD-01 · §6</td><td>Editing only the choices enables Save and Publish; <code>PUT …/choices</code> returns 404; one <code>$set</code> per publish.</td></tr>
+        <tr><td class="mono">R2</td><td>§5.1 · A2 · A3</td><td>Cancel is enabled on a freshly loaded page; clicking it releases the lock (poll leaves <code>EDITING</code> without waiting for the sweep).</td></tr>
+        <tr><td class="mono">R3</td><td>§3 · AD-01</td><td>No occurrence of <code>accessMode</code> or <code>resultsVisibility</code> in <code>src/</code>; all five values round-trip verbatim through store, API and UI.</td></tr>
+        <tr><td class="mono">R4</td><td>§8.2 · C1</td><td>Three radio groups on the edit surface; a static visibility label on the update surface.</td></tr>
+        <tr><td class="mono">R5</td><td>§5.2 · AD-03</td><td>Adding a participant from an open editing page returns 201, not 409.</td></tr>
+        <tr><td class="mono">R6</td><td>§3 · D3 · D4</td><td>501 is refused by the server; the field is cleared and disabled for <code>PUBLIC POLL</code>; a blank limit on a private poll admits the 500th voter and refuses the 501st; no auto-fill on a public→private switch.</td></tr>
+        <tr><td class="mono">R7</td><td>§5.2 · AD-03</td><td>Ban from Voting on a public poll moves the address into the banned list and shows a visible error when it cannot.</td></tr>
+        <tr><td class="mono">R8</td><td>§5.3 · AD-04 · D1</td><td>All five windows W1–W5, each asserted separately; every one ends on the front face; the server refuses an <code>EDITING</code> vote with the "Try Again" message; a public poll under edit stays listed and a never-public one stays hidden.</td></tr>
+        <tr><td class="mono">R9</td><td>§8.3</td><td><code>isAdmin</code> true for an <code>ENV_ADMINS</code> address and false otherwise; the item is absent — not disabled — for non-admins and guests.</td></tr>
+        <tr><td class="mono">R10</td><td>§4 · §8.1 · AD-02</td><td>Ten columns in order; zebra alternates per poll; each transition's schedule writes; a reopened poll is still OPEN after a sweep tick; archiving preserves <code>endAt</code>.</td></tr>
+        <tr><td class="mono">R11</td><td>§7 · AD-06</td><td><code>canOpen</code>/<code>canClose</code> present on every row and matching the endpoint's own refusals for all eight states.</td></tr>
+        <tr><td class="mono">R12</td><td>§9</td><td>Withdrawn — nothing to verify. §9 records the volume analysis for the future logging requirements document.</td></tr>
+        <tr><td class="mono">R13</td><td>§5.4 · AD-05 · D6</td><td>A poll opened after page load appears within one interval; a closed poll disappears; a flipped card with a selection survives a refresh.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Against this skill's success criteria</h3>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Criterion</th><th>State</th><th>Where</th></tr></thead>
+      <tbody>
+        <tr><td>No inconsistencies</td><td><b>3 found</b> within the requirements document, each resolved by reading. Separately, <b>7 deltas</b> against the implemented system are recorded — those are the work, not defects in the document.</td><td>§12, I1–I3 · D1–D7</td></tr>
+        <tr><td>No ambiguities</td><td><b>5 found</b>, all resolved by documented default</td><td>§12</td></tr>
+        <tr><td>No unspecified aspects</td><td><b>6 found</b>, all with a proposed default</td><td>§12</td></tr>
+        <tr><td>No clarifications needed</td><td><b>0 open</b> — all five from the previous revision are answered in the requirements themselves</td><td>§13</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Recommended sequencing</h3>
+  <p class="measure">The thirteen groups are not equally coupled. Ordering them by what the next
+  slice depends on gives four natural stories:</p>
+  <ol class="numbered measure">
+    <li><b>R3 + R6 — the model collapse.</b> Touches the most files and every test fixture, and
+      every other group reads the new field. Doing it first means nothing is written twice.</li>
+    <li><b>R5 + R7 + R1 + R2 — the editing surface.</b> One root cause, one write path, one
+      dirty flag, one Cancel. Small, self-contained, and it closes both live defects.</li>
+    <li><b>R10 + R11 + R4 — the admin surfaces.</b> The capability function comes first, the row
+      layout renders from it, and the radio groups land alongside.</li>
+    <li><b>R13 + R8 + R9 — the public surface.</b> R13's polling loop is the vehicle R8's four
+      windows ride on, so they belong together; R9 is independent and can land anywhere. R12 is
+      withdrawn and contributes no work.</li>
+  </ol>
+
+  <div class="note good">
+    <span class="lbl">Readiness</span>
+    <p>This architecture is ready for <code>/speckit-specify</code>, with nothing blocking. No
+    clarification is outstanding; the three intra-document inconsistencies are editorial and each
+    has a stated reading; the ambiguities and unspecified aspects all carry defaults. Carry the
+    resolutions in §12 and the assumptions in §11 into the spec as explicit acceptance criteria
+    rather than leaving them here — that is the only thing standing between this document and a
+    clean run of all four success criteria.</p>
+  </div>
+</section>
+
+<!-- ==================================================================== -->
+<section id="report">
+  <div class="sechead"><span class="secnum">15</span><h2>Completion report</h2></div>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Item</th><th>Value</th></tr></thead>
+      <tbody>
+        <tr><td><b>Mode</b></td><td><b>UPDATE-IN-PLACE</b> — <code>UPDATEONLY</code> was passed, and the existing document was edited surgically against a revised requirements file. Structure, section ordering, styling and eight of the nine diagrams were preserved; regeneration was not required.</td></tr>
+        <tr><td><b>Requirements document</b></td><td><code>designDocs/012-high-level-requirements-ADMIN-REVISIONS.md</code></td></tr>
+        <tr><td><b>Architecture directory</b></td><td><code>architecture/012-admin-revisions</code></td></tr>
+        <tr><td><b>Main HTML file</b></td><td><code>architecture/012-admin-revisions/index.html</code></td></tr>
+        <tr><td><b>Software architecture diagrams</b></td><td><b>9</b> — component view (2.1), visibility collapse (3.1), lifecycle with manual transitions (4.1), sweep-convergence timeline (4.2), single write path (5.1), participant-moderation sequence (5.2), EDITING race windows (5.3), grid polling (5.4), admin row anatomy (8.1). Figure 5.3 was revised in this pass; the other eight were already accurate.</td></tr>
+        <tr><td><b>Inconsistencies</b></td><td><b>3</b> — I1…I3 (§12): contradictions <em>within</em> the requirements document, each with a stated reading. Counted separately and not against this total: <b>7 deltas</b> (D1…D7) against the system as currently implemented.</td></tr>
+        <tr><td><b>Ambiguities</b></td><td><b>5</b> (§12), all resolved by documented default</td></tr>
+        <tr><td><b>Unspecified aspects</b></td><td><b>6</b> (§12), each with a proposed default</td></tr>
+        <tr><td><b>[NEEDS CLARIFICATION] items</b></td><td><b>0</b> — all five carried by the previous revision are answered in the requirements themselves (§13)</td></tr>
+        <tr><td><b>Requirement groups covered</b></td><td><b>13 of 13</b> — R1…R13, traced in §14. R12 (logging) is <b>withdrawn</b> by this revision and contributes no work; its ID is retained so traceability against the previous revision holds.</td></tr>
+        <tr><td><b>Readiness for <code>/speckit-specify</code></b></td><td><b>Ready — nothing blocking.</b> No clarification is outstanding.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <span class="lbl">Against the success criteria</span>
+    <p>One of the four criteria is now met: <b>no clarification items remain</b>. The other three
+    stand at 3 inconsistencies, 5 ambiguities and 6 unspecified aspects — down from a taxonomy
+    that previously mixed implementation deltas into the inconsistency count. All fourteen carry
+    a stated resolution, and every one of them is editorial: a sentence added to
+    <code>designDocs/012-high-level-requirements-ADMIN-REVISIONS.md</code> closes each. Another
+    <code>UPDATEONLY</code> pass after that edit would drive all four criteria to zero.</p>
+    <p>The largest single win in this revision was structural rather than numeric: the previous
+    pass reported six "inconsistencies" that were in fact conflicts between the requirements and
+    the existing code. Under the sharpened definition those are deltas — the work the feature
+    exists to perform — and they no longer count against a document that was never wrong about
+    them.</p>
+  </div>
+
+  <h3>What this pass changed</h3>
+  <p class="measure">The requirements document grew from 207 to 231 lines between runs. The
+  edits made here, section by section:</p>
+  <ul class="measure">
+    <li><b>§9 rewritten</b> — R12 (logging) is withdrawn. The section now records the withdrawal
+      and preserves the polling-volume analysis for the dedicated logging document to come.</li>
+    <li><b>§5.3 and Figure 5.3 revised</b> — R8 now defines one message rather than two, and
+      every window ends on the front face. W3 and W4 changed outcome; the listing-rule note
+      became a resolved rule rather than an open conflict.</li>
+    <li><b>§3 revised</b> — a blank <code>voterCountLimit</code> on a private poll now means
+      <em>500</em>, not unlimited. Two invariants and the model table were corrected.</li>
+    <li><b>§8.2 revised</b> — all three mechanics fields are static labels on the update
+      surface.</li>
+    <li><b>§12 restructured</b> — implementation deltas separated from intra-document
+      inconsistencies, per the sharpened definition; ambiguities and unspecified aspects re-derived
+      against the new text.</li>
+    <li><b>§13 emptied</b> — all five clarifications answered.</li>
+    <li><b>§1, §6, §11, §14 updated</b> for the above; assumptions A2, A4, A5, A7 and A8 revised
+      or replaced.</li>
+  </ul>
+  <p class="measure"><code>.specify/architecture.json</code> was left unchanged, as
+  UPDATE-IN-PLACE requires, and no new directory was allocated.</p>
+</section>
+
+<footer class="doc">
+  <p>Last updated by <code>/speckit-architecture</code> in UPDATE-IN-PLACE mode from
+  <code>designDocs/012-high-level-requirements-ADMIN-REVISIONS.md</code>, read against the
+  implemented source at <code>src/</code> as of commit <code>a120cc4</code>. Inconsistencies
+  I1–I3 are contradictions inside the requirements document itself; deltas D1–D7 come from
+  reading it against the code, and are the work rather than defects.</p>
+</footer>
+
+</div>
+</body>
+</html>

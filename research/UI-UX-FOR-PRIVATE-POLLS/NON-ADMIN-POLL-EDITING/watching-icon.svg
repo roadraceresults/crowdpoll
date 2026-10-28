@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
+  <!-- Watching: an outline eye, drawn to match the Favorites star it replaces
+       (24x24, 1.8 stroke, #9AA197). Watched state: fill the iris instead. -->
+  <path d="M1.8 12C4.6 7.2 8 4.9 12 4.9s7.4 2.3 10.2 7.1C19.4 16.8 16 19.1 12 19.1S4.6 16.8 1.8 12z" fill="none" stroke="#9AA197" stroke-width="1.8" stroke-linejoin="round"/>
+  <circle cx="12" cy="12" r="3.4" fill="none" stroke="#9AA197" stroke-width="1.8"/>
+  <circle cx="12" cy="12" r="1.2" fill="#9AA197"/>
+</svg>

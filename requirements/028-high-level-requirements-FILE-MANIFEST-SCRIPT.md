@@ -1,0 +1,209 @@
+Start a new spec for these requirements called `028-FILE-MANIFEST`.
+
+# Overview
+
+A command-line script that writes a **file manifest** for a project: how many files of each type it holds,
+how many lines they contain, how many of those lines are comments, and how large its binary files are. The
+project is named by the script's first argument. The results are written as a set of markdown files, each
+holding one table and nothing else, in a new timestamped folder under the project's `manifests` folder.
+
+The main purposes of the script are:
+
+- count the files of each type (extension);
+- count the total lines of the text files of each type;
+- report the total size of the binary files of each type;
+- count the comment lines in each file written in a common programming language.
+
+# Design
+
+## The script
+
+The script is TypeScript in `devScripts/file-manifest.ts`, run through `tsx` as `npm run file-manifest --
+<project>`, like the other scripts in `devScripts/`. It uses only erasable TypeScript syntax and Node
+built-ins, so a later move to plain JavaScript is a rename. It needs the `git` command on the path, because
+git alone decides which files are ignored. It changes nothing under `src/`, the build, the deployment spec
+or the existing tests, except that `.gitignore` gains the exception `!devScripts/file-manifest.ts`
+beside those of the other scripts, because its `devScripts/*` rule would otherwise keep the script out of
+the repository.
+
+## Structure and verification
+
+The script is split into pure functions that take data and return data (the binary test, the line count,
+the comment scanner, the directory grouping and the table text) and a thin shell that reads arguments,
+lists files, reads them and writes the folder. The pure functions are exported, and `main` runs only when
+the file is the entry point. They are tested with Vitest in `tests/file-manifest.test.ts` from small
+in-test strings and byte arrays. One further test builds a throwaway git repository in a temporary folder
+and checks the three-way split of Tracked, Untracked and Ignored, and the skipping of a missing file.
+
+## Which files are counted
+
+The files of a project are the union of three git listings:
+
+| Set | Meaning |
+|---|---|
+| Tracked | Files git tracks |
+| Untracked | Files git does not track and does not ignore |
+| Ignored | Files git does not track and `.gitignore` ignores |
+
+*Not ignored* is Tracked plus Untracked. *Everything* is all three. Files under the top-level directories
+`node_modules`, `node-modules` and `manifests` are left out of every report. The `.git` folder is never
+listed by git and so is never counted. A listed path that is not a readable regular file is skipped: one
+missing from the working tree, a symlink, a folder such as a submodule, or a file that cannot be read.
+The console reports how many were skipped and the first five paths with the reason, and none of this goes
+into a manifest.
+
+## What is measured
+
+| Measure | Rule |
+|---|---|
+| File type | The lower-cased extension of the file name, with its dot (`.ts`). A name with no extension, including a name that only begins with a dot such as `.gitignore`, is `(none)` |
+| Binary file | A file with a NUL byte in its first 8,000 bytes, the rule git itself uses. Every other file is a text file |
+| Lines | For a text file, the number of `\n` bytes, plus one when the file is not empty and its last byte is not `\n`. Blank lines count, an empty file has 0 lines, `a\nb` and `a\nb\n` both have 2, and LF and CRLF files count alike |
+| Size | For a binary file, its size in bytes |
+| Comment lines | For a text file in a recognised language, the lines that hold nothing but a comment. A block comment counts every line it spans. A line holding code and a trailing comment counts as code |
+
+The recognised comment syntaxes, by extension:
+
+| Syntax | Extensions |
+|---|---|
+| `/* */` only | `.css` |
+| `//` and `/* */` | `.ts` `.tsx` `.js` `.jsx` `.mjs` `.cjs` `.scss` `.java` `.c` `.h` `.cpp` `.cs` `.go` `.rs` `.kt` `.swift` |
+| `--` and `/* */` | `.sql` |
+| `--` and `--[[ ]]` | `.lua` |
+| `#` and `<# #>` | `.ps1` |
+| `#` only | `.py` `.sh` `.rb` `.toml` `.yml` `.yaml` |
+| `<!-- -->` only | `.html` `.xml` |
+
+A `#!` first line counts as a comment line. Python docstrings count as code, and the bodies of `<script>` and
+`<style>` elements inside `.html` count as code.
+
+A file with any other extension, including `.md`, `.json`, `.svg` and `.txt`, has no comment count.
+
+## The output folder
+
+The script creates `manifests` in the project folder if it is missing, and inside it a folder named for the
+local time the script started, in the form `YYYY-MM-DD_HH-mm-ss`, which is legal on Windows, macOS and
+Linux. If that folder already exists the script appends `-2`, `-3` and so on until it creates a new one, so
+two runs never share a folder.
+
+## The tables
+
+Every manifest file holds one markdown table, with a header row and no other text, no title and no
+footnote. Every table except `directories.md` has these columns:
+
+| File type | Files | Lines | Comment lines | Size (bytes) |
+|---|---|---|---|---|
+
+- One row per file type, sorted by file type, then a final `**Total**` row that sums every column.
+- *Lines* is filled for text files only, *Comment lines* only for text files in a recognised language, and
+  *Size* only for binary files. A cell that does not apply is left empty.
+- A file type that mixes text and binary files shows both its line count and its size.
+- The `**Total**` row always shows numbers, `0` where nothing contributes. A report whose set is empty is
+  still written, as the header row and a `**Total**` row of zeros.
+- A manifest file is UTF-8 without a byte-order mark, with `\n` line endings and a final newline. Numbers are
+  plain integers with no thousands separators. A file type appears exactly as grouped (`.ts`, `(none)`), and
+  a literal pipe in a cell is written `\|`.
+
+## The reports
+
+| File | Contents | Written when |
+|---|---|---|
+| `overall.md` | Everything | Always |
+| `not-gitignored.md` | Tracked and Untracked | Always |
+| `gitignored.md` | Ignored | Always |
+| `directories.md` | Everything, grouped by top-level directory | Always |
+| `dist.md` | Everything under `dist/` | `dist/` exists and holds files |
+| `public.md` | Everything under `dist/public/` | `dist/public/` exists and holds files |
+| `assets.md` | Everything under `dist/public/assets/` | `dist/public/assets/` exists and holds files |
+| `src.md` | Everything under `src/` | `src/` exists and holds files |
+| `tests.md` | Everything under `tests/` | `tests/` exists and holds files |
+
+`directories.md` has these columns:
+
+| Directory | .gitignored | File type | Files | Lines | Comment lines | Size (bytes) |
+|---|---|---|---|---|---|---|
+
+- *Directory* is the first path component of each file, and `.` for a file at the project root. On a
+  case-insensitive file system (detected once, at the start) directories that differ only in letter case,
+  as `designdocs` and `designDocs` do, are one row group, shown with the spelling the directory listing
+  returns, and a file listed under two spellings is counted once. On a case-sensitive file system names are
+  kept exactly as git lists them and nothing is folded.
+- *.gitignored* is `.gitignored` for the Ignored set, `committed` for the Tracked set and `untracked` for
+  the Untracked set. Each directory has one row per value and file type it holds.
+- Rows are sorted by directory name, ignoring letter case, with `.` first, then by *.gitignored* and file
+  type. The `**Total**` row is last, with `**Total**` in the *Directory* column.
+
+# Functional Requirements
+
+- **FR-001.** `npm run file-manifest -- <project>` writes the manifest for the project at `<project>`. The
+  first argument is required. A relative path is resolved against the folder the command was typed in
+  (`INIT_CWD`, falling back to the working directory), because `npm run` starts scripts in the package root.
+  The folder given is the project, even when it is a subfolder of a larger repository.
+- **FR-002.** The script fails with a usage message and a non-zero exit code when the argument is missing,
+  is not a directory, or is not a git repository, or when more than one argument is given
+  (`ERROR: Unrecognized argument(s): <args>. Usage: npm run file-manifest -- <project>`). It writes nothing in
+  that case.
+- **FR-003.** Ignored and not-ignored files are decided by git's own listings (Tracked, Untracked, Ignored),
+  never by re-reading `.gitignore`.
+- **FR-004.** Files under the top-level directories `node_modules`, `node-modules` and `manifests` are
+  excluded from every report.
+- **FR-005.** A listed path that is not a readable regular file (missing, a symlink, a folder, unreadable)
+  is skipped; the number skipped and the first five paths with the reason are printed on the console and
+  never written into a manifest.
+- **FR-006.** Files are grouped by lower-cased extension, and a file with no extension is `(none)`.
+- **FR-007.** A file is binary when a NUL byte appears in its first 8,000 bytes. A binary file contributes
+  its size in bytes and no lines. A text file contributes its lines and no size.
+- **FR-008.** A text file's lines are the number of `\n` bytes, plus one when the file is not empty and its
+  last byte is not `\n`. Blank lines count, an empty file has 0 lines, and LF and CRLF files count alike.
+- **FR-009.** Comment lines are counted for the extensions in the syntax table only, by the rule in *What is
+  measured*. Any other file type has an empty *Comment lines* cell.
+- **FR-010.** The script creates `manifests/` if missing and a new `YYYY-MM-DD_HH-mm-ss` folder in it for
+  each run, adding `-2`, `-3` and so on when the name is taken. It never overwrites a previous run.
+- **FR-011.** Each manifest file holds one markdown table and nothing else, and ends in a `**Total**` row
+  summing every column, with `0` where nothing contributes. A report whose set is empty is still written, as
+  the header row and a `**Total**` row of zeros.
+- **FR-012.** `overall.md`, `not-gitignored.md` and `gitignored.md` hold the columns *File type*, *Files*,
+  *Lines*, *Comment lines* and *Size (bytes)* for Everything, Tracked plus Untracked, and Ignored.
+- **FR-013.** `directories.md` holds the columns and ordering described under *The reports*, including the
+  three *.gitignored* values `.gitignored`, `committed` and `untracked`.
+- **FR-014.** `dist.md`, `public.md`, `assets.md`, `src.md` and `tests.md` are written only when their
+  directory exists and holds at least one counted file; otherwise the file is omitted.
+- **FR-015.** The console prints the output folder's path, the number of files counted and the number
+  skipped when the run succeeds.
+- **FR-016.** The script is added to `package.json` as `"file-manifest": "tsx devScripts/file-manifest.ts"`
+  and needs no new dependency.
+- **FR-017.** Each manifest file is UTF-8 without a byte-order mark, with `\n` line endings and a final
+  newline; numbers are plain integers; a literal pipe in a cell is written `\|`.
+- **FR-018.** The script detects once, at the start, whether the file system is case-insensitive. If it is,
+  directory names that differ only in letter case form one row group, shown with the spelling the directory
+  listing returns, and a file listed under two spellings is counted once. If it is not, nothing is folded.
+- **FR-019.** `.gitignore` gains the exception `!devScripts/file-manifest.ts` beside those of the other
+  scripts.
+- **FR-020.** The pure functions are exported and covered by Vitest tests in `tests/file-manifest.test.ts`,
+  and one test builds a throwaway git repository to check the Tracked, Untracked and Ignored split and the
+  skipping of a missing file. `main` runs only when the file is the entry point.
+
+# Assumptions
+
+- The project is a git repository and `git` is on the path of the machine running the script.
+- The `node-modules` in the requirements is the `node_modules` directory; both spellings are excluded, so
+  the assumption costs nothing if it is wrong.
+- Text files are UTF-8. A file that is not valid UTF-8 but has no NUL byte is counted as text.
+- The developer's machine is Windows 11 with Node 22 or later, which is why the script avoids shell-specific
+  tooling and illegal Windows folder-name characters.
+- Reading each file whole is acceptable. The largest file in this repository is about 0.5 MB.
+- "Everything" includes files under `dist/`, so `dist.md`, `public.md` and `assets.md` count the build
+  output even though it is ignored.
+- The titles "Generated Files" on the `src` and `tests` reports do not change what they count; each report
+  counts every file under its directory.
+
+# Exclusions
+
+- A standalone, dependency-free version of the script, and ports to PowerShell, Python, Bash, Go or Rust.
+- Counting `node_modules`, `node-modules`, `manifests` or `.git`.
+- Counting lines that hold code and a trailing comment as comment lines, and any string- or regex-aware
+  comment parsing.
+- A comment count for Markdown, JSON, SVG, plain text or any extension not in the syntax table.
+- Any text beside the table in a manifest file: a title, a date, a legend or a note.
+- Per-file listings, git history, authorship, or any report beyond the nine above.
+- Changes to `src/`, the build, the deployment spec or the existing tests.

@@ -1,0 +1,41 @@
+/* Material 3 plain tooltip: https://m3.material.io/components/tooltips/specs */
+
+/* ---------- 1. Container ---------- */
+.m3-tooltip{
+  position:fixed;
+  z-index:1000;
+  left:0;
+  top:0;
+  box-sizing:border-box;
+  min-height:24px;
+  max-width:240px;
+  padding:4px 8px;
+  border-radius:var(--md-sys-shape-corner-extra-small);
+  background:var(--md-sys-color-inverse-surface);
+  color:var(--md-sys-color-inverse-on-surface);
+  font-family:var(--md-sys-typescale-font);
+  font-weight:var(--md-sys-typescale-body-small-weight);
+  font-size:var(--md-sys-typescale-body-small-size);
+  line-height:var(--md-sys-typescale-body-small-line-height);
+  letter-spacing:var(--md-sys-typescale-body-small-tracking);
+  text-align:left;
+  overflow-wrap:anywhere;
+  pointer-events:auto;
+}
+.m3-tooltip[hidden]{ display:none; }
+
+/* ---------- 2. Entrance ---------- */
+.m3-tooltip:not([hidden]){ animation:m3-tooltip-in 150ms linear; }
+@keyframes m3-tooltip-in{
+  from{ opacity:0; }
+}
+@media (prefers-reduced-motion: reduce){
+  .m3-tooltip:not([hidden]){ animation:none; }
+}
+
+/* ---------- 3. Touch ---------- */
+[data-tooltip]{
+  -webkit-touch-callout:none;
+  -webkit-user-select:none;
+  user-select:none;
+}

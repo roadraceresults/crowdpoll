@@ -1,0 +1,237 @@
+/*
+  PROFILE — extracted from src/public/site.css (REQUIREMENT Profile Editor):
+  the "card shell" and "Profile card" blocks (lines 490-718), word for word.
+  The card chrome they build on (.card-viewport, .card-face, .question,
+  .subtitle, .btn-primary.btn-vote, .icon-btn) comes from ../pollCard.css, and
+  the tokens and page shell from ../site.css and ../tabs.css.
+*/
+
+/* ===================================================================
+   013-UI-UX-revisions — card shell (contract C1)
+   Login, Create Account, Profile and Not Authorized render through
+   cardShell.js. The shell reuses pollCard.css's .card-viewport,
+   .card-face, .question, .subtitle, .btn-primary.btn-vote and
+   .icon-btn without redefining them; only the wrapper, the regions
+   and their spacing live here.
+   =================================================================== */
+
+/* .card-face is written for a child of .card-flip (grid-area / height:100%).
+   Outside that grid the shell's face takes its height from its contents,
+   which is what "no padding to a fixed size" means (FR-035). */
+.card-shell-face{
+  height:auto;
+  gap:0;
+}
+
+.card-shell-viewport{
+  margin-top:24px;
+}
+
+.card-shell-title-row{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+}
+
+/* The close control follows the title in markup, matching its position on
+   screen, so reading order and visual order agree and no tabindex is needed
+   (research R13). .icon-btn is written for a <button>; as an anchor it needs
+   its underline removed. */
+.card-shell-close{
+  text-decoration:none;
+  flex:0 0 auto;
+}
+
+.card-shell-subtitle{
+  margin-top:6px;
+}
+
+.card-shell-body{
+  margin-top:14px;
+}
+
+/* Right-justified, in the style of the poll card's Vote button. */
+.card-shell-actions{
+  margin-top:16px;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+
+.card-shell-action{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:4px;
+}
+
+.card-shell-action .btn-primary{
+  width:auto;
+  min-width:0;
+  padding:0 18px;
+}
+
+/* Present and empty from first paint, so text arriving into it is announced
+   (contract C2). Reserving no height when empty keeps the card unpadded. */
+.card-shell-status{
+  font-family:'Inter', sans-serif;
+  font-size:clamp(11px, 1vw, 12.5px);
+  line-height:1.4;
+  color:var(--muted);
+  margin:0;
+  text-align:right;
+}
+.card-shell-status:empty{ display:none; }
+
+/* An action awaiting its outcome (FR-046). */
+.btn-primary.is-running{
+  opacity:0.65;
+  cursor:progress;
+}
+
+/* An unavailable action must look unavailable. Neither pollCard.css nor this
+   sheet styles :disabled at all, so without this a disabled button renders
+   identically to a live one — it ignores clicks while still inviting them.
+   Scoped to the shell's actions; the poll card's Vote button has the same gap
+   and is left alone, being outside this feature. */
+.card-shell-action .btn-primary:disabled{
+  opacity:0.5;
+  cursor:default;
+  box-shadow:none;
+}
+.card-shell-action .btn-primary:disabled:hover{
+  filter:none;
+}
+
+/* A disabled checkbox's label must read as disabled too — the control and the
+   words that name it are one thing to the person using them. */
+.card-shell-body label.checkbox.is-disabled{
+  color:var(--muted);
+  cursor:default;
+}
+.card-shell-body input:disabled{
+  cursor:default;
+}
+
+/* The app defines no :focus-visible rule anywhere (research R13), so a new
+   interactive control on a card surface would fall back to whatever the
+   browser draws. */
+.card-shell-close:focus-visible,
+.card-shell-action .btn-primary:focus-visible,
+.card-shell-body :focus-visible{
+  outline:2px solid var(--moss, #3D5A46);
+  outline-offset:2px;
+}
+
+/* -------------------------------------------------------------------
+   Rules promoted from styles.css (research R3), re-scoped to the
+   shell's body region — never as bare element selectors, which is what
+   bleeds into the reference components. Additive: styles.css keeps its
+   copies until US4 rebuilds login.html and create-account.html.
+   ------------------------------------------------------------------- */
+.card-shell-body form{
+  display:grid;
+  gap:0.6rem;
+  margin:0;
+}
+
+.card-shell-body label{
+  font-weight:600;
+}
+
+.card-shell-body label.checkbox{
+  font-weight:400;
+  display:flex;
+  gap:0.4rem;
+  align-items:center;
+}
+
+.card-shell-body input[type="email"],
+.card-shell-body input[type="text"]{
+  padding:0.5rem 0.6rem;
+  border:1px solid var(--line);
+  border-radius:0.35rem;
+  font:inherit;
+  width:100%;
+}
+
+.card-shell-body .profile-field{
+  margin:0.8rem 0;
+}
+
+.card-shell-body .profile-field .label{
+  font-weight:600;
+  display:block;
+  color:var(--muted);
+}
+
+/* Moved as-is from styles.css, minus its #form-message half. */
+.error{ color:#b3261e; }
+
+/* ---------- Profile card (013 US1) ---------- */
+
+/* R4: Login and Create Account take their height from their contents; the
+   Profile card reserves a minimum. It is not a scroll container — a card
+   taller than the viewport scrolls the page and is never clipped. */
+.profile-page .card-shell-face{
+  min-height:640px;
+}
+
+/* The avatar occupies the subtitle slot, right-aligned, with no subtitle text. */
+.profile-avatar-wrap{
+  display:flex;
+  justify-content:flex-end;
+}
+.profile-card-avatar{
+  width:48px;
+  height:48px;
+  border-radius:50%;
+  object-fit:cover;
+}
+
+.card-shell-group{
+  display:grid;
+  gap:0.35rem;
+  margin:0 0 1.1rem;
+}
+
+/* The two halves of the Profile card are separate concerns — a name and an
+   address — each with its own current value, field and action. The gap between
+   them is wider than the gap between a label and its field, so the card reads
+   as two sections rather than one list of six things. */
+.profile-section + .profile-section{
+  margin-top:2.25rem;
+}
+
+/* An action inside a section sits under the field it acts on, not in a row at
+   the foot of the card. */
+.profile-section .card-shell-action{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:4px;
+  margin-top:-0.5rem;
+}
+
+.profile-section[hidden]{ display:none; }
+
+/* A current value sits in a read-only box so it lines up with the field below
+   it, and reads a shade lighter than the label naming it — it is something to
+   refer to, not something to fill in. */
+.card-shell-body input.profile-current{
+  color:var(--muted);
+  background:var(--paper);
+  cursor:default;
+}
+
+/* The prompt in an empty "new" field is lighter still, so it cannot be
+   mistaken for a value that is already there. */
+.card-shell-body input::placeholder{
+  color:var(--line);
+  opacity:1;
+}
+
+.card-shell-body .profile-field{
+  margin:0 0 1.1rem;
+}

@@ -1,0 +1,469 @@
+/*
+  HEADER AND TAB BAR — MATERIAL 3 LAYER (REQUIREMENT Use Material 3 For Header
+  Tab Bar and Other UI Components). Loaded last, after ../pollCard-m3.css:
+  it reads that file's --md-sys-color-* roles, --md-sys-typescale-* scale and
+  shape and state tokens, and defines none of its own except the three inverse
+  roles the snackbars need. tab-bar.css and header.css stay copies of
+  production; everything Material 3 about them is here, plus the ripple and
+  the snackbar stacking in header-tab-bar-m3.js.
+
+  Order: 1 inverse roles, 2 page and type, 3 tab bar, 4 tab icons, 5 Refresh,
+  6 search bar, 7 header controls and avatar menu, 8 logo in dark, 9 snackbars,
+  10 state layers and focus.
+*/
+
+/* ---------- 1. Inverse roles ----------
+   Same generator and seed as ../pollCard-m3.css (tonal spot, moss #3D5A46),
+   which reproduces that file's roles exactly. */
+:root{
+  --md-sys-color-inverse-surface:#2C322D;
+  --md-sys-color-inverse-on-surface:#EDF2EB;
+  --md-sys-color-inverse-primary:#94D5A8;
+
+  --md-sys-elevation-2:0 1px 2px rgba(0,0,0,0.30), 0 2px 6px 2px rgba(0,0,0,0.15);
+  --md-sys-elevation-3:0 1px 3px rgba(0,0,0,0.30), 0 4px 8px 3px rgba(0,0,0,0.15);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --md-sys-color-inverse-surface:#DFE4DD;
+    --md-sys-color-inverse-on-surface:#2C322D;
+    --md-sys-color-inverse-primary:#2C6A46;
+  }
+}
+:root[data-theme="dark"]{
+  --md-sys-color-inverse-surface:#DFE4DD;
+  --md-sys-color-inverse-on-surface:#2C322D;
+  --md-sys-color-inverse-primary:#2C6A46;
+}
+
+/* ---------- 2. Page and type ----------
+   The page is var(--paper), which ../pollCard-m3.css remaps in dark;
+   .page-decor's faint glow is kept. */
+.site-header,
+.tab-bar-wrap,
+.tab-notice,
+#cookie-banner,
+.header-search input,
+.header-nav-link,
+.btn-header-ghost,
+.btn-header-primary,
+.header-user,
+.search-kbd{
+  font-family:var(--md-sys-typescale-font);
+}
+
+/* ---------- 3. Tab bar: M3 primary tabs, icon inline ---------- */
+.tab-bar-wrap{
+  align-items:flex-end;
+  gap:8px;
+}
+/* The full-bleed rule becomes the M3 divider, and the indicator sits on it. */
+.tab-bar-wrap::after{
+  bottom:0;
+  height:1px;
+  background:var(--md-sys-color-outline-variant);
+}
+.tab-bar{
+  gap:0;
+  align-items:stretch;
+}
+.tab-bar .tab{
+  position:relative;
+  overflow:hidden;
+  height:48px;
+  padding:0 16px;
+  gap:8px;
+  border-radius:0;
+  background:none;
+  color:var(--md-sys-color-on-surface-variant);
+  font-family:var(--md-sys-typescale-font);
+  font-weight:500;
+  font-size:14px;           /* Title Small */
+  line-height:20px;
+  letter-spacing:0.1px;
+}
+.tab-bar .tab.is-active{
+  background:none;
+  color:var(--md-sys-color-primary);
+}
+.tab-bar .tab:hover:not(.is-active):not(:disabled){ background:none; }
+.tab-bar .tab.is-active::after{
+  content:'';
+  position:absolute;
+  left:16px;
+  right:16px;
+  bottom:0;
+  height:3px;
+  border-radius:3px 3px 0 0;
+  background:var(--md-sys-color-primary);
+}
+/* REQUIREMENT Use Material 3 For tooltips (clarification 3a): a guest's
+   personal tabs are aria-disabled, not disabled, so they take hover and focus
+   and show their tooltip; they look and point as production's :disabled. */
+.tab-bar .tab:disabled,
+.tab-bar .tab[aria-disabled="true"]{
+  opacity:1;
+  color:color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+}
+.tab-bar .tab[aria-disabled="true"]{ cursor:not-allowed; }
+
+/* ---------- 4. Tab icons: monochrome, 16px (clarification 4c) ---------- */
+.tab-icon [fill="#8093a7" i]{ fill:currentColor; }
+.tab-icon [fill="#e8edf2" i]{ fill:var(--paper); }
+.tab-icon [stroke="#9AA197" i]{ stroke:currentColor; }
+.tab .live-bars i:nth-child(n){ background:currentColor; }
+
+/* ---------- 5. Refresh: standard icon button ---------- */
+.tab-bar-wrap .tab-refresh--icon{
+  position:relative;
+  overflow:hidden;
+  align-self:center;
+  width:40px;
+  height:40px;
+  border:0;
+  border-radius:var(--md-sys-shape-corner-full);
+  background:transparent;
+  color:var(--md-sys-color-on-surface-variant);
+}
+.tab-refresh--icon svg{ width:24px; height:24px; }
+.tab-bar-wrap .tab-refresh--icon:disabled{
+  opacity:1;
+  color:color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+}
+
+/* ---------- 6. Search bar (56px, clarification 2a) ---------- */
+.header-search,
+.header-search:focus-within{
+  height:56px;
+  padding:0 16px 0 8px;
+  gap:4px;
+  border:0;
+  border-radius:var(--md-sys-shape-corner-full);
+  background:var(--md-sys-color-surface-container-high);
+}
+.search-icon-btn,
+.header-search-clear{
+  position:relative;
+  overflow:hidden;
+  width:40px;
+  height:40px;
+  align-items:center;
+  justify-content:center;
+  border-radius:var(--md-sys-shape-corner-full);
+}
+.search-icon-btn{ color:var(--md-sys-color-on-surface); }
+.search-icon-btn:hover,
+.search-icon-btn:focus-visible{ color:var(--md-sys-color-on-surface); }
+.search-icon-btn .search-icon{ width:24px; height:24px; color:inherit; }
+.header-search-clear,
+.header-search-clear:hover,
+.header-search-clear:focus-visible{
+  background:transparent;
+  color:var(--md-sys-color-on-surface-variant);
+}
+.header-search-clear svg{ width:24px; height:24px; }
+.header-search input{
+  font-weight:400;
+  font-size:16px;            /* Body Large */
+  line-height:24px;
+  letter-spacing:0.5px;
+  color:var(--md-sys-color-on-surface);
+}
+.header-search input::placeholder{ color:var(--md-sys-color-on-surface-variant); }
+.search-kbd{
+  margin-left:4px;
+  font-weight:500;
+  font-size:14px;            /* Label Large */
+  letter-spacing:0.1px;
+  color:var(--md-sys-color-outline);
+}
+
+/* ---------- 7. Header controls and avatar menu (clarification 3a) ---------- */
+.btn-header-ghost,
+.btn-header-primary{
+  position:relative;
+  overflow:hidden;
+  height:40px;
+  padding:0 24px;
+  border-radius:var(--md-sys-shape-corner-full);
+  font-weight:500;
+  font-size:14px;            /* Label Large */
+  line-height:20px;
+  letter-spacing:0.1px;
+}
+/* Outlined button. */
+.btn-header-ghost,
+.btn-header-ghost:hover{
+  border:1px solid var(--md-sys-color-outline);
+  background:transparent;
+  color:var(--md-sys-color-primary);
+}
+/* Filled button. */
+.btn-header-primary,
+.btn-header-primary:hover{
+  background:var(--md-sys-color-primary);
+  color:var(--md-sys-color-on-primary);
+}
+@media (max-width:639.98px){
+  .btn-header-ghost,
+  .btn-header-primary{
+    height:40px;
+    padding:0 16px;
+    font-size:14px;
+  }
+}
+
+/* Create Poll: a text button, shown disabled while the feature is inactive.
+   Production's 40px side padding becomes margin, so the row keeps its spacing. */
+.header-nav-link{
+  display:inline-flex;
+  align-items:center;
+  height:40px;
+  padding:0 12px;
+  margin:0 28px;
+  border-radius:var(--md-sys-shape-corner-full);
+  font-weight:500;
+  font-size:14px;
+  letter-spacing:0.1px;
+  color:var(--md-sys-color-primary);
+}
+.header-nav-link.is-inert{
+  opacity:1;
+  color:color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+}
+@media (max-width:639.98px){
+  .header-nav-link{ padding:0 12px; margin:0 4px; font-size:14px; }
+}
+
+.header-user{
+  font-weight:500;
+  font-size:14px;            /* Label Large */
+  letter-spacing:0.1px;
+  color:var(--md-sys-color-on-surface);
+}
+.header-user .avatar{
+  width:32px;
+  height:32px;
+  border:0;
+  transition:box-shadow 0.15s ease;
+}
+/* An <img> has no ::before, so its hover layer is a ring. */
+.header-user .avatar:hover{
+  box-shadow:0 0 0 4px color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
+}
+
+/* M3 menu. */
+.avatar-menu{
+  top:40px;
+  min-width:112px;
+  max-width:280px;
+  padding:8px 0;
+  border:0;
+  border-radius:var(--md-sys-shape-corner-extra-small);
+  background:var(--md-sys-color-surface-container);
+  box-shadow:var(--md-sys-elevation-2);
+}
+.avatar-menu a,
+.avatar-menu button{
+  position:relative;
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+  height:48px;
+  padding:0 12px;
+  font-weight:500;
+  font-size:14px;            /* Label Large */
+  line-height:20px;
+  letter-spacing:0.1px;
+  white-space:nowrap;
+  color:var(--md-sys-color-on-surface);
+}
+.avatar-menu a:hover,
+.avatar-menu button:hover{ background:none; }
+
+/* ---------- 8. Logo and wordmark in the dark scheme (clarification 5a) ----------
+   The near-black glyphs and the oval take on-surface; the near-white fills
+   inside the letters become transparent, so the page shows through. The reds
+   stay. Light mode has no rule. */
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]) .brand svg :is([fill="#000000" i], [fill="#020202" i], [fill="#030202" i], [fill="#030302" i], [fill="#30302F" i], [fill="#303030" i], [fill="#313030" i]){ fill:var(--md-sys-color-on-surface); }
+  :root:not([data-theme="light"]) .brand svg [stroke="#000000" i]{ stroke:var(--md-sys-color-on-surface); }
+  :root:not([data-theme="light"]) .brand svg :is([fill="#FAFAFA" i], [fill="#FBFBFB" i], [fill="#FDFAFA" i], [fill="#F9F9F9" i], [fill="#EEEDED" i], [fill="#EAEAEA" i]){ fill:transparent; }
+}
+:root[data-theme="dark"] .brand svg :is([fill="#000000" i], [fill="#020202" i], [fill="#030202" i], [fill="#030302" i], [fill="#30302F" i], [fill="#303030" i], [fill="#313030" i]){ fill:var(--md-sys-color-on-surface); }
+:root[data-theme="dark"] .brand svg [stroke="#000000" i]{ stroke:var(--md-sys-color-on-surface); }
+:root[data-theme="dark"] .brand svg :is([fill="#FAFAFA" i], [fill="#FBFBFB" i], [fill="#FDFAFA" i], [fill="#F9F9F9" i], [fill="#EEEDED" i], [fill="#EAEAEA" i]){ fill:transparent; }
+
+/* ---------- 9. Snackbars (clarification 6b) ----------
+   The tab notice and the cookie banner float 16px above the bottom edge. While
+   the banner shows, header-tab-bar-m3.js sets --cookie-banner-offset so the
+   notice rises above it instead of covering it. */
+.tab-notice,
+#cookie-banner{
+  position:fixed;
+  left:0;
+  right:0;
+  margin:0 auto;
+  width:min(672px, calc(100% - 32px));
+  min-height:48px;
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:0 8px;
+  border-radius:var(--md-sys-shape-corner-extra-small);
+  background:var(--md-sys-color-inverse-surface);
+  color:var(--md-sys-color-inverse-on-surface);
+  box-shadow:var(--md-sys-elevation-3);
+  font-weight:400;
+  font-size:14px;            /* Body Medium */
+  line-height:20px;
+  letter-spacing:0.25px;
+  text-align:left;
+}
+.tab-notice{
+  z-index:30;
+  bottom:calc(16px + var(--cookie-banner-offset, 0px));
+  padding:14px 16px;
+  animation:m3-snackbar-in 150ms cubic-bezier(0.2, 0, 0, 1);
+}
+.tab-notice[hidden]{ display:none; }
+/* The persistent notice carries a close icon button at its end. */
+.tab-notice:has(.tab-notice-close){ padding:4px 4px 4px 16px; }
+.tab-notice-close{
+  position:relative;
+  overflow:hidden;
+  flex-shrink:0;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:40px;
+  height:40px;
+  margin-left:auto;
+  padding:0;
+  border:0;
+  border-radius:var(--md-sys-shape-corner-full);
+  background:transparent;
+  color:var(--md-sys-color-inverse-on-surface);
+  cursor:pointer;
+}
+.tab-notice-close svg{
+  width:24px;
+  height:24px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:2;
+  stroke-linecap:round;
+}
+
+#cookie-banner{
+  z-index:20;
+  bottom:16px;
+  justify-content:space-between;
+  padding:4px 8px 4px 16px;
+}
+#cookie-banner > span{
+  flex:1 1 240px;
+  padding:10px 0;
+}
+/* "I Understand": a text button in inverse-primary; on a narrow screen it
+   wraps below the text, M3's layout for a long action. */
+#cookie-banner button{
+  position:relative;
+  overflow:hidden;
+  height:40px;
+  margin-left:auto;
+  padding:0 12px;
+  border:0;
+  border-radius:var(--md-sys-shape-corner-full);
+  background:transparent;
+  color:var(--md-sys-color-inverse-primary);
+  font-weight:500;
+  font-size:14px;            /* Label Large */
+  letter-spacing:0.1px;
+}
+
+@keyframes m3-snackbar-in{
+  from{ opacity:0; transform:translateY(8px); }
+  to{ opacity:1; transform:none; }
+}
+@media (prefers-reduced-motion: reduce){
+  .tab-notice{ animation:none; }
+}
+
+/* ---------- 10. State layers and focus ----------
+   The card's recipe: a ::before in currentColor at 0 opacity, raised on hover,
+   keyboard focus and press, and the 3px secondary focus ring. */
+.tab-bar .tab::before,
+.tab-refresh--icon::before,
+.search-icon-btn::before,
+.header-search-clear::before,
+.btn-header-ghost::before,
+.btn-header-primary::before,
+.avatar-menu a::before,
+.avatar-menu button::before,
+#cookie-banner button::before,
+.tab-notice-close::before{
+  content:'';
+  position:absolute;
+  inset:0;
+  border-radius:inherit;
+  background:currentColor;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity 0.15s ease;
+}
+.tab-bar .tab:hover::before,
+.tab-refresh--icon:hover::before,
+.search-icon-btn:hover::before,
+.header-search-clear:hover::before,
+.btn-header-ghost:hover::before,
+.btn-header-primary:hover::before,
+.avatar-menu a:hover::before,
+.avatar-menu button:hover::before,
+#cookie-banner button:hover::before,
+.tab-notice-close:hover::before{ opacity:var(--md-sys-state-hover-state-layer-opacity); }
+
+.tab-bar .tab:focus-visible::before,
+.tab-refresh--icon:focus-visible::before,
+.search-icon-btn:focus-visible::before,
+.header-search-clear:focus-visible::before,
+.btn-header-ghost:focus-visible::before,
+.btn-header-primary:focus-visible::before,
+.avatar-menu a:focus-visible::before,
+.avatar-menu button:focus-visible::before,
+#cookie-banner button:focus-visible::before,
+.tab-notice-close:focus-visible::before{ opacity:var(--md-sys-state-focus-state-layer-opacity); }
+
+.tab-bar .tab:active::before,
+.tab-refresh--icon:active::before,
+.search-icon-btn:active::before,
+.header-search-clear:active::before,
+.btn-header-ghost:active::before,
+.btn-header-primary:active::before,
+.avatar-menu a:active::before,
+.avatar-menu button:active::before,
+#cookie-banner button:active::before,
+.tab-notice-close:active::before{ opacity:var(--md-sys-state-pressed-state-layer-opacity); }
+
+.tab-bar .tab:disabled::before,
+.tab-bar .tab[aria-disabled="true"]::before,
+.tab-refresh--icon:disabled::before{ opacity:0; }
+
+.tab-refresh--icon:focus-visible,
+.search-icon-btn:focus-visible,
+.header-search-clear:focus-visible,
+.btn-header-ghost:focus-visible,
+.btn-header-primary:focus-visible,
+#cookie-banner button:focus-visible,
+.tab-notice-close:focus-visible{
+  outline:3px solid var(--md-sys-color-secondary);
+  outline-offset:2px;
+}
+/* Inset where an outer ring would be clipped: the tab row scrolls sideways,
+   and the menu clips its items. */
+.tab-bar .tab:focus-visible,
+.avatar-menu a:focus-visible,
+.avatar-menu button:focus-visible{
+  outline:3px solid var(--md-sys-color-secondary);
+  outline-offset:-3px;
+}

@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Poll Card</title>
+  <!-- REQUIREMENT001: the two-sided poll card extracted from src/public/index.html.
+       One .card-grid holding one .card-viewport; no site header, tab bar, tab notice,
+       tab panel or search. Open this file directly - no server needed. -->
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,440;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="tabs.css">
+  <link rel="stylesheet" href="pollCard.css">
+  <link rel="stylesheet" href="site.css">
+  <!-- REQUIREMENT004: the Material 3 layer, loaded last so it overrides the copies above. -->
+  <link rel="stylesheet" href="pollCard-m3.css">
+  <!-- REQUIREMENT Use Material 3 For tooltips: M3 plain tooltips in place of title. -->
+  <link rel="stylesheet" href="tooltip-m3.css">
+  <style>
+    .prototype-bar{ display:flex; align-items:center; gap:10px; padding:0 0 18px;
+      font:500 13px 'Inter', sans-serif; color:var(--muted); }
+    .prototype-bar select{ font:inherit; padding:4px 8px; }
+  </style>
+</head>
+<body>
+  <div class="page-decor"></div>
+  <div class="page">
+    <div class="container">
+      <div class="layout">
+        <div class="prototype-bar">
+          <label for="fixturePicker">Fixture poll</label>
+          <select id="fixturePicker"></select>
+          <label for="themePicker">Theme</label>
+          <select id="themePicker">
+            <option value="system">System</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+          <label><input type="checkbox" id="removeForm"> Live Results tab (remove form)</label>
+        </div>
+        <div class="card-grid" id="cardGrid"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="pollCard.js" defer></script>
+  <script src="pollCard-m3.js" defer></script>
+  <script src="tooltip-m3.js" defer></script>
+  <script src="fixtures.js" defer></script>
+  <script src="harness.js" defer></script>
+</body>
+</html>

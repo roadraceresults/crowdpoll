@@ -1,0 +1,85 @@
+/* Tab bar scroll arrows with ripple pulsation effect (TWEAKS09, TWEAKS10). */
+
+@media (max-width: 900px) {
+  .tab-scroll-arrow {
+    position: absolute;
+    bottom: 4px;
+    width: 32px;
+    height: 32px;
+    padding: 4px;
+    border: none;
+    background: transparent;
+    color: var(--md-sys-color-on-surface);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    -webkit-user-select: none;
+    user-select: none;
+    border-radius: 50%;
+  }
+
+  .tab-scroll-arrow:not([hidden]) {
+    display: flex;
+  }
+
+  .tab-scroll-arrow[hidden] {
+    display: none;
+  }
+
+  .tab-scroll-arrow--left {
+    left: -2px;
+  }
+
+  .tab-scroll-arrow--right {
+    right: -2px;
+  }
+
+  /* Ripple pulsation animation: box-shadow expansion (like Maximize button) */
+  @keyframes tab-arrow-pulse {
+    0% {
+      box-shadow: 0 0 0 0 color-mix(in srgb, var(--md-sys-color-primary) 55%, transparent);
+    }
+    70% {
+      box-shadow: 0 0 0 8px color-mix(in srgb, var(--md-sys-color-primary) 0%, transparent);
+    }
+    100% {
+      box-shadow: 0 0 0 0 color-mix(in srgb, var(--md-sys-color-primary) 0%, transparent);
+    }
+  }
+
+  /* Apply pulsation only when arrow is idle (not being interacted with) */
+  .tab-scroll-arrow.is-idle {
+    animation: tab-arrow-pulse 1.8s ease-out infinite;
+  }
+
+  /* Remove pulsation during interaction */
+  .tab-scroll-arrow.is-active,
+  .tab-scroll-arrow.is-scrolling {
+    animation: none;
+  }
+
+  /* Disable pulsation after usage limit reached */
+  .tab-scroll-arrow.usage-limit-reached {
+    animation: none;
+  }
+
+  /* Hover state */
+  @media (hover: hover) {
+    .tab-scroll-arrow:hover {
+      color: var(--md-sys-color-primary);
+    }
+  }
+
+  /* Touch device - ensure arrows are tappable */
+  @media (hover: none) {
+    .tab-scroll-arrow {
+      opacity: 0.8;
+    }
+
+    .tab-scroll-arrow:active {
+      opacity: 1;
+    }
+  }
+}

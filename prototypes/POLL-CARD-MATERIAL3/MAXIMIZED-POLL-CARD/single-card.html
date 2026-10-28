@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Maximized Poll Card</title>
+  <!-- REQUIREMENT006: the maximized Poll Card in Material 3. This is the live card
+       from the parent folder (pollCard.js with its M3 layer), maximized by
+       harness.js the way tabs.js maximizes a tab's card, not a static copy.
+       Open this file directly - no server needed. single-card-back.html opens it
+       on the back face (#back). The static page this replaced is kept, unused,
+       as single-card-static.html. -->
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,440;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../tabs.css">
+  <link rel="stylesheet" href="../pollCard.css">
+  <link rel="stylesheet" href="../site.css">
+  <!-- The Material 3 layer, loaded last; section 8 is the maximized view. -->
+  <link rel="stylesheet" href="../pollCard-m3.css">
+  <!-- REQUIREMENT Use Material 3 For tooltips: M3 plain tooltips in place of title. -->
+  <link rel="stylesheet" href="../tooltip-m3.css">
+  <style>
+    .prototype-bar{ display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:0 0 18px;
+      font:500 13px 'Inter', sans-serif; color:var(--muted); }
+    .prototype-bar select{ font:inherit; padding:4px 8px; }
+    /* Prototype only (production has no close control): the close control on a
+       row of its own at the top right, ahead of the card, so it covers neither
+       the bookmark star nor the panel, and stays there when the panel wraps.
+       It is outside the card's flip, so it shows on both faces. The negative
+       margin takes the grid's 18px row gap down to 10px under it. */
+    .maximized-card-close-row{
+      flex:0 0 100%;
+      display:flex;
+      justify-content:flex-end;
+      margin-bottom:-8px;
+    }
+  </style>
+</head>
+<body data-maximized data-default-fixture="fifty">
+  <div class="page-decor"></div>
+  <div class="page">
+    <div class="container">
+      <div class="layout">
+        <div class="prototype-bar">
+          <label for="fixturePicker">Fixture poll</label>
+          <select id="fixturePicker"></select>
+          <label for="themePicker">Theme</label>
+          <select id="themePicker">
+            <option value="system">System</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+          <label><input type="checkbox" id="removeForm"> Live Results tab (remove form)</label>
+        </div>
+        <!-- Production's maximizedCardGrid template (src/public/index.html), with the
+             prototype's close row ahead of it. harness.js places the card before
+             .col-rule. -->
+        <div class="maximized-card-grid">
+          <div class="maximized-card-close-row">
+            <button class="maximized-card-close" type="button" aria-label="Close Poll Card" title="Close Poll Card">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M18 6L6 18"></path><path d="M6 6l12 12"></path></svg>
+            </button>
+          </div>
+          <div class="col-rule" aria-hidden="true"></div>
+          <div class="maximized-space-right">
+            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent sit amet malesuada ante. Curabitur feugiat aliquet ante vel hendrerit. Vestibulum vel viverra odio. Nam accumsan, nulla nec consequat elementum, nisi nunc tempor turpis, id convallis neque ligula eu nulla. In tempus, justo id accumsan faucibus, velit elit convallis sem, a tincidunt mi ligula quis ipsum. Vestibulum quis blandit nunc. Donec quis risus magna. Nam velit diam, interdum id vestibulum in, iaculis nec lorem. Vestibulum eu dolor eu nisi varius suscipit sed eu ipsum. Nam a sagittis arcu, ut vehicula erat.</p>
+            <p>In hac habitasse platea dictumst. Cras ac erat et sapien aliquam tempus et vel dui. Nunc sed erat faucibus, convallis augue sed, volutpat orci. Quisque lacus libero, feugiat id accumsan consequat, interdum vitae metus. Aliquam sed dignissim nulla. Integer in mauris nisi. Cras purus massa, posuere quis diam quis, rutrum mollis tortor.</p>
+            <p>Phasellus neque ligula, posuere nec blandit eget, tempus et nunc. Praesent ac efficitur dolor. Sed cursus dolor et orci scelerisque finibus. Sed ac faucibus nisi, at rutrum nisi. Etiam ut eros sit amet massa ornare suscipit a eu enim. Fusce mattis, magna sit amet dictum scelerisque, ipsum libero vehicula dolor, nec pulvinar turpis leo in lacus. Suspendisse non pulvinar turpis. Curabitur feugiat justo et eros eleifend volutpat. Nam euismod leo eget mauris facilisis pellentesque. Phasellus at tincidunt magna.</p>
+            <p>Nunc tincidunt massa vel quam elementum, lacinia convallis ligula consectetur. Nam blandit sed libero eget facilisis. Vivamus cursus nibh ut pellentesque viverra. Vestibulum ultricies auctor ipsum a aliquet. Aenean tempus lacinia mauris quis faucibus. Donec non scelerisque augue, vitae dictum justo. Ut vestibulum quam quis turpis congue, vitae convallis ante imperdiet. Nulla venenatis euismod quam, vel sodales sapien sagittis ut. Aliquam nec ligula metus. Duis ut eros id nunc viverra commodo id in nisl. Nunc a est rutrum, fringilla justo eu, mollis eros. Curabitur pulvinar at metus eget mattis. Etiam aliquam, nisl quis dictum placerat, risus ipsum malesuada mauris, a condimentum massa ante non purus. Aliquam iaculis purus in risus hendrerit, vitae suscipit massa maximus.</p>
+            <p>Sed neque arcu, porta vel felis nec, varius porttitor lectus. Nam eget feugiat metus. Donec placerat libero ut turpis euismod suscipit. Donec venenatis, sem id venenatis fermentum, augue lacus tincidunt tellus, ac imperdiet diam dolor et magna. Cras lacinia venenatis mi, ut malesuada tellus. Integer venenatis, ex id faucibus lobortis, neque arcu gravida ligula, ac dapibus tortor sem nec mauris. Sed sagittis dui a augue maximus vehicula. Curabitur auctor pharetra purus, eget hendrerit purus cursus eget. Donec accumsan porttitor tincidunt.</p>
+            <p>Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Nullam vulputate feugiat neque, sed sagittis sem suscipit eget. Morbi rutrum neque quis erat eleifend cursus. Morbi venenatis pretium velit, vel mollis urna iaculis ut. Quisque sed volutpat magna, quis eleifend metus. Mauris dictum, felis ac commodo blandit, ex nibh ultricies est, vitae placerat lorem est id dolor. Ut ipsum dui, tristique vel magna nec, congue finibus sapien. Etiam quis gravida eros. Quisque at posuere arcu, at interdum nunc. Integer et gravida leo. Quisque vitae metus laoreet, iaculis velit molestie, congue sapien. Donec dignissim id purus nec malesuada. Sed pharetra nulla non lectus fringilla pharetra. Sed vitae nisl sed sapien dapibus finibus. Integer eget aliquam turpis, id vulputate odio. Praesent pharetra nunc libero, in mollis lacus faucibus eget.</p>
+            <p>Nulla facilisi. In ac volutpat enim. Nunc turpis eros, fermentum eget lacus ac, semper tincidunt purus. Donec vel orci viverra, dictum velit et, iaculis justo. Pellentesque rhoncus ligula at ex maximus sodales. Donec fringilla urna sem, non tincidunt tortor varius ut. Ut non faucibus eros. Maecenas gravida sed justo id placerat. Suspendisse vel efficitur ante. Nullam facilisis velit in tortor pretium vehicula. Suspendisse potenti. Suspendisse euismod viverra mattis. Vestibulum quis ligula et sem convallis mattis ut sed elit. Aliquam lacinia est et suscipit malesuada. Quisque congue posuere turpis, vitae porta orci. Fusce viverra rhoncus eros sed gravida.</p>
+            <p>Fusce ullamcorper sodales rhoncus. Nam faucibus mauris sit amet lorem elementum scelerisque. Sed lorem erat, aliquet a dui vitae, porta ultrices velit. Suspendisse nec libero eget eros imperdiet volutpat. Praesent at dolor blandit, mollis ipsum quis, ullamcorper ipsum. Phasellus pulvinar nulla vel lacus consectetur, at consequat dolor blandit. Sed malesuada condimentum tristique. Mauris tristique neque sit amet est scelerisque mattis. Sed interdum sapien tellus, vulputate convallis lorem convallis sed. Phasellus congue justo felis, eu mattis enim aliquam sit amet.</p>
+            <p>Nullam rhoncus sapien vitae urna commodo, sed dignissim ex blandit. Integer sit amet nulla sed justo mattis mollis eu id nisl. Aenean dapibus metus et odio tincidunt malesuada. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Praesent elementum posuere maximus. Maecenas ac nunc vitae dolor eleifend venenatis. Integer vestibulum vestibulum libero, a ornare felis molestie nec. Nullam imperdiet ipsum ac enim eleifend suscipit. Nunc cursus tincidunt neque. Nulla facilisis est nibh, ut feugiat lorem luctus id. Nullam venenatis lobortis nisi, sed suscipit orci blandit at. Nam sodales volutpat purus a eleifend. Integer ac sagittis nisl. Cras congue nec neque tristique pulvinar.</p>
+            <p>Maecenas dolor tortor, varius vel tincidunt ac, rhoncus fringilla lectus. Quisque tempor quam quis gravida hendrerit. Donec cursus auctor velit, in eleifend nisi fringilla ac. Curabitur quam magna, dignissim eu diam at, commodo consequat massa. Morbi ante ex, volutpat et libero nec, ullamcorper commodo quam. Maecenas scelerisque risus id dui mollis, quis finibus leo commodo. Pellentesque mattis tellus risus, eget suscipit erat tincidunt a. Donec sit amet velit nisi. Aenean quam nunc, tincidunt eu lobortis vitae, consectetur ac enim. Mauris interdum nec elit sit amet maximus. Quisque tempus blandit arcu, sit amet faucibus lacus lacinia in. Donec tempus, metus vitae tempus aliquam, sem diam rutrum mauris, ac vulputate est metus non justo. Etiam eu magna eu nunc feugiat eleifend. Mauris quis molestie lorem.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../pollCard.js" defer></script>
+  <script src="../pollCard-m3.js" defer></script>
+  <script src="../tooltip-m3.js" defer></script>
+  <script src="../fixtures.js" defer></script>
+  <script src="../harness.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,96 @@
+/* Material 3 profile editor current values: https://m3.material.io/components/text-fields/specs */
+
+/* ---------- 5. Current values ---------- */
+.card-shell-body .card-shell-group:has(.profile-current) > label{
+  font-weight:var(--md-sys-typescale-body-small-weight);
+  font-size:var(--md-sys-typescale-body-small-size);
+  line-height:var(--md-sys-typescale-body-small-line-height);
+  letter-spacing:var(--md-sys-typescale-body-small-tracking);
+  color:var(--md-sys-color-on-surface-variant);
+}
+.card-shell-body .card-shell-group input.profile-current,
+.card-shell-body .card-shell-group input.profile-current:focus,
+.card-shell-body .card-shell-group input.profile-current:focus-visible{
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  box-shadow:none;
+  outline:none;
+  font-family:var(--md-sys-typescale-font);
+  font-weight:var(--md-sys-typescale-body-large-weight);
+  font-size:var(--md-sys-typescale-body-large-size);
+  line-height:var(--md-sys-typescale-body-large-line-height);
+  letter-spacing:0.5px;
+  color:var(--md-sys-color-on-surface);
+  cursor:default;
+}
+
+/* ---------- 7. The section field error ---------- */
+.card-shell-body .profile-section:has(.card-shell-status.error) .card-shell-group:not(:has(.profile-current)) > label{
+  color:var(--md-sys-color-error);
+}
+.card-shell-body .profile-section:has(.card-shell-status.error) input:is([type="text"], [type="email"]):not(.profile-current),
+.card-shell-body .profile-section:has(.card-shell-status.error) input:is([type="text"], [type="email"]):not(.profile-current):focus{
+  box-shadow:inset 0 -2px 0 var(--md-sys-color-error);
+}
+
+.profile-your-data-heading{
+  margin:0 0 8px;
+  font-size:var(--md-sys-typescale-title-medium-size);
+  color:var(--md-sys-color-on-surface);
+}
+
+.profile-your-data .card-shell-link{ display:inline-block; margin:0 0 12px; }
+
+.profile-delete-btn{
+  display:block;
+  min-height:40px;
+  padding:0 20px;
+  border:1px solid var(--md-sys-color-error);
+  border-radius:20px;
+  background:transparent;
+  color:var(--md-sys-color-error);
+  font-size:var(--md-sys-typescale-label-large-size);
+  cursor:pointer;
+}
+
+.profile-delete-btn:disabled{ opacity:0.38; cursor:default; }
+
+.delete-dialog-scrim{
+  position:fixed;
+  inset:0;
+  z-index:60;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:16px;
+  background:color-mix(in srgb, var(--md-sys-color-scrim) 32%, transparent);
+}
+
+.delete-dialog{
+  width:min(440px, 100%);
+  padding:24px;
+  border-radius:28px;
+  background:var(--md-sys-color-surface-container-high);
+  color:var(--md-sys-color-on-surface);
+}
+
+.delete-dialog-title{ margin:0 0 16px; font-size:var(--md-sys-typescale-headline-small-size); }
+
+.delete-dialog label{ display:block; margin:16px 0 4px; font-size:var(--md-sys-typescale-label-large-size); }
+
+.delete-dialog input{ width:100%; box-sizing:border-box; min-height:40px; padding:0 12px; }
+
+.delete-dialog-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:16px; }
+
+.delete-dialog-cancel{
+  min-height:40px;
+  padding:0 16px;
+  border:0;
+  border-radius:20px;
+  background:transparent;
+  color:var(--md-sys-color-primary);
+  font-size:var(--md-sys-typescale-label-large-size);
+  cursor:pointer;
+}

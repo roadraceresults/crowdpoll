@@ -1,0 +1,1177 @@
+/*
+  Admin cards: the Material 3 layer, loaded last on admin.html. admin.css holds
+  only the cards' layout; how they look is here, on the --md-sys-* roles: the
+  wizard and the read-only face. No literal colour is used.
+
+  Order: 1 type and the card, 2 read-only face, 3 Settings Summary, 4 Named
+  Circles, 5 step panel (5b the Colors step), 6 radio lists and the switch, 7 underlined fields,
+  8 buttons, 9 snackbar, 10 an existing poll in the wizard, 11 state layers and
+  focus, 12 disabled.
+
+  The dark scheme comes from the roles (and the production tokens restated in
+  terms of them by m3-tokens.css), so this file has no dark blocks.
+*/
+
+/* ---------- 1. Type and the card ----------
+   Roboto on Body Medium. The card's container stays production's (the Poll
+   Card's white fill, hairline, shadow and 20/18px corners), which
+   the dark scheme turns into surface-container-low with an outline-variant
+   hairline and no shadow in dark. styles.css styles every
+   <button> as a filled accent control with a brightness filter on hover;
+   every control below sets its own colours, and the filter goes. */
+.poll-admin-card{
+  font-family:var(--md-sys-typescale-font);
+  font-size:var(--md-sys-typescale-body-medium-size);
+  line-height:var(--md-sys-typescale-body-medium-line-height);
+  letter-spacing:var(--md-sys-typescale-body-medium-tracking);
+  color:var(--md-sys-color-on-surface);
+}
+.poll-admin-card :is(button, input, select, textarea),
+.actions-menu :is(a, button){
+  font-family:var(--md-sys-typescale-font);
+  filter:none;
+}
+
+/* The status line: supporting text in a tonal container. */
+.poll-admin-card .card-status-line{
+  padding:8px 12px;
+  border:0;
+  border-radius:var(--md-sys-shape-corner-small);
+  background:var(--md-sys-color-surface-container);
+  color:var(--md-sys-color-on-surface-variant);
+  font-size:var(--md-sys-typescale-body-small-size);
+  line-height:var(--md-sys-typescale-body-small-line-height);
+  letter-spacing:var(--md-sys-typescale-body-small-tracking);
+}
+
+/* ---------- 2. Read-only face ----------
+   The state as Title Small, the four icons and ⋮ as 40px standard icon
+   buttons, the panels as outlined cards, Open / Close / Archive as outlined
+   buttons, and the actions menu as an M3 menu. */
+.poll-admin-card .card-state-value{
+  font-size:var(--md-sys-typescale-title-small-size);
+  font-weight:var(--md-sys-typescale-title-small-weight);
+  line-height:var(--md-sys-typescale-title-small-line-height);
+  letter-spacing:var(--md-sys-typescale-title-small-tracking);
+}
+.poll-admin-card .card-state-detail{
+  font-size:var(--md-sys-typescale-body-small-size);
+  line-height:var(--md-sys-typescale-body-small-line-height);
+  letter-spacing:var(--md-sys-typescale-body-small-tracking);
+  color:var(--md-sys-color-on-surface-variant);
+}
+.poll-admin-card .admin-icon-btn,
+.poll-admin-card .actions-menu-trigger{
+  width:40px;
+  height:40px;
+  margin:0;
+  padding:0;
+  border:0;
+  border-radius:var(--md-sys-shape-corner-full);
+  background:transparent;
+  color:var(--md-sys-color-on-surface-variant);
+}
+.poll-admin-card .admin-icon-btn svg,
+.poll-admin-card .actions-menu-trigger svg{ width:24px; height:24px; }
+.poll-admin-card .admin-icon-btn:hover:not(:disabled),
+.poll-admin-card .actions-menu-trigger:hover,
+.poll-admin-card .actions-menu-trigger[aria-expanded="true"]{ background:transparent; border-color:transparent; }
+
+.poll-admin-card .card-panel{
+  border:1px solid var(--md-sys-color-outline-variant);
+  border-radius:var(--md-sys-shape-corner-medium);
+  background:transparent;
+}
+.poll-admin-card .card-field-label{
+  font-size:var(--md-sys-typescale-label-medium-size);
+  font-weight:var(--md-sys-typescale-label-medium-weight);
+  line-height:var(--md-sys-typescale-label-medium-line-height);
+  letter-spacing:var(--md-sys-typescale-label-medium-tracking);
+  color:var(--md-sys-color-on-surface-variant);
+}
+.poll-admin-card .card-field-value{
+  font-size:var(--md-sys-typescale-body-medium-size);
+  line-height:var(--md-sys-typescale-body-medium-line-height);
+  color:var(--md-sys-color-on-surface);
+}
+.poll-admin-card .admin-date-absent{
+  opacity:1;
+  color:var(--md-sys-color-on-surface-variant);
+}
+
+/* Outlined buttons: Open, Close, Archive and Re-attempt Screening. */
+.poll-admin-card .admin-state-btn,
+.poll-admin-card .admin-rescreen-btn{
+  height:32px;
+  margin:0;
+  padding:0 16px;
+  border:1px solid var(--md-sys-color-outline);
+  border-radius:var(--md-sys-shape-corner-full);
+  background:transparent;
+  color:var(--md-sys-color-primary);
+  font-size:var(--md-sys-typescale-label-large-size);
+  font-weight:var(--md-sys-typescale-label-large-weight);
+  line-height:var(--md-sys-typescale-label-large-line-height);
+  letter-spacing:var(--md-sys-typescale-label-large-tracking);
+}
+.poll-admin-card .admin-state-btn:hover:not(:disabled){ background:transparent; }
+
+/* The actions menu: positioned by adminList.js with
+   position:fixed, so it may sit outside the card. */
+.actions-menu{
+  min-width:112px;
+  max-width:280px;
+  padding:8px 0;
+  gap:0;
+  border:0;
+  border-radius:var(--md-sys-shape-corner-extra-small);
+  background:var(--md-sys-color-surface-container);
+  box-shadow:var(--md-sys-elevation-2);
+}
+.actions-menu--flip-up{ box-shadow:var(--md-sys-elevation-2); }
+.actions-menu a,
+.actions-menu button{
+  display:flex;
+  align-items:center;
+  height:48px;
+  padding:0 12px;
+  border-radius:0;
+  background:transparent;
+  color:var(--md-sys-color-on-surface);
+  font-size:var(--md-sys-typescale-label-large-size);
+  font-weight:var(--md-sys-typescale-label-large-weight);
+  line-height:var(--md-sys-typescale-label-large-line-height);
+  letter-spacing:var(--md-sys-typescale-label-large-tracking);
+  white-space:nowrap;
+}
+.actions-menu a:hover,
+.actions-menu button:hover{ background:transparent; }
+
+/* ---------- 3. Settings Summary ----------
+   A tonal container. Its title and subtitle are the M3 Poll Card's
+   (pollCard-m3.css, .card-face .question / .subtitle), restated because
+   admin.html does not load that sheet. The tappable parts are inline text
+   with a primary underline. */
+.poll-admin-card .wizard-summary{
+  border-radius:var(--md-sys-shape-corner-medium);
+  background:var(--md-sys-color-surface-container-low);
+}
+.poll-admin-card .wizard-summary .question{
+  font-family:var(--md-sys-typescale-font);
+  font-weight:var(--md-sys-typescale-title-large-weight);
+  font-size:clamp(18px, 1.8vw, var(--md-sys-typescale-title-large-size));
+  line-height:1.27; /* 28/22 */
+  letter-spacing:var(--md-sys-typescale-title-large-tracking);
+  color:var(--md-sys-color-on-surface);
+}
+.poll-admin-card .wizard-summary .subtitle{
+  font-family:var(--md-sys-typescale-font);
+  font-weight:var(--md-sys-typescale-body-medium-weight);
+  font-size:var(--md-sys-typescale-body-medium-size);
+  line-height:var(--md-sys-typescale-body-medium-line-height);
+  letter-spacing:var(--md-sys-typescale-body-medium-tracking);
+  color:var(--md-sys-color-on-surface-variant);
+}
+.poll-admin-card .wizard-summary-text{
+  font-size:var(--md-sys-typescale-body-medium-size);
+  line-height:22px;   /* Body Medium's 20px, plus room for the underlines */
+  color:var(--md-sys-color-on-surface);
+}
+.poll-admin-card .wizard-summary-part{ font:inherit; color:inherit; }
+.poll-admin-card .wizard-summary-swatch{
+  display:inline-block;
+  box-sizing:border-box;
+  width:24px;
+  height:24px;
+  margin:0 2px;
+  vertical-align:middle;
+  border:1px solid var(--md-sys-color-outline);
+  border-radius:var(--md-sys-shape-corner-full);
+  background:var(--swatch);
+}
+.poll-admin-card .wizard-summary-link{
+  border:0;
+  background:none;
+  text-decoration:underline;
+  text-decoration-color:var(--md-sys-color-primary);
+  text-decoration-thickness:2px;
+  text-underline-offset:3px;
+  cursor:pointer;
+}
+.poll-admin-card .wizard-summary-link:hover,
+.poll-admin-card .wizard-summary-link:focus-visible{ color:var(--md-sys-color-primary); }
+.poll-admin-card .wizard-summary-link:focus-visible{
+  outline:3px solid var(--md-sys-color-secondary);
+  outline-offset:2px;
+  border-radius:var(--md-sys-shape-corner-extra-small);
+}
+
+/* ---------- 4. Named Circles ----------
+   Material 3 has no stepper; the circles take the roles. Current: a
+   primary ring and a bold primary name. Visited: a filled primary circle with
+   an on-primary check. Not yet visited: an outline-variant ring, its number
+   and name at 38%. */
+.poll-admin-card .wizard-steps::before{ background:var(--md-sys-color-outline-variant); }
+.poll-admin-card .wizard-step-btn{
+  border:0;
+  border-radius:0;
+  background:none;
+  color:var(--md-sys-color-on-surface);
+  cursor:pointer;
+}
+.poll-admin-card .wizard-step-btn:disabled{ cursor:default; }
+.poll-admin-card .wizard-step-label{
+  font-size:var(--md-sys-typescale-label-small-size);
+  font-weight:var(--md-sys-typescale-label-small-weight);
+  line-height:18px;   /* the label row of admin.css's grid */
+  letter-spacing:var(--md-sys-typescale-label-small-tracking);
+  color:var(--md-sys-color-on-surface-variant);
+}
+.poll-admin-card .wizard-step-circle{
+  border:2px solid var(--md-sys-color-outline-variant);
+  border-radius:var(--md-sys-shape-corner-full);
+  background:var(--paper-raised);   /* the card's fill, over the joining line */
+  font-size:var(--md-sys-typescale-title-small-size);
+  font-weight:var(--md-sys-typescale-title-small-weight);
+  color:var(--md-sys-color-on-surface);
+  transition:box-shadow 0.15s ease;
+}
+.poll-admin-card .is-visited .wizard-step-circle{
+  border-color:var(--md-sys-color-primary);
+  background:var(--md-sys-color-primary);
+  color:var(--md-sys-color-on-primary);
+  font-size:18px;
+}
+.poll-admin-card .is-visited .wizard-step-label{ color:var(--md-sys-color-on-surface); }
+.poll-admin-card .is-current .wizard-step-circle{
+  border:3px solid var(--md-sys-color-primary);
+  color:var(--md-sys-color-primary);
+}
+.poll-admin-card .is-current .wizard-step-label{
+  font-size:var(--md-sys-typescale-label-medium-size);
+  font-weight:700;
+  letter-spacing:var(--md-sys-typescale-label-medium-tracking);
+  color:var(--md-sys-color-primary);
+}
+.poll-admin-card .is-unvisited .wizard-step-circle{
+  color:color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+}
+.poll-admin-card .is-unvisited .wizard-step-label{
+  color:color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+}
+/* The state layer and focus ring sit on the circle, not the whole column. */
+.poll-admin-card .wizard-step-btn:not(:disabled):hover .wizard-step-circle{
+  box-shadow:0 0 0 6px color-mix(in srgb, var(--md-sys-color-on-surface) calc(var(--md-sys-state-hover-state-layer-opacity) * 100%), transparent);
+}
+.poll-admin-card .wizard-step-btn:focus-visible{ outline:none; }
+.poll-admin-card .wizard-step-btn:focus-visible .wizard-step-circle{
+  outline:3px solid var(--md-sys-color-secondary);
+  outline-offset:2px;
+}
+@media (max-width: 359.98px){
+  .poll-admin-card .wizard-step-circle{ font-size:13px; }
+  .poll-admin-card .is-current .wizard-step-label{ font-size:var(--md-sys-typescale-label-small-size); }
+}
+
+/* ---------- 5. Step panel ----------
+   An outlined card. The heading is Title Medium, each question Title Small,
+   the notes Body Small, and "What does this mean?" a text button over Body
+   Medium definitions. */
+.poll-admin-card .wizard-panel{
+  border:1px solid var(--md-sys-color-outline-variant);
+  border-radius:var(--md-sys-shape-corner-medium);
+}
+.poll-admin-card .wizard-panel-heading{
+  font-size:var(--md-sys-typescale-title-medium-size);
+  font-weight:var(--md-sys-typescale-title-medium-weight);
+  line-height:var(--md-sys-typescale-title-medium-line-height);
+  letter-spacing:var(--md-sys-typescale-title-medium-tracking);
+  color:var(--md-sys-color-on-surface);
+}
+.poll-admin-card .wizard-question{
+  font-size:var(--md-sys-typescale-title-small-size);
+  font-weight:var(--md-sys-typescale-title-small-weight);
+  line-height:var(--md-sys-typescale-title-small-line-height);
+  letter-spacing:var(--md-sys-typescale-title-small-tracking);
+  color:var(--md-sys-color-on-surface);
+}
+.poll-admin-card :is(.wizard-note, .wizard-tz, .wizard-copy-note){
+  font-size:var(--md-sys-typescale-body-small-size);
+  line-height:var(--md-sys-typescale-body-small-line-height);
+  letter-spacing:var(--md-sys-typescale-body-small-tracking);
+  color:var(--md-sys-color-on-surface-variant);
+}
+.poll-admin-card .wizard-error{
+  font-size:var(--md-sys-typescale-body-small-size);
+  line-height:var(--md-sys-typescale-body-small-line-height);
+  letter-spacing:var(--md-sys-typescale-body-small-tracking);
+  color:var(--md-sys-color-error);
+}
+.poll-admin-card .wizard-help{ color:var(--md-sys-color-on-surface); }
+.poll-admin-card .wizard-help summary{
+  display:inline-flex;
+  align-items:center;
+  min-height:40px;
+  padding:0 12px;
+  margin-left:-12px;
+  border-radius:var(--md-sys-shape-corner-full);
+  color:var(--md-sys-color-primary);
+  font-size:var(--md-sys-typescale-label-large-size);
+  font-weight:var(--md-sys-typescale-label-large-weight);
+  line-height:var(--md-sys-typescale-label-large-line-height);
+  letter-spacing:var(--md-sys-typescale-label-large-tracking);
+  cursor:pointer;
+}
+.poll-admin-card .wizard-help dt{
+  font-size:var(--md-sys-typescale-title-small-size);
+  font-weight:var(--md-sys-typescale-title-small-weight);
+  line-height:var(--md-sys-typescale-title-small-line-height);
+}
+.poll-admin-card .wizard-help dd{
+  font-size:var(--md-sys-typescale-body-medium-size);
+  line-height:var(--md-sys-typescale-body-medium-line-height);
+  color:var(--md-sys-color-on-surface-variant);
+}
+
+/* ---------- 5b. Colors step ---------- */
+.poll-admin-card :is(.wizard-colors-help, .wizard-colors-empty){
+  margin:0 0 12px;
+  font-size:var(--md-sys-typescale-body-small-size);
+  line-height:var(--md-sys-typescale-body-small-line-height);
+  letter-spacing:var(--md-sys-typescale-body-small-tracking);
+  color:var(--md-sys-color-on-surface-variant);
+}
+.poll-admin-card .wizard-colors-empty{
+  font-size:var(--md-sys-typescale-body-medium-size);
+  line-height:var(--md-sys-typescale-body-medium-line-height);
+}
+.poll-admin-card .wizard-color-list{
+  list-style:none;
+  margin:0;
+  padding:0;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+.poll-admin-card .wizard-color-row{
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  min-height:48px;
+}
+.poll-admin-card .wizard-color-label{
+  flex:1 1 auto;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:var(--md-sys-typescale-body-large-size);
+  line-height:var(--md-sys-typescale-body-large-line-height);
+  letter-spacing:var(--md-sys-typescale-body-large-tracking);
+  color:var(--md-sys-color-on-surface);
+}
+.poll-admin-card .wizard-color-btn{
+  position:relative;
+  overflow:hidden;
+  flex:0 0 auto;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  min-width:48px;
+  min-height:48px;
+  margin:0;
+  padding:0 12px;
+  border:1px solid var(--md-sys-color-outline);
+  border-radius:var(--md-sys-shape-corner-small);
+  background:transparent;
+  color:var(--md-sys-color-on-surface);
+  font-size:var(--md-sys-typescale-label-large-size);
+  font-weight:var(--md-sys-typescale-label-large-weight);
+  line-height:var(--md-sys-typescale-label-large-line-height);
+  letter-spacing:var(--md-sys-typescale-label-large-tracking);
+  cursor:pointer;
+}
+.poll-admin-card .wizard-color-dot,
+.poll-admin-card .wizard-swatch-fill{
+  box-sizing:border-box;
+  flex:none;
+  width:24px;
+  height:24px;
+  border:1px solid var(--md-sys-color-outline);
+  border-radius:var(--md-sys-shape-corner-full);
+  background:var(--swatch);
+}
+.poll-admin-card .wizard-color-dot.is-automatic,
+.poll-admin-card .wizard-swatch-fill.is-automatic{ background:transparent; }
+.poll-admin-card .wizard-color-arrow{ color:var(--md-sys-color-on-surface-variant); }
+
+.poll-admin-card .wizard-color-popover{
+  position:absolute;
+  top:100%;
+  right:0;
+  z-index:5;
+  box-sizing:border-box;
+  display:grid;
+  grid-template-columns:repeat(4, 48px);
+  gap:8px;
+  max-width:100%;
+  padding:12px;
+  border-radius:var(--md-sys-shape-corner-small);
+  background:var(--md-sys-color-surface-container);
+  box-shadow:var(--md-sys-elevation-2);
+}
+.poll-admin-card .wizard-color-popover[hidden]{ display:none; }
+.poll-admin-card .wizard-color-popover--above{ top:auto; bottom:100%; }
+.poll-admin-card .wizard-swatch{
+  position:relative;
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  box-sizing:border-box;
+  width:48px;
+  height:48px;
+  margin:0;
+  padding:0;
+  border:0;
+  border-radius:var(--md-sys-shape-corner-full);
+  background:transparent;
+  color:var(--md-sys-color-on-surface);
+  cursor:pointer;
+}
+.poll-admin-card .wizard-swatch .wizard-swatch-fill{ width:32px; height:32px; }
+.poll-admin-card .wizard-swatch-check{
+  position:absolute;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  width:18px;
+  height:18px;
+  border-radius:var(--md-sys-shape-corner-full);
+  background:var(--md-sys-color-on-surface);
+  color:var(--md-sys-color-surface);
+  font-size:var(--md-sys-typescale-label-small-size);
+  line-height:1;
+}
+.poll-admin-card .wizard-swatch.is-chosen .wizard-swatch-check{ display:inline-flex; }
+.poll-admin-card .wizard-swatch-automatic{
+  grid-column:1 / -1;
+  justify-content:flex-start;
+  gap:12px;
+  width:auto;
+  padding:0 12px;
+  border-radius:var(--md-sys-shape-corner-small);
+  font-size:var(--md-sys-typescale-label-large-size);
+  font-weight:var(--md-sys-typescale-label-large-weight);
+  line-height:var(--md-sys-typescale-label-large-line-height);
+  letter-spacing:var(--md-sys-typescale-label-large-tracking);
+}
+.poll-admin-card .wizard-swatch-automatic .wizard-swatch-fill{ width:24px; height:24px; }
+.poll-admin-card .wizard-swatch-automatic .wizard-swatch-check{ position:static; margin-left:auto; }
+.poll-admin-card .wizard-swatch-outlined .wizard-swatch-fill{ border:1px solid var(--md-sys-color-outline); }
+@media (max-width: 359.98px){
+  .poll-admin-card .wizard-color-popover{ padding:8px; }
+}
+.poll-admin-card :is(.wizard-color-btn, .wizard-swatch):focus-visible{
+  outline:3px solid var(--md-sys-color-secondary);
+  outline-offset:2px;
+}
+@media (hover: hover){
+  .poll-admin-card .wizard-color-btn:hover{ background:color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent); }
+  .poll-admin-card .wizard-swatch-automatic:hover{ background:color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent); }
+  .poll-admin-card .wizard-swatch:not(.wizard-swatch-automatic):hover .wizard-swatch-fill{
+    box-shadow:0 0 0 3px var(--md-sys-color-outline-variant);
+  }
+}
+
+/* ---------- 6. Radio lists and the switch ----------
+   M3 list rows with a radio: Body Large headline, Body Medium supporting
+   text, a 20px ring in on-surface-variant that turns primary with a primary
+   dot. */
+.poll-admin-card .m3-radio-item{
+  border-radius:var(--md-sys-shape-corner-medium);
+  cursor:pointer;
+}
+.poll-admin-card .m3-radio-item:hover{ background:transparent; }
+.poll-admin-card .m3-radio-label{
+  font-size:var(--md-sys-typescale-body-large-size);
+  font-weight:var(--md-sys-typescale-body-large-weight);
+  line-height:var(--md-sys-typescale-body-large-line-height);
+  letter-spacing:var(--md-sys-typescale-body-large-tracking);
+  color:var(--md-sys-color-on-surface);
+}
+.poll-admin-card .m3-radio-support{
+  font-size:var(--md-sys-typescale-body-medium-size);
+  line-height:var(--md-sys-typescale-body-medium-line-height);
+  letter-spacing:var(--md-sys-typescale-body-medium-tracking);
+  color:var(--md-sys-color-on-surface-variant);
+}
+.poll-admin-card .m3-radio{
+  appearance:none;
+  -webkit-appearance:none;
+  flex:0 0 auto;
+  box-sizing:border-box;
+  width:20px;
+  height:20px;
+  margin:2px 0 0 4px;
+  padding:0;
+  border:2px solid var(--md-sys-color-on-surface-variant);
+  border-radius:var(--md-sys-shape-corner-full);
+  background:transparent;
+  display:grid;
+  place-content:center;
+  cursor:pointer;
+}
+.poll-admin-card .m3-radio::before{
+  content:"";
+  width:10px;
+  height:10px;
+  border-radius:var(--md-sys-shape-corner-full);
+  background:var(--md-sys-color-primary);
+  transform:scale(0);
+  transition:transform 0.12s ease-in-out;
+}
+.poll-admin-card .m3-radio:checked{ border-color:var(--md-sys-color-primary); }
+.poll-admin-card .m3-radio:checked::before{ transform:scale(1); }
+.poll-admin-card .m3-radio:focus-visible{
+  outline:3px solid var(--md-sys-color-secondary);
+  outline-offset:2px;
+}
+.poll-admin-card .m3-radio-item.is-disabled{ cursor:default; }
+.poll-admin-card .m3-radio-item.is-disabled .m3-radio,
+.poll-admin-card .m3-radio-item.is-disabled .m3-radio-label{
+  opacity:1;
+  border-color:color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+  color:color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+}
+@media (prefers-reduced-motion: reduce){
+  .poll-admin-card .m3-radio::before{ transition:none; }
+}
+
+/* The switch: an M3 switch. Off: a surface-container-highest
+   track with an outline border and a 16px outline handle. On: a primary
+   track and a 24px on-primary handle carrying a check in primary. */
+.poll-admin-card .m3-switch-row{
+  border-top:1px solid var(--md-sys-color-outline-variant);
+  cursor:pointer;
+}
+.poll-admin-card .m3-switch-label{
+  font-size:var(--md-sys-typescale-body-large-size);
+  font-weight:var(--md-sys-typescale-body-large-weight);
+  line-height:var(--md-sys-typescale-body-large-line-height);
+  letter-spacing:var(--md-sys-typescale-body-large-tracking);
+  color:var(--md-sys-color-on-surface);
+}
+.poll-admin-card .m3-switch-support{
+  font-size:var(--md-sys-typescale-body-medium-size);
+  line-height:var(--md-sys-typescale-body-medium-line-height);
+  letter-spacing:var(--md-sys-typescale-body-medium-tracking);
+  color:var(--md-sys-color-on-surface-variant);
+}
+.poll-admin-card .m3-switch{
+  appearance:none;
+  -webkit-appearance:none;
+  flex:0 0 auto;
+  position:relative;
+  box-sizing:border-box;
+  width:52px;
+  height:32px;
+  margin:0;
+  border:2px solid var(--md-sys-color-outline);
+  border-radius:var(--md-sys-shape-corner-full);
+  background:var(--md-sys-color-surface-container-highest);
+  cursor:pointer;
+  transition:background 0.15s, border-color 0.15s;
+}
+.poll-admin-card .m3-switch::before{
+  content:"";
+  position:absolute;
+  top:50%;
+  left:6px;
+  width:16px;
+  height:16px;
+  border-radius:var(--md-sys-shape-corner-full);
+  background:var(--md-sys-color-outline);
+  transform:translateY(-50%);
+  display:grid;
+  place-content:center;
+  font:700 14px/1 var(--md-sys-typescale-font);
+  color:var(--md-sys-color-primary);
+  transition:left 0.15s, width 0.15s, height 0.15s, background 0.15s;
+}
+.poll-admin-card .m3-switch:checked{
+  border-color:var(--md-sys-color-primary);
+  background:var(--md-sys-color-primary);
+}
+.poll-admin-card .m3-switch:checked::before{
+  content:"\2713";
+  left:22px;
+  width:24px;
+  height:24px;
+  background:var(--md-sys-color-on-primary);
+}
+.poll-admin-card .m3-switch:focus-visible{
+  outline:3px solid var(--md-sys-color-secondary);
+  outline-offset:2px;
+}
+@media (prefers-reduced-motion: reduce){
+  .poll-admin-card .m3-switch,
+  .poll-admin-card .m3-switch::before{ transition:none; }
+}
+
+/* ---------- 7. Underlined fields ----------
+   card-shell-m3.css's look on the cards' own classes: no box, the label above
+   in primary, a 1px on-surface underline that becomes 2px primary on focus and
+   2px error on an error. Keywords are M3 input chips on the same underline.
+   Step 5's date and time inputs are underlined too. */
+.poll-admin-card .m3-field-box{
+  box-shadow:inset 0 -1px 0 var(--md-sys-color-on-surface);
+  cursor:text;
+}
+.poll-admin-card .m3-field:focus-within .m3-field-box{ box-shadow:inset 0 -2px 0 var(--md-sys-color-primary); }
+.poll-admin-card .m3-field-label{
+  font-size:var(--md-sys-typescale-title-small-size);
+  font-weight:500;
+  line-height:18px;
+  color:var(--md-sys-color-primary);
+}
+.poll-admin-card .m3-field-input{
+  border:0;
+  border-radius:0;
+  outline:none;
+  background:transparent;
+  font:400 17px/1.4 var(--md-sys-typescale-font);   /* 16px+, so phones do not zoom in */
+  color:var(--md-sys-color-on-surface);
+}
+.poll-admin-card .m3-field-input::placeholder{
+  color:var(--md-sys-color-on-surface-variant);
+  opacity:1;
+}
+.poll-admin-card .m3-field-below{
+  font-size:var(--md-sys-typescale-body-small-size);
+  line-height:var(--md-sys-typescale-body-small-line-height);
+  letter-spacing:var(--md-sys-typescale-body-small-tracking);
+  color:var(--md-sys-color-on-surface-variant);
+}
+.poll-admin-card .m3-field-counter{ font-variant-numeric:tabular-nums; }
+.poll-admin-card .m3-field.is-error .m3-field-box{ box-shadow:inset 0 -2px 0 var(--md-sys-color-error); }
+.poll-admin-card .m3-field.is-error .m3-field-label,
+.poll-admin-card .m3-field.is-error .m3-field-support,
+.poll-admin-card .m3-field.is-duplicate .m3-field-counter{ color:var(--md-sys-color-error); }
+
+.poll-admin-card .m3-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  max-width:100%;
+  height:32px;
+  padding:0 4px 0 12px;
+  box-sizing:border-box;
+  border:1px solid var(--md-sys-color-outline-variant);
+  border-radius:var(--md-sys-shape-corner-small);
+  background:transparent;
+  color:var(--md-sys-color-on-surface-variant);
+  font-size:var(--md-sys-typescale-label-large-size);
+  font-weight:var(--md-sys-typescale-label-large-weight);
+  line-height:var(--md-sys-typescale-label-large-line-height);
+  letter-spacing:var(--md-sys-typescale-label-large-tracking);
+}
+.poll-admin-card .m3-chip-text{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:var(--md-sys-color-on-surface);
+}
+.poll-admin-card .m3-chip-remove{
+  flex:0 0 auto;
+  width:24px;
+  height:24px;
+  padding:0;
+  border:0;
+  border-radius:var(--md-sys-shape-corner-full);
+  background:transparent;
+  color:var(--md-sys-color-on-surface-variant);
+  font-size:var(--md-sys-typescale-body-large-size);
+  line-height:24px;
+  cursor:pointer;
+}
+.poll-admin-card .m3-chip-remove:hover{ background:transparent; }
+
+.poll-admin-card .m3-datetime,
+.poll-admin-card .wizard-copy-manual{
+  border:0;
+  border-radius:0;
+  background:transparent;
+  box-shadow:inset 0 -1px 0 var(--md-sys-color-on-surface);
+  font:400 var(--md-sys-typescale-body-large-size)/var(--md-sys-typescale-body-large-line-height) var(--md-sys-typescale-font);
+  color:var(--md-sys-color-on-surface);
+}
+.poll-admin-card .m3-datetime{
+  padding:2px 2px 4px 4px;
+  margin:2px 2px 0;
+  max-width:100%;
+  cursor:pointer;
+}
+.poll-admin-card .wizard-copy-manual{ padding:4px 0 6px; }
+.poll-admin-card .m3-datetime:focus-visible,
+.poll-admin-card .wizard-copy-manual:focus-visible{
+  outline:none;
+  box-shadow:inset 0 -2px 0 var(--md-sys-color-primary);
+}
+.poll-admin-card .m3-datetime[aria-invalid="true"]{ box-shadow:inset 0 -2px 0 var(--md-sys-color-error); }
+
+/* ---------- 8. Buttons ----------
+   40px, full corners, Label Large. Filled: Next, Publish, Save changes. Tonal:
+   Copy link, Paste choices. Outlined: Cancel and Save (production's
+   btn-header-ghost; site.css's sizes are overridden at every width). */
+.poll-admin-card :is(.m3-filled-btn, .m3-tonal-btn, .btn-header-primary, .btn-header-ghost){
+  height:40px;
+  padding:0 24px;
+  border-radius:var(--md-sys-shape-corner-full);
+  font-size:var(--md-sys-typescale-label-large-size);
+  font-weight:var(--md-sys-typescale-label-large-weight);
+  line-height:var(--md-sys-typescale-label-large-line-height);
+  letter-spacing:var(--md-sys-typescale-label-large-tracking);
+  white-space:nowrap;
+  cursor:pointer;
+}
+.poll-admin-card :is(.m3-filled-btn, .btn-header-primary){
+  border:0;
+  background:var(--md-sys-color-primary);
+  color:var(--md-sys-color-on-primary);
+}
+.poll-admin-card .m3-tonal-btn{
+  padding:0 24px;
+  border:0;
+  background:var(--md-sys-color-secondary-container);
+  color:var(--md-sys-color-on-secondary-container);
+}
+.poll-admin-card .btn-header-ghost{
+  border:1px solid var(--md-sys-color-outline);
+  background:transparent;
+  color:var(--md-sys-color-primary);
+}
+/* Production's hover fills go: the state layer (section 12) shows hover. */
+.poll-admin-card :is(.m3-filled-btn, .btn-header-primary):hover{ background:var(--md-sys-color-primary); }
+.poll-admin-card .m3-tonal-btn:hover{ background:var(--md-sys-color-secondary-container); }
+.poll-admin-card .btn-header-ghost:hover{ background:transparent; }
+@media (max-width: 359.98px){
+  .poll-admin-card .wizard-footer :is(.btn-header-ghost, .btn-header-primary){ padding:0 12px; }
+}
+
+/* ---------- 9. Snackbar ----------
+   As card-shell-m3.css's: inverse-surface, Body Medium, extra-small corners,
+   elevation 3, at the bottom of the screen. adminCard.js adds is-shown. */
+.m3-snackbar{
+  position:fixed;
+  z-index:50;
+  left:50%;
+  bottom:16px;
+  box-sizing:border-box;
+  width:max-content;
+  min-width:200px;
+  max-width:min(672px, calc(100% - 32px));
+  min-height:48px;
+  display:flex;
+  align-items:center;
+  padding:14px 16px;
+  border-radius:var(--md-sys-shape-corner-extra-small);
+  background:var(--md-sys-color-inverse-surface);
+  color:var(--md-sys-color-inverse-on-surface);
+  box-shadow:var(--md-sys-elevation-3);
+  font:400 var(--md-sys-typescale-body-medium-size)/var(--md-sys-typescale-body-medium-line-height) var(--md-sys-typescale-font);
+  letter-spacing:var(--md-sys-typescale-body-medium-tracking);
+  opacity:0;
+  transform:translate(-50%, 8px);
+  pointer-events:none;
+  transition:opacity 150ms cubic-bezier(0.2, 0, 0, 1), transform 150ms cubic-bezier(0.2, 0, 0, 1);
+}
+.m3-snackbar.is-shown{ opacity:1; transform:translate(-50%, 0); }
+@media (prefers-reduced-motion: reduce){
+  .m3-snackbar{ transition:none; }
+}
+
+/* ---------- 10. An existing poll in the wizard ----------
+   What the poll's state does not let change is disabled in M3's 38%, with one
+   Body Small line saying why at the top of the step; the line above the footer
+   says that saving sends the poll to be reviewed again. */
+.poll-admin-card :is(.wizard-locked, .wizard-review-note){
+  margin:0;
+  font-size:var(--md-sys-typescale-body-small-size);
+  line-height:var(--md-sys-typescale-body-small-line-height);
+  letter-spacing:var(--md-sys-typescale-body-small-tracking);
+  color:var(--md-sys-color-on-surface-variant);
+}
+.poll-admin-card .m3-radio-item.is-disabled .m3-radio-support,
+.poll-admin-card .m3-switch-row.is-disabled :is(.m3-switch-label, .m3-switch-support){
+  color:color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+}
+.poll-admin-card .m3-radio:disabled{
+  border-color:color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+  cursor:default;
+}
+.poll-admin-card .m3-radio:disabled::before{
+  background:color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+}
+.poll-admin-card .m3-switch-row.is-disabled{ cursor:default; }
+.poll-admin-card .m3-switch:disabled{
+  border-color:color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent);
+  background:color-mix(in srgb, var(--md-sys-color-surface-container-highest) 12%, transparent);
+  cursor:default;
+}
+.poll-admin-card .m3-switch:disabled::before{
+  background:color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+}
+.poll-admin-card .m3-switch:checked:disabled{
+  border-color:transparent;
+  background:color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent);
+}
+.poll-admin-card .m3-switch:checked:disabled::before{
+  background:var(--md-sys-color-surface);
+  color:color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+}
+.poll-admin-card .m3-field-input:disabled,
+.poll-admin-card .m3-datetime:disabled{
+  color:color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+  cursor:default;
+}
+.poll-admin-card .m3-field:has(.m3-field-input:disabled) .m3-field-box{
+  box-shadow:inset 0 -1px 0 color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+  cursor:default;
+}
+.poll-admin-card .m3-field:has(.m3-field-input:disabled) .m3-field-label{
+  color:color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+}
+.poll-admin-card .m3-datetime:disabled{
+  box-shadow:inset 0 -1px 0 color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+}
+.poll-admin-card .m3-chip-remove:disabled{
+  color:color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+  cursor:default;
+}
+
+/* ---------- 11. State layers and focus ----------
+   A ::before in currentColor at 0 opacity, raised on hover, keyboard focus
+   and press, as on the Poll Card; and the 3px secondary focus ring. */
+.poll-admin-card :is(.m3-filled-btn, .m3-tonal-btn, .btn-header-primary, .btn-header-ghost,
+  .admin-state-btn, .admin-rescreen-btn, .admin-icon-btn, .actions-menu-trigger,
+  .m3-chip-remove, .m3-radio-item, .m3-switch-row),
+.poll-admin-card .wizard-help summary,
+.actions-menu :is(a, button){
+  position:relative;
+  overflow:hidden;
+}
+.poll-admin-card :is(.m3-filled-btn, .m3-tonal-btn, .btn-header-primary, .btn-header-ghost,
+  .admin-state-btn, .admin-rescreen-btn, .admin-icon-btn, .actions-menu-trigger,
+  .m3-chip-remove, .m3-radio-item, .m3-switch-row)::before,
+.poll-admin-card .wizard-help summary::before,
+.actions-menu :is(a, button)::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:inherit;
+  background:currentColor;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity 0.15s ease;
+}
+/* The rows' layer follows their text, not the radio or switch. */
+.poll-admin-card :is(.m3-radio-item, .m3-switch-row){ color:var(--md-sys-color-on-surface); }
+
+.poll-admin-card :is(.m3-filled-btn, .m3-tonal-btn, .btn-header-primary, .btn-header-ghost,
+  .admin-state-btn, .admin-rescreen-btn, .admin-icon-btn, .actions-menu-trigger,
+  .m3-chip-remove, .m3-radio-item, .m3-switch-row):hover::before,
+.poll-admin-card .wizard-help summary:hover::before,
+.actions-menu :is(a, button):hover::before{ opacity:var(--md-sys-state-hover-state-layer-opacity); }
+
+.poll-admin-card :is(.m3-filled-btn, .m3-tonal-btn, .btn-header-primary, .btn-header-ghost,
+  .admin-state-btn, .admin-rescreen-btn, .admin-icon-btn, .actions-menu-trigger,
+  .m3-chip-remove):focus-visible::before,
+.poll-admin-card :is(.m3-radio-item, .m3-switch-row):focus-within::before,
+.poll-admin-card .wizard-help summary:focus-visible::before,
+.actions-menu :is(a, button):focus-visible::before{ opacity:var(--md-sys-state-focus-state-layer-opacity); }
+
+.poll-admin-card :is(.m3-filled-btn, .m3-tonal-btn, .btn-header-primary, .btn-header-ghost,
+  .admin-state-btn, .admin-rescreen-btn, .admin-icon-btn, .actions-menu-trigger,
+  .m3-chip-remove, .m3-radio-item, .m3-switch-row):active::before,
+.poll-admin-card .wizard-help summary:active::before,
+.actions-menu :is(a, button):active::before{ opacity:var(--md-sys-state-pressed-state-layer-opacity); }
+
+.poll-admin-card :is(.m3-filled-btn, .m3-tonal-btn, .btn-header-primary, .btn-header-ghost,
+  .admin-state-btn, .admin-rescreen-btn, .admin-icon-btn, .actions-menu-trigger,
+  .m3-chip-remove):focus-visible,
+.poll-admin-card .wizard-help summary:focus-visible,
+.actions-menu :is(a, button):focus-visible{
+  outline:3px solid var(--md-sys-color-secondary);
+  outline-offset:2px;
+}
+/* The menu clips its items, so their ring is drawn inside. */
+.actions-menu :is(a, button):focus-visible{ outline-offset:-3px; }
+
+/* ---------- 12. Disabled ----------
+   M3's 12% container and 38% content, with no state layer and no ripple
+   (m3-ripple.js skips them). Publish and Save are aria-disabled while blocked,
+   so they still take hover and focus for their tooltip; the rest are
+   disabled. */
+.poll-admin-card :is(.m3-filled-btn, .btn-header-primary):is(:disabled, [aria-disabled="true"]){
+  opacity:1;
+  background:color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent);
+  color:color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+  cursor:not-allowed;
+}
+.poll-admin-card :is(.btn-header-ghost, .admin-state-btn, .admin-rescreen-btn):is(:disabled, [aria-disabled="true"]){
+  opacity:1;
+  border-color:color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent);
+  background:transparent;
+  color:color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+  cursor:not-allowed;
+}
+.poll-admin-card :is(.admin-icon-btn, .m3-tonal-btn):is(:disabled, [aria-disabled="true"]){
+  opacity:1;
+  color:color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+  cursor:not-allowed;
+}
+.poll-admin-card .m3-tonal-btn:is(:disabled, [aria-disabled="true"]){
+  background:color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent);
+}
+.poll-admin-card :is(.m3-filled-btn, .m3-tonal-btn, .btn-header-primary, .btn-header-ghost,
+  .admin-state-btn, .admin-rescreen-btn, .admin-icon-btn, .m3-chip-remove):is(:disabled, [aria-disabled="true"])::before,
+.poll-admin-card :is(.m3-radio-item, .m3-switch-row).is-disabled::before{ opacity:0; }
+
+/* Invitees panel */
+.poll-admin-card .card-invitees-panel{ gap:12px; }
+.poll-admin-card .invitees-heading{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:8px;
+}
+.poll-admin-card .invitees-title{
+  margin:0;
+  font-size:var(--md-sys-typescale-title-small-size);
+  font-weight:var(--md-sys-typescale-title-small-weight);
+  line-height:var(--md-sys-typescale-title-small-line-height);
+  letter-spacing:var(--md-sys-typescale-title-small-tracking);
+}
+.poll-admin-card .invitees-capacity,
+.poll-admin-card .invitees-hint,
+.poll-admin-card .invitees-pager-range{
+  color:var(--md-sys-color-on-surface-variant);
+  font-size:var(--md-sys-typescale-body-small-size);
+  line-height:var(--md-sys-typescale-body-small-line-height);
+  letter-spacing:var(--md-sys-typescale-body-small-tracking);
+}
+
+.poll-admin-card .invitees-add{ display:flex; flex-direction:column; gap:6px; }
+.poll-admin-card .invitees-field-label{
+  color:var(--md-sys-color-on-surface-variant);
+  font-size:var(--md-sys-typescale-label-medium-size);
+  font-weight:var(--md-sys-typescale-label-medium-weight);
+  line-height:var(--md-sys-typescale-label-medium-line-height);
+  letter-spacing:var(--md-sys-typescale-label-medium-tracking);
+}
+.poll-admin-card .invitees-input{
+  box-sizing:border-box;
+  width:100%;
+  min-height:72px;
+  margin:0;
+  padding:10px 12px;
+  resize:vertical;
+  border:1px solid var(--md-sys-color-outline);
+  border-radius:var(--md-sys-shape-corner-extra-small);
+  background:transparent;
+  color:var(--md-sys-color-on-surface);
+  font-size:var(--md-sys-typescale-body-medium-size);
+  line-height:var(--md-sys-typescale-body-medium-line-height);
+}
+.poll-admin-card .invitees-input::placeholder{ color:var(--md-sys-color-on-surface-variant); }
+.poll-admin-card .invitees-input:hover{ border-color:var(--md-sys-color-on-surface); }
+.poll-admin-card .invitees-input:focus{
+  outline:none;
+  border-color:var(--md-sys-color-primary);
+  box-shadow:inset 0 0 0 1px var(--md-sys-color-primary);
+}
+.poll-admin-card .invitees-input:disabled{ opacity:0.38; }
+.poll-admin-card .invitees-add-actions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:12px;
+}
+.poll-admin-card .invitees-invite-btn{
+  position:relative;
+  overflow:hidden;
+  min-height:40px;
+  margin:0;
+  padding:0 24px;
+  border:0;
+  border-radius:var(--md-sys-shape-corner-full);
+  background:var(--md-sys-color-primary);
+  color:var(--md-sys-color-on-primary);
+  cursor:pointer;
+  font-size:var(--md-sys-typescale-label-large-size);
+  font-weight:var(--md-sys-typescale-label-large-weight);
+  letter-spacing:var(--md-sys-typescale-label-large-tracking);
+}
+.poll-admin-card .invitees-invite-btn:disabled{ opacity:0.38; cursor:default; }
+
+.poll-admin-card .invitees-results[hidden]{ display:none; }
+.poll-admin-card .invitees-summary{
+  margin:0;
+  white-space:pre-line;
+  font-size:var(--md-sys-typescale-body-small-size);
+  line-height:var(--md-sys-typescale-body-small-line-height);
+}
+.poll-admin-card .invitees-refusals{
+  margin:4px 0 0;
+  padding:0;
+  list-style:none;
+  color:var(--md-sys-color-error);
+  font-size:var(--md-sys-typescale-body-small-size);
+  line-height:var(--md-sys-typescale-body-small-line-height);
+}
+.poll-admin-card .invitees-refused-address{ font-weight:var(--md-sys-typescale-label-medium-weight); overflow-wrap:anywhere; }
+
+.poll-admin-card .invitee-list{
+  margin:0;
+  padding:0;
+  list-style:none;
+  border-top:1px solid var(--md-sys-color-outline-variant);
+}
+.poll-admin-card .invitee-row{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:4px 8px;
+  min-height:56px;
+  padding:4px 0;
+  border-bottom:1px solid var(--md-sys-color-outline-variant);
+}
+.poll-admin-card .invitee-who{ flex:1 1 0; min-width:0; display:flex; flex-direction:column; }
+.poll-admin-card .invitee-email{ overflow-wrap:anywhere; }
+.poll-admin-card .invitee-name{
+  color:var(--md-sys-color-on-surface-variant);
+  font-size:var(--md-sys-typescale-body-small-size);
+  line-height:var(--md-sys-typescale-body-small-line-height);
+}
+.poll-admin-card .invitee-chip{
+  flex:0 0 auto;
+  box-sizing:border-box;
+  display:inline-flex;
+  align-items:center;
+  height:24px;
+  padding:0 8px;
+  border:1px solid transparent;
+  border-radius:var(--md-sys-shape-corner-small);
+  white-space:nowrap;
+  font-size:var(--md-sys-typescale-label-medium-size);
+  font-weight:var(--md-sys-typescale-label-medium-weight);
+  letter-spacing:var(--md-sys-typescale-label-medium-tracking);
+}
+.poll-admin-card .invitee-chip[data-status="Not sent yet"]{
+  border-color:var(--md-sys-color-outline);
+  color:var(--md-sys-color-on-surface-variant);
+}
+.poll-admin-card .card-field--not-own{ flex-wrap:wrap; row-gap:4px; }
+.poll-admin-card .not-your-poll-chip{
+  box-sizing:border-box;
+  display:inline-flex;
+  align-items:center;
+  height:24px;
+  padding:0 8px;
+  border:1px solid var(--md-sys-color-error);
+  border-radius:var(--md-sys-shape-corner-small);
+  white-space:nowrap;
+  color:var(--md-sys-color-error);
+  font-size:var(--md-sys-typescale-label-medium-size);
+  font-weight:var(--md-sys-typescale-label-medium-weight);
+  letter-spacing:var(--md-sys-typescale-label-medium-tracking);
+}
+.poll-admin-card .invitee-chip[data-status="Not delivered"]{
+  border-color:var(--md-sys-color-error);
+  color:var(--md-sys-color-error);
+}
+.poll-admin-card .invitee-chip[data-status="Invited"]{
+  background:var(--md-sys-color-secondary-container);
+  color:var(--md-sys-color-on-secondary-container);
+}
+.poll-admin-card .invitee-chip[data-status="Accepted"]{
+  background:var(--md-sys-color-tertiary-container);
+  color:var(--md-sys-color-on-tertiary-container);
+}
+.poll-admin-card .invitee-chip[data-status="Voted"]{
+  background:var(--md-sys-color-primary-container);
+  color:var(--md-sys-color-on-primary-container);
+}
+.poll-admin-card .invitee-row .actions-menu-trigger{ flex:0 0 auto; }
+.poll-admin-card .invitee-row .actions-menu-trigger svg{ width:20px; height:20px; }
+.actions-menu button:disabled{ opacity:0.38; cursor:default; background:transparent; }
+
+.poll-admin-card .invitee-confirm{
+  flex:1 1 100%;
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  justify-content:flex-end;
+  gap:8px;
+  margin:4px 0;
+  padding:8px 12px;
+  border-radius:var(--md-sys-shape-corner-small);
+  background:var(--md-sys-color-surface-container-high);
+}
+.poll-admin-card .invitee-confirm-text{ flex:1 1 180px; }
+.poll-admin-card .invitee-confirm button{
+  position:relative;
+  overflow:hidden;
+  min-height:40px;
+  margin:0;
+  padding:0 12px;
+  border:0;
+  border-radius:var(--md-sys-shape-corner-full);
+  background:transparent;
+  color:var(--md-sys-color-primary);
+  cursor:pointer;
+  font-size:var(--md-sys-typescale-label-large-size);
+  font-weight:var(--md-sys-typescale-label-large-weight);
+}
+.poll-admin-card .invitee-confirm .invitee-confirm-remove{ color:var(--md-sys-color-error); }
+
+.poll-admin-card .invitees-pager{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:4px;
+}
+.poll-admin-card .invitees-pager[hidden]{ display:none; }
+.poll-admin-card .invitees-pager-range{ margin-right:8px; }
+.poll-admin-card .invitees-page-btn{
+  position:relative;
+  overflow:hidden;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:40px;
+  height:40px;
+  margin:0;
+  padding:0;
+  border:0;
+  border-radius:var(--md-sys-shape-corner-full);
+  background:transparent;
+  color:var(--md-sys-color-on-surface-variant);
+  cursor:pointer;
+}
+.poll-admin-card .invitees-page-btn svg{ width:24px; height:24px; }
+.poll-admin-card .invitees-page-btn:disabled{ opacity:0.38; cursor:default; }
+
+.poll-admin-card .card-invitees-panel[data-readonly] .invitees-add,
+.poll-admin-card .card-invitees-panel[data-readonly] .invitee-row .actions-menu-trigger{ display:none; }
+
+.poll-admin-card .invitees-add[hidden]{ display:none; }
+.actions-menu .invitee-menu-reason{
+  display:block;
+  color:var(--md-sys-color-on-surface-variant);
+  font-size:var(--md-sys-typescale-body-small-size);
+  line-height:var(--md-sys-typescale-body-small-line-height);
+}

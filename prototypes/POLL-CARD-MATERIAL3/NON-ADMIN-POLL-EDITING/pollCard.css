@@ -1,0 +1,587 @@
+/*
+  POLL CARD — shared component stylesheet
+  Extracted from the CrowdPoll grid so the card can be designed on
+  independently of the rest of the site. Same tokens, type scale, and
+  breakpoints as production — this file is the source of truth for the
+  card's look, and it is linked directly by both consumer pages
+  (poll-card.html and responsivePollGridUserInterface/
+  responsive-grid.html), so changes here apply to the grid
+  automatically. Page-level demo chrome is scoped under
+  body.card-demo-page so linking this sheet never restyles a
+  consumer page's own layout.
+*/
+
+:root{
+  --ink:#1E2422;
+  --paper:#F1F3EE;
+  --paper-raised:#FFFFFF;
+  --moss:#3D5A46;
+  --moss-dark:#2C4234;
+  --amber:#E8A33D;
+  --amber-tint:rgba(232,163,61,0.16);
+  --line:#D8DCD3;
+  --track:#DDE1D6;
+  --choice-unselected:var(--paper); /* #F1F3EE — unselected Vote-mode bar */
+  --choice-selected:#E4D3AE;        /* selected Vote-mode bar (any count, multi-select) */
+  --muted:#6B7268;
+  --shadow:0 20px 50px -25px rgba(30,36,34,0.35);
+}
+
+*{ box-sizing:border-box; }
+
+html,body{
+  margin:0;
+  padding:0;
+  min-height:100%;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* Demo-page chrome — scoped to the standalone demo page's body class
+   (poll-card.html) so this stylesheet can be linked by other pages
+   (e.g. the responsive grid) without recentering their layout. */
+body.card-demo-page{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:100vh;
+  padding:32px 20px;
+}
+
+body.card-demo-page .page-decor{
+  position:fixed; inset:0; pointer-events:none; z-index:0;
+  background:
+    radial-gradient(600px 400px at 12% 8%, rgba(61,90,70,0.06), transparent 60%),
+    radial-gradient(500px 380px at 90% 95%, rgba(232,163,61,0.08), transparent 60%);
+}
+
+/* ---------- Card viewport ----------
+   The card itself is fluid (width:100%) — this wrapper just caps and
+   centers it, standing in for whatever container it sits in on a real
+   page (a grid cell, a modal, a sidebar, etc). */
+.card-viewport{
+  position:relative;
+  z-index:1;
+  width:100%;
+  max-width:420px;
+  margin:0 auto; /* stay centered in containers wider than the cap (e.g. a single-column grid cell) */
+  perspective:1600px;
+}
+
+.maximized-card-viewport{
+  flex:0 1 420px;
+  min-width:min(375px, 100%);
+  margin:0 auto;
+}
+
+/* ---------- Card flip ----------
+   .card-flip is the element that actually rotates. Its two children
+   (.card-front / .card-back) are placed in the same grid cell — grid
+   stretches them both to fill that cell and sizes the cell to the
+   taller of the two, so front and back are always identical in size
+   and the layout never shifts when the card flips (important once
+   these cards sit in a responsive flowing grid). Each face hides its
+   reverse side via backface-visibility, so only one is ever legible.
+
+   min-height:500px (FIX022; 420px before) + a minmax(min-content,1fr) row
+   is the height counterpart to the viewport's max-width:420px: 500px is
+   the resting size at comfortable viewport widths, the row stretches to
+   fill that minimum when content is shorter, and it's free to grow taller
+   if content (e.g. wrapped text at narrow widths) needs more room —
+   mirroring how the width is free to shrink below 420px. */
+.card-flip{
+  position:relative;
+  z-index:1;
+  width:100%;
+  min-height:500px;
+  display:grid;
+  grid-template-rows:minmax(min-content, 1fr);
+  transform-style:preserve-3d;
+  transition:transform 0.7s cubic-bezier(0.65,0.05,0.36,1);
+}
+
+.card-flip.is-flipped{
+  transform:rotateY(180deg);
+}
+
+/* ---------- Card face (shared look for front & back) ---------- */
+
+  .card-face{
+    grid-area:1 / 1;
+    width:100%;
+    height:100%;
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:20px;
+    box-shadow:var(--shadow);
+    padding:18px 22px 16px;
+    display:flex;
+    flex-direction:column;
+    backface-visibility:hidden;
+    -webkit-backface-visibility:hidden;
+  }
+
+  .card-front{
+    z-index:2;
+  }
+
+  .card-back{
+    z-index:1;
+    transform:rotateY(180deg);
+  }
+
+  /* ---------- Results-mode: horizontal bar list ----------
+     Bar rendering follows the reference "Where the Day Goes" chart:
+     each row is the track itself (background = unfilled remainder),
+     with the colored fill and the label/percentage layered on top as
+     absolutely-positioned overlays that span the full row, so long
+     labels can run from the fill onto the track behind them. Text
+     color/shadow is picked per-bar by luminance in JS so it stays
+     legible over any palette color.
+
+     Unlike the reference (fixed 40px rows in a card that grows to
+     fit), row height and gap here are computed in JS from the number
+     of choices, capped and floored, so 2–50 bars always fit this
+     card's fixed size — see renderPollResults() in poll-card.js.
+     justify-content:flex-start keeps bars anchored to the top of the
+     available space, so a short set of capped-height bars (e.g. just
+     2 choices) starts at the top rather than floating in the middle.
+
+     .bar-scroll-wrap is a placeholder that flexes to fill whatever
+     space is left in the card face; .bar-scroll-inner (position:
+     absolute, inset:0) holds the actual 3-row column — up-arrow row,
+     scrollable bar list, down-arrow row — and matches the
+     placeholder's size exactly.
+
+     This split is load-bearing, not decorative. The card's height
+     comes from .card-flip's grid-template-rows:minmax(min-content,1fr),
+     and min-content is computed from in-flow content — where flex
+     children contribute their natural content height regardless of
+     overflow:hidden or min-height:0 (those only enable clipping and
+     shrinking once a definite constraint exists; they don't remove
+     the intrinsic contribution). So with the bars in-flow, injecting
+     more rows than fit inflated min-content and grew the whole card,
+     and scrollHeight never exceeded clientHeight — the list stretched
+     instead of scrolling. Absolutely-positioned content is out of
+     flow and contributes ZERO to intrinsic sizing, so the card's
+     height is determined only by the question, actions, and the
+     420px minimum — never by bar count — while in-flow siblings like
+     .question-wrap can still legitimately grow the card when their
+     text wraps at narrow widths. The bars then get exactly the
+     leftover space, and genuinely scroll when they exceed it.
+
+     The arrow rows are hidden (display:none) and take up no space
+     when everything fits; once scrolling is needed they're shown with
+     an explicit height equal to the (now floor-sized) bars, so they
+     occupy real rows in the layout rather than floating over the
+     bars — see computeBarLayout() in poll-card.js. */
+  .bar-scroll-wrap{
+    position:relative;
+    flex:1 1 auto;
+    min-height:0;
+    margin:0 0 16px;
+  }
+
+  .bar-scroll-inner{
+    position:absolute;
+    inset:0;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+  }
+
+  .results-list{
+    flex:1 1 auto;
+    min-height:0;
+    display:flex;
+    flex-direction:column;
+    justify-content:flex-start;
+    gap:0;
+    list-style:none;
+    margin:0;
+    padding:0;
+    overflow-x:hidden;
+    overflow-y:auto;
+    scrollbar-width:none;
+    -ms-overflow-style:none;
+    user-select:none; /* mouse drag scrolls the list; don't also select label text */
+  }
+  .results-list::-webkit-scrollbar{ display:none; }
+  .results-list.is-dragging{ cursor:grabbing; }
+
+  .result-row{
+    position:relative;
+    flex:0 0 auto;
+    width:100%;
+    background:var(--track);
+    border-radius:8px;
+    overflow:hidden;
+  }
+
+  .result-fill{
+    position:absolute;
+    top:0; left:0;
+    height:100%;
+    width:0%;
+    border-radius:8px;
+    transition:width 0.9s cubic-bezier(0.22,1,0.36,1);
+    z-index:1;
+  }
+
+  .result-label{
+    position:absolute;
+    left:10px;
+    top:0; bottom:0;
+    z-index:2;
+    display:flex;
+    align-items:center;
+    font-family:'Inter', sans-serif;
+    font-size:11px; /* overridden per-row via JS (scaleFontSize) */
+    font-weight:600;
+    white-space:nowrap;
+    pointer-events:none;
+  }
+
+  .result-label.is-truncated{
+    overflow:hidden;
+    text-overflow:ellipsis;
+    display:block;
+  }
+
+  .result-pct{
+    position:absolute;
+    right:10px;
+    top:0; bottom:0;
+    z-index:2;
+    display:flex;
+    align-items:center;
+    font-family:'Inter', sans-serif;
+    font-size:11px; /* overridden per-row via JS (scaleFontSize) */
+    font-weight:700;
+    font-variant-numeric:tabular-nums;
+    pointer-events:none;
+  }
+
+  .result-ink-on-fill{
+    position:absolute;
+    inset:0;
+    z-index:3;
+    pointer-events:none;
+    clip-path:inset(0 100% 0 0);
+    transition:clip-path 0.9s cubic-bezier(0.22,1,0.36,1);
+  }
+
+  /* Below a height threshold, labels/percentages are dropped (set via
+     JS as .is-compact) so a large bar set reads as a clean set of
+     colored bars rather than clipped, illegible text. */
+  .result-row.is-compact .result-label,
+  .result-row.is-compact .result-pct{
+    display:none;
+  }
+  .result-row.is-compact,
+  .result-row.is-compact .result-fill{
+    border-radius:2px;
+  }
+
+  /* Scroll-affordance arrow rows — real flex rows (not floating
+     overlays), so they take up actual space in the layout. Hidden
+     (display:none, .is-active not set) and reserving zero space when
+     everything fits; shown with an explicit height (set in JS, equal
+     to the current floor-sized bar height) once scrolling is needed
+     — see computeBarLayout() in poll-card.js. Within that, the icon
+     itself fades per .is-visible based on scroll position: the down
+     arrow while not at the bottom, the up arrow once scrolled away
+     from the top — the row's space stays reserved either way.
+
+     Each row is shaped exactly like a bar — same width, height, and
+     corner radius (including the compact 2px radius, mirrored via
+     .is-compact set in JS) — but drawn as an outline: the border
+     takes the color that face's bars use as their background (the
+     track on the Results face, the unselected-choice color on the
+     Vote face) and the interior is transparent, so the white card
+     face shows through as the fill. */
+  .arrow-row{
+    display:none;
+    flex:0 0 auto;
+    width:100%;
+    align-items:center;
+    justify-content:center;
+    padding:0;
+    border:1px solid transparent;
+    border-radius:8px;
+    background:none;
+    color:var(--ink);
+    cursor:pointer;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity 0.15s ease;
+  }
+  .card-front .arrow-row{ border-color:var(--track); }
+  .card-back .arrow-row{ border-color:var(--choice-unselected); }
+  .arrow-row.is-compact{ border-radius:2px; }
+  .arrow-row.is-active{
+    display:flex;
+  }
+  .arrow-row.is-visible{
+    opacity:1;
+    pointer-events:auto;
+  }
+  .arrow-row svg{ width:22px; height:11px; }
+
+  .question-wrap{ margin-bottom:8px; }
+
+  .question{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size:clamp(18px, 1.8vw, 21px);
+    line-height:1.2;
+    letter-spacing:-0.01em;
+    color:var(--ink);
+    margin:0;
+  }
+
+  .subtitle{
+    font-family:'Inter', sans-serif;
+    font-weight:500;
+    font-size:clamp(11px, 1vw, 12.5px);
+    line-height:1.4;
+    color:var(--muted);
+    margin:4px 0 0;
+  }
+
+  /* ---------- Vote-mode: horizontal bar list ----------
+     Same sizing technique as .results-list (row height/gap computed
+     in JS via computeBarMetrics, same font/pad scaling), but the bar
+     itself just toggles between two flat colors instead of showing a
+     proportional, palette-colored fill — see renderVotingOptions() in
+     poll-card.js. A round selector sits at the left of each bar;
+     clicking anywhere on the row toggles that choice (multi-select). */
+  .voting-list{
+    flex:1 1 auto;
+    min-height:0;
+    display:flex;
+    flex-direction:column;
+    justify-content:flex-start;
+    gap:0;
+    list-style:none;
+    margin:0;
+    padding:0;
+    overflow-x:hidden;
+    overflow-y:auto;
+    scrollbar-width:none;
+    -ms-overflow-style:none;
+    user-select:none; /* mouse drag scrolls the list; don't also select label text */
+  }
+  .voting-list::-webkit-scrollbar{ display:none; }
+  .voting-list.is-dragging{ cursor:grabbing; }
+
+  .maximized-card-flip .bar-scroll-wrap{ flex:0 0 auto; }
+  .maximized-card-flip .bar-scroll-inner{ position:static; overflow:visible; }
+  .maximized-card-flip .results-list,
+  .maximized-card-flip .voting-list{ flex:0 0 auto; overflow:visible; }
+
+  .vote-row{
+    position:relative;
+    flex:0 0 auto;
+    width:100%;
+    background:var(--choice-unselected);
+    border-radius:8px;
+    overflow:hidden;
+    cursor:pointer;
+    transition:background-color 0.2s ease;
+  }
+
+  .vote-row.is-selected{
+    background:var(--choice-selected);
+  }
+
+  .vote-row.is-compact{
+    border-radius:2px;
+  }
+
+  .vote-radio{
+    position:absolute;
+    top:50%;
+    transform:translateY(-50%);
+    border-radius:50%;
+    border:1.5px solid #B7BDB5;
+    background:var(--paper-raised);
+    transition:background-color 0.2s ease, border-color 0.2s ease;
+  }
+
+  .vote-radio.is-selected{
+    border-color:var(--ink);
+    background:var(--ink);
+  }
+
+  .vote-label{
+    position:absolute;
+    top:0; bottom:0;
+    z-index:2;
+    display:flex;
+    align-items:center;
+    font-family:'Inter', sans-serif;
+    font-weight:600;
+    color:var(--ink);
+    white-space:nowrap;
+    pointer-events:none;
+  }
+
+  .vote-label.is-truncated{
+    overflow:hidden;
+    text-overflow:ellipsis;
+    display:block;
+  }
+
+  .actions{ display:flex; flex-direction:column; gap:10px; margin-top:auto; }
+
+  .btn-primary{
+    width:100%; height:46px; border:none; border-radius:13px;
+    background:var(--ink); color:#F7F8F5;
+    font-family:'Inter', sans-serif; font-weight:600; font-size:13.5px;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+  }
+
+  /* Compact CTA sizing shared by Vote (front) and Submit vote (back)
+     — a smaller call-to-action rather than the full-width button
+     pattern, since neither face wants the button to dominate the
+     card. 25% is the resting width; the button grows to fit its
+     label so longer text ("Submit vote") never wraps at narrow
+     card widths. */
+  .btn-vote{
+    flex:0 0 auto;
+    width:auto;
+    min-width:25%;
+    height:28px;
+    padding:0 14px;
+    border-radius:11px;
+    font-size:12.5px;
+    white-space:nowrap;
+  }
+
+  /* Live Results link — deliberately NOT a button: the real-time
+     results view is one of the app's headline features, so it gets an
+     animated treatment instead of neutral chrome. Three tiny bars in
+     the chart's own palette colors rise and fall like an equalizer,
+     evoking live results moving; the label picks up an amber
+     underline on hover for link affordance. The animation freezes at
+     a static mid-height chart for users with reduced-motion set. */
+  .live-link{
+    flex:0 0 auto;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    height:28px;
+    color:var(--ink);
+    font-family:'Inter', sans-serif;
+    font-weight:700;
+    font-size:12.5px;
+    letter-spacing:0.01em;
+    text-decoration:none;
+    cursor:pointer;
+  }
+
+  .live-bars{
+    display:flex;
+    align-items:flex-end;
+    gap:2px;
+    height:14px;
+  }
+
+  .live-bars i{
+    width:3.5px;
+    border-radius:2px;
+    animation:live-bar-bounce 1.1s ease-in-out infinite;
+  }
+  /* Palette colors 1–3 — the same colors the top three results bars
+     render in, tying the icon to the chart it links to. */
+  .live-bars i:nth-child(1){ background:#3B5FCC; height:60%; animation-delay:0s; }
+  .live-bars i:nth-child(2){ background:#B84A1F; height:100%; animation-delay:0.18s; }
+  .live-bars i:nth-child(3){ background:#1F8A6B; height:75%; animation-delay:0.36s; }
+
+  @keyframes live-bar-bounce{
+    0%, 100%{ transform:scaleY(0.55); }
+    50%{ transform:scaleY(1); }
+  }
+  .live-bars i{ transform-origin:bottom; }
+
+  .live-x{
+    display:flex; align-items:center; justify-content:center;
+    width:14px; height:14px;
+  }
+  .live-x svg{ width:14px; height:14px; display:block; }
+  /* Both icons are display:flex, which defeats the plain `hidden` attribute; the
+     sibling rule for the link itself lives in site.css. */
+  .live-link .live-bars[hidden],
+  .live-link .live-x[hidden]{ display:none; }
+
+  .live-link-label{
+    border-bottom:1.5px solid transparent;
+    transition:border-color 0.15s ease;
+  }
+  .live-link:hover .live-link-label{
+    border-bottom-color:var(--amber);
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .live-bars i{ animation:none; }
+  }
+  .is-guest .live-bars i{ animation:none; }
+
+  /* Front-face action row: Live Results (navigation) on the left,
+     Vote on the right. */
+  .card-front .actions{
+    flex-direction:row;
+    align-items:center;
+    justify-content:space-between;
+  }
+
+  /* Back-face action row: Back arrow on the left, Submit vote on the
+     right. Clicking the arrow flips back to Results-mode without
+     submitting a vote. */
+  .card-back .actions{
+    flex-direction:row;
+    align-items:center;
+    justify-content:space-between;
+  }
+
+  .icon-btn{
+    flex:0 0 auto;
+    width:28px; height:28px;
+    border:1px solid var(--line);
+    border-radius:11px;
+    background:var(--paper);
+    color:var(--ink);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+  }
+
+  .icon-btn svg{
+    width:14px; height:14px;
+  }
+
+/* ---------- Live Results page (live-results.html) ---------- */
+.live-results-page{
+  position:relative;
+  z-index:1;
+  display:flex;
+  align-items:center;
+  gap:14px;
+}
+
+.live-results-title{
+  font-family:'Fraunces', serif;
+  font-weight:600;
+  font-size:clamp(22px, 3vw, 30px);
+  letter-spacing:-0.01em;
+  color:var(--ink);
+  margin:0;
+}
+
+/* ---------- Responsive rules ---------- */
+@media (max-width:479.98px){
+  .card-face{ padding:16px 20px 14px; border-radius:18px; }
+}

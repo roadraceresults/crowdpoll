@@ -1,0 +1,281 @@
+/*
+  CARD SHELL — MATERIAL 3 LAYER, shared by the card-shell prototypes
+  (PROFILE-EDITOR, LOGIN-DIALOG and later CREATE-ACCOUNT-DIALOG). Carved out of
+  PROFILE-EDITOR/profile-editor-m3.css in REQUIREMENT Use Material 3 For Login
+  Dialog: sections 1-8 are that file's generic rules, unchanged except for the
+  widened label selector in section 4; sections 9-11 are new, for Login.
+  Loaded after ../pollCard-m3.css, whose roles, type scale and shape and state
+  tokens it reads, and after card-shell.css, which stays a copy of production.
+
+  Order: 1 inverse roles, 2 type, 3 title, 4 underlined fields, 5 (Profile's
+  current values: profile-editor-m3.css), 6 buttons, 7 status lines,
+  8 snackbar, 9 checkbox, 10 OAuth buttons, 11 the form field error,
+  12 empty body.
+*/
+
+/* ---------- 1. Inverse roles and elevation (the snackbar) ----------
+   The same values as HEADER-TAB-BAR/header-tab-bar-m3.css, which is not
+   loaded here. */
+:root{
+  --md-sys-color-inverse-surface:#2C322D;
+  --md-sys-color-inverse-on-surface:#EDF2EB;
+  --md-sys-color-inverse-primary:#94D5A8;
+  --md-sys-elevation-3:0 1px 3px rgba(0,0,0,0.30), 0 4px 8px 3px rgba(0,0,0,0.15);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --md-sys-color-inverse-surface:#DFE4DD;
+    --md-sys-color-inverse-on-surface:#2C322D;
+    --md-sys-color-inverse-primary:#2C6A46;
+  }
+}
+:root[data-theme="dark"]{
+  --md-sys-color-inverse-surface:#DFE4DD;
+  --md-sys-color-inverse-on-surface:#2C322D;
+  --md-sys-color-inverse-primary:#2C6A46;
+}
+
+/* ---------- 2. Type ---------- */
+.card-shell-body,
+.card-shell-face .card-shell-status{
+  font-family:var(--md-sys-typescale-font);
+}
+
+/* ---------- 3. Title (clarification 5a) ----------
+   The 021 rule .card-viewport:not(.maximized-card-viewport) .question:hover
+   makes poll-card titles look clickable; it also matches this card. M3 titles
+   are not interactive. */
+.card-viewport.card-shell-viewport .card-shell-face .question,
+.card-viewport.card-shell-viewport .card-shell-face .question:hover,
+.card-viewport.card-shell-viewport .card-shell-face .subtitle,
+.card-viewport.card-shell-viewport .card-shell-face .subtitle:hover{
+  cursor:default;
+  text-decoration:none;
+}
+
+/* ---------- 4. Underlined fields (clarification 1d) ----------
+   The admin-card wizard's fields (NON-ADMIN-POLL-EDITING/admin.css, .m3-field)
+   in Roboto and the M3 roles: no box, the label always above in primary, a
+   1px on-surface underline that becomes 2px primary on focus. */
+.card-shell-body .card-shell-group{
+  gap:6px;
+  margin:0 0 24px;
+}
+/* Widened (REQUIREMENT Use Material 3 For Login Dialog): Login and Create
+   Account put their label straight in a <form>, with no .card-shell-group.
+   Profile's current-value label rule (profile-editor-m3.css) is more specific
+   and loads later. */
+.card-shell-body .card-shell-group > label,
+.card-shell-body form > label:not(.checkbox){
+  font-weight:500;
+  font-size:14px;
+  line-height:18px;
+  color:var(--md-sys-color-primary);
+}
+.card-shell-body input:is([type="text"], [type="email"]):not(.profile-current){
+  padding:0 0 6px;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  box-shadow:inset 0 -1px 0 var(--md-sys-color-on-surface);
+  font:400 17px/1.4 var(--md-sys-typescale-font);
+  color:var(--md-sys-color-on-surface);
+  outline:none;
+}
+.card-shell-body input:is([type="text"], [type="email"]):not(.profile-current):focus,
+.card-shell-body input:is([type="text"], [type="email"]):not(.profile-current):focus-visible{
+  box-shadow:inset 0 -2px 0 var(--md-sys-color-primary);
+  outline:none;
+}
+/* Production's var(--line) placeholder fails contrast. */
+.card-shell-body .card-shell-group input::placeholder{
+  color:var(--md-sys-color-on-surface-variant);
+  opacity:1;
+}
+
+/* ---------- 6. Buttons (clarification 3a) ----------
+   M3's standard 40px on this card only; the poll card keeps its 32px. The
+   colours, state layers, focus ring and disabled colours come from the card
+   layer, so production's own fades are reset. */
+.card-shell-face .btn-vote{
+  height:40px;
+  padding:0 24px;
+}
+.card-shell-face a.btn-vote{ text-decoration:none; }
+.card-shell-face .card-shell-action .btn-primary:disabled,
+.card-shell-face .btn-primary.is-running{
+  opacity:1;
+}
+
+/* ---------- 7. Status lines ----------
+   Supporting text under each action, where production puts it. The field
+   error states are in section 11 (forms) and profile-editor-m3.css
+   (Profile's sections). */
+.card-shell-face .card-shell-status{
+  font-weight:var(--md-sys-typescale-body-small-weight);
+  font-size:var(--md-sys-typescale-body-small-size);
+  line-height:var(--md-sys-typescale-body-small-line-height);
+  letter-spacing:var(--md-sys-typescale-body-small-tracking);
+  color:var(--md-sys-color-on-surface-variant);
+}
+.card-shell-face .card-shell-status.error{ color:var(--md-sys-color-error); }
+
+/* ---------- 8. Snackbar (clarification 6b) ----------
+   The header prototype's snackbar. harness.js shows it after a successful
+   name save. */
+.profile-snackbar{
+  position:fixed;
+  z-index:30;
+  left:0;
+  right:0;
+  bottom:16px;
+  margin:0 auto;
+  width:min(672px, calc(100% - 32px));
+  min-height:48px;
+  display:flex;
+  align-items:center;
+  padding:14px 16px;
+  box-sizing:border-box;
+  border-radius:var(--md-sys-shape-corner-extra-small);
+  background:var(--md-sys-color-inverse-surface);
+  color:var(--md-sys-color-inverse-on-surface);
+  box-shadow:var(--md-sys-elevation-3);
+  font:400 14px/20px var(--md-sys-typescale-font);   /* Body Medium */
+  letter-spacing:0.25px;
+  animation:m3-snackbar-in 150ms cubic-bezier(0.2, 0, 0, 1);
+}
+.profile-snackbar[hidden]{ display:none; }
+@keyframes m3-snackbar-in{
+  from{ opacity:0; transform:translateY(8px); }
+  to{ opacity:1; transform:none; }
+}
+@media (prefers-reduced-motion: reduce){
+  .profile-snackbar{ animation:none; }
+}
+
+/* ---------- 9. Checkbox (Login clarification 2a) ----------
+   An M3 checkbox drawn on the real <input type="checkbox">: an 18px box in a
+   40px target, a primary fill with an on-primary check (as the Poll Card's
+   multi-choice vote rows), a round state layer and the focus ring. Pseudo-
+   elements on a checkbox with appearance:none work in current Chrome, Firefox
+   and Safari; without them it is a plain box. */
+.card-shell-body form{ gap:6px; }
+.card-shell-body label.checkbox{
+  display:flex;
+  align-items:center;
+  gap:4px;
+  margin-top:10px;
+  font:400 16px/24px var(--md-sys-typescale-font);   /* Body Large */
+  letter-spacing:0.5px;
+  color:var(--md-sys-color-on-surface);
+  cursor:pointer;
+}
+.card-shell-body label.checkbox input[type="checkbox"]{
+  -webkit-appearance:none;
+  appearance:none;
+  position:relative;
+  flex:0 0 auto;
+  box-sizing:border-box;
+  width:18px;
+  height:18px;
+  margin:11px;
+  border:2px solid var(--md-sys-color-on-surface-variant);
+  border-radius:2px;
+  background:transparent;
+  cursor:pointer;
+  transition:background-color 0.15s ease, border-color 0.15s ease;
+}
+.card-shell-body label.checkbox input[type="checkbox"]::before{
+  content:'';
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:40px;
+  height:40px;
+  margin:-20px 0 0 -20px;
+  border-radius:50%;
+  background:var(--md-sys-color-on-surface);
+  opacity:0;
+  pointer-events:none;
+  transition:opacity 0.15s ease;
+}
+.card-shell-body label.checkbox input[type="checkbox"]::after{
+  content:'';
+  position:absolute;
+  left:50%;
+  top:45%;
+  width:30%;
+  height:55%;
+  border:solid var(--md-sys-color-on-primary);
+  border-width:0 2px 2px 0;
+  transform:translate(-50%, -50%) rotate(45deg) scale(0);
+  transition:transform 0.15s ease;
+}
+.card-shell-body label.checkbox input[type="checkbox"]:hover::before{ opacity:var(--md-sys-state-hover-state-layer-opacity); }
+.card-shell-body label.checkbox input[type="checkbox"]:focus-visible::before{ opacity:var(--md-sys-state-focus-state-layer-opacity); }
+.card-shell-body label.checkbox input[type="checkbox"]:active::before{ opacity:var(--md-sys-state-pressed-state-layer-opacity); }
+.card-shell-body label.checkbox input[type="checkbox"]:checked{
+  border-color:var(--md-sys-color-primary);
+  background:var(--md-sys-color-primary);
+}
+.card-shell-body label.checkbox input[type="checkbox"]:checked::before{ background:var(--md-sys-color-primary); }
+.card-shell-body label.checkbox input[type="checkbox"]:checked::after{ transform:translate(-50%, -50%) rotate(45deg) scale(1); }
+.card-shell-body label.checkbox input[type="checkbox"]:focus-visible{
+  outline:3px solid var(--md-sys-color-secondary);
+  outline-offset:2px;
+}
+/* Disabled until there is an address: M3's 38%, replacing production's
+   .is-disabled var(--muted). */
+.card-shell-body label.checkbox input[type="checkbox"]:disabled{
+  border-color:color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+  cursor:default;
+}
+.card-shell-body label.checkbox input[type="checkbox"]:disabled::before{ opacity:0; }
+.card-shell-body label.checkbox input[type="checkbox"]:checked:disabled{
+  border-color:transparent;
+  background:color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+}
+.card-shell-body label.checkbox.is-disabled{
+  color:color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+  cursor:default;
+}
+
+/* ---------- 10. OAuth buttons (Login clarification 3a) ----------
+   Production has no rule for .oauth-providers. Three equal choices as M3
+   outlined buttons, full width, 8px apart. The card layer's state layer, focus
+   ring and ripple still apply (.card-face .btn-vote). No provider logos. */
+.card-shell-body .oauth-providers{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.card-shell-body .oauth-providers .btn-vote{
+  width:100%;
+  box-sizing:border-box;
+  border:1px solid var(--md-sys-color-outline);
+  background:transparent;
+  color:var(--md-sys-color-primary);
+  text-decoration:none;
+}
+
+/* ---------- 11. The form field error (Login clarification 4a) ----------
+   While the card has an error status, a form field the person has edited
+   takes the wizard's error state. :user-valid/:user-invalid match only after
+   the user has interacted, so the invalid-link notice at page load (field
+   still empty) marks nothing. Scoped to <form>: Profile's sections are not
+   forms and keep their own rule. */
+.card-shell-face:has(.card-shell-status.error) .card-shell-body form input:is([type="email"], [type="text"]):is(:user-valid, :user-invalid),
+.card-shell-face:has(.card-shell-status.error) .card-shell-body form input:is([type="email"], [type="text"]):is(:user-valid, :user-invalid):focus{
+  box-shadow:inset 0 -2px 0 var(--md-sys-color-error);
+}
+.card-shell-face:has(.card-shell-status.error) .card-shell-body form:has(input:is(:user-valid, :user-invalid)) > label:not(.checkbox){
+  color:var(--md-sys-color-error);
+}
+
+/* ---------- 12. Empty body (REQUIREMENT Use Material 3 For Not Authorized
+   Dialog, clarification 1a) ----------
+   cardShell.js always appends .card-shell-body, which card-shell.css gives
+   margin-top:14px. Not Authorized and the Profile Editor's session-less result
+   cards put nothing in it, so it is collapsed; their cards end at the subtitle
+   (or the Log In row, which keeps its own margin). */
+.card-shell-body:empty{ display:none; }

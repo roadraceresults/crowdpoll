@@ -1,0 +1,33 @@
+.avatar-menu-create-poll{ display:none; }
+
+@media (max-width: 639.98px){
+  .btn-header-ghost,
+  .btn-header-primary{ height:24px; }
+  .site-header{ margin-bottom:8px; padding-top:3px; }
+  .brand-logo,
+  .brand-wordmark{ height:24px; }
+  .header-nav,
+  #header-username,
+  .header-search{ display:none; }
+
+  .avatar-menu-create-poll{ display:flex; }
+  .avatar-menu-create-poll[aria-disabled="true"]{
+    padding-top:6px;
+    padding-bottom:6px;
+    color:color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+    cursor:default;
+  }
+  .avatar-menu-create-poll[aria-disabled="true"] .avatar-menu-label{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+  }
+  :is(.header-actions, .floating-actions) :is(.btn-header-ghost, .btn-header-primary){
+    height:21px;
+    font-size:calc(var(--md-sys-typescale-label-large-size) * 0.75);
+  }
+  .avatar-menu-create-poll-reason{
+    font-size:var(--md-sys-typescale-label-medium-size);
+    font-weight:400;
+  }
+}

@@ -1,0 +1,259 @@
+/* Material 3 text fields: https://m3.material.io/components/text-fields/specs */
+
+/* ---------- 1. The panel: one column of fields, then the actions ---------- */
+.admin-search{
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+  font-family:var(--md-sys-typescale-font);
+  color:var(--md-sys-color-on-surface);
+}
+.admin-search :is(button, input, select){
+  font-family:var(--md-sys-typescale-font);
+  filter:none;
+}
+
+/* ---------- 2. Outlined fields: the label sits in the border and floats ---------- */
+.admin-search .m3-outlined{
+  position:relative;
+  min-width:0;
+  max-width:100%;
+  box-sizing:border-box;
+}
+.admin-search .m3-outlined :is(input, select){
+  display:block;
+  width:100%;
+  min-width:0;
+  max-width:100%;
+  height:56px;
+  box-sizing:border-box;
+  margin:0;
+  padding:0 16px;
+  border:1px solid var(--md-sys-color-outline);
+  border-radius:var(--md-sys-shape-corner-extra-small);
+  background:transparent;
+  color:var(--md-sys-color-on-surface);
+  font-size:var(--md-sys-typescale-body-large-size);
+  line-height:var(--md-sys-typescale-body-large-line-height);
+  font-weight:var(--md-sys-typescale-body-large-weight);
+  letter-spacing:var(--md-sys-typescale-body-large-tracking);
+}
+.admin-search .m3-outlined :is(input, select):hover{ border-color:var(--md-sys-color-on-surface); }
+.admin-search .m3-outlined :is(input, select):focus{
+  outline:none;
+  border-color:var(--md-sys-color-primary);
+  box-shadow:0 0 0 1px var(--md-sys-color-primary);
+}
+.admin-search .m3-outlined label{
+  position:absolute;
+  left:12px;
+  top:50%;
+  max-width:calc(100% - 24px);
+  padding:0 4px;
+  overflow:hidden;
+  transform:translateY(-50%);
+  background:var(--paper-raised);
+  color:var(--md-sys-color-on-surface-variant);
+  font-size:var(--md-sys-typescale-body-large-size);
+  line-height:var(--md-sys-typescale-body-large-line-height);
+  font-weight:var(--md-sys-typescale-body-large-weight);
+  letter-spacing:var(--md-sys-typescale-body-large-tracking);
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  pointer-events:none;
+}
+.admin-search .m3-outlined :is(input:focus, input:not(:placeholder-shown), input[type="date"], select) ~ label{
+  top:0;
+  font-size:var(--md-sys-typescale-body-small-size);
+  line-height:var(--md-sys-typescale-body-small-line-height);
+  letter-spacing:var(--md-sys-typescale-body-small-tracking);
+}
+.admin-search .m3-outlined :is(input, select):focus ~ label{ color:var(--md-sys-color-primary); }
+
+/* An operator beside its value, in equal columns so the longer labels fit, stacked under 320px. */
+.admin-search .admin-field-pair{
+  display:grid;
+  grid-template-columns:minmax(0, 1fr) minmax(0, 1fr);
+  gap:12px;
+  min-width:0;
+  max-width:100%;
+  box-sizing:border-box;
+}
+@media (max-width: 319.98px){
+  .admin-search .admin-field-pair{ grid-template-columns:minmax(0, 1fr); }
+}
+
+/* ---------- 3. Actions: a text button and a filled button ---------- */
+.admin-search .admin-search-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:8px;
+}
+.admin-search .admin-search-btn,
+.admin-search .admin-search-clear{
+  position:relative;
+  overflow:hidden;
+  width:auto;
+  height:auto;
+  min-width:64px;
+  min-height:48px;
+  margin:0;
+  padding:0 24px;
+  border:0;
+  border-radius:var(--md-sys-shape-corner-full);
+  font-size:var(--md-sys-typescale-label-large-size);
+  line-height:var(--md-sys-typescale-label-large-line-height);
+  font-weight:var(--md-sys-typescale-label-large-weight);
+  letter-spacing:var(--md-sys-typescale-label-large-tracking);
+  cursor:pointer;
+}
+.admin-search .admin-search-btn{
+  background:var(--md-sys-color-primary);
+  color:var(--md-sys-color-on-primary);
+}
+.admin-search .admin-search-clear{
+  padding:0 12px;
+  background:transparent;
+  color:var(--md-sys-color-primary);
+}
+.admin-search .admin-search-btn::before,
+.admin-search .admin-search-clear::before{
+  content:'';
+  position:absolute;
+  inset:0;
+  background:currentColor;
+  opacity:0;
+  pointer-events:none;
+}
+.admin-search .admin-search-btn:hover::before,
+.admin-search .admin-search-clear:hover::before{ opacity:var(--md-sys-state-hover-state-layer-opacity); }
+.admin-search .admin-search-btn:focus-visible::before,
+.admin-search .admin-search-clear:focus-visible::before{ opacity:var(--md-sys-state-focus-state-layer-opacity); }
+.admin-search .admin-search-btn:active::before,
+.admin-search .admin-search-clear:active::before{ opacity:var(--md-sys-state-pressed-state-layer-opacity); }
+.admin-search .admin-search-btn:focus-visible,
+.admin-search .admin-search-clear:focus-visible{
+  outline:2px solid var(--md-sys-color-primary);
+  outline-offset:2px;
+}
+
+/* ---------- 4. Radio groups: Any, then the two choices, in one row ---------- */
+.admin-search .admin-radio-group{
+  display:grid;
+  grid-template-columns:repeat(3, minmax(0, 1fr));
+  gap:0 8px;
+  min-width:0;
+  max-width:100%;
+  box-sizing:border-box;
+}
+@media (max-width: 359.98px){
+  .admin-search .admin-radio-group{ grid-template-columns:minmax(0, 1fr); }
+}
+.admin-search .admin-radio{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-width:0;
+  min-height:48px;
+  box-sizing:border-box;
+  padding:0 4px;
+  border-radius:var(--md-sys-shape-corner-medium);
+  color:var(--md-sys-color-on-surface);
+  font-size:var(--md-sys-typescale-body-medium-size);
+  line-height:var(--md-sys-typescale-body-medium-line-height);
+  font-weight:var(--md-sys-typescale-body-medium-weight);
+  letter-spacing:var(--md-sys-typescale-body-medium-tracking);
+  cursor:pointer;
+}
+.admin-search .admin-radio input{
+  appearance:none;
+  -webkit-appearance:none;
+  flex:0 0 auto;
+  box-sizing:border-box;
+  width:20px;
+  height:20px;
+  margin:0;
+  padding:0;
+  border:2px solid var(--md-sys-color-on-surface-variant);
+  border-radius:var(--md-sys-shape-corner-full);
+  background:transparent;
+  display:grid;
+  place-content:center;
+  cursor:pointer;
+}
+.admin-search .admin-radio input::before{
+  content:"";
+  width:10px;
+  height:10px;
+  border-radius:var(--md-sys-shape-corner-full);
+  background:var(--md-sys-color-primary);
+  transform:scale(0);
+  transition:transform 0.12s ease-in-out;
+}
+.admin-search .admin-radio input:checked{ border-color:var(--md-sys-color-primary); }
+.admin-search .admin-radio input:checked::before{ transform:scale(1); }
+.admin-search .admin-radio input:focus-visible{
+  outline:2px solid var(--md-sys-color-primary);
+  outline-offset:2px;
+}
+@media (prefers-reduced-motion: reduce){
+  .admin-search .admin-radio input::before{ transition:none; }
+}
+
+/* ---------- 5. The status line: supporting text under the view tabs ---------- */
+.admin-search-notice{
+  font-family:var(--md-sys-typescale-font);
+  font-size:var(--md-sys-typescale-body-small-size);
+  line-height:var(--md-sys-typescale-body-small-line-height);
+  font-weight:var(--md-sys-typescale-body-small-weight);
+  letter-spacing:var(--md-sys-typescale-body-small-tracking);
+  color:var(--md-sys-color-on-surface-variant);
+}
+
+/* ---------- 6. Collapsing the panel: a text button above it, outside it ---------- */
+.admin-search[data-collapsed]{ display:none; }
+.admin-search-toggle-row{
+  display:flex;
+  justify-content:flex-end;
+  width:min(420px, 100%);
+  margin:0 auto 4px;
+}
+.admin-search-toggle-row[hidden]{ display:none; }
+.admin-search-toggle{
+  position:relative;
+  overflow:hidden;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  min-height:48px;
+  margin:0;
+  padding:0 12px 0 16px;
+  border:0;
+  border-radius:var(--md-sys-shape-corner-full);
+  background:transparent;
+  color:var(--md-sys-color-primary);
+  font-family:var(--md-sys-typescale-font);
+  font-size:var(--md-sys-typescale-label-large-size);
+  line-height:var(--md-sys-typescale-label-large-line-height);
+  font-weight:var(--md-sys-typescale-label-large-weight);
+  letter-spacing:var(--md-sys-typescale-label-large-tracking);
+  cursor:pointer;
+  filter:none;
+}
+.admin-search-toggle::before{
+  content:'';
+  position:absolute;
+  inset:0;
+  background:currentColor;
+  opacity:0;
+  pointer-events:none;
+}
+.admin-search-toggle:hover::before{ opacity:var(--md-sys-state-hover-state-layer-opacity); }
+.admin-search-toggle:focus-visible::before{ opacity:var(--md-sys-state-focus-state-layer-opacity); }
+.admin-search-toggle:active::before{ opacity:var(--md-sys-state-pressed-state-layer-opacity); }
+.admin-search-toggle:focus-visible{
+  outline:2px solid var(--md-sys-color-primary);
+  outline-offset:2px;
+}
+.admin-search-toggle svg{ width:24px; height:24px; }
+.admin-search-toggle[aria-expanded="false"] svg{ transform:rotate(180deg); }

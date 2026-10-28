@@ -1,0 +1,49 @@
+/*
+  PROFILE EDITOR — MATERIAL 3 LAYER (REQUIREMENT Use Material 3 For Profile
+  Editor). Since REQUIREMENT Use Material 3 For Login Dialog, the generic
+  card-shell rules (inverse roles, type, title, underlined fields, buttons,
+  status lines, snackbar) are in ../card-shell-m3.css, shared with the other
+  card-shell prototypes. This file keeps the Profile card's own rules and loads
+  after ../card-shell-m3.css. ../card-shell.css, ../cardShell.js and
+  profileCard.js stay copies of production.
+
+  Order: 5 current values, 7 the section field error (numbered as in the
+  original file and in ../card-shell-m3.css).
+*/
+
+/* ---------- 5. Current values (clarification 2a) ----------
+   Not a text field: a label over its value, the same layout as the field
+   below without the underline, so the two line up. */
+.card-shell-body .card-shell-group:has(.profile-current) > label{
+  font-weight:var(--md-sys-typescale-body-small-weight);
+  font-size:var(--md-sys-typescale-body-small-size);
+  line-height:var(--md-sys-typescale-body-small-line-height);
+  letter-spacing:var(--md-sys-typescale-body-small-tracking);
+  color:var(--md-sys-color-on-surface-variant);
+}
+.card-shell-body .card-shell-group input.profile-current,
+.card-shell-body .card-shell-group input.profile-current:focus,
+.card-shell-body .card-shell-group input.profile-current:focus-visible{
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  box-shadow:none;
+  outline:none;
+  font:400 16px/24px var(--md-sys-typescale-font);   /* Body Large */
+  letter-spacing:0.5px;
+  color:var(--md-sys-color-on-surface);
+  cursor:default;
+}
+
+/* ---------- 7. The section field error (clarification 4a) ----------
+   While a section's status is an error, its new field takes the wizard's error
+   state: a 2px error underline and an error label. */
+.card-shell-body .profile-section:has(.card-shell-status.error) .card-shell-group:not(:has(.profile-current)) > label{
+  color:var(--md-sys-color-error);
+}
+.card-shell-body .profile-section:has(.card-shell-status.error) input:is([type="text"], [type="email"]):not(.profile-current),
+.card-shell-body .profile-section:has(.card-shell-status.error) input:is([type="text"], [type="email"]):not(.profile-current):focus{
+  box-shadow:inset 0 -2px 0 var(--md-sys-color-error);
+}
+

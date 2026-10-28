@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+  <title>CrowdPoll Admin</title>
+  <link rel="stylesheet" href="/fonts/fonts.css">
+  <link rel="stylesheet" href="/m3-tokens.css">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/tabs.css">
+  <link rel="stylesheet" href="/pollCard.css">
+  <link rel="stylesheet" href="/admin.css">
+  <link rel="stylesheet" href="/site.css">
+  <link rel="stylesheet" href="/tooltip-m3.css">
+  <link rel="stylesheet" href="/header-tab-bar-m3.css">
+  <link rel="stylesheet" href="/header-single-column-m3.css">
+  <link rel="stylesheet" href="/header-single-row-m3.css">
+  <link rel="stylesheet" href="/header-fixed-m3.css">
+  <link rel="stylesheet" href="/back-to-top-m3.css">
+  <link rel="stylesheet" href="/tabs-modal-m3.css">
+  <link rel="stylesheet" href="/discard-dialog-m3.css">
+  <link rel="stylesheet" href="/admin-card-m3.css">
+  <link rel="stylesheet" href="/admin-search-m3.css">
+  <link rel="stylesheet" href="/footer-m3.css">
+</head>
+<body>
+  <!-- 012 T059 (research R11): the row icons, defined once and referenced per row with
+       <use>. Font Awesome is named in the requirements only as a visual reference — it is
+       not a dependency of this project, and four glyphs do not justify making it one. -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <symbol id="icon-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="9" y="9" width="12" height="12" rx="2"/>
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+    </symbol>
+    <symbol id="icon-link" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/>
+      <path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/>
+    </symbol>
+    <symbol id="icon-results" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="4" width="18" height="16" rx="2"/>
+      <path d="M7 9h7"/><path d="M7 13h10"/><path d="M7 17h4"/>
+    </symbol>
+    <symbol id="icon-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/>
+      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+      <path d="M10 11v6"/><path d="M14 11v6"/>
+    </symbol>
+  </svg>
+
+  <div class="page-decor"></div>
+  <div class="page">
+    <div class="container">
+      <div class="layout">
+        <header id="site-header" class="site-header"></header>
+
+        <main>
+          <!-- FIX010: the page is a set of views — Newest, Awaiting Approval, Rejected,
+               Search — each with its own list; Create New Poll sits outside them and
+               opens the new poll on Newest. -->
+          <div class="admin-toolbar">
+            <!-- 013 FR-040: the edit page's back control, pointing at / rather
+                 than /admin. A declared destination, not browser history. -->
+            <a href="/" class="admin-back-link" aria-label="Back to the home page">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M19 12H5"/>
+                <path d="M12 19l-7-7 7-7"/>
+              </svg>
+            </a>
+            <button class="btn-primary admin-create-btn" type="button" id="createPollBtn">Create New Poll</button>
+          </div>
+
+          <nav class="tab-bar admin-tab-bar" id="adminTabBar" aria-label="Admin views">
+            <button class="tab is-active" type="button" data-tab="newest">Newest</button>
+            <button class="tab" type="button" data-tab="awaiting">Awaiting Approval</button>
+            <button class="tab" type="button" data-tab="rejected">Rejected</button>
+            <button class="tab" type="button" data-tab="search">Search</button>
+          </nav>
+
+          <div class="admin-search-toggle-row" hidden>
+            <button class="admin-search-toggle" id="adminSearchToggle" type="button" aria-expanded="true" aria-controls="adminSearchForm">
+              <span>Collapse Search</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m6 15 6-6 6 6"/></svg>
+            </button>
+          </div>
+
+          <form class="admin-search" id="adminSearchForm" autocomplete="off" aria-label="Search polls" hidden>
+            <div class="m3-outlined">
+              <input id="search-q" class="admin-search-text" name="q" type="search" placeholder=" ">
+              <label for="search-q">Words in the title, subtitle or choices</label>
+            </div>
+            <div class="m3-outlined">
+              <select id="search-state" name="state"><option value="">Any state</option><option value="INITIALIZED">INITIALIZED</option><option value="EDITING">EDITING</option><option value="AWAITING APPROVAL">AWAITING APPROVAL</option><option value="REJECTED">REJECTED</option><option value="WAITING TO OPEN">WAITING TO OPEN</option><option value="OPEN">OPEN</option><option value="CLOSED">CLOSED</option><option value="ARCHIVED">ARCHIVED</option></select>
+              <label for="search-state">State (Initialized, Open, Closed, etc.)</label>
+            </div>
+            <div class="admin-radio-group" role="radiogroup" aria-label="Visibility">
+              <label class="admin-radio"><input type="radio" name="visibility" value="" checked><span>Any visibility</span></label>
+              <label class="admin-radio"><input type="radio" name="visibility" value="Public Poll"><span>Public</span></label>
+              <label class="admin-radio"><input type="radio" name="visibility" value="Private Poll"><span>Private</span></label>
+            </div>
+            <div class="admin-radio-group" role="radiogroup" aria-label="Choice mode">
+              <label class="admin-radio"><input type="radio" name="choiceMode" value="" checked><span>Any choice mode</span></label>
+              <label class="admin-radio"><input type="radio" name="choiceMode" value="Single-Choice Poll"><span>Single Choice</span></label>
+              <label class="admin-radio"><input type="radio" name="choiceMode" value="Multiple-Choice Poll"><span>Multiple Choice</span></label>
+            </div>
+            <div class="admin-radio-group" role="radiogroup" aria-label="Vote mutability">
+              <label class="admin-radio"><input type="radio" name="voteMutability" value="" checked><span>Any vote mode</span></label>
+              <label class="admin-radio"><input type="radio" name="voteMutability" value="Dynamic-Vote Poll"><span>Vote can change</span></label>
+              <label class="admin-radio"><input type="radio" name="voteMutability" value="Final-Vote Poll"><span>First vote is final</span></label>
+            </div>
+            <div class="m3-outlined">
+              <input id="search-createdBy" name="createdBy" type="text" placeholder=" ">
+              <label for="search-createdBy">Created by user name (contains)</label>
+            </div>
+            <div class="admin-field-pair">
+              <div class="m3-outlined">
+                <select id="search-createdAtOp" name="createdAtOp"><option value="eq">on</option><option value="gte">on or after</option><option value="lte">on or before</option></select>
+                <label for="search-createdAtOp">Created on</label>
+              </div>
+              <div class="m3-outlined">
+                <input id="search-createdAt" name="createdAt" type="date">
+                <label for="search-createdAt">Date</label>
+              </div>
+            </div>
+            <div class="admin-field-pair">
+              <div class="m3-outlined">
+                <select id="search-startAtOp" name="startAtOp"><option value="eq">on</option><option value="gte">on or after</option><option value="lte">on or before</option></select>
+                <label for="search-startAtOp">Starts on</label>
+              </div>
+              <div class="m3-outlined">
+                <input id="search-startAt" name="startAt" type="date">
+                <label for="search-startAt">Date</label>
+              </div>
+            </div>
+            <div class="admin-field-pair">
+              <div class="m3-outlined">
+                <select id="search-endAtOp" name="endAtOp"><option value="eq">on</option><option value="gte">on or after</option><option value="lte">on or before</option></select>
+                <label for="search-endAtOp">Ends on</label>
+              </div>
+              <div class="m3-outlined">
+                <input id="search-endAt" name="endAt" type="date">
+                <label for="search-endAt">Date</label>
+              </div>
+            </div>
+            <div class="admin-field-pair">
+              <div class="m3-outlined">
+                <select id="search-voteCountOp" name="voteCountOp"><option value="gte">at least</option><option value="lte">at most</option><option value="eq">exactly</option></select>
+                <label for="search-voteCountOp">Vote count</label>
+              </div>
+              <div class="m3-outlined">
+                <input id="search-voteCount" name="voteCount" type="number" placeholder=" " min="0">
+                <label for="search-voteCount">Count</label>
+              </div>
+            </div>
+            <div class="admin-field-pair">
+              <div class="m3-outlined">
+                <select id="search-invitedVoterCountOp" name="invitedVoterCountOp"><option value="gte">at least</option><option value="lte">at most</option><option value="eq">exactly</option></select>
+                <label for="search-invitedVoterCountOp">Invitee count</label>
+              </div>
+              <div class="m3-outlined">
+                <input id="search-invitedVoterCount" name="invitedVoterCount" type="number" placeholder=" " min="0">
+                <label for="search-invitedVoterCount">Count</label>
+              </div>
+            </div>
+            <div class="admin-field-pair">
+              <div class="m3-outlined">
+                <select id="search-bannedVoterCountOp" name="bannedVoterCountOp"><option value="gte">at least</option><option value="lte">at most</option><option value="eq">exactly</option></select>
+                <label for="search-bannedVoterCountOp">Banned users count</label>
+              </div>
+              <div class="m3-outlined">
+                <input id="search-bannedVoterCount" name="bannedVoterCount" type="number" placeholder=" " min="0">
+                <label for="search-bannedVoterCount">Count</label>
+              </div>
+            </div>
+            <div class="admin-search-actions">
+              <button class="admin-search-clear" type="button" id="adminSearchClear">Clear</button>
+              <button class="btn-primary admin-search-btn" type="submit">Search</button>
+            </div>
+          </form>
+
+          <p class="admin-search-notice" id="adminSearchNotice" role="status" hidden></p>
+
+          <div class="admin-card-list" id="pollList"></div>
+        </main>
+      </div>
+    </div>
+  </div>
+
+  <script src="/m3-ripple.js" defer></script>
+  <script src="/tooltip-m3.js" defer></script>
+  <script src="/app.js" defer></script>
+  <script src="/headerFit.js" defer></script>
+  <script src="/fixedChrome.js" defer></script>
+  <script src="/adminCard.js" defer></script>
+  <script src="/adminList.js" defer></script>
+  <script src="/backToTopFab.js" defer></script>
+</body>
+</html>

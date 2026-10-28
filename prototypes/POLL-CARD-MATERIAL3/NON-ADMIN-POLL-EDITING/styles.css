@@ -1,0 +1,39 @@
+/* --ink/--line/--muted are declared in site.css (the canonical header/token
+   sheet, loaded on every page alongside this one) — not redeclared here, so
+   there's exactly one source of truth for them instead of two stylesheets
+   silently racing to override each other. */
+:root {
+  --accent: #1f6feb;
+  --bg: #f6f8fa;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+}
+
+button {
+  padding: 0.55rem 1rem;
+  border: 0;
+  border-radius: 0.35rem;
+  background: var(--accent);
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+  justify-self: start;
+}
+button:hover { filter: brightness(1.08); }
+
+/* Cookie banner (FR-010) styling now lives in site.css, loaded on every page
+   alongside this one — same reasoning as the header rules removed above. */
+
+/* 013 D2/research R3: the narrow page wrapper, the form/label/input rules,
+   .profile-field and .error moved to site.css, re-scoped to the shell's body.
+   They left only once login.html and create-account.html were rebuilt — until
+   then those two pages still rendered through them. What remains is the
+   element-level layer the admin pages' class-based admin.css sits on top of;
+   retiring this sheet entirely is a later feature's job. */

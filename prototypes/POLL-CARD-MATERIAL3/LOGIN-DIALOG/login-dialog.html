@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Login</title>
+  <!-- REQUIREMENT Login Dialog: the Login card extracted from
+       src/public/login.html, without the site header. Open this file
+       directly; no server is needed. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,440;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <!-- login.html's order: page and grid styles, the card component sheet,
+       then site.css; ../card-shell.css holds the card shell rules (shared
+       with the other card-shell prototypes). -->
+  <link rel="stylesheet" href="../tabs.css">
+  <link rel="stylesheet" href="../pollCard.css">
+  <link rel="stylesheet" href="../site.css">
+  <link rel="stylesheet" href="../card-shell.css">
+  <!-- REQUIREMENT Use Material 3 For Login Dialog: the card's Material 3 layer
+       (title, ×, button), then the shared card-shell layer, last. -->
+  <link rel="stylesheet" href="../pollCard-m3.css">
+  <link rel="stylesheet" href="../card-shell-m3.css">
+  <style>
+    .prototype-bar{ display:flex; align-items:center; flex-wrap:wrap; gap:10px; padding:0 0 6px;
+      font:500 13px 'Inter', sans-serif; color:var(--muted); }
+    .prototype-bar select{ font:inherit; padding:4px 8px; }
+    .prototype-note{ min-height:18px; margin:0; font:500 13px 'Inter', sans-serif; color:var(--muted); }
+  </style>
+</head>
+<body>
+
+<div class="page-decor"></div>
+
+<div class="page">
+  <div class="container">
+    <div class="layout">
+
+      <div class="prototype-bar">
+        <label for="methodPicker">Sign-in method</label>
+        <select id="methodPicker">
+          <option value="native">Native (email link)</option>
+          <option value="oauth">OAuth</option>
+        </select>
+        <label for="linkPicker">Link result</label>
+        <select id="linkPicker">
+          <option value="">None</option>
+          <option value="invalid">Invalid link</option>
+        </select>
+        <label for="responsePicker">Response</label>
+        <select id="responsePicker">
+          <option value="success">Success</option>
+          <option value="refused">Refused</option>
+          <option value="ratelimited">Too many requests</option>
+          <option value="mailfailure">Email could not be sent</option>
+          <option value="network">Network failure</option>
+        </select>
+        <label for="themePicker">Theme</label>
+        <select id="themePicker">
+          <option value="system">System</option>
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+        </select>
+      </div>
+      <p class="prototype-note" id="prototypeNote" aria-live="polite"></p>
+
+      <main id="card-root"></main>
+
+    </div>
+  </div>
+</div>
+
+<!-- harness.js before loginCard.js: the card calls fetch and reads the query
+     string when it renders. -->
+<script src="../cardShell.js" defer></script>
+<script src="../pollCard-m3.js" defer></script>
+<script src="harness.js" defer></script>
+<script src="loginCard.js" defer></script>
+</body>
+</html>

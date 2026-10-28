@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<!-- saved from url=(0093)file:///C:/Users/roadr/Downloads/Poll%20Lifecycle%20State%20Machine_files/saved_resource.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><!-- frame-runtime --><!--<base href="/_f/1787856434-8d03/">--><!--<base href=".">--><base href="."><script>window.__FRAME_PREAMBLE={"v":1,"capabilities":{"artifact":"artifact.Cg566fpb.js","assets":"assets.8Gk803W0.js","comments":"comments.GLuHR3zP.js","db":"db.CRhVHzSt.js","downloads":"downloads.C3GSvEDP.js","embed":"embed.CxGAyc-v.js","mcp":"mcp.Bvma3qD7.js","network":"network.B5UA9Su4.js","permissions":"permissions.BNySkLV5.js","room":"room.BMMoe2BY.js","sample":"sample.BW2Uysoh.js","self":"artifact.Cg566fpb.js","user":"user.BpKav-Rf.js"},"transforms":"_transforms.CQm3TZ9K.js","comments":"_comments.DELvYLUh.js","translate":"_translate.5HCW4BJh.js"}</script><script>(function(){"use strict";var J=["light","dark","system"],Q=/^[A-Za-z0-9_-]{1,64}$/,H=/^[a-zA-Z_:][a-zA-Z0-9_:.-]{0,127}$/,ee=new Set(["class","hidden","value","checked"]);function te(e){const t=e.toLowerCase();return t.startsWith("data-")||t.startsWith("aria-")||ee.has(t)}var Me="http://www.w3.org/1999/xhtml",re="http://www.w3.org/2000/svg",ne=new Set(["script","style","iframe","noscript","noframes","noembed","xmp","plaintext","template","title","textarea","object","embed"]),oe=new Set(["script","style"]);function se(e){const t=e.localName.toLowerCase();return e.namespaceURI==="http://www.w3.org/1999/xhtml"?!ne.has(t):e.namespaceURI===re?!oe.has(t):!1}var ae=new Set(["html","head","body","frameset"]);function ie(e){return e.namespaceURI==="http://www.w3.org/1999/xhtml"&&ae.has(e.localName)}function ce(e){if(e===null||typeof e!="object")return!1;const t=e;if(typeof t.target!="string"||!Q.test(t.target)||t.text!==void 0&&typeof t.text!="string")return!1;if(t.attrsSet!==void 0){if(t.attrsSet===null||typeof t.attrsSet!="object")return!1;for(const[r,n]of Object.entries(t.attrsSet))if(!H.test(r)||typeof n!="string")return!1}if(t.attrsRemoved!==void 0){if(!Array.isArray(t.attrsRemoved))return!1;for(const r of t.attrsRemoved)if(typeof r!="string"||!H.test(r))return!1}return!0}function le(e,t){if(e===null||typeof e!="object")return!1;const{seq:r,elements:n}=e;if(typeof r!="number"||!Number.isSafeInteger(r)||!Array.isArray(n)||n.length===0||n.length>64)return!1;for(let s=0;s<n.length;s++)if(!t(n[s]))return!1;return!0}function ue(e){return e===null||typeof e!="object"?!1:le(e.__frame_patch,ce)}function fe(e){if(e===null||typeof e!="object")return!1;const t=e.__frame_init;return t!==null&&typeof t=="object"}function pe(e){return e!==null&&typeof e=="object"&&e.__frame_size_poke===!0}function de(e){if(e===null||typeof e!="object")return!1;const t=e.__frame_theme;if(t===null||typeof t!="object")return!1;const r=t.theme;return typeof r=="string"&&J.includes(r)}var A=/^[\w.-]+\.js$/;function me(e,t,r){return r?"inert":typeof t=="string"&&A.test(t)?e?[t]:"inert":e?"inert":"framed"}function he(){return{post(e,t){parent.postMessage(e,t)},on(e){const t=r=>{r.source===parent&&e(r.data,r.origin)};return addEventListener("message",t),()=>removeEventListener("message",t)}}}function _e(){return{post:()=>{},on:()=>()=>{}}}var O="__frame_scroll",ve=150,ye=310,we=160,be=3e4;function Ee(){let e=0,t=!1,r=!1,n=!1,s=0,a=null;const l=i=>{try{sessionStorage.setItem(O,JSON.stringify({y:i}))}catch{}},d=()=>{if(clearTimeout(e),a===null)return;const i=a;a=null,l(i)},v=()=>{if(t){t=!1;return}r=!0,a=scrollY,clearTimeout(e),e=setTimeout(d,ve)};try{addEventListener("scroll",v,{passive:!0}),addEventListener("pagehide",d)}catch{}const y=()=>{let i;try{i=sessionStorage.getItem(O)}catch{return null}if(i===null)return null;let m;try{m=JSON.parse(i)}catch{m=null}const u=m?.y;if(!(typeof u=="number"&&Number.isFinite(u)&&u>=0)){try{sessionStorage.removeItem(O)}catch{}return null}return u};let S=!1;const h=i=>{try{const m=scrollY;scrollTo({top:i,left:0,behavior:"instant"}),s=i,n=!0,clearTimeout(e),a=null,l(i);const u=scrollY;u!==m&&(t=!0),u!==i&&!S&&(S=!0,addEventListener("load",()=>{try{if(scrollY===u){const k=y();h(k!==null?k:s)}}catch{}},{once:!0}))}catch{}},w=()=>{try{return!!location.hash}catch{return!0}};let o=!1;const f=()=>{try{if(o||innerWidth>ye||innerHeight>we)return;o=!0;const i=Date.now(),m=()=>{try{removeEventListener("resize",m)}catch{}if(Date.now()-i>be||r||w())return;const u=y();h(u!==null?u:s)};addEventListener("resize",m)}catch{}};let _=!1,b=!1;return{restore(){if(_||(_=!0,w()))return;const i=y();i!==null&&(h(i),f())},promoted(){if(b||(b=!0,w()))return;const i=y();i!==null?(h(i),f()):n&&h(s)}}}function ge(e,t,r,n){let s=null;try{s=window.trustedTypes?.createPolicy("frame-runtime",{createScriptURL:v=>v})??null}catch{}const a=window.Worker,l=a?.prototype,d=Object.freeze({Worker:a,workerOn:l?.addEventListener,workerPost:l?.postMessage,workerTerminate:l?.terminate,fetch:window.fetch.bind(window),preventDefault:Event.prototype.preventDefault,policy:s,origins:t});r(e).then(v=>v?.bootTopLevel?v.bootTopLevel(d,n):n.settle()).catch(()=>n.settle())}var Oe="modulepreload",Ce=function(e){return"/"+e},je={},Ae=function(t,r,n){let s=Promise.resolve();function a(l){const d=new Event("vite:preloadError",{cancelable:!0});if(d.payload=l,window.dispatchEvent(d),!d.defaultPrevented)throw l}return s.then(l=>{for(const d of l||[])d.status==="rejected"&&a(d.reason);return t().catch(a)})},Re=window===top,q=Object.getOwnPropertyDescriptor(window,"claude"),T=me(Re,window.__FRAME_PREAMBLE?.topLevel,q?.writable===!1),C=typeof T=="object"&&T[0],p=C?_e():he();(function(){const e=Object.defineProperty,t=globalThis,r=["RTCPeerConnection","webkitRTCPeerConnection","RTCDataChannel","RTCIceCandidate","RTCSessionDescription","RTCRtpSender","RTCRtpReceiver"];let n=0;for(let s=0;s<r.length;s++){const a=r[s];try{e(t,a,{value:void 0,writable:!1,configurable:!1})}catch{try{delete t[a]}catch{}try{e(t,a,{value:void 0,writable:!1,configurable:!0})}catch{}}typeof t[a]=="function"&&n++}if(n&&T==="framed")try{p.post({__frame_rtc_lockdown_failed:n},"*")}catch{}})();var Se=1e4,W=Object.freeze([...window.__FRAME_PREAMBLE?.origins??["https://claude.ai","https://preview.claude.ai"]]);function $(e){for(const t of W)if(t.endsWith(":*"))try{const r=new URL(e);if(`${r.protocol}//${r.hostname}:*`===t)return!0}catch{}else if(e===t)return!0;return!1}var L=Object.freeze({...window.__FRAME_PREAMBLE?.capabilities}),j=window.__FRAME_PREAMBLE?.transforms,N=window.__FRAME_PREAMBLE?.comments,I=window.__FRAME_PREAMBLE?.translate;function R(e){return Ae(()=>import("/_runtime/"+e),void 0)}function K(e,t){return{contract:e.contract,changes:new Set(e.changes??[]),flags:new Set(e.flags??[]),capabilities:e.capabilities??{},capBudgets:e.capBudgets??{},transforms:new Map,shellOrigin:t,mount:D,pipe:()=>({wrap:(r,n)=>(...s)=>{try{return n(...s)}catch(a){return Promise.reject(a)}}})}}var P=null,E=null;function Y(e,t,r){try{Object.defineProperty(e,t,{value:r,writable:!1,configurable:!1,enumerable:!0})}catch{try{Object.defineProperty(e,t,{value:r,writable:!1,configurable:!0,enumerable:!0})}catch{}}}var B=!1;function ke(e,t){const r=[];for(const n of e.elements){const s=document.querySelector(`[data-id="${n.target}"]`);if(!s){p.post({__frame_patch_miss:{seq:e.seq}},t);return}if([...Object.keys(n.attrsSet??{}),...n.attrsRemoved??[]].some(a=>!te(a))){p.post({__frame_patch_miss:{seq:e.seq}},t);return}if(n.text!==void 0&&(!se(s)||ie(s))){p.post({__frame_patch_miss:{seq:e.seq}},t);return}for(const[a,l]of Object.entries(n.attrsSet??{}))if(!G(s,a)){try{s.setAttribute(a,l)}catch{}X(s,a,l)}for(const a of n.attrsRemoved??[])G(s,a)||(s.removeAttribute(a),X(s,a,null));typeof n.text=="string"&&(s.textContent=n.text),r.push(n.target)}try{document.dispatchEvent(new CustomEvent("claude:edit",{detail:{seq:e.seq,targets:r}}))}catch{}}function X(e,t,r){if(!(e instanceof HTMLInputElement))return;const n=t.toLowerCase();n==="checked"?e.checked=r!==null:n==="value"&&e.type!=="file"&&(e.value=r??"")}function G(e,t){const r=t.toLowerCase(),n=e;return r==="data-id"||(r==="value"||r==="checked")&&(n.__artifactSecret===!0||/^(password|hidden|file)$/.test(n.type??"")||/(^|\s)(cc-|one-time-code|current-password|new-password)/i.test(`${e.getAttribute("autocomplete")??""} ${n.autocomplete??""}`))}function V(e){const t=document.documentElement;e==="light"||e==="dark"?(t.dataset.theme=e,t.style.colorScheme=e,B=!0):B&&(delete t.dataset.theme,t.style.colorScheme="",B=!1)}var M=new Map;function Te(){let e;const t={u:new Promise(r=>{e=r}),r:r=>{t.done=!0,e(r)},done:!1,nulled:!1};return t}function U(){for(const e of M.values())e.done||(e.nulled=!0,e.r(null))}var Le=Object.freeze(Object.assign(Object.create(null),{call:Function.prototype.call,apply:Function.prototype.apply,bind:Function.prototype.bind})),D=(e,t)=>{const r=M.get(e);if(!r||r.done){r?.nulled&&E&&p.post({__frame_cap_telemetry:{kind:"cap-load-error",cap:e}},E);return}const n=typeof t=="function"?Object.setPrototypeOf(t,Le):Object.assign(Object.create(null),t);typeof n.then=="function"&&delete n.then,r.r(Object.freeze(n))};function Z(){const e=q?.value??{};Y(window,"claude",e);for(const t of Object.keys(L)){if(e[t]!==void 0){Y(e,t,e[t]);continue}M.set(t,Te())}if(e.use===void 0){const t=r=>{if(typeof r!="string"||!Object.hasOwn(L,r))return Promise.resolve(null);const n=M.get(r);return n?n.u:Promise.resolve(e[r]??null)};try{Object.defineProperty(e,"use",{value:t,writable:!0,configurable:!0,enumerable:!1})}catch{}}}if(T==="framed"){const e=j&&A.test(j)?R(j).catch(()=>{}):Promise.resolve(void 0),t=o=>{if(o.type==="auxclick"&&o.button!==1)return;const f=o.target,_=f&&f.closest?f.closest("a[href],area[href]"):null;if(!_)return;const b=_.getAttribute("href");if(!b)return;let i;try{i=new URL(b,document.baseURI)}catch{return}if((i.protocol==="http:"||i.protocol==="https:")&&i.origin!==location.origin){o.preventDefault();const m=(_.getAttribute("target")??"").toLowerCase(),u=o.type==="auxclick"||o.metaKey||o.ctrlKey||o.shiftKey||o.altKey||!["","_self","_top","_parent"].includes(m);p.post({__frame_nav:!0,url:i.href,newTab:u},"*")}};addEventListener("click",t,!0),addEventListener("auxclick",t,!0);const r={},n=o=>{o.isTrusted&&(r.pointer=!0)},s=o=>{o.isTrusted&&(r.click=!0)};addEventListener("pointermove",n,{capture:!0,passive:!0}),addEventListener("click",s,{capture:!0,passive:!0}),e.then(o=>{o?.wireNav&&(o.wireNav(),removeEventListener("click",t,!0),removeEventListener("auxclick",t,!0),removeEventListener("pointermove",n,!0),removeEventListener("click",s,!0),o.wireEngagement?.(r))});let a=null;try{a=Ee()}catch{}Z();let l=null,d=null,v=0;const y=p.on((o,f)=>{$(f)&&fe(o)&&(l=o.__frame_init,E=f,y(),clearTimeout(v),d?.())});p.post({__frame_connect:!0},"*");const S=new Promise(o=>{d=o,v=setTimeout(()=>{y(),o()},Se)}),h=document.readyState==="loading"?new Promise(o=>document.addEventListener("DOMContentLoaded",()=>o(),{once:!0})):Promise.resolve();h.then(()=>{try{a?.restore()}catch{}});const w={cb:null};p.on((o,f)=>{if($(f)&&pe(o)){try{a?.promoted()}catch{}w.cb?.()}}),S.then(async()=>{if(!l||!E){U();return}V(l.theme);const o=E;let f=!1,_=!1;p.on((c,x)=>{if(x!==o)return;de(c)&&V(c.__frame_theme.theme),ue(c)&&ke(c.__frame_patch,o);const g=c?.__fc_mode;g&&typeof g=="object"&&!f&&N&&A.test(N)&&(f=!0,R(N).then(z=>z.install?.(o,g.on===!0)).catch(()=>{}));const F=c?.__ft_cmd;F&&typeof F=="object"&&!_&&I&&A.test(I)&&(_=!0,R(I).then(z=>z.install?.(o,F)).catch(()=>{}))});const b=Object.keys(l.capabilities??{}).filter(c=>Object.hasOwn(L,c)).map(c=>[c,L[c]]).filter(c=>typeof c[1]=="string"&&A.test(c[1])),i=await Promise.allSettled(b.map(([,c])=>R(c))),m=await e,u=E;if(m?.buildBoot||p.post({__frame_cap_telemetry:{kind:"cap-load-error",cap:"_transforms"}},u),m?.buildBoot)try{P=m.buildBoot(l,m.TRANSFORMS??{},{shellOrigin:u,mount:D},c=>p.post({__frame_cap_telemetry:c},u))}catch{p.post({__frame_cap_telemetry:{kind:"cap-load-error",cap:"_transforms"}},u),P=K(l,u)}else P=K(l,u);const k=c=>p.post({__frame_cap_telemetry:{kind:"cap-load-error",cap:c}},u),Pe=P;i.forEach((c,x)=>{const g=b[x][0];if(c.status!=="fulfilled"){k(g);return}try{c.value?.install?.(Pe)}catch{k(g)}}),U(),await h,p.post({__frame_ready:!0},E),e.then(c=>c?.installSizeReporter?.(u,w))})}else C&&(Z(),ge(C,W,R,{settle:U,mount:D}))})();</script><!-- /frame-runtime --><meta name="viewport" content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}</style></head><body>
+<!-- ================================================================
+     012-ADMIN-REVISIONS SUPERSEDES PARTS OF THIS DOCUMENT
+     Added 2026-09-03. The 011 content below is left unedited as the
+     historical record of that feature; this banner names what 012
+     changed so a reader does not act on a stale rule.
+     ================================================================ -->
+<div style="border:3px solid #9C3222;background:#F7E2DD;color:#151A17;
+            padding:18px 22px;margin:0 0 24px;font:15px/1.55 system-ui,sans-serif;">
+  <p style="margin:0 0 10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;">
+    Partly superseded by 012-ADMIN-REVISIONS
+  </p>
+  <p style="margin:0 0 10px;">
+    This is the 011 state-machine reference and is accurate for 011. Four of its
+    statements no longer hold after 012. Everything else still applies.
+  </p>
+  <ol style="margin:0;padding-left:20px;">
+    <li><b>EDITING is no longer always hidden.</b> A poll being edited stays in the
+      public listing if the public had already seen it (its pre-edit state was
+      WAITING TO OPEN, OPEN or CLOSED), so its card can carry a
+      &ldquo;momentarily unavailable&rdquo; message instead of vanishing mid-edit.
+      A poll the public had never seen &mdash; INITIALIZED or REJECTED &mdash; is still
+      withheld. <i>012 FR-046.</i></li>
+    <li><b>Administrators can now drive OPEN, CLOSED and ARCHIVED directly</b> from the
+      poll list, in addition to the schedule sweep. OPEN is allowed from WAITING TO OPEN
+      or CLOSED; CLOSED from WAITING TO OPEN or OPEN; ARCHIVED still only from CLOSED.
+      <i>012 FR-024.</i></li>
+    <li><b>Archiving no longer stamps <code>endAt = now</code>.</b> It writes the state and
+      nothing else, so a poll keeps the date it actually closed. The manual OPEN and
+      CLOSED transitions write the schedule so the date sweep confirms them rather than
+      reverting them &mdash; there is still no override flag. <i>012 FR-025&ndash;FR-028.</i></li>
+    <li><b>A vote refused because the poll is being edited</b> now returns a distinct
+      message and the code <code>POLL_EDITING</code>, so the card can offer a retry rather
+      than the closed-poll treatment. <i>012 FR-044.</i></li>
+  </ol>
+  <p style="margin:10px 0 0;">
+    Current model: <code>specs/012-ADMIN-REVISIONS/data-model.md</code> &sect;4.
+  </p>
+</div>
+<div id="AICAT_extensionId" extensionid="boclgmmappplileleefcmgceglfoneac"></div>
+<title>Poll Lifecycle State Machine (Copy)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com/">
+<link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
+<link rel="stylesheet" href="file:///C:/Users/roadr/Downloads/Poll%20Lifecycle%20State%20Machine_files/css2">
+
+<style>
+  :root {
+    --ground:   #F6F7F9;
+    --surface:  #FFFFFF;
+    --surface-2:#EEF1F5;
+    --ink:      #14181F;
+    --ink-2:    #576070;
+    --ink-3:    #7C8698;
+    --rule:     #DCE0E7;
+    --rule-2:   #C6CCD6;
+    --accent:   #2D5BD1;
+    --accent-w: #E7EDFB;
+    --go:       #14704A;
+    --go-w:     #E2F1EA;
+    --stop:     #B0261C;
+    --stop-w:   #FAE8E6;
+    --gap:      #B06A0B;
+    --gap-w:    #FBEFDC;
+    --shadow:   0 1px 2px rgba(20,24,31,.06), 0 8px 24px -12px rgba(20,24,31,.18);
+
+    --f-disp: "IBM Plex Sans Condensed", "Helvetica Neue", Arial, sans-serif;
+    --f-body: "IBM Plex Sans", "Segoe UI", Helvetica, Arial, sans-serif;
+    --f-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:   #0E1218;
+      --surface:  #161C25;
+      --surface-2:#1D2530;
+      --ink:      #E6EAF0;
+      --ink-2:    #98A3B4;
+      --ink-3:    #78849A;
+      --rule:     #28313D;
+      --rule-2:   #3A4553;
+      --accent:   #7CA0F5;
+      --accent-w: #1B2740;
+      --go:       #4FBE8B;
+      --go-w:     #12271F;
+      --stop:     #F08A80;
+      --stop-w:   #2E1A18;
+      --gap:      #E3A33F;
+      --gap-w:    #2C2314;
+      --shadow:   0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground:   #0E1218;
+    --surface:  #161C25;
+    --surface-2:#1D2530;
+    --ink:      #E6EAF0;
+    --ink-2:    #98A3B4;
+    --ink-3:    #78849A;
+    --rule:     #28313D;
+    --rule-2:   #3A4553;
+    --accent:   #7CA0F5;
+    --accent-w: #1B2740;
+    --go:       #4FBE8B;
+    --go-w:     #12271F;
+    --stop:     #F08A80;
+    --stop-w:   #2E1A18;
+    --gap:      #E3A33F;
+    --gap-w:    #2C2314;
+    --shadow:   0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
+
+  body { background: var(--ground); color: var(--ink); font-family: var(--f-body);
+         font-size: 16px; line-height: 1.62; -webkit-font-smoothing: antialiased; }
+
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 0 28px 96px; }
+  .col  { max-width: 74ch; }
+
+  header { padding: 64px 0 40px; border-bottom: 1px solid var(--rule); margin-bottom: 40px; }
+  .eyebrow { font-family: var(--f-mono); font-size: 11.5px; font-weight: 500;
+             letter-spacing: .13em; text-transform: uppercase; color: var(--accent); }
+  h1 { font-family: var(--f-disp); font-weight: 700; font-size: clamp(2.1rem, 5vw, 3.1rem);
+       line-height: 1.06; letter-spacing: -.015em; margin: 14px 0 0; text-wrap: balance; }
+  .standfirst { font-size: 1.12rem; color: var(--ink-2); margin: 18px 0 0; max-width: 68ch; }
+  .srcline { margin-top: 26px; font-family: var(--f-mono); font-size: 12px; color: var(--ink-3);
+             display: flex; flex-wrap: wrap; gap: 6px 18px; }
+
+  section { margin-top: 72px; }
+  .sechead { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+             border-top: 1px solid var(--rule); padding-top: 18px; margin-bottom: 8px; }
+  .kind { font-family: var(--f-mono); font-size: 10.5px; font-weight: 600; letter-spacing: .14em;
+          text-transform: uppercase; color: var(--ink-3); border: 1px solid var(--rule-2);
+          padding: 3px 8px; border-radius: 3px; white-space: nowrap; }
+  h2 { font-family: var(--f-disp); font-weight: 600; font-size: 1.72rem; letter-spacing: -.01em;
+       margin: 0; line-height: 1.15; }
+  h3 { font-family: var(--f-disp); font-weight: 600; font-size: 1.16rem; margin: 0;
+       letter-spacing: -.005em; }
+  p { margin: 14px 0; }
+  .lede { color: var(--ink-2); margin-top: 12px; }
+
+  code { font-family: var(--f-mono); font-size: .875em; background: var(--surface-2);
+         border-radius: 3px; padding: .1em .34em; border: 1px solid var(--rule); }
+  .m-plain { font-family: var(--f-mono); font-size: .875em; }
+
+  .verdict { margin-top: 30px; border: 1px solid var(--go); background: var(--go-w);
+             border-radius: 8px; padding: 22px 26px; }
+  .verdict .kind { border-color: var(--go); color: var(--go); }
+  .verdict h3 { margin: 12px 0 0; font-size: 1.3rem; }
+  .verdict ul { margin: 12px 0 0; padding-left: 20px; }
+  .verdict li { font-size: 14px; color: var(--ink-2); margin: 7px 0; }
+  .verdict li b { color: var(--ink); }
+
+  .resolved { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1px;
+              background: var(--rule); border: 1px solid var(--rule); border-radius: 8px;
+              overflow: hidden; margin-top: 30px; }
+  .resolved div { background: var(--surface); padding: 14px 16px; }
+  .resolved b { display: block; font-family: var(--f-mono); font-size: 10px; letter-spacing: .11em;
+                text-transform: uppercase; color: var(--go); margin-bottom: 5px; }
+  .resolved span { font-size: 13px; color: var(--ink-2); line-height: 1.45; }
+
+  figure { margin: 30px 0 0; }
+  .bleed { max-width: 1180px; }
+  .figbox { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px;
+            padding: 20px 22px; box-shadow: var(--shadow); overflow-x: auto; }
+  .figbox svg { display: block; width: 100%; min-width: 780px; height: auto; }
+  figcaption { font-size: .875rem; color: var(--ink-2); margin-top: 14px; max-width: 84ch; }
+
+  .n-box   { fill: var(--surface-2); stroke: var(--rule-2); stroke-width: 1.4; }
+  .n-box.is-go   { fill: var(--go-w);     stroke: var(--go);     }
+  .n-box.is-stop { fill: var(--stop-w);   stroke: var(--stop);   }
+  .n-box.is-acc  { fill: var(--accent-w); stroke: var(--accent); stroke-width: 1.8; }
+  .n-box.is-lock { fill: var(--gap-w);    stroke: var(--gap);    stroke-width: 1.8; }
+  .n-box.is-term { fill: var(--surface-2); stroke: var(--ink-2); stroke-width: 2.4; }
+  .n-label { font-family: var(--f-disp); font-weight: 600; font-size: 14px; fill: var(--ink);
+             text-anchor: middle; letter-spacing: .01em; }
+  .n-sub   { font-family: var(--f-mono); font-size: 9.5px; fill: var(--ink-3); text-anchor: middle; }
+
+  .hexbox  { fill: var(--accent-w); stroke: var(--accent); stroke-width: 1.6; }
+  .cluster { fill: none; stroke: var(--rule-2); stroke-width: 1.2; stroke-dasharray: 3 5; }
+  .clabel  { font-family: var(--f-mono); font-size: 10px; fill: var(--ink-3); letter-spacing: .1em; }
+  .cnote   { font-family: var(--f-mono); font-size: 10px; fill: var(--ink-2); }
+
+  .e-ink  { fill: none; stroke: var(--ink-2); stroke-width: 1.5; }
+  .e-acc  { fill: none; stroke: var(--accent); stroke-width: 1.6; }
+  .e-stop { fill: none; stroke: var(--stop);   stroke-width: 1.6; }
+  .e-dash { fill: none; stroke: var(--ink-3);  stroke-width: 1.3; stroke-dasharray: 4 4; }
+  .m-ink  { fill: var(--ink-2); }
+  .m-acc  { fill: var(--accent); }
+  .m-stop { fill: var(--stop); }
+
+  .t      { font-family: var(--f-body); font-size: 11.5px; fill: var(--ink-2); }
+  .t-acc  { font-family: var(--f-body); font-size: 11.5px; fill: var(--accent); }
+  .t-stop { font-family: var(--f-body); font-size: 11.5px; fill: var(--stop); }
+  .t-go   { font-family: var(--f-body); font-size: 11.5px; fill: var(--go); }
+  .t-sm   { font-family: var(--f-mono); font-size: 10px;   fill: var(--ink-3); }
+  .start-dot { fill: var(--ink-2); }
+
+  .band-w { fill: var(--surface-2); stroke: var(--rule-2); stroke-width: 1; }
+  .band-o { fill: var(--go-w); stroke: var(--go); stroke-width: 1.2; }
+  .band-c { fill: var(--stop-w); stroke: var(--stop); stroke-width: 1.2; }
+  .band-a { fill: var(--accent-w); stroke: var(--accent); stroke-width: 1.2; }
+  .band-g { fill: var(--gap-w); stroke: var(--gap); stroke-width: 1.2; }
+  .tick   { stroke: var(--ink-2); stroke-width: 1.4; }
+  .dot-in { fill: var(--go); }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 26px; margin: 18px 0 2px;
+            font-family: var(--f-mono); font-size: 11.5px; color: var(--ink-2); }
+  .legend span { display: inline-flex; align-items: center; gap: 8px; }
+  .legend i { display: inline-block; width: 26px; height: 0; border-top-width: 2px; border-top-style: solid; }
+  .lg-acc  { border-color: var(--accent); }
+  .lg-ink  { border-color: var(--ink-2); }
+  .lg-stop { border-color: var(--stop); }
+
+  .tablewrap { overflow-x: auto; margin-top: 24px; border: 1px solid var(--rule);
+               border-radius: 8px; background: var(--surface); box-shadow: var(--shadow); }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  thead th { font-family: var(--f-mono); font-size: 10.5px; font-weight: 600; letter-spacing: .09em;
+             text-transform: uppercase; color: var(--ink-3); background: var(--surface-2);
+             white-space: nowrap; border-bottom: 1px solid var(--rule-2); }
+  tbody tr:last-child td, tbody tr:last-child th[scope="row"] { border-bottom: 0; }
+  th[scope="row"] { font-family: var(--f-mono); font-size: 11.5px; font-weight: 500; color: var(--ink);
+                    white-space: nowrap; background: var(--surface-2); border-right: 1px solid var(--rule); }
+  td { font-family: var(--f-mono); font-size: 11px; color: var(--ink-2); line-height: 1.5; }
+  td.prose { font-family: var(--f-body); font-size: 13.5px; }
+  .c-go   { color: var(--go); }
+  .c-stop { color: var(--stop); }
+  .c-off  { color: var(--ink-3); }
+  .c-acc  { color: var(--accent); }
+
+  .assump { border: 1px solid var(--rule); border-left: 3px solid var(--accent); border-radius: 8px;
+            background: var(--surface); padding: 6px 24px 20px; margin-top: 24px; box-shadow: var(--shadow); }
+  .assump dl { margin: 0; }
+  .assump dt { font-family: var(--f-disp); font-weight: 600; font-size: 1rem; margin-top: 22px; color: var(--ink); }
+  .assump dd { margin: 5px 0 0; font-size: 13.5px; color: var(--ink-2); }
+
+  .note { font-size: .9rem; color: var(--ink-2); }
+
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+  @media (max-width: 640px) { .wrap { padding: 0 18px 64px; } header { padding-top: 40px; } }
+</style>
+
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">011-SIMPLIFY-POLL-STATES · revision 13 · final</div>
+  <h1>Poll Lifecycle State Machine</h1>
+  <p class="standfirst">
+    Eight states, ten events, three named background sweeps. Every cell in the event grid is defined,
+    every field's writers and clearers balance, and every path out of every state terminates. Nothing
+    is left open.
+  </p>
+  <div class="srcline">
+    <span>source: designDocs/011-high-level-requirements-SIMPLIFY-POLL-STATES.md — 379 lines</span>
+    <span>0 findings</span>
+  </div>
+</header>
+
+<div class="verdict col">
+  <span class="kind">Verification</span>
+  <h3>What I checked, and what held</h3>
+  <ul>
+    <li><b>Event coverage.</b> 8 states × 10 events = 80 cells, each with a stated outcome. No combination falls through.</li>
+    <li><b>Field balance.</b> All seven poll fields now have a clearer on every path that sets them. The two that did not balance last pass — <code>POLL_APPROVAL_DATE_TIME</code> and <code>POLL_ACCEPTABILITY_SCREENING_ATTEMPTS</code> — are closed by the content-rejection edit at lines 250–252.</li>
+    <li><b>Termination.</b> Traced against the text as written: with <code>MAX_ACCEPTABILITY_SCREENING_ATTEMPTS</code> at 10 the sweep makes exactly ten screening calls and rejects on the eleventh tick, and the counter advances identically whether the API errors or the process is killed. <code>AWAITING APPROVAL</code> cannot be entered without leaving.</li>
+    <li><b>Lock safety.</b> A client that fails either confirmation writes nothing (lines 77–80), confirmations run before the timestamp update (lines 73–75), and <code>startEditUpdate</code> re-checks access server-side (lines 66–68). No path lets a stale tab affect a newer session.</li>
+    <li><b>Sweep isolation.</b> The three sweeps act on disjoint sets of states, so two can never contend for the same poll.</li>
+  </ul>
+</div>
+
+<div class="resolved">
+  <div><b>Closed this pass</b><span>Lines 250–252: a content rejection now clears <span class="m-plain">POLL_APPROVAL_DATE_TIME</span> and resets the attempt counter — a completed screening call is not a failed attempt, whatever verdict it returned.</span></div>
+  <div><b>Closed this pass</b><span>Line 200: <span class="m-plain">saveAndPublishPoll</span> clears <span class="m-plain">POLL_STATE_BEFORE_EDITING</span>, so all three exits from <span class="m-plain">EDITING</span> clear the same three fields.</span></div>
+  <div><b>Closed this pass</b><span>Lines 66–68: <span class="m-plain">startEditUpdate</span> re-checks the page access conditions on the server, so the editing lock no longer depends on the UI having checked them.</span></div>
+</div>
+
+<!-- ============================= FSM ============================= -->
+<section>
+  <div class="sechead"><span class="kind">Diagram</span><h2>The machine</h2></div>
+  <p class="col lede">
+    Double-headed arrows are editing sessions: the poll goes into <code>EDITING</code> and comes back
+    to whatever <code>POLL_STATE_BEFORE_EDITING</code> held, whether the author cancels or the sweep
+    reclaims an abandoned session.
+  </p>
+
+  <div class="legend" aria-hidden="true">
+    <span><i class="lg-acc"></i> author / admin action</span>
+    <span><i class="lg-ink"></i> background sweep</span>
+    <span><i class="lg-stop"></i> ends in REJECTED</span>
+  </div>
+
+  <figure class="bleed">
+    <div class="figbox">
+      <svg viewBox="0 0 1360 900" role="img" aria-label="Complete state machine for the poll lifecycle. A new poll starts in INITIALIZED. Opening either settings page from INITIALIZED, REJECTED, WAITING TO OPEN, OPEN or CLOSED stashes the current state and moves the poll to EDITING; cancelling, or a stale heartbeat found by staleEditUpdateSweep, returns it to the stashed state. Save and Publish moves it from EDITING to AWAITING APPROVAL. The pollsAwaitingApprovalSweep every five seconds claims an unclaimed poll, counts the attempt, and runs acceptability screening. Screening returning a reason sends the poll to REJECTED; an API failure releases the claim so the poll retries; after ten counted attempts the poll is rejected, and an admin can press re-attempt to send it back to AWAITING APPROVAL. A screening that returns an empty string runs the date-time check which lands the poll in WAITING TO OPEN, OPEN or CLOSED. The pollDateCheckSweep every minute moves polls among those three scheduled states. An admin can archive a CLOSED poll to the terminal ARCHIVED state.">
+        <defs>
+          <marker id="ar-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="m-ink"></path></marker>
+          <marker id="ar-acc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="m-acc"></path></marker>
+          <marker id="ar-stop" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="m-stop"></path></marker>
+        </defs>
+
+        <rect class="cluster" x="1000" y="140" width="340" height="590" rx="10"></rect>
+        <text class="clabel" x="1020" y="164">SCHEDULED</text>
+        <text class="cnote" x="1020" y="182">pollDateCheckSweep · 60 s</text>
+        <text class="cnote" x="1020" y="198">start &gt; end → repaired (fail-safe)</text>
+
+        <circle class="start-dot" cx="135" cy="18" r="5"></circle>
+        <path class="e-ink" d="M135 25 V 54" marker-end="url(#ar-ink)"></path>
+        <text class="t" x="147" y="22">new poll</text>
+
+        <rect class="n-box" x="40" y="60" width="190" height="54" rx="7"></rect>
+        <text class="n-label" x="135" y="85">INITIALIZED</text>
+        <text class="n-sub" x="135" y="99">all fields default · hidden</text>
+
+        <rect class="n-box is-lock" x="330" y="60" width="200" height="54" rx="7"></rect>
+        <text class="n-label" x="430" y="85">EDITING</text>
+        <text class="n-sub" x="430" y="99">locked by client GUID · hidden</text>
+
+        <rect class="n-box is-acc" x="650" y="60" width="230" height="54" rx="7"></rect>
+        <text class="n-label" x="765" y="85">AWAITING APPROVAL</text>
+        <text class="n-sub" x="765" y="99">hidden · locked</text>
+
+        <polygon class="hexbox" points="650,240 696,194 834,194 880,240 834,286 696,286"></polygon>
+        <text class="n-label" x="765" y="234" style="font-size:13px">Acceptability</text>
+        <text class="n-label" x="765" y="251" style="font-size:13px">Screening</text>
+
+        <rect class="n-box is-stop" x="330" y="330" width="200" height="54" rx="7"></rect>
+        <text class="n-label" x="430" y="355">REJECTED</text>
+        <text class="n-sub" x="430" y="369">hidden · reason shown</text>
+
+        <polygon class="hexbox" points="650,430 696,384 834,384 880,430 834,476 696,476"></polygon>
+        <text class="n-label" x="765" y="424" style="font-size:13px">DateTimeCheck</text>
+        <text class="n-sub" x="765" y="442">START / END window</text>
+
+        <rect class="n-box" x="1040" y="210" width="260" height="54" rx="7"></rect>
+        <text class="n-label" x="1170" y="235">WAITING TO OPEN</text>
+        <text class="n-sub" x="1170" y="249">listed · votes refused</text>
+
+        <rect class="n-box is-go" x="1040" y="410" width="260" height="54" rx="7"></rect>
+        <text class="n-label" x="1170" y="435">OPEN</text>
+        <text class="n-sub" x="1170" y="449">listed · votes accepted</text>
+
+        <rect class="n-box" x="1040" y="610" width="260" height="54" rx="7"></rect>
+        <text class="n-label" x="1170" y="635">CLOSED</text>
+        <text class="n-sub" x="1170" y="649">listed · read-only</text>
+
+        <rect class="n-box is-term" x="1040" y="770" width="260" height="54" rx="7"></rect>
+        <text class="n-label" x="1170" y="795">ARCHIVED</text>
+        <text class="n-sub" x="1170" y="809">terminal · deletable</text>
+
+        <path class="e-acc" d="M 234 80 H 326" marker-start="url(#ar-acc)" marker-end="url(#ar-acc)"></path>
+        <text class="t-acc" x="280" y="70" text-anchor="middle">open editPoll</text>
+        <text class="t-sm" x="280" y="110" text-anchor="middle">cancel · stale</text>
+
+        <path class="e-acc" d="M 414 326 V 118" marker-start="url(#ar-acc)" marker-end="url(#ar-acc)"></path>
+        <text class="t-acc" x="406" y="215" text-anchor="end">open page</text>
+        <text class="t-sm" x="424" y="215">cancel · stale</text>
+
+        <path class="e-acc" d="M 430 52 V 24 H 1170 V 206" marker-start="url(#ar-acc)" marker-end="url(#ar-acc)"></path>
+        <text class="t-acc" x="450" y="20">open page — from any scheduled state · returns on cancel or stale heartbeat</text>
+
+        <path class="e-dash" d="M 360 168 V 120" marker-end="url(#ar-ink)"></path>
+        <text class="t-sm" x="352" y="162" text-anchor="end">staleEditUpdateSweep · 20 s</text>
+        <text class="t-sm" x="352" y="176" text-anchor="end">stale at 20 s → revert</text>
+
+        <path class="e-acc" d="M 530 87 H 646" marker-end="url(#ar-acc)"></path>
+        <text class="t-acc" x="588" y="76" text-anchor="middle">Save and Publish</text>
+
+        <path class="e-ink" d="M 765 114 V 190" marker-end="url(#ar-ink)"></path>
+        <text class="t" x="775" y="144">pollsAwaitingApprovalSweep</text>
+        <text class="t-sm" x="775" y="158">every 5 s · if no claim</text>
+        <text class="t-sm" x="775" y="172">claim + ATTEMPTS + 1</text>
+
+        <path class="e-ink" d="M 880 74 H 930 V 100 H 884" marker-end="url(#ar-ink)"></path>
+        <text class="t-sm" x="938" y="78">API fails → release claim</text>
+        <text class="t-sm" x="938" y="92">retry in ≤ 5 s</text>
+
+        <path class="e-stop" d="M 650 106 H 596 V 340 H 534" marker-end="url(#ar-stop)"></path>
+        <text class="t-stop" x="608" y="304">ATTEMPTS ≥ 10</text>
+
+        <path class="e-acc" d="M 490 330 V 320 H 570 V 96 H 646" marker-end="url(#ar-acc)"></path>
+        <text class="t-acc" x="439" y="310">admin re-attempts</text>
+
+        <path class="e-stop" d="M 696 286 V 357 H 534" marker-end="url(#ar-stop)"></path>
+        <text class="t-stop" x="620" y="350">returns a reason</text>
+
+        <path class="e-ink" d="M 765 286 V 380" marker-end="url(#ar-ink)"></path>
+        <text class="t-go" x="775" y="338">returns empty string</text>
+
+        <path class="e-ink" d="M 852 402 H 940 V 237 H 1036" marker-end="url(#ar-ink)"></path>
+        <path class="e-ink" d="M 880 430 H 960 V 437 H 1036" marker-end="url(#ar-ink)"></path>
+        <path class="e-ink" d="M 852 458 H 940 V 637 H 1036" marker-end="url(#ar-ink)"></path>
+
+        <path class="e-ink" d="M 1110 264 V 404" marker-end="url(#ar-ink)"></path>
+        <text class="t" x="1102" y="340" text-anchor="end">start reached</text>
+        <path class="e-ink" d="M 1230 410 V 270" marker-end="url(#ar-ink)"></path>
+        <text class="t" x="1238" y="340">start pushed out</text>
+        <path class="e-ink" d="M 1110 464 V 604" marker-end="url(#ar-ink)"></path>
+        <text class="t" x="1102" y="540" text-anchor="end">end passed</text>
+        <path class="e-ink" d="M 1230 610 V 470" marker-end="url(#ar-ink)"></path>
+        <text class="t" x="1238" y="540">end pushed out</text>
+
+        <path class="e-ink" d="M 1170 664 V 766" marker-end="url(#ar-ink)"></path>
+        <text class="t" x="1182" y="706">admin archives</text>
+      </svg>
+    </div>
+    <figcaption>
+      The date rule is total over the three scheduled states — each maps to any of the three — so the
+      two direct <code>WAITING TO OPEN</code> ⇄ <code>CLOSED</code> edges exist but are omitted here
+      for legibility; all nine outcomes appear in the event grid below.
+    </figcaption>
+  </figure>
+</section>
+
+<!-- ============================= RETRY ============================= -->
+<section>
+  <div class="sechead"><span class="kind">Timing</span><h2>The retry budget</h2></div>
+  <p class="col lede">
+    The two ways an attempt can go wrong, side by side. They differ in how long the claim is held and
+    which process releases it — but not in whether the attempt is counted, which is the property the
+    budget depends on.
+  </p>
+
+  <figure class="bleed">
+    <div class="figbox">
+      <svg viewBox="0 0 1060 300" role="img" aria-label="Two lanes comparing screening failure paths. In the first lane the process is alive: the claim is taken and the attempt counted at time zero, the API fails at ten seconds and the claim is released, and the next attempt starts by fifteen seconds. In the second lane the process dies: the claim is taken and the attempt counted at time zero, nothing else happens, the stale-claim fail-safe releases the claim at twenty seconds, and the next attempt starts by twenty-five seconds. In both lanes the attempt counter advanced by one.">
+        <defs>
+          <marker id="rb-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="m-ink"></path></marker>
+        </defs>
+
+        <text class="t-sm" x="90" y="42">process alive — the API errors or times out · lines 266–273</text>
+        <rect class="band-a" x="90" y="54" width="180" height="40" rx="5"></rect>
+        <text class="n-sub" x="180" y="72" style="font-size:10.5px">claim · ATTEMPTS + 1</text>
+        <text class="n-sub" x="180" y="86" style="font-size:10.5px">screening call</text>
+        <rect class="band-w" x="270" y="54" width="90" height="40" rx="5"></rect>
+        <text class="n-sub" x="315" y="78" style="font-size:10px">waiting</text>
+        <rect class="band-a" x="360" y="54" width="180" height="40" rx="5"></rect>
+        <text class="n-sub" x="450" y="78" style="font-size:10.5px">attempt 2</text>
+        <text class="t-go" x="556" y="78">≈ 15 s per attempt</text>
+
+        <text class="t-sm" x="90" y="140">process dies mid-call — the fail-safe recovers · lines 275–287</text>
+        <rect class="band-g" x="90" y="152" width="360" height="40" rx="5"></rect>
+        <text class="n-sub" x="270" y="170" style="font-size:10.5px">claim · ATTEMPTS + 1</text>
+        <text class="n-sub" x="270" y="184" style="font-size:10.5px">then nothing — the process is gone</text>
+        <rect class="band-w" x="450" y="152" width="90" height="40" rx="5"></rect>
+        <text class="n-sub" x="495" y="176" style="font-size:10px">waiting</text>
+        <rect class="band-a" x="540" y="152" width="180" height="40" rx="5"></rect>
+        <text class="n-sub" x="630" y="176" style="font-size:10.5px">attempt 2</text>
+        <text class="t-sm" x="736" y="176">≈ 25 s per attempt</text>
+
+        <path class="e-ink" d="M90 224 H 1000" marker-end="url(#rb-ar)"></path>
+        <line class="tick" x1="90" y1="216" x2="90" y2="232"></line>
+        <line class="tick" x1="270" y1="216" x2="270" y2="232"></line>
+        <line class="tick" x1="360" y1="216" x2="360" y2="232"></line>
+        <line class="tick" x1="450" y1="216" x2="450" y2="232"></line>
+        <line class="tick" x1="540" y1="216" x2="540" y2="232"></line>
+
+        <text class="n-sub" x="90" y="248" style="font-size:10.5px">0</text>
+        <text class="n-sub" x="270" y="248" style="font-size:10.5px">10 s</text>
+        <text class="n-sub" x="360" y="248" style="font-size:10.5px">15 s</text>
+        <text class="n-sub" x="450" y="248" style="font-size:10.5px">20 s</text>
+        <text class="n-sub" x="540" y="248" style="font-size:10.5px">25 s</text>
+
+        <text class="t-go" x="90" y="282">In both lanes the counter advanced by 1 — so ten attempts always arrive at MAX_ACCEPTABILITY_SCREENING_ATTEMPTS and the poll reaches REJECTED.</text>
+      </svg>
+    </div>
+    <figcaption>
+      The counter is incremented when the claim is taken (line 232), not on either failure path, so no
+      failure mode can escape it — including the process being killed part-way through the call. A
+      healthy-API outage runs the budget down in roughly 150 seconds; a crash loop takes about 250
+      because each attempt waits out the 20-second fail-safe. Both terminate at
+      <code>REJECTED</code>, where the admin gets a re-attempt button (line 300).
+    </figcaption>
+  </figure>
+</section>
+
+<!-- ============================= FIELDS ============================= -->
+<section>
+  <div class="sechead"><span class="kind">Reference</span><h2>Seven fields, ten writers</h2></div>
+  <p class="col lede">
+    Every poll field, who writes it, who clears it. All seven rows balance: nothing is set on a path
+    that has no matching clear.
+  </p>
+
+  <div class="tablewrap bleed">
+    <table>
+      <thead>
+        <tr><th scope="col">field</th><th scope="col">set / incremented by</th><th scope="col">cleared / reset by</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row">POLL_STATE</th>
+          <td>every handler and sweep</td>
+          <td class="c-off">n/a — always holds one of the eight values</td>
+        </tr>
+        <tr>
+          <th scope="row">POLL_STATE_BEFORE_EDITING</th>
+          <td><span class="m-plain">startEditUpdate</span> · 61</td>
+          <td class="c-go"><span class="m-plain">staleEditUpdateSweep</span> · 96<br>exit without saving · 158<br><span class="m-plain">saveAndPublishPoll</span> · 200</td>
+        </tr>
+        <tr>
+          <th scope="row">POLL_EDITING_HEARTBEAT_TIMESTAMP</th>
+          <td><span class="m-plain">startEditUpdate</span> · 63<br><span class="m-plain">pollEditHeartbeat</span> · 75 — after both confirmations</td>
+          <td class="c-go">sweep · 97 · exit · 159<br>publish · 201 · re-attempt · 305</td>
+        </tr>
+        <tr>
+          <th scope="row">POLL_EDITING_UPDATING_CLIENT_GUID</th>
+          <td><span class="m-plain">startEditUpdate</span> · 64</td>
+          <td class="c-go">sweep · 98 · exit · 160<br>publish · 202 · re-attempt · 306</td>
+        </tr>
+        <tr>
+          <th scope="row">POLL_REJECTION_REASON</th>
+          <td>content rejection · 253<br>API failure · 271<br>stale-claim fail-safe · 283<br>budget exhausted · 228</td>
+          <td class="c-go">screening passes · 261<br>after approval · 256<br>publish · 198 · re-attempt · 303</td>
+        </tr>
+        <tr>
+          <th scope="row">POLL_APPROVAL_DATE_TIME</th>
+          <td>claim taken · 231</td>
+          <td class="c-go">content rejection · 251<br>screening passes · 262<br>API failure · 270 · fail-safe · 281<br>publish · 199 · re-attempt · 304</td>
+        </tr>
+        <tr>
+          <th scope="row">POLL_ACCEPTABILITY_SCREENING_ATTEMPTS</th>
+          <td class="c-go">claim taken · 232 — every attempt, on every path</td>
+          <td class="c-go">content rejection → 0 · 251<br>screening passes → 0 · 263<br>publish → 0 · 203 · re-attempt → 0 · 307</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="col note">
+    The rule that makes the last two rows work: a screening call that <em>returns</em> — with a reason
+    or with an empty string — counts as a completed attempt and resets the counter. Only a call that
+    fails to complete leaves the counter advanced.
+  </p>
+</section>
+
+<!-- ============================= CONSTANTS ============================= -->
+<section>
+  <div class="sechead"><span class="kind">Reference</span><h2>Every tunable, and what it governs</h2></div>
+  <p class="col lede">Six constants, each defined once.</p>
+
+  <div class="tablewrap bleed">
+    <table>
+      <thead>
+        <tr><th scope="col">constant</th><th scope="col">value</th><th scope="col">line</th><th scope="col">what it governs</th></tr>
+      </thead>
+      <tbody>
+        <tr><th scope="row">POLL_EDITING_HEARTBEAT_TIMESTAMP_INTERVAL</th><td>10 s</td><td class="c-off">71</td><td class="prose">How often the open page calls <span class="m-plain">pollEditHeartbeat</span>. Stale threshold is <b>2 ×</b> this — 20 s (line 89).</td></tr>
+        <tr><th scope="row">staleEditUpdateSweep interval</th><td>20 s</td><td class="c-off">100, 345</td><td class="prose">Defined as <b>2 ×</b> the heartbeat interval. Worst case for an abandoned lock: 20 s stale + 20 s tick = <b>40 s</b>, as line 114 states.</td></tr>
+        <tr><th scope="row">POLL_APPROVAL_POLLING_INTERVAL</th><td>5 s</td><td class="c-off">218</td><td class="prose">How often <span class="m-plain">pollsAwaitingApprovalSweep</span> looks for unclaimed <span class="m-plain">AWAITING APPROVAL</span> polls.</td></tr>
+        <tr><th scope="row">API_CALL_TIMEOUT</th><td>10 s</td><td class="c-off">268</td><td class="prose">Caps the screening call. The stale-claim fail-safe triggers at <b>2 ×</b> this — 20 s (line 278).</td></tr>
+        <tr><th scope="row">MAX_ACCEPTABILITY_SCREENING_ATTEMPTS</th><td>10</td><td class="c-off">295</td><td class="prose">The retry budget, checked at line 226 before a claim is taken. Also the test for showing the re-attempt button (line 300).</td></tr>
+        <tr><th scope="row">POLL_DATE_CHECK_POLLING_INTERVAL</th><td>60 s</td><td class="c-off">327</td><td class="prose">How often <span class="m-plain">pollDateCheckSweep</span> re-applies the date rule to the three scheduled states.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============================= DATE RULE ============================= -->
+<section>
+  <div class="sechead"><span class="kind">Truth table</span><h2>The date rule</h2></div>
+  <p class="col lede">
+    One reusable function, called at the end of a passing screening and on every
+    <code>pollDateCheckSweep</code> tick. Every input maps to exactly one of the three scheduled states.
+  </p>
+
+  <figure class="bleed">
+    <div class="figbox">
+      <svg viewBox="0 0 900 200" role="img" aria-label="Timeline showing a poll is WAITING TO OPEN before its start date, OPEN between start and end inclusive of both boundaries, and CLOSED after its end date. An absent start date counts as already started; an absent end date means the poll never closes.">
+        <defs>
+          <marker id="dr-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="m-ink"></path></marker>
+        </defs>
+        <text class="t-go" x="460" y="34" text-anchor="middle">votes accepted only in this window</text>
+
+        <rect class="band-w" x="60" y="52" width="240" height="42" rx="4"></rect>
+        <rect class="band-o" x="300" y="52" width="320" height="42" rx="4"></rect>
+        <rect class="band-c" x="620" y="52" width="220" height="42" rx="4"></rect>
+
+        <text class="n-label" x="180" y="78" style="font-size:12.5px">WAITING TO OPEN</text>
+        <text class="n-label" x="460" y="78" style="font-size:12.5px">OPEN</text>
+        <text class="n-label" x="730" y="78" style="font-size:12.5px">CLOSED</text>
+
+        <path class="e-ink" d="M60 124 H 856" marker-end="url(#dr-ar)"></path>
+        <text class="t" x="864" y="128">time</text>
+
+        <line class="tick" x1="300" y1="114" x2="300" y2="134"></line>
+        <line class="tick" x1="620" y1="114" x2="620" y2="134"></line>
+        <circle class="dot-in" cx="300" cy="124" r="4.5"></circle>
+        <circle class="dot-in" cx="620" cy="124" r="4.5"></circle>
+
+        <text class="n-sub" x="300" y="152" style="font-size:10.5px">START_DATE_TIME</text>
+        <text class="n-sub" x="620" y="152" style="font-size:10.5px">END_DATE_TIME</text>
+        <text class="t-go" x="300" y="170" text-anchor="middle">inclusive</text>
+        <text class="t-go" x="620" y="170" text-anchor="middle">inclusive</text>
+
+        <text class="t" x="62" y="188">no START ⇒ treated as already started</text>
+        <text class="t" x="838" y="188" text-anchor="end">no END ⇒ never closes</text>
+      </svg>
+    </div>
+    <figcaption>
+      Both boundary instants belong to the open window: at exactly <code>START_DATE_TIME</code> the
+      poll is <code>OPEN</code>, and at exactly <code>END_DATE_TIME</code> it is still <code>OPEN</code>.
+    </figcaption>
+  </figure>
+
+  <div class="tablewrap bleed">
+    <table>
+      <thead><tr><th scope="col">started?</th><th scope="col">ended?</th><th scope="col">resulting state</th><th scope="col">when this happens</th></tr></thead>
+      <tbody>
+        <tr><td class="c-stop">no</td><td class="c-go">no</td><td class="c-off">WAITING TO OPEN</td><td class="prose">now &lt; <code>START_DATE_TIME</code></td></tr>
+        <tr><td class="c-go">yes</td><td class="c-go">no</td><td class="c-go">OPEN</td><td class="prose">start reached or absent, end not yet passed or absent</td></tr>
+        <tr><td class="c-go">yes</td><td class="c-stop">yes</td><td class="c-stop">CLOSED</td><td class="prose">now &gt; <code>END_DATE_TIME</code></td></tr>
+        <tr><td class="c-stop">no</td><td class="c-stop">yes</td><td class="c-go">CLOSED</td><td class="prose">start after end — prevented at both pages, with <code>pollDateCheckSweep</code> repairing <code>START</code> to 1 s before <code>END</code> as a stated fail-safe (line 335).</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============================= REACHABILITY ============================= -->
+<section>
+  <div class="sechead"><span class="kind">Matrix</span><h2>Which page an author can reach</h2></div>
+  <div class="col">
+    <p class="lede">
+      Vote count picks the page; three states bar both pages outright. Every cell traces to a line
+      rather than an inference.
+    </p>
+  </div>
+
+  <div class="tablewrap bleed">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">POLL_STATE</th>
+          <th scope="col">never voted</th>
+          <th scope="col">has votes cast</th>
+          <th scope="col">visible to the public</th>
+          <th scope="col">Delete offered</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><th scope="row">INITIALIZED</th><td class="c-acc">editPoll</td><td class="c-off">unreachable — votes only land while OPEN</td><td class="c-off">no · line 24</td><td class="c-go">yes · line 356</td></tr>
+        <tr><th scope="row">EDITING</th><td class="c-stop">neither · line 34</td><td class="c-stop">neither · line 167</td><td class="c-off">no · line 117</td><td class="c-off">no</td></tr>
+        <tr><th scope="row">AWAITING APPROVAL</th><td class="c-stop">neither · line 35</td><td class="c-stop">neither · line 168</td><td class="c-off">no · line 214</td><td class="c-off">no</td></tr>
+        <tr><th scope="row">REJECTED</th><td class="c-acc">editPoll</td><td class="c-acc">updatePoll</td><td class="c-off">no · line 214</td><td class="c-go">yes · line 357</td></tr>
+        <tr><th scope="row">WAITING TO OPEN</th><td class="c-acc">editPoll</td><td class="c-acc">updatePoll</td><td class="c-go">listed, not yet open</td><td class="c-off">no</td></tr>
+        <tr><th scope="row">OPEN</th><td class="c-acc">editPoll</td><td class="c-acc">updatePoll</td><td class="c-go">listed, accepting votes</td><td class="c-off">no</td></tr>
+        <tr><th scope="row">CLOSED</th><td class="c-acc">editPoll</td><td class="c-acc">updatePoll</td><td class="c-go">listed, read-only</td><td class="c-off">no</td></tr>
+        <tr><th scope="row">ARCHIVED</th><td class="c-stop">neither · line 36</td><td class="c-stop">neither · line 169</td><td class="c-off">no, admin only</td><td class="c-go">yes · line 358</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============================= EVENT GRID ============================= -->
+<section>
+  <div class="sechead"><span class="kind">Matrix</span><h2>Every state, every event</h2></div>
+  <p class="col lede">
+    8 states × 10 events = 80 cells, all defined. Because opening a settings page is itself a
+    transition, every authoring action fires from <code>EDITING</code> and nowhere else — which is why
+    the grid reads almost as a diagonal.
+  </p>
+
+  <div class="tablewrap bleed">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">POLL_STATE</th>
+          <th scope="col">open a<br>settings page</th>
+          <th scope="col">Save and<br>Publish</th>
+          <th scope="col">Cancel /<br>Back</th>
+          <th scope="col">staleEdit<br>UpdateSweep</th>
+          <th scope="col">pollsAwaiting<br>ApprovalSweep</th>
+          <th scope="col">pollDate<br>CheckSweep</th>
+          <th scope="col">admin<br>re-attempts</th>
+          <th scope="col">admin<br>archives</th>
+          <th scope="col">admin<br>deletes</th>
+          <th scope="col">vote<br>submitted</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row">INITIALIZED</th>
+          <td class="c-acc">→ EDITING</td>
+          <td class="c-off">needs EDITING</td>
+          <td class="c-off">needs EDITING</td>
+          <td class="c-off">not swept</td>
+          <td class="c-off">not swept</td>
+          <td class="c-off">not swept</td>
+          <td class="c-off">not offered</td>
+          <td class="c-stop">menu disabled</td>
+          <td class="c-go">allowed</td>
+          <td class="c-stop">refused — not OPEN</td>
+        </tr>
+        <tr>
+          <th scope="row">EDITING</th>
+          <td class="c-stop">refused — locked</td>
+          <td class="c-acc">→ AWAITING APPROVAL, or stays INITIALIZED if all defaults</td>
+          <td class="c-acc">→ POLL_STATE_BEFORE_EDITING</td>
+          <td class="c-go">stale at 20 s → revert, clear 3 fields</td>
+          <td class="c-off">not swept</td>
+          <td class="c-off">not swept</td>
+          <td class="c-off">not offered</td>
+          <td class="c-stop">refused</td>
+          <td class="c-off">not offered</td>
+          <td class="c-stop">refused — not OPEN</td>
+        </tr>
+        <tr>
+          <th scope="row">AWAITING APPROVAL</th>
+          <td class="c-stop">refused — locked</td>
+          <td class="c-off">needs EDITING</td>
+          <td class="c-off">needs EDITING</td>
+          <td class="c-off">not swept</td>
+          <td class="c-acc">ATTEMPTS ≥ 10 → REJECTED; else claim + count + screen; API fails → release claim; claim ≥ 20 s → release</td>
+          <td class="c-off">not swept</td>
+          <td class="c-off">not offered</td>
+          <td class="c-stop">refused</td>
+          <td class="c-off">not offered</td>
+          <td class="c-stop">refused — not OPEN</td>
+        </tr>
+        <tr>
+          <th scope="row">REJECTED</th>
+          <td class="c-acc">→ EDITING</td>
+          <td class="c-off">needs EDITING</td>
+          <td class="c-off">needs EDITING</td>
+          <td class="c-off">not swept</td>
+          <td class="c-off">not swept</td>
+          <td class="c-off">not swept</td>
+          <td class="c-acc">shown if ATTEMPTS ≥ 10 → AWAITING APPROVAL, reset six fields</td>
+          <td class="c-stop">refused</td>
+          <td class="c-go">allowed</td>
+          <td class="c-stop">refused — not OPEN</td>
+        </tr>
+        <tr>
+          <th scope="row">WAITING TO OPEN</th>
+          <td class="c-acc">→ EDITING</td>
+          <td class="c-off">needs EDITING</td>
+          <td class="c-off">needs EDITING</td>
+          <td class="c-off">not swept</td>
+          <td class="c-off">not swept</td>
+          <td class="c-go">date rule → any of the 3</td>
+          <td class="c-off">not offered</td>
+          <td class="c-stop">refused — CLOSED only</td>
+          <td class="c-off">not offered</td>
+          <td class="c-stop">refused — not yet open</td>
+        </tr>
+        <tr>
+          <th scope="row">OPEN</th>
+          <td class="c-acc">→ EDITING</td>
+          <td class="c-off">needs EDITING</td>
+          <td class="c-off">needs EDITING</td>
+          <td class="c-off">not swept</td>
+          <td class="c-off">not swept</td>
+          <td class="c-go">date rule → any of the 3</td>
+          <td class="c-off">not offered</td>
+          <td class="c-stop">refused — CLOSED only</td>
+          <td class="c-off">not offered</td>
+          <td class="c-go">accepted</td>
+        </tr>
+        <tr>
+          <th scope="row">CLOSED</th>
+          <td class="c-acc">→ EDITING</td>
+          <td class="c-off">needs EDITING</td>
+          <td class="c-off">needs EDITING</td>
+          <td class="c-off">not swept</td>
+          <td class="c-off">not swept</td>
+          <td class="c-go">date rule → any of the 3</td>
+          <td class="c-off">not offered</td>
+          <td class="c-go">→ ARCHIVED</td>
+          <td class="c-off">not offered</td>
+          <td class="c-stop">refused — closed</td>
+        </tr>
+        <tr>
+          <th scope="row">ARCHIVED</th>
+          <td class="c-stop">no menu item</td>
+          <td class="c-off">unreachable</td>
+          <td class="c-off">unreachable</td>
+          <td class="c-off">not swept</td>
+          <td class="c-off">not swept</td>
+          <td class="c-off">not swept</td>
+          <td class="c-off">not offered</td>
+          <td class="c-stop">already archived</td>
+          <td class="c-go">allowed</td>
+          <td class="c-stop">refused — archived</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="col note">
+    Four structural facts fall out of the grid. <code>ARCHIVED</code> is terminal because nothing in
+    its row moves it. The three sweeps act on disjoint sets of states, so they can never contend for
+    the same poll. No event other than the two later sweeps ever writes a scheduled state, which is
+    what lets the date rule stay a single pure function with no request context. And every path out of
+    <code>AWAITING APPROVAL</code> terminates, because the counter advances on every attempt.
+  </p>
+</section>
+
+<!-- ============================= ASSUMPTIONS ============================= -->
+<section>
+  <div class="sechead"><span class="kind">For the spec</span><h2>Decisions worth recording</h2></div>
+  <p class="col lede">
+    These are choices the document makes deliberately, each of which a reader might otherwise take for
+    a mistake. They belong in the specification's Assumptions section rather than being rediscovered
+    at implementation time.
+  </p>
+
+  <div class="assump col">
+    <dl>
+      <dt>Choices freeze at the first vote, not at publication</dt>
+      <dd>
+        A <code>WAITING TO OPEN</code>, <code>OPEN</code> or <code>CLOSED</code> poll that nobody has
+        voted in yet is fully editable, choice list included (lines 31–32, 48–51).
+        <code>EDITING</code> hides the poll while it changes, so the public never watches a choice
+        list mutate — but a poll can leave the grid and come back different.
+      </dd>
+
+      <dt>The editing lock is not re-enterable by its holder</dt>
+      <dd>
+        A refresh or a second tab generates a new GUID and is refused, costing the admin up to 40
+        seconds (lines 110–115). Accepted deliberately, with a stated user-facing message.
+      </dd>
+
+      <dt>Publishing is asynchronous</dt>
+      <dd>
+        <code>saveAndPublishPoll</code> returns immediately and the author lands back on
+        <code>adminPoll</code> before the poll has been judged (lines 195–205). On the happy path the
+        real outcome arrives within about 15 seconds.
+      </dd>
+
+      <dt>A screening outage is bounded, then handed to a person</dt>
+      <dd>
+        Ten counted attempts, then <code>REJECTED</code> with an explanatory reason and a re-attempt
+        button on <code>adminPoll</code> (lines 295–307). Beyond that, line 312 says resolution
+        requires a code or API change — the system does not keep trying forever.
+      </dd>
+
+      <dt>One app instance is assumed</dt>
+      <dd>
+        All three sweeps are plain timers; line 343 records that a future requirement moves them into
+        a singleton serverless function. Until then, running two instances would double every sweep.
+      </dd>
+
+      <dt>No migration</dt>
+      <dd>
+        The poll and vote collections may be dropped and recreated (lines 373–378). The
+        <code>(removed)</code> tombstone concept disappears from both choices and votes.
+      </dd>
+    </dl>
+  </div>
+
+  <div class="verdict col" style="margin-top:34px">
+    <span class="kind">Ready</span>
+    <p style="margin-top:12px; margin-bottom:0">
+      The machine is closed and the source document has no open questions in it.
+      <span class="m-plain">/speckit-specify</span> can run against it without producing any
+      <span class="m-plain">[NEEDS CLARIFICATION]</span> markers.
+    </p>
+  </div>
+</section>
+
+</div>
+
+</body></html>

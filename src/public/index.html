@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+  <title>CrowdPoll</title>
+  <link rel="stylesheet" href="/fonts/fonts.css">
+  <!-- Reference-page order (responsive-grid.html): page and tab styles, then the
+       card component sheet. styles.css (the auth pages' sheet) is deliberately NOT
+       loaded here — its element-level rules bleed into the reference components;
+       the few session-UI styles this page needs from it live in site.css instead. -->
+  <link rel="stylesheet" href="/m3-tokens.css">
+  <link rel="stylesheet" href="/tabs.css">
+  <link rel="stylesheet" href="/pollCard.css">
+  <link rel="stylesheet" href="/site.css">
+  <link rel="stylesheet" href="/tooltip-m3.css">
+  <link rel="stylesheet" href="/header-tab-bar-m3.css">
+  <link rel="stylesheet" href="/header-single-column-m3.css">
+  <link rel="stylesheet" href="/header-single-row-m3.css">
+  <link rel="stylesheet" href="/header-fixed-m3.css">
+  <link rel="stylesheet" href="/back-to-top-m3.css">
+  <link rel="stylesheet" href="/tabs-modal-m3.css">
+  <link rel="stylesheet" href="/live-idle-prompt-m3.css">
+  <link rel="stylesheet" href="/empty-tab-line-m3.css">
+  <link rel="stylesheet" href="/pollCard-m3.css">
+  <link rel="stylesheet" href="/single-column-m3.css">
+  <link rel="stylesheet" href="/tab-bar-scroll-arrows-m3.css">
+  <link rel="stylesheet" href="/footer-m3.css">
+</head>
+<body class="is-guest">
+
+<div class="page-decor"></div>
+
+<div class="page">
+  <div class="container">
+    <div class="layout">
+
+      <header id="site-header" class="site-header"></header>
+
+      <div class="tab-bar-wrap">
+        <button class="tab-scroll-arrow tab-scroll-arrow--left" id="tabScrollLeftArrow" type="button" aria-label="Scroll tabs left" hidden>
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><path fill="currentColor" d="M9.41 7.41L8 6l-6 6 6 6 1.41-1.41L4.83 12z M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+        </button>
+        <div class="tab-bar" id="tabBar" role="tablist" aria-label="Poll tabs">
+          <button class="tab" type="button" data-tab="your-polls" role="tab" id="tab-your-polls" aria-controls="panel-your-polls" aria-selected="false" tabindex="-1">
+            <svg class="tab-icon" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><circle cx="32" cy="32" r="32" fill="#8093a7"/><circle cx="32" cy="25" r="11" fill="#e8edf2"/><path d="M32 40c-11 0-19 6.5-19 14.5V64h38v-9.5C51 46.5 43 40 32 40z" fill="#e8edf2"/></svg>
+            Your Polls
+          </button>
+          <button class="tab" type="button" data-tab="shared-with-you" role="tab" id="tab-shared-with-you" aria-controls="panel-shared-with-you" aria-selected="false" tabindex="-1">
+            <svg class="tab-icon" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><circle cx="32" cy="32" r="32" fill="#8093a7"/><circle cx="22" cy="26" r="8" fill="#e8edf2"/><circle cx="42" cy="26" r="8" fill="#e8edf2"/><path d="M22 37c-8 0-14 4.800-14 11v2h28v-2c0-6.200-6-11-14-11zM42 37c-2.500 0-4.800.600-6.700 1.700C38.400 41 40 44.200 40 48v2h16v-2c0-6.200-6-11-14-11z" fill="#e8edf2"/></svg>
+            Shared With&nbsp;You
+          </button>
+          <button class="tab" type="button" data-tab="your-votes" role="tab" id="tab-your-votes" aria-controls="panel-your-votes" aria-selected="false" tabindex="-1">
+            <svg class="tab-icon" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><circle cx="32" cy="32" r="32" fill="#8093a7"/><path d="M18 33l9 9 19-20" fill="none" stroke="#e8edf2" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Your Votes
+          </button>
+          <button class="tab is-active" type="button" data-tab="trending" role="tab" id="tab-trending" aria-controls="panel-trending" aria-selected="true" tabindex="0">
+            <svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M2 20.4C8.9 20.4 14.2 17.6 18 12.1l2.4 2.1L21.6 5.2 12.8 7l2.4 2.1c-3.3 4.6-7.7 6.9-13.2 6.9z"/></svg>
+            Trending
+          </button>
+          <button class="tab" type="button" data-tab="newest" role="tab" id="tab-newest" aria-controls="panel-newest" aria-selected="false" tabindex="-1">
+            <svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="12" fill="#8093a7"/><path fill="#e8edf2" transform="translate(12 12) skewX(-12) translate(-12 -12)" d="M10.4 5h3.2l-.6 9h-2zM10.5 16h3v3h-3z"/></svg>
+            Newest
+          </button>
+          <button class="tab" type="button" data-tab="watching" role="tab" id="tab-watching" aria-controls="panel-watching" aria-selected="false" tabindex="-1">
+            <svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#watching-eye"/></svg>
+            Watching
+          </button>
+          <button class="tab" type="button" data-tab="live" role="tab" id="tab-live" aria-controls="panel-live" aria-selected="false" tabindex="-1">
+            <span class="tab-icon tab-icon--live" aria-hidden="true"><span class="live-bars"><i></i><i></i><i></i></span></span>
+            Live Results
+          </button>
+          <button class="tab" type="button" data-tab="search" role="tab" id="tab-search" aria-controls="panel-search" aria-selected="false" tabindex="-1">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            Search
+          </button>
+          <button class="tab-more" id="tabMoreBtn" type="button" aria-label="More" aria-haspopup="true" aria-expanded="false" aria-controls="tabMenu">
+            <svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="12" fill="#8093a7"/><circle cx="12" cy="7" r="1.8" fill="#e8edf2"/><circle cx="12" cy="12" r="1.8" fill="#e8edf2"/><circle cx="12" cy="17" r="1.8" fill="#e8edf2"/></svg>
+            More
+          </button>
+        </div>
+        <button class="tab-scroll-arrow tab-scroll-arrow--right" id="tabScrollRightArrow" type="button" aria-label="Scroll tabs right" hidden>
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><path fill="currentColor" d="M10 6l-1.41 1.41L12.17 12l-3.58 3.59L10 17.41 16 11z M16 6l-1.41 1.41L18.17 12l-3.58 3.59L16 17.41 22 11z"/></svg>
+        </button>
+        <button class="tab-menu-btn" id="tabMenuBtn" type="button" aria-label="All tabs" aria-haspopup="true" aria-expanded="false" aria-controls="tabMenu">
+          <svg viewBox="0 0 30 24" aria-hidden="true" focusable="false"><circle cx="3" cy="7" r="1.8" fill="currentColor"/><circle cx="3" cy="12" r="1.8" fill="currentColor"/><circle cx="3" cy="17" r="1.8" fill="currentColor"/><path d="M9 6h18v2H9zM9 11h18v2H9zM9 16h18v2H9z" fill="currentColor"/></svg>
+        </button>
+        <div class="tab-menu" id="tabMenu" role="menu" aria-label="All tabs" hidden></div>
+        <!-- FIX013: the search box is the header's "Search CrowdPoll" field. -->
+        <!-- FIX007: an icon (two arrows chasing round a circle); the words stay
+             on the label and tooltip. -->
+        <button class="tab-refresh tab-refresh--icon" id="refreshBtn" type="button" aria-label="Refresh" title="Refresh">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/>
+            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>
+          </svg>
+        </button>
+      </div>
+
+      <p class="tab-notice" id="tabNotice" hidden></p>
+
+      <main class="all-markets">
+        <section class="tab-panel" data-panel="your-polls" role="tabpanel" id="panel-your-polls" aria-labelledby="tab-your-polls" hidden><div class="card-grid"></div><p class="tab-empty" hidden></p></section>
+        <section class="tab-panel" data-panel="shared-with-you" role="tabpanel" id="panel-shared-with-you" aria-labelledby="tab-shared-with-you" hidden><div class="card-grid"></div><p class="tab-empty" hidden></p></section>
+        <section class="tab-panel" data-panel="your-votes" role="tabpanel" id="panel-your-votes" aria-labelledby="tab-your-votes" hidden><div class="card-grid"></div><p class="tab-empty" hidden></p></section>
+        <section class="tab-panel" data-panel="trending" role="tabpanel" id="panel-trending" aria-labelledby="tab-trending"><div class="card-grid"></div><p class="tab-empty" hidden></p></section>
+        <section class="tab-panel" data-panel="newest" role="tabpanel" id="panel-newest" aria-labelledby="tab-newest" hidden><div class="card-grid"></div><p class="tab-empty" hidden></p></section>
+        <section class="tab-panel" data-panel="watching" role="tabpanel" id="panel-watching" aria-labelledby="tab-watching" hidden><div class="card-grid"></div><p class="tab-empty" hidden></p></section>
+        <section class="tab-panel" data-panel="live" role="tabpanel" id="panel-live" aria-labelledby="tab-live" hidden><div class="card-grid"></div><p class="tab-empty" hidden></p></section>
+        <section class="tab-panel" data-panel="search" role="tabpanel" id="panel-search" aria-labelledby="tab-search" hidden><form class="search-tab-form" id="searchTabForm" role="search" autocomplete="off"><input type="search" id="searchTabBox" name="q" placeholder="Search CrowdPoll" aria-label="Search CrowdPoll" maxlength="200"><button class="header-search-clear" id="searchTabClear" type="button" aria-label="Clear Search Terms" title="Clear Search Terms" hidden><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></form><div class="card-grid"></div><p class="tab-empty" hidden></p></section>
+      </main>
+
+    </div>
+  </div>
+</div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <mask id="watching-catchlight" maskUnits="userSpaceOnUse" x="0" y="0" width="24" height="24">
+      <rect width="24" height="24" fill="#fff"/>
+      <circle cx="13.3" cy="10.7" r="1.3" fill="#000"/>
+    </mask>
+  </defs>
+  <symbol id="watching-eye" viewBox="0 0 24 24">
+    <path d="M1.8 12C4.6 7.2 8 4.9 12 4.9s7.4 2.3 10.2 7.1C19.4 16.8 16 19.1 12 19.1S4.6 16.8 1.8 12z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+    <circle cx="12" cy="12" r="3.4" fill="none" stroke="currentColor" stroke-width="1.8"/>
+    <circle cx="12" cy="12" r="1.2" fill="currentColor"/>
+  </symbol>
+  <symbol id="watching-eye-on" viewBox="0 0 24 24">
+    <path d="M1.8 12C4.6 7.2 8 4.9 12 4.9s7.4 2.3 10.2 7.1C19.4 16.8 16 19.1 12 19.1S4.6 16.8 1.8 12z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+    <circle cx="12" cy="12" r="4.3" fill="currentColor" mask="url(#watching-catchlight)"/>
+  </symbol>
+</svg>
+
+<template id="maximizedCardGrid">
+  <div class="maximized-card-grid">
+    <div class="col-rule" aria-hidden="true"></div>
+    <div class="maximized-space-right"></div>
+  </div>
+</template>
+
+<div class="floating-actions" id="floatingActions" hidden></div>
+<script src="/m3-ripple.js" defer></script>
+<script src="/tooltip-m3.js" defer></script>
+<script src="/app.js" defer></script>
+<script src="/headerFit.js" defer></script>
+<script src="/fixedChrome.js" defer></script>
+<script src="/pollCard.js" defer></script>
+<script src="/voteClient.js" defer></script>
+<script src="/deltaClient.js" defer></script>
+<script src="/tabs.js" defer></script>
+<script src="/trending.js" defer></script>
+<script src="/newest.js" defer></script>
+<script src="/searchTab.js" defer></script>
+<script src="/liveResults.js" defer></script>
+<script src="/tabBarScroll.js" defer></script>
+<script src="/tabBarScrollArrows.js" defer></script>
+<script src="/floatingActions.js" defer></script>
+<script src="/backToTopFab.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,108 @@
+/*
+  TABS.MODAL — MATERIAL 3 LAYER (REQUIREMENT Use Material 3 For `Tabs.modal`
+  Dialog): an M3 basic dialog with no headline. Loaded after ../pollCard-m3.css,
+  whose roles, type scale and shape and state tokens it reads, and after
+  tabs-modal.css, which stays a copy of production. The ripple is
+  tabs-modal-m3.js; .m3-ripple comes from ../pollCard-m3.css.
+
+  Order: 1 scrim, 2 container, 3 supporting text, 4 actions and OK,
+  5 state layer and focus, 6 entrance.
+*/
+
+:root{
+  --md-sys-color-scrim:#000000;
+  --md-sys-shape-corner-extra-large:28px;
+  /* The same value as ../card-shell-m3.css, which is not loaded here. */
+  --md-sys-elevation-3:0 1px 3px rgba(0,0,0,0.30), 0 4px 8px 3px rgba(0,0,0,0.15);
+  --md-sys-motion-easing-emphasized-decelerate:cubic-bezier(0.05, 0.7, 0.1, 1);
+}
+
+/* ---------- 1. Scrim (clarification 4a) ----------
+   M3's scrim role at the dialog opacity, the same in both schemes. */
+.modal-backdrop{
+  background:rgb(0 0 0 / 0.32);
+}
+
+/* ---------- 2. Container ----------
+   Width stays production's min(440px, 100%), inside M3's 280-560px range.
+   Light shows elevation 3 as a shadow; dark shows it by tone only, as the
+   cards do. */
+.modal{
+  padding:24px;
+  border:0;
+  border-radius:var(--md-sys-shape-corner-extra-large);
+  background:var(--md-sys-color-surface-container-high);
+  color:var(--md-sys-color-on-surface);
+  box-shadow:var(--md-sys-elevation-3);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]) .modal{ box-shadow:none; }
+}
+:root[data-theme="dark"] .modal{ box-shadow:none; }
+
+/* ---------- 3. Supporting text (clarification 1a: no headline) ---------- */
+.modal-text{
+  margin:0 0 24px;
+  font-family:var(--md-sys-typescale-font);
+  font-weight:var(--md-sys-typescale-body-medium-weight);
+  font-size:var(--md-sys-typescale-body-medium-size);
+  line-height:var(--md-sys-typescale-body-medium-line-height);
+  letter-spacing:var(--md-sys-typescale-body-medium-tracking);
+  color:var(--md-sys-color-on-surface-variant);
+}
+
+/* ---------- 4. Actions and OK (clarification 2a) ----------
+   A text button, as the cookie banner's "I Understand". (0,2,0) outranks
+   production's .tab-refresh (0,1,0). */
+.modal-actions{ gap:8px; }
+.modal .modal-ok{
+  position:relative;
+  overflow:hidden;
+  height:40px;
+  min-width:48px;
+  padding:0 12px;
+  border:0;
+  border-radius:var(--md-sys-shape-corner-full);
+  background:transparent;
+  color:var(--md-sys-color-primary);
+  font-family:var(--md-sys-typescale-font);
+  font-weight:var(--md-sys-typescale-label-large-weight);
+  font-size:var(--md-sys-typescale-label-large-size);
+  line-height:var(--md-sys-typescale-label-large-line-height);
+  letter-spacing:var(--md-sys-typescale-label-large-tracking);
+}
+
+/* ---------- 5. State layer and focus ----------
+   As the card's buttons (../pollCard-m3.css section 6). */
+.modal .modal-ok::before{
+  content:'';
+  position:absolute;
+  inset:0;
+  border-radius:inherit;
+  background:currentColor;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity 0.15s ease;
+}
+.modal .modal-ok:hover::before{ opacity:var(--md-sys-state-hover-state-layer-opacity); }
+.modal .modal-ok:focus-visible::before{ opacity:var(--md-sys-state-focus-state-layer-opacity); }
+.modal .modal-ok:active::before{ opacity:var(--md-sys-state-pressed-state-layer-opacity); }
+.modal .modal-ok:focus-visible{
+  outline:3px solid var(--md-sys-color-secondary);
+  outline-offset:2px;
+}
+
+/* ---------- 6. Entrance ----------
+   Enter only: modal() removes the dialog at once on close. */
+.modal-backdrop{ animation:m3-scrim-in 200ms linear; }
+.modal{ animation:m3-dialog-in 200ms var(--md-sys-motion-easing-emphasized-decelerate); }
+@keyframes m3-scrim-in{
+  from{ opacity:0; }
+}
+@keyframes m3-dialog-in{
+  from{ opacity:0; transform:scale(0.95); }
+}
+@media (prefers-reduced-motion: reduce){
+  .modal-backdrop,
+  .modal{ animation:none; }
+}

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Color Palette Editor</title>
+<link rel="stylesheet" href="palette-editor.css">
+</head>
+<body>
+<header class="page-header">
+  <h1>Color Palette Editor</h1>
+  <button id="generateBtn" class="primary" type="button">Generate Palettes JSON</button>
+</header>
+
+<main>
+  <section id="output" class="output" hidden>
+    <div class="output-bar">
+      <h2>Revised palettes</h2>
+      <button id="copyBtn" type="button">Copy</button>
+      <button id="closeOutputBtn" type="button">Close</button>
+    </div>
+    <textarea id="outputText" readonly spellcheck="false" aria-label="Revised color palettes"></textarea>
+    <p id="copyNote" class="note" role="status"></p>
+  </section>
+
+  <p class="intro">
+    Every bar shows its palette color on the left half and the light color the Poll Card draws on the right half, with sample
+    text that crosses both. The palettes start from the copies in <code>palette-data.js</code>; the light color and the text colors are derived by the real functions in <code>src/public/pollCard.js</code>, which this page loads.
+    Under each bar are its background color, the text color on the background and the text color on the fill, with their contrast ratios. Press a row's <b>Change color</b> button to pick a new color; its hex and name update. Names come from the nearest standard
+    color name and can be edited.
+  </p>
+
+  <fieldset class="mode">
+    <legend>How every palette derives its background and text colors</legend>
+    <label><input type="radio" name="derivation" value="proposed" checked> Proposed: a lighter background, and white or black text on the fill, whichever has more contrast with the fill's color; the dark text on the background is unchanged</label>
+    <label class="tint">Background tint for the proposed function <input id="tintInput" type="range" min="80" max="95" step="1" value="90" aria-label="Background tint percent"> <output id="tintValue">90%</output></label>
+    <label><input type="radio" name="derivation" value="previous"> The previous semantic function (85% tint, white text on the fill)</label>
+    <label><input type="radio" name="derivation" value="current"> The function now on the Poll Card (80% tint, text chosen by contrast)</label>
+  </fieldset>
+
+  <div id="palettes"></div>
+</main>
+
+<script src="../../src/public/pollCard.js"></script>
+<script src="color-names.js"></script>
+<script src="palette-data.js"></script>
+<script src="palette-editor.js"></script>
+</body>
+</html>

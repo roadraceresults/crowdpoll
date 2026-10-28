@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="10 4.5 96 96">
+  <title>CrowdPoll</title>
+  <defs>
+    <mask id="favicon-front">
+      <rect width="120" height="120" fill="white"/>
+      <g fill="black" stroke="black" stroke-width="7">
+        <circle cx="42" cy="42" r="13"/>
+        <path d="M16 90 C16 70 28 61 43 61 C58 61 70 70 70 90 Z"/>
+      </g>
+    </mask>
+  </defs>
+  <g mask="url(#favicon-front)" fill="#E04A4A">
+    <circle cx="73" cy="30" r="15"/>
+    <path d="M46 78 C46 58 58 49 73 49 C88 49 100 58 100 78 Z"/>
+  </g>
+  <circle cx="42" cy="42" r="13" fill="#3FB34F"/>
+  <path d="M16 90 C16 70 28 61 43 61 C58 61 70 70 70 90 Z" fill="#3FB34F"/>
+</svg>

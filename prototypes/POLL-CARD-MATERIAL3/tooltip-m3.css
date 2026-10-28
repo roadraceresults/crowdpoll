@@ -1,0 +1,72 @@
+/*
+  TOOLTIPS — MATERIAL 3 PLAIN TOOLTIP (REQUIREMENT Use Material 3 For
+  tooltips). One .m3-tooltip on <body>, placed and shown by tooltip-m3.js; it
+  replaces the browser's native title tooltip. Loaded after pollCard-m3.css,
+  whose type scale and shape tokens it reads. The inverse roles are declared
+  here, with the values of HEADER-TAB-BAR/header-tab-bar-m3.css and
+  card-shell-m3.css, because pollCard-m3.css lacks them.
+
+  Order: 1 inverse roles, 2 container, 3 entrance, 4 touch.
+*/
+
+/* ---------- 1. Inverse roles ---------- */
+:root{
+  --md-sys-color-inverse-surface:#2C322D;
+  --md-sys-color-inverse-on-surface:#EDF2EB;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --md-sys-color-inverse-surface:#DFE4DD;
+    --md-sys-color-inverse-on-surface:#2C322D;
+  }
+}
+:root[data-theme="dark"]{
+  --md-sys-color-inverse-surface:#DFE4DD;
+  --md-sys-color-inverse-on-surface:#2C322D;
+}
+
+/* ---------- 2. Container ----------
+   Flat (M3 plain tooltips have no elevation), Body Small, a 4px corner, at
+   least 24px high, wrapping at 240px. Fixed to the viewport, so a card's
+   overflow:hidden never clips it. tooltip-m3.js sets left and top. */
+.m3-tooltip{
+  position:fixed;
+  z-index:1000;
+  left:0;
+  top:0;
+  box-sizing:border-box;
+  min-height:24px;
+  max-width:240px;
+  padding:4px 8px;
+  border-radius:var(--md-sys-shape-corner-extra-small);
+  background:var(--md-sys-color-inverse-surface);
+  color:var(--md-sys-color-inverse-on-surface);
+  font-family:var(--md-sys-typescale-font);
+  font-weight:var(--md-sys-typescale-body-small-weight);
+  font-size:var(--md-sys-typescale-body-small-size);
+  line-height:var(--md-sys-typescale-body-small-line-height);
+  letter-spacing:var(--md-sys-typescale-body-small-tracking);
+  text-align:left;
+  overflow-wrap:anywhere;
+  pointer-events:auto;
+}
+.m3-tooltip[hidden]{ display:none; }
+
+/* ---------- 3. Entrance ----------
+   Fade in only: the tooltip is hidden at once. */
+.m3-tooltip:not([hidden]){ animation:m3-tooltip-in 150ms linear; }
+@keyframes m3-tooltip-in{
+  from{ opacity:0; }
+}
+@media (prefers-reduced-motion: reduce){
+  .m3-tooltip:not([hidden]){ animation:none; }
+}
+
+/* ---------- 4. Touch (clarification 4b) ----------
+   A long press on a control with a tooltip shows the tooltip, not the
+   browser's callout menu or a text selection. */
+[data-tooltip]{
+  -webkit-touch-callout:none;
+  -webkit-user-select:none;
+  user-select:none;
+}

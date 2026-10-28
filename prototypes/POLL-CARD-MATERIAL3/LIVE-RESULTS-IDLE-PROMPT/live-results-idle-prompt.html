@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Live Results Idle Prompt</title>
+  <!-- REQUIREMENT Live Results idle prompt: the idle prompt extracted from
+       src/public/liveResults.js and tabs.css, in index.html's Live Results
+       panel, without the site header, tab bar or footer. Open this file
+       directly; no server is needed.
+       REQUIREMENT Use Material 3 For Live Results idle prompt: ../pollCard-m3.css
+       for the roles, type scale, tokens and .m3-ripple, then the prompt's own
+       Material 3 layer, live-idle-prompt-m3.css, last; live-idle-prompt-m3.js
+       adds the ripple on Cancel and Yes. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,440;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <!-- index.html's order (page and grid styles, then site.css), without
+       pollCard.css: no card is drawn. live-idle-prompt.css holds the
+       .tab-refresh pill and the idle prompt block, which the shared
+       ../tabs.css lacks. -->
+  <link rel="stylesheet" href="../tabs.css">
+  <link rel="stylesheet" href="../site.css">
+  <link rel="stylesheet" href="../pollCard-m3.css">
+  <link rel="stylesheet" href="live-idle-prompt.css">
+  <link rel="stylesheet" href="live-idle-prompt-m3.css">
+  <style>
+    .prototype-bar{ display:flex; align-items:center; flex-wrap:wrap; gap:10px; padding:0 0 6px;
+      font:500 13px 'Inter', sans-serif; color:var(--muted); }
+    .prototype-bar select, .prototype-bar button{ font:inherit; padding:4px 8px; }
+    .prototype-note{ min-height:18px; margin:0 0 12px; font:500 13px 'Inter', sans-serif; color:var(--muted); }
+
+    /* Static placeholders shaped like grid cards (clarification 2a), as in
+       ../TABS-MODAL/. Not production markup. */
+    .placeholder-card{ display:flex; flex-direction:column; gap:10px; min-height:260px; padding:18px;
+      border:1px solid var(--line); border-radius:12px; background:var(--paper-raised); box-shadow:var(--shadow); }
+    .placeholder-title{ height:18px; width:70%; border-radius:4px; background:var(--ink); opacity:.75; }
+    .placeholder-line{ height:10px; width:45%; border-radius:4px; background:var(--muted); opacity:.5; }
+    .placeholder-bar{ height:28px; border-radius:6px; background:var(--amber-tint); }
+    .placeholder-bar:nth-of-type(odd){ background:rgba(61,90,70,0.18); }
+  </style>
+</head>
+<body>
+
+<div class="page-decor"></div>
+
+<div class="page">
+  <div class="container">
+    <div class="layout">
+
+      <div class="prototype-bar">
+        <label for="themePicker">Theme</label>
+        <select id="themePicker">
+          <option value="system">System</option>
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+        </select>
+        <button type="button" id="showIdlePrompt">Show idle prompt</button>
+      </div>
+      <p class="prototype-note" id="prototypeNote" aria-live="polite"></p>
+
+      <main class="all-markets">
+        <!-- index.html's <main> and Live Results panel, as is. -->
+        <section class="tab-panel" data-panel="live"><div class="card-grid"></div><p class="tab-empty" hidden></p></section>
+      </main>
+
+    </div>
+  </div>
+</div>
+
+<script src="liveIdlePrompt.js" defer></script>
+<script src="live-idle-prompt-m3.js" defer></script>
+<script src="harness.js" defer></script>
+</body>
+</html>

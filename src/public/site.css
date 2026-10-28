@@ -1,0 +1,802 @@
+/*
+  App-owned additions layered over the verbatim reference sheets
+  (pollGrid.css / pollCard.css). Also the canonical site-header stylesheet
+  (005-admin-page-improvements research.md R3) — loaded on every page,
+  including the ones (login/profile/create-account) that don't load
+  pollGrid.css/pollCard.css at all, which is why the :root tokens below
+  are declared here too rather than assumed to come from pollGrid.css.
+*/
+
+/* Same palette as pollGrid.css's :root — declared again here (not just
+   there) so the header renders correctly on pages that don't load
+   pollGrid.css. Only the properties actually used by rules in this file. */
+:root{
+  --ink:#1E2422;
+  --paper:#F1F3EE;
+  --paper-raised:#FFFFFF;
+  --moss:#3D5A46;
+  --moss-dark:#2C4234;
+  --line:#D8DCD3;
+  --muted:#6B7268;
+}
+
+/* ---------- Site header (moved from pollGrid.css, research.md R3) ----------
+   Same rules, byte-identical, just relocated so every page — not only the
+   ones that load pollGrid.css — can render the same header. */
+.site-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  flex-wrap:wrap;
+  margin-bottom:26px;
+}
+
+.brand{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex-shrink:0;
+}
+
+.brand-logo{
+  height:40px;
+  width:auto;
+  display:block;
+}
+
+.brand-wordmark{
+  height:40px;
+  width:auto;
+  display:block;
+}
+
+/* Same font family/weight as the filter-bar pills, just a step larger and
+   a shade darker since it's a primary nav item rather than a secondary
+   filter. */
+.header-nav{
+  display:flex;
+  align-items:center;
+  gap:18px;
+  flex-shrink:0;
+}
+
+.header-nav-link{
+  font-family:'Inter', sans-serif;
+  font-weight:600;
+  font-size:14.5px;
+  color:#4F564C;
+  text-decoration:none;
+  white-space:nowrap;
+  padding:0 40px;
+}
+
+.header-nav-link:hover{ color:var(--ink); }
+
+.header-search{
+  flex:1 1 auto;
+  max-width:640px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  height:40px;
+  padding:0 14px;
+  border-radius:10px;
+  border:1px solid var(--line);
+  background:var(--paper);
+}
+
+.header-search:focus-within{
+  border-color:#B7BDB5;
+  background:var(--paper-raised);
+}
+
+.search-icon{
+  width:16px;
+  height:16px;
+  flex-shrink:0;
+  color:var(--muted);
+}
+
+/* FIX013: the box is a live form. The magnifier submits; the X clears the terms;
+   the browser's own search-cancel glyph is hidden so there is one X. */
+.search-icon-btn{
+  flex-shrink:0;
+  display:flex;
+  padding:0;
+  border:0;
+  background:transparent;
+  color:var(--muted);
+  cursor:pointer;
+}
+.search-icon-btn:hover,
+.search-icon-btn:focus-visible{ color:var(--ink); }
+
+.header-search input{
+  flex:1 1 auto;
+  min-width:0;
+  padding:0;
+  border:none;
+  border-radius:0;
+  outline:none;
+  background:transparent;
+  font-family:'Inter', sans-serif;
+  font-size:13.5px;
+  font-weight:500;
+  color:var(--ink);
+}
+
+.header-search input::placeholder{ color:var(--muted); }
+.header-search input::-webkit-search-cancel-button{ -webkit-appearance:none; appearance:none; }
+
+.header-search-clear{
+  flex-shrink:0;
+  width:24px;
+  height:24px;
+  padding:0;
+  border:0;
+  border-radius:50%;
+  background:transparent;
+  color:var(--muted);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+}
+.header-search-clear:hover,
+.header-search-clear:focus-visible{ background:var(--paper); color:var(--ink); }
+.header-search-clear[hidden]{ display:none; }
+.header-search-clear svg{
+  width:15px;
+  height:15px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:2;
+  stroke-linecap:round;
+}
+
+.search-kbd{
+  flex-shrink:0;
+  font-family:'Inter', sans-serif;
+  font-size:13px;
+  color:#C3C8BC;
+}
+
+.header-actions{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-shrink:0;
+}
+
+/* Same visual language as the Poll Card's Submit button:
+   ink-filled pill for the primary action... */
+.btn-header-primary{
+  height:40px;
+  padding:0 16px;
+  border:none;
+  border-radius:12px;
+  background:var(--ink);
+  color:#F7F8F5;
+  font-family:'Inter', sans-serif;
+  font-weight:600;
+  font-size:13.5px;
+  white-space:nowrap;
+  cursor:pointer;
+}
+
+/* ...and a quieter, outlined twin for the secondary action. */
+.btn-header-ghost{
+  height:40px;
+  padding:0 16px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:var(--paper-raised);
+  color:var(--ink);
+  font-family:'Inter', sans-serif;
+  font-weight:600;
+  font-size:13.5px;
+  white-space:nowrap;
+  cursor:pointer;
+}
+
+.btn-header-ghost:hover{ background:var(--paper); }
+.btn-header-primary:hover{ background:var(--moss-dark); }
+
+.avatar-icon{
+  width:32px;
+  height:32px;
+  flex-shrink:0;
+  color:var(--ink);
+  cursor:pointer;
+  transition:color .15s ease;
+}
+
+.avatar-icon:hover{ color:var(--moss); }
+
+@media (max-width:767.98px){
+  .header-search{
+    order:3;
+    flex:1 1 100%;
+    max-width:none;
+    margin-top:4px;
+  }
+}
+
+@media (max-width:639.98px){
+  .site-header{ gap:12px; }
+  .header-actions{ gap:8px; }
+  .btn-header-ghost, .btn-header-primary{
+    height:36px;
+    padding:0 12px;
+    font-size:12.5px;
+  }
+  .avatar-icon{ width:28px; height:28px; }
+  .brand-logo{ height:32px; }
+  .brand-wordmark{ height:32px; }
+  .brand{ gap:5px; }
+  .header-nav-link{ font-size:13px; padding:0 16px; }
+}
+
+/* Greyed-out/inert reference elements kept for visual fidelity but not
+   wired to any feature this iteration: header "Create Poll" link,
+   category filter bar, card "Live Results" link (spec 004 Assumptions /
+   FR-035 / research.md R9). The "Search CrowdPoll" box is live (FIX013). */
+.is-inert{
+  opacity:0.5;
+  pointer-events:none;
+  cursor:default;
+}
+
+/* FR-022: total participants who voted (and, for invitation-only polls,
+   not yet voted) shown alongside each poll's results. The reference
+   design has no equivalent element; typography mirrors .subtitle. */
+.poll-totals{
+  font-family:'Inter', sans-serif;
+  font-weight:500;
+  font-size:clamp(11px, 1vw, 12.5px);
+  line-height:1.4;
+  color:var(--muted);
+  margin:4px 0 0;
+}
+
+/* FIX022/FIX023: the lines under the action row. First line: the count on the
+   left (normal weight), "you voted" on the right in italics. Any other reason
+   the poll is listed in a personal tab (FIX020) — created by you, you are
+   invited — takes its own line, right-aligned and in italics. */
+.card-foot{ margin-top:8px; }
+.card-foot-row{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; }
+.card-foot .poll-totals{ margin:0; }
+.poll-voted,
+.poll-listed-because{
+  font-family:'Inter', sans-serif;
+  font-style:italic;
+  font-weight:500;
+  font-size:clamp(10.5px, 0.9vw, 12px);
+  line-height:1.4;
+  color:#9AA197;
+  margin:0;
+  text-align:right;
+}
+.poll-voted{ flex:0 0 auto; margin-left:auto; }
+.poll-listed-because{ margin-top:2px; }
+.poll-voted[hidden],
+.poll-listed-because[hidden]{ display:none; }
+
+/* 007-closed-state: pollCard.css's reference rules for these elements
+   (.live-link, and .btn-primary which .vote-btn/.submit-vote-btn both
+   carry) set display:flex unconditionally, which would otherwise defeat
+   the plain `hidden` attribute -- an author-origin rule always wins over
+   the `[hidden]{ display:none }` UA-stylesheet rule regardless of
+   specificity. .voting-scroll-wrap has no such override and needs none.
+
+   008-POLL-CARD-BACK-SIDE FR-001/FR-002: .poll-closed-message (both
+   variants, below) sets display:flex too and was missed here, so BOTH
+   closed-message elements rendered on every card -- open polls included.
+   On the back face the phantom is flex:1 1 auto next to the equally
+   flex:1 .voting-scroll-wrap, so it took roughly half the free space
+   plus its own 28px + 16px margin: that was the shortened choices
+   region and the empty band above the footer. One selector, because
+   the back variant carries this class too. */
+.live-link[hidden],
+.vote-btn[hidden],
+.submit-vote-btn[hidden],
+.poll-closed-message[hidden]{ display:none; }
+
+/* 008-POLL-CARD-BACK-SIDE FR-007: the two primary buttons carry the same
+   .btn-vote rules, so they matched only while pollCard.css's min-width:25%
+   floor exceeded both labels -- at narrow card widths "Submit vote" won and
+   "Vote" stayed short. The front button now contains a hidden copy of the
+   longer label and both children share one grid cell, so the column resolves
+   to max(label, sizer) and the pair matches at every width.
+
+   The grid is load-bearing, not stylistic: .btn-primary sets display:flex, and
+   a row flex container's max-content width is the SUM of its items -- a sizer
+   laid out beside the label would make this button about twice as wide as
+   intended. Scoped to .vote-btn so .submit-vote-btn stays a flex button and is
+   left alone; it already sizes to its own (longer) label.
+
+   Two cascade facts this relies on: site.css loads after pollCard.css
+   (index.html), so display:grid beats .btn-primary's display:flex at equal
+   specificity; and .vote-btn[hidden] above (0,2,0) still beats .vote-btn
+   (0,1,0), so 007-closed-state's hiding of the button keeps working. */
+.vote-btn{ display:grid; justify-content:center; align-content:center; }
+
+/* FIX017: the front action row is space-between with Live Results on the left
+   and Vote on the right; on the Live Results tab the link is hidden, which
+   would leave Vote as the first item, at the left. It keeps the right edge. */
+.card-front .actions .vote-btn{ margin-left:auto; }
+.vote-btn > *{ grid-area:1 / 1; }
+.btn-vote-sizer{ visibility:hidden; height:0; overflow:hidden; }
+
+/* FR-001: replaces "Live Results" (front) in place.
+   008-POLL-CARD-BACK-SIDE FR-008: typography now matches .poll-totals above
+   rather than .live-link-label, so the message reads as supporting
+   information. letter-spacing is dropped for the same reason -- it came from
+   .live-link-label and .poll-totals doesn't set it.
+   height:28px stays: this is a flex item in the footer row, so a fixed height
+   is what keeps the footer from moving when a poll closes (FR-006a), and it
+   guarantees the single line that requirement asks for. */
+.poll-closed-message{
+  color:var(--muted);
+  font-family:'Inter', sans-serif;
+  font-weight:500;
+  font-size:clamp(11px, 1vw, 12.5px);
+  line-height:1.4;
+  height:28px;
+  display:flex;
+  align-items:center;
+}
+
+/* 012 FR-042: the "momentarily unavailable" message. It occupies the same footer
+   slot as the closed message and inherits its box behaviour, so the footer does not
+   move when a poll enters or leaves editing. It is deliberately not styled as an
+   error: the state is transient and the voter's next action is simply to wait.
+   The two are mutually exclusive -- updateEditingState() hides the closed message
+   whenever this one is shown (FR-042a). */
+.poll-editing-message,
+.poll-state-message{
+  color:var(--muted);
+  font-family:'Inter', sans-serif;
+  font-weight:500;
+  font-size:clamp(11px, 1vw, 12.5px);
+  line-height:1.4;
+  min-height:28px;
+  display:flex;
+  align-items:center;
+}
+.poll-editing-message[hidden],
+.poll-state-message[hidden]{ display:none; }
+
+/* FR-006: replaces the choice bars (back) -- centered, roomier content
+   rather than a compact badge like the front variant.
+   008-POLL-CARD-BACK-SIDE FR-008: all typography declarations removed; they
+   are inherited from the base rule above so there is one place to change the
+   closed-message treatment. Only box behaviour is set here -- flex:1 1 auto is
+   what makes the message fill the shared region on a closed poll, and the
+   16px bottom margin matches .bar-scroll-wrap's so the footer doesn't move. */
+.poll-closed-message--back{
+  flex:1 1 auto;
+  min-height:0;
+  margin:0 0 16px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+}
+
+/* Non-text contrast: https://www.w3.org/TR/WCAG21/#non-text-contrast */
+.result-fill{
+  box-shadow:inset -2px 0 0 rgba(0,0,0,0.55);
+}
+
+/* ---- Session UI (signed-in header area + cookie banner) ----
+   Copied from styles.css so poll pages don't need to load that sheet
+   (its element-level button/input rules bleed into the reference
+   components — e.g. button padding crushed the card's .icon-btn svg). */
+.header-user{
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:0.5rem;
+  font-family:'Inter', sans-serif;
+  font-weight:600;
+  font-size:13.5px;
+}
+.header-user .avatar{
+  width:2rem;
+  height:2rem;
+  border-radius:50%;
+  cursor:pointer;
+  border:1px solid var(--line);
+}
+.avatar-menu{
+  position:absolute;
+  top:2.4rem;
+  right:0;
+  background:var(--paper-raised);
+  border:1px solid var(--line);
+  border-radius:0.4rem;
+  box-shadow:0 4px 12px rgba(0, 0, 0, 0.12);
+  padding:0.25rem 0;
+  min-width:9rem;
+  z-index:10;
+}
+.avatar-menu a,
+.avatar-menu button{
+  display:block;
+  width:100%;
+  padding:0.45rem 0.9rem;
+  border:0;
+  background:none;
+  text-align:left;
+  font:inherit;
+  color:var(--ink);
+  cursor:pointer;
+  text-decoration:none;
+}
+.avatar-menu a:hover,
+.avatar-menu button:hover{ background:var(--paper); }
+
+#cookie-banner{
+  position:fixed;
+  inset:auto 0 0 0;
+  display:flex;
+  gap:1rem;
+  align-items:center;
+  justify-content:center;
+  flex-wrap:wrap;
+  padding:0.8rem 1rem;
+  background:var(--ink);
+  color:#fff;
+  font-family:'Inter', sans-serif;
+  z-index:20;
+}
+#cookie-banner button{
+  padding:0.55rem 1rem;
+  border:0;
+  border-radius:0.35rem;
+  background:#fff;
+  color:var(--ink);
+  font:inherit;
+  cursor:pointer;
+}
+
+/* 012 FR-057: the viewer may not vote in this poll — banned, not invited, or it is
+   full. Shares the footer slot with the closed and editing messages and inherits the
+   same restrained treatment: this is information, not an error the voter caused. */
+.poll-blocked-message{
+  color:var(--muted);
+  font-family:'Inter', sans-serif;
+  font-weight:1000;
+  font-size:clamp(14px, calc(1vw + 3px), 15.5px);
+  line-height:1.4;
+  min-height:28px;
+  display:flex;
+  align-items:center;
+}
+.poll-blocked-message[hidden]{ display:none; }
+
+/* 012 FR-058: a refused vote, on the back face. This one *is* a failure the voter
+   just hit, so it reads as an error rather than as supporting information. */
+.poll-vote-error{
+  color:#B0242E;
+  font-family:'Inter', sans-serif;
+  font-weight:1000;
+  font-size:clamp(14px, calc(1vw + 3px), 15.5px);
+  line-height:1.4;
+  margin:0 0 8px;
+}
+.poll-vote-error[hidden]{ display:none; }
+
+/* ===================================================================
+   013-UI-UX-revisions — card shell (contract C1)
+   Login, Create Account, Profile and Not Authorized render through
+   cardShell.js. The shell reuses pollCard.css's .card-viewport,
+   .card-face, .question, .subtitle, .btn-primary.btn-vote and
+   .icon-btn without redefining them; only the wrapper, the regions
+   and their spacing live here.
+   =================================================================== */
+
+/* .card-face is written for a child of .card-flip (grid-area / height:100%).
+   Outside that grid the shell's face takes its height from its contents,
+   which is what "no padding to a fixed size" means (FR-035). */
+.card-shell-face{
+  height:auto;
+  gap:0;
+}
+
+.card-shell-viewport{
+  margin-top:24px;
+}
+
+.card-shell-title-row{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+}
+
+/* The close control follows the title in markup, matching its position on
+   screen, so reading order and visual order agree and no tabindex is needed
+   (research R13). .icon-btn is written for a <button>; as an anchor it needs
+   its underline removed. */
+.card-shell-close{
+  text-decoration:none;
+  flex:0 0 auto;
+}
+
+.card-shell-subtitle{
+  margin-top:6px;
+}
+
+.card-shell-body{
+  margin-top:14px;
+}
+
+/* Right-justified, in the style of the poll card's Vote button. */
+.card-shell-actions{
+  margin-top:16px;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+
+.card-shell-action{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:4px;
+}
+
+.card-shell-action .btn-primary{
+  width:auto;
+  min-width:0;
+  padding:0 18px;
+}
+
+/* Present and empty from first paint, so text arriving into it is announced
+   (contract C2). Reserving no height when empty keeps the card unpadded. */
+.card-shell-status{
+  font-family:'Inter', sans-serif;
+  font-size:clamp(11px, 1vw, 12.5px);
+  line-height:1.4;
+  color:var(--muted);
+  margin:0;
+  text-align:right;
+}
+.card-shell-status:empty{ display:none; }
+
+/* An action awaiting its outcome (FR-046). */
+.btn-primary.is-running{
+  opacity:0.65;
+  cursor:progress;
+}
+
+/* An unavailable action must look unavailable. Neither pollCard.css nor this
+   sheet styles :disabled at all, so without this a disabled button renders
+   identically to a live one — it ignores clicks while still inviting them.
+   Scoped to the shell's actions; the poll card's Vote button has the same gap
+   and is left alone, being outside this feature. */
+.card-shell-action .btn-primary:disabled{
+  opacity:0.5;
+  cursor:default;
+  box-shadow:none;
+}
+.card-shell-action .btn-primary:disabled:hover{
+  filter:none;
+}
+
+/* A disabled checkbox's label must read as disabled too — the control and the
+   words that name it are one thing to the person using them. */
+.card-shell-body label.checkbox.is-disabled{
+  color:var(--muted);
+  cursor:default;
+}
+.card-shell-body input:disabled{
+  cursor:default;
+}
+
+/* The app defines no :focus-visible rule anywhere (research R13), so a new
+   interactive control on a card surface would fall back to whatever the
+   browser draws. */
+.card-shell-close:focus-visible,
+.card-shell-action .btn-primary:focus-visible,
+.card-shell-body :focus-visible{
+  outline:2px solid var(--moss, #3D5A46);
+  outline-offset:2px;
+}
+
+/* -------------------------------------------------------------------
+   Rules promoted from styles.css (research R3), re-scoped to the
+   shell's body region — never as bare element selectors, which is what
+   bleeds into the reference components. Additive: styles.css keeps its
+   copies until US4 rebuilds login.html and create-account.html.
+   ------------------------------------------------------------------- */
+.card-shell-body form{
+  display:grid;
+  gap:0.6rem;
+  margin:0;
+}
+
+.card-shell-body label{
+  font-weight:600;
+}
+
+.card-shell-body label.checkbox{
+  font-weight:400;
+  display:flex;
+  gap:0.4rem;
+  align-items:center;
+}
+
+.card-shell-body input[type="email"],
+.card-shell-body input[type="text"]{
+  padding:0.5rem 0.6rem;
+  border:1px solid var(--line);
+  border-radius:0.35rem;
+  font:inherit;
+  width:100%;
+}
+
+.card-shell-body .profile-field{
+  margin:0.8rem 0;
+}
+
+.card-shell-body .profile-field .label{
+  font-weight:600;
+  display:block;
+  color:var(--muted);
+}
+
+/* Moved as-is from styles.css, minus its #form-message half. */
+.error{ color:#b3261e; }
+
+/* ---------- Profile card (013 US1) ---------- */
+
+/* R4: Login and Create Account take their height from their contents; the
+   Profile card reserves a minimum. It is not a scroll container — a card
+   taller than the viewport scrolls the page and is never clipped. */
+.profile-page .card-shell-face{
+  min-height:640px;
+}
+
+/* The avatar occupies the subtitle slot, right-aligned, with no subtitle text. */
+.profile-avatar-wrap{
+  display:flex;
+  justify-content:flex-end;
+}
+.profile-card-avatar{
+  width:48px;
+  height:48px;
+  border-radius:50%;
+  object-fit:cover;
+}
+
+.card-shell-group{
+  display:grid;
+  gap:0.35rem;
+  margin:0 0 1.1rem;
+}
+
+/* The two halves of the Profile card are separate concerns — a name and an
+   address — each with its own current value, field and action. The gap between
+   them is wider than the gap between a label and its field, so the card reads
+   as two sections rather than one list of six things. */
+.profile-section + .profile-section{
+  margin-top:2.25rem;
+}
+
+/* An action inside a section sits under the field it acts on, not in a row at
+   the foot of the card. */
+.profile-section .card-shell-action{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:4px;
+  margin-top:-0.5rem;
+}
+
+.profile-section[hidden]{ display:none; }
+
+/* A current value sits in a read-only box so it lines up with the field below
+   it, and reads a shade lighter than the label naming it — it is something to
+   refer to, not something to fill in. */
+.card-shell-body input.profile-current{
+  color:var(--muted);
+  background:var(--paper);
+  cursor:default;
+}
+
+/* The prompt in an empty "new" field is lighter still, so it cannot be
+   mistaken for a value that is already there. */
+.card-shell-body input::placeholder{
+  color:var(--line);
+  opacity:1;
+}
+
+.card-shell-body .profile-field{
+  margin:0 0 1.1rem;
+}
+
+/* The Watch control is an eye at the right of the title row. Not watching: a light
+   grey outline (lighter than --muted, so it reads as available rather than as text).
+   Watching: the same eye in ink with a filled iris. aria-pressed, set by the card,
+   chooses between them. There is no red: a red eye reads as an alarm. */
+.card-front .question-row,
+.card-back .question-row{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:8px;
+}
+.card-front .question-row .question,
+.card-back .question-row .question{ flex:1 1 auto; min-width:0; }
+.bookmark-btn{
+  flex:0 0 auto;
+  width:28px;
+  height:28px;
+  margin:-4px -4px 0 0;
+  padding:0;
+  border:0;
+  border-radius:8px;
+  background:transparent;
+  color:#9AA197;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer;
+}
+.bookmark-btn:hover,
+.bookmark-btn:focus-visible{ color:var(--muted); }
+.bookmark-btn .watch-icon{ width:24px; height:24px; display:block; }
+.bookmark-btn .watch-icon--on{ display:none; }
+.bookmark-btn[aria-pressed="true"] .watch-icon--off{ display:none; }
+.bookmark-btn[aria-pressed="true"] .watch-icon--on{ display:block; }
+.bookmark-btn[aria-pressed="true"]{ color:var(--ink); }
+.bookmark-btn[hidden]{ display:none; }
+.maximize-btn{
+  flex:0 0 auto;
+  width:28px;
+  height:28px;
+  margin:-4px -4px 0 0;
+  padding:0;
+  border:0;
+  border-radius:8px;
+  background:transparent;
+  color:#202020;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer;
+}
+.maximize-btn:hover{ background:rgba(0,0,0,0.06); }
+.maximize-btn:focus-visible{
+  background:rgba(0,0,0,0.06);
+  outline:2px solid var(--moss, #3D5A46);
+  outline-offset:2px;
+}
+.maximize-btn:active{ background:rgba(0,0,0,0.12); }
+.maximize-btn svg{ width:24px; height:24px; display:block; }
+.maximize-btn svg[hidden]{ display:none; }
+.card-viewport:not(.maximized-card-viewport):not(.card-shell-viewport) .question,
+.card-viewport:not(.maximized-card-viewport):not(.card-shell-viewport) .subtitle{ cursor:pointer; }
+.card-viewport:not(.maximized-card-viewport):not(.card-shell-viewport) .question:hover,
+.card-viewport:not(.maximized-card-viewport):not(.card-shell-viewport) .subtitle:hover{ text-decoration:underline; }
+
+/* 017: a vote accepted while the writers lag says so, in the footer slot the
+   other card messages use, until the next render of the card. */
+.poll-vote-notice{
+  color:var(--muted);
+  font-family:'Inter', sans-serif;
+  font-weight:600;
+  font-size:clamp(12px, calc(1vw + 2px), 13.5px);
+  line-height:1.4;
+  display:flex;
+  align-items:center;
+}
+.poll-vote-notice[hidden]{ display:none; }
+
+.hp-field {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}

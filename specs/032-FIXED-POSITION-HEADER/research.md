@@ -1,0 +1,48 @@
+# Research: Fixed-Position Site Header
+
+Each item: **Decision**, **Rationale**, **Alternatives considered**.
+
+## R1. Two independent layer-plus-script pairs, not one combined file
+**Decision**: the fixed-chrome concern (`header-fixed-m3.css` + `fixedChrome.js`) and the Back to Top button (`back-to-top-m3.css` + `backToTopFab.js`) ship as two separate pairs.
+**Rationale**: they are independently testable and independently toggleable — a page could in principle need one without the other — and each pair mirrors the 031 precedent of one layer sheet plus one script with a single, narrow job.
+**Alternatives**: one file for everything (couples two unrelated concerns, harder to test in isolation, a single bug in one could take down the other).
+
+## R2. Measuring the fixed chrome: two custom properties
+**Decision**: `fixedChrome.js` reads `#site-header.offsetHeight` and, if `.tab-bar-wrap` exists, its `offsetHeight`, and writes `--fixed-chrome-height-header` (the header alone) and `--fixed-chrome-height` (the sum) onto `document.documentElement.style`, coalesced into one `requestAnimationFrame`, driven by a `ResizeObserver` on both elements (and whichever of them exist) plus the same `MutationObserver`-on-rebuild / `document.fonts.ready` triggers `headerFit.js` already uses.
+**Rationale**: `.tab-bar-wrap`'s `top` offset needs the header's height alone (architecture section 2); `.container`'s padding-top, and the two existing scripts that must stop assuming `y=0` (R6), need the combined total. Two properties, not one, avoids either consumer having to add the two together or subtract one from the other.
+**Alternatives**: one property only, with `.tab-bar-wrap{top:var(--fixed-chrome-height-header)}` derived by `calc()` subtraction elsewhere (fragile, spreads the arithmetic across files); re-measuring in each consumer (duplicates the `ResizeObserver` setup three times).
+
+## R3. Pinning the header and tab-bar-wrap directly; no new wrapping markup
+**Decision**: `header-fixed-m3.css` sets `position:fixed` directly on the existing `#site-header` and, on the one page that has one, `.tab-bar-wrap` — no new wrapping `<div>` around either. `.tab-bar-wrap` is already `position:relative` for its horizontal-scroll fade/arrow overlays and the phone-only absolutely-positioned Hamburger/Refresh row; switching it to `position:fixed` keeps it as the containing block for all of them, so nothing inside it changes.
+**Rationale**: the requirement's "if it exists" resolves by *measurement*, not by naming pages in code (spec Clarifications, Q1): six of the seven pages simply have no `.tab-bar-wrap`, so only the header rule ever applies there. The Hamburger/Refresh row is already nested inside `.tab-bar-wrap`'s own box (030/031), so pinning the wrap pins the row for free — no separate selector or element is needed for it.
+**Alternatives**: a new wrapper `<div>` around header + tab-bar-wrap on `index.html` only (an asymmetric markup change across pages, and a bigger diff, for no behavioural gain); a per-page conditional in `fixedChrome.js` that special-cases `index.html` (duplicates the "which page is this" knowledge the DOM already encodes by the element's mere presence or absence).
+
+## R4. Reserved space as an override in the new layer, not an edit to `tabs.css`
+**Decision**: `.container`'s existing `padding-top` (`32px` at ≥ 640 px, `20px` at ≤ 639.98 px, both in `tabs.css`) is overridden inside `header-fixed-m3.css` as `padding-top:calc(32px + var(--fixed-chrome-height,0px))` / `calc(20px + var(--fixed-chrome-height,0px))`, at the same two breakpoints. `tabs.css` itself is not touched.
+**Rationale**: `header-fixed-m3.css` loads after `tabs.css` on every page, so an override there wins on specificity tie-break without editing a production stylesheet (Constitution III) — the same "layers, not edits" approach 024/030/031 established.
+**Alternatives**: edit `tabs.css`'s `.container` rule directly (a production-stylesheet edit the project has avoided since 024); set the padding entirely from `fixedChrome.js` via inline styles on `.container` (bypasses the stylesheet cascade and the existing phone-width override, and would fight with any future CSS change to that rule).
+
+## R5. Horizontal footprint stays confined to the centred column (NC2)
+**Decision**: `#site-header` and `.tab-bar-wrap` get `left:0; right:0` (for fixed-positioning purposes) plus `max-width:var(--max-width); margin:0 auto; padding-inline:20px` (`14px` below 639.98 px) — mirroring `.container`'s own centering and side-padding values exactly — and an opaque background painted only across that centred column, not edge-to-edge.
+**Rationale**: architecture NC2, resolved to Option B: zero visual change to the header's horizontal footprint on wide screens (SC-008); only its "stays put while scrolling" behaviour is new.
+**Alternatives**: full-bleed edge-to-edge (NC2 Option A, not chosen — would change the header's look on screens wider than 1280 px, which the clarified spec rules out).
+
+## R6. A shared global, `window.FixedChrome`, so two existing scripts stop assuming `y=0`
+**Decision**: `fixedChrome.js` exposes `window.FixedChrome = { height: () => number }`, reading the live `--fixed-chrome-height` value. `floatingActions.js`'s `cardArea()` (`src/public/floatingActions.js:37`, `top: Math.max(box.top, 0)`) changes its clamp from the literal `0` to `window.FixedChrome.height()`; `tabs.js`'s `maximize()` (`src/public/tabs.js:255-263`, `if (top<0) window.scrollTo(0, window.scrollY+top)`) changes its comparison and scroll target from `0` to the same value, so the maximized grid lands just below the fixed chrome instead of behind it.
+**Rationale**: both scripts load after `fixedChrome.js` in document order (deferred scripts execute in source order), so the global is always populated before either reads it. A shared global avoids each consumer re-implementing its own `ResizeObserver`/custom-property read, the same small-API shape `window.SiteSearch` (`app.js`) already established for `headerFit.js`/`searchTab.js` to share state across files without a direct import.
+**Alternatives**: have `floatingActions.js` and `tabs.js` each read the CSS custom property directly via `getComputedStyle` (duplicates the parsing logic in two files and couples them to the property's exact name instead of a stable function); pass the height through a custom DOM event (more code for no benefit over a plain function call).
+
+## R7. Back to Top thresholds: two numbers, not one
+**Decision**: the button becomes visible once `window.scrollY >= 600`, and hidden once `window.scrollY < 400` — a hysteresis band, not a single toggle point — checked in a `scroll` listener throttled to one evaluation per `requestAnimationFrame`.
+**Rationale**: a single threshold would let the button flicker on and off as ordinary scroll jitter crosses back and forth over one number (spec US4, SC-006); 600/400 sit within the requirement's suggested 500–800 px appearance range (spec Clarifications).
+**Alternatives**: one threshold for both directions (flickers, as above); a time-based debounce instead of a position gap (adds a timer and a "is it still past the line" re-check that a position-based gap doesn't need).
+
+## R8. Back to Top icon, tooltip, position and the cookie banner
+**Decision**: the button's icon is an inline `<svg>` upward arrow (matching every other icon in the codebase — hamburger, refresh, tab icons, tooltip close — none of which use a Material Symbols font); `title="Back to top"` and `aria-label="Back to top"` are set directly on the button; it is positioned `right:20px; bottom:calc(20px + var(--cookie-banner-offset,0px))`, reusing the `--cookie-banner-offset` custom property `app.js` (`app.js:452`) already maintains for `.tab-notice`/`.profile-snackbar`, so the button rides up with the cookie banner instead of sitting under it. A user who prefers reduced motion (`matchMedia("(prefers-reduced-motion: reduce)")`, the same check `tabBarScroll.js:22` already makes) gets `window.scrollTo({top:0, behavior:"auto"})` and no opacity/transform transition on the button itself; everyone else gets `behavior:"smooth"` and a CSS transition.
+**Rationale**: matches the codebase's one existing icon convention and its one existing reduced-motion check, and reuses state (`--cookie-banner-offset`) the project already maintains rather than inventing a second mechanism for the same problem.
+**Alternatives**: a Material Symbols web font for the icon (the requirement's literal wording, but introduces a font dependency nothing else in the project uses); a fixed `bottom` value with no cookie-banner awareness (would sit the button under the banner whenever both are visible, which `.tab-notice` already avoids for its own case).
+
+## R9. Testing without layout
+**Decision**: `fixedChrome.js`'s tests stub `offsetHeight` on `#site-header` and `.tab-bar-wrap` (as numbers the test controls) and assert the two custom properties `fixedChrome.js` writes; `backToTopFab.js`'s tests stub `window.scrollY` and dispatch `scroll` events to drive the show/hide state machine directly, using the existing `openStubbedHome` helper's `reducedMotion` option to assert the instant-vs-smooth branch. `header-fixed-sheet.test.ts` and `back-to-top-sheet.test.ts` read the new sheets' text, as `single-row-header-sheet.test.ts` already does for `header-single-row-m3.css`.
+**Rationale**: jsdom applies no stylesheet and does no layout, so what can be tested directly is the measurement/threshold logic and that each sheet's rules exist in the file, the same split 031 already uses.
+**Alternatives**: a real browser in CI (not available in this project).

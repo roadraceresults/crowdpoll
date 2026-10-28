@@ -1,0 +1,1666 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UI/UX Revisions Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,400..800&family=Newsreader:ital,opsz,wght@0,6..72,400..600;1,6..72,400&family=Spline+Sans+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    color-scheme: light;
+
+    /* Blueprint neutrals — biased toward the accent's blue rather than a
+       default mid-grey, so the paper reads as chosen. */
+    --ground:#EDEFF3; --surface:#FAFBFD; --surface-2:#E3E7EF; --surface-3:#D5DBE7;
+    --ink:#14181F; --ink-soft:#39414F; --muted:#67718A;
+    --rule:#CFD5E1; --rule-strong:#98A2B6;
+
+    /* Accent: drafting ink. Structure, section marks, links. */
+    --accent:#21519B; --accent-wash:#DEE7F6;
+    /* Redline: reserved for defects in the requirements. Never decorative. */
+    --redline:#B4341F; --redline-wash:#F8E3DE;
+    /* Settled: assumptions taken and decisions closed. */
+    --settled:#1D6B5B; --settled-wash:#DBEDE7;
+    /* Caution: specified, but carrying a risk worth naming. */
+    --warn:#8A6111; --warn-wash:#F6EBD2;
+
+    --shadow:0 1px 2px rgba(20,24,31,.06), 0 14px 30px -22px rgba(20,24,31,.34);
+    --display:"Bricolage Grotesque","Helvetica Neue",Helvetica,Arial,sans-serif;
+    --serif:"Newsreader",Georgia,"Times New Roman",serif;
+    --mono:"Spline Sans Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme: dark;
+      --ground:#0C0F14; --surface:#131822; --surface-2:#1B2231; --surface-3:#242D3E;
+      --ink:#E4E8F0; --ink-soft:#B6BECD; --muted:#7E889B;
+      --rule:#232B3A; --rule-strong:#455167;
+      --accent:#87ACEF; --accent-wash:#152340;
+      --redline:#F09280; --redline-wash:#361A14;
+      --settled:#5FC5AC; --settled-wash:#0F2A25;
+      --warn:#DDAE5A; --warn-wash:#2E2410;
+      --shadow:0 1px 2px rgba(0,0,0,.5), 0 14px 30px -22px rgba(0,0,0,.9);
+    }
+  }
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --ground:#0C0F14; --surface:#131822; --surface-2:#1B2231; --surface-3:#242D3E;
+    --ink:#E4E8F0; --ink-soft:#B6BECD; --muted:#7E889B;
+    --rule:#232B3A; --rule-strong:#455167;
+    --accent:#87ACEF; --accent-wash:#152340;
+    --redline:#F09280; --redline-wash:#361A14;
+    --settled:#5FC5AC; --settled-wash:#0F2A25;
+    --warn:#DDAE5A; --warn-wash:#2E2410;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 14px 30px -22px rgba(0,0,0,.9);
+  }
+
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth; scroll-padding-top:70px;}
+  @media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto;} *{transition:none !important;} }
+
+  body{
+    margin:0;
+    background:var(--ground);
+    color:var(--ink);
+    font-family:var(--serif);
+    font-size:17px;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  .wrap{max-width:1100px; margin:0 auto; padding:0 28px 110px;}
+  .measure{max-width:68ch;}
+
+  /* ---------- sticky identifier rail ---------- */
+  nav.rail{
+    position:sticky; top:0; z-index:30;
+    background:var(--ground);
+    border-bottom:1px solid var(--rule);
+  }
+  nav.rail .inner{
+    max-width:1100px; margin:0 auto; padding:9px 28px;
+    display:flex; gap:6px; overflow-x:auto; scrollbar-width:thin;
+  }
+  nav.rail a{
+    font-family:var(--mono); font-size:11px; font-weight:500;
+    letter-spacing:.05em; text-transform:uppercase;
+    color:var(--muted); text-decoration:none; white-space:nowrap;
+    padding:4px 9px; border:1px solid var(--rule); border-radius:1px;
+    background:var(--surface);
+  }
+  nav.rail a:hover, nav.rail a:focus-visible{color:var(--accent); border-color:var(--accent);}
+
+  /* ---------- masthead ---------- */
+  header.doc{
+    padding:60px 0 30px;
+    border-bottom:2.5px solid var(--ink);
+    display:flex; flex-direction:column; gap:18px;
+  }
+  .eyebrow{
+    font-family:var(--mono); font-size:11.5px; font-weight:500;
+    letter-spacing:.15em; text-transform:uppercase; color:var(--accent); margin:0;
+  }
+  h1{
+    font-family:var(--display);
+    font-variation-settings:"wdth" 92, "opsz" 72;
+    font-weight:750;
+    font-size:clamp(36px,5.6vw,62px);
+    line-height:1.02; letter-spacing:-.02em;
+    margin:0; text-wrap:balance;
+  }
+  .standfirst{
+    font-size:19px; color:var(--ink-soft); max-width:62ch; margin:0;
+    font-family:var(--serif);
+  }
+  .facts{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(158px,1fr));
+    gap:0; border-top:1px solid var(--rule); margin-top:6px;
+  }
+  .facts div{padding:14px 16px 12px; border-right:1px solid var(--rule);}
+  .facts div:last-child{border-right:none;}
+  .facts dt{
+    font-family:var(--mono); font-size:10.5px; letter-spacing:.09em;
+    text-transform:uppercase; color:var(--muted); margin:0 0 3px;
+  }
+  .facts dd{
+    margin:0; font-family:var(--display); font-variation-settings:"wdth" 90;
+    font-weight:650; font-size:19px; line-height:1.2; color:var(--ink);
+    font-variant-numeric:tabular-nums;
+  }
+
+  /* ---------- sections ---------- */
+  section{padding:52px 0 0;}
+  h2{
+    font-family:var(--display); font-variation-settings:"wdth" 90, "opsz" 40;
+    font-weight:700; font-size:clamp(25px,3vw,33px); line-height:1.12;
+    letter-spacing:-.014em; margin:0 0 6px; text-wrap:balance;
+  }
+  h2 .num{
+    font-family:var(--mono); font-size:.5em; font-weight:500; color:var(--accent);
+    letter-spacing:.08em; display:block; margin-bottom:7px; text-transform:uppercase;
+  }
+  h3{
+    font-family:var(--display); font-variation-settings:"wdth" 92;
+    font-weight:650; font-size:19.5px; line-height:1.25; letter-spacing:-.008em;
+    margin:34px 0 8px; color:var(--ink);
+  }
+  h4{
+    font-family:var(--mono); font-size:12px; font-weight:600; letter-spacing:.08em;
+    text-transform:uppercase; color:var(--muted); margin:26px 0 6px;
+  }
+  p{margin:0 0 14px;}
+  section > p, section > ul, section > ol, section > .measure{max-width:68ch;}
+  a{color:var(--accent);}
+
+  ul,ol{margin:0 0 14px; padding-left:22px;}
+  li{margin-bottom:7px;}
+  li::marker{color:var(--rule-strong);}
+
+  code, .m{
+    font-family:var(--mono); font-size:.855em;
+    background:var(--surface-2); padding:1px 5px; border-radius:2px;
+    color:var(--ink); white-space:nowrap;
+  }
+
+  .lede{font-size:18.5px; color:var(--ink-soft); max-width:64ch;}
+
+  /* ---------- figures ---------- */
+  figure{
+    margin:30px 0 34px; padding:22px 22px 16px;
+    background:var(--surface); border:1px solid var(--rule);
+    box-shadow:var(--shadow); border-radius:3px;
+    overflow-x:auto;
+  }
+  figure svg{display:block; width:100%; max-width:100%; height:auto; color:var(--ink);}
+  figcaption{
+    margin-top:14px; padding-top:11px; border-top:1px solid var(--rule);
+    font-size:14.5px; color:var(--muted); max-width:80ch; line-height:1.5;
+  }
+  figcaption b{color:var(--ink-soft); font-weight:600;}
+
+  /* ---------- tables ---------- */
+  .tablewrap{overflow-x:auto; margin:22px 0 28px; border:1px solid var(--rule); border-radius:3px; background:var(--surface);}
+  table{border-collapse:collapse; width:100%; font-size:14.5px; font-family:var(--serif);}
+  th,td{text-align:left; padding:9px 13px; border-bottom:1px solid var(--rule); vertical-align:top;}
+  thead th{
+    font-family:var(--mono); font-size:10.5px; font-weight:600; letter-spacing:.08em;
+    text-transform:uppercase; color:var(--muted); background:var(--surface-2);
+    white-space:nowrap; border-bottom:1px solid var(--rule-strong);
+  }
+  tbody tr:last-child td{border-bottom:none;}
+  td .m, th .m{background:transparent; padding:0;}
+
+  /* ---------- finding blocks ---------- */
+  .finding{
+    display:grid; grid-template-columns:auto 1fr; gap:0 16px;
+    padding:16px 18px; margin:0 0 -1px;
+    background:var(--surface); border:1px solid var(--rule);
+  }
+  .finding:first-of-type{border-radius:3px 3px 0 0;}
+  .finding:last-of-type{border-radius:0 0 3px 3px; margin-bottom:26px;}
+  .finding .id{
+    align-self:start;
+    font-family:var(--mono); font-size:11px; font-weight:600; letter-spacing:.05em;
+    padding:3px 8px; border-radius:2px; height:fit-content; white-space:nowrap;
+  }
+  .finding .hd{
+    font-family:var(--display); font-variation-settings:"wdth" 92;
+    font-weight:650; font-size:17px; line-height:1.3; margin:0 0 4px;
+  }
+  .finding .bd{margin:0; font-size:15.5px; color:var(--ink-soft); max-width:74ch;}
+  .finding .bd + .bd{margin-top:8px;}
+  .finding .bd b{color:var(--ink); font-weight:600;}
+  .finding.inc .id{background:var(--redline-wash); color:var(--redline); border:1px solid var(--redline);}
+  .finding.amb .id{background:var(--warn-wash); color:var(--warn); border:1px solid var(--warn);}
+  .finding.uns .id{background:var(--surface-3); color:var(--ink-soft); border:1px solid var(--rule-strong);}
+  .finding.cl  .id{background:var(--accent-wash); color:var(--accent); border:1px solid var(--accent);}
+  .finding .take{
+    font-family:var(--mono); font-size:12.5px; color:var(--settled);
+    margin-top:9px; display:block; line-height:1.5; max-width:74ch;
+  }
+  .finding .take b{
+    color:var(--settled); font-weight:600; letter-spacing:.05em; text-transform:uppercase;
+    font-size:10.5px; margin-right:5px;
+  }
+
+  /* ---------- decision records ---------- */
+  .adr{
+    border-left:3px solid var(--accent);
+    background:var(--surface); padding:16px 20px; margin:0 0 16px;
+    border-top:1px solid var(--rule); border-right:1px solid var(--rule);
+    border-bottom:1px solid var(--rule); border-radius:0 3px 3px 0;
+  }
+  .adr h3{margin:0 0 6px; font-size:18px;}
+  .adr h3 span{
+    font-family:var(--mono); font-size:11.5px; color:var(--accent);
+    letter-spacing:.06em; margin-right:9px; font-weight:600;
+  }
+  .adr p{margin:0 0 9px; font-size:15.5px; color:var(--ink-soft); max-width:74ch;}
+  .adr p:last-child{margin-bottom:0;}
+  .adr .because{
+    font-family:var(--mono); font-size:12.5px; color:var(--muted);
+    border-top:1px dashed var(--rule); padding-top:9px; margin-top:11px;
+  }
+
+  /* ---------- assumption list ---------- */
+  .assume{list-style:none; padding:0; margin:20px 0 26px; max-width:82ch;}
+  .assume li{
+    display:grid; grid-template-columns:auto 1fr; gap:14px;
+    padding:11px 0; border-bottom:1px solid var(--rule); margin:0;
+  }
+  .assume li:first-child{border-top:1px solid var(--rule);}
+  .assume .tag{
+    font-family:var(--mono); font-size:11px; font-weight:600; color:var(--settled);
+    letter-spacing:.05em; padding-top:3px; white-space:nowrap;
+  }
+  .assume p{margin:0; font-size:15.5px; color:var(--ink-soft);}
+
+  /* ---------- callout ---------- */
+  .note{
+    background:var(--accent-wash); border:1px solid var(--accent);
+    border-radius:3px; padding:15px 18px; margin:22px 0 26px; max-width:76ch;
+  }
+  .note p{margin:0; font-size:15.5px; color:var(--ink-soft);}
+  .note p + p{margin-top:9px;}
+  .note .k{
+    font-family:var(--mono); font-size:10.5px; font-weight:600; letter-spacing:.1em;
+    text-transform:uppercase; color:var(--accent); display:block; margin-bottom:6px;
+  }
+  .note.red{background:var(--redline-wash); border-color:var(--redline);}
+  .note.red .k{color:var(--redline);}
+
+  /* ---------- slot table (card anatomy) ---------- */
+  .slotkey{
+    display:flex; flex-wrap:wrap; gap:8px 18px; margin:0 0 6px;
+    font-family:var(--mono); font-size:11.5px; color:var(--muted);
+  }
+  .slotkey span{display:inline-flex; align-items:center; gap:6px;}
+  .swatch{width:11px; height:11px; border-radius:1px; border:1px solid var(--rule-strong); display:inline-block;}
+
+  hr.rule{border:none; border-top:1px solid var(--rule); margin:44px 0 0;}
+
+  footer.doc{
+    margin-top:56px; padding:30px 0 0; border-top:2.5px solid var(--ink);
+    font-size:14.5px; color:var(--muted); max-width:74ch;
+  }
+  footer.doc p{margin:0 0 9px;}
+
+
+  /* ---------- inline SVG diagram vocabulary ----------
+     Diagrams are theme-aware because every stroke/fill resolves through the
+     same tokens the prose uses. currentColor carries the neutral ink; the
+     three semantic hues are spent only where they mean something: redline =
+     a defect in the requirements, accent = the mechanism under discussion,
+     settled = the resolution taken. */
+  figure svg{color:var(--ink);}
+  figure svg text{font-family:var(--mono); font-size:12.5px; fill:var(--ink);}
+  figure svg text.sm{font-size:11px;}
+  figure svg text.xs{font-size:10px;}
+  figure svg text.mut{fill:var(--muted);}
+  figure svg text.hd{font-family:var(--display); font-variation-settings:"wdth" 90;
+                     font-weight:650; font-size:14px; fill:var(--ink);}
+  figure svg text.band{font-size:10.5px; letter-spacing:.09em; fill:var(--muted);}
+  figure svg text.red{fill:var(--redline);}
+  figure svg text.acc{fill:var(--accent);}
+  figure svg text.set{fill:var(--settled);}
+  figure svg text.warn{fill:var(--warn);}
+
+  figure svg .box{fill:var(--surface); stroke:var(--rule-strong); stroke-width:1.1;}
+  figure svg .box2{fill:var(--surface-2); stroke:var(--rule-strong); stroke-width:1;}
+  figure svg .boxq{fill:none; stroke:var(--rule-strong); stroke-width:1; stroke-dasharray:4 4;}
+  figure svg .redbox{fill:var(--redline-wash); stroke:var(--redline); stroke-width:1.4;}
+  figure svg .accbox{fill:var(--accent-wash); stroke:var(--accent); stroke-width:1.3;}
+  figure svg .setbox{fill:var(--settled-wash); stroke:var(--settled); stroke-width:1.3;}
+  figure svg .warnbox{fill:var(--warn-wash); stroke:var(--warn); stroke-width:1.3;}
+
+  figure svg .ln{fill:none; stroke:currentColor; stroke-width:1.4;}
+  figure svg .ln.thin{stroke-width:1;}
+  figure svg .ln.dash{stroke-dasharray:5 4;}
+  figure svg .ln.rule{stroke:var(--rule-strong); stroke-width:1;}
+  figure svg .ln.redln{stroke:var(--redline); stroke-width:1.6;}
+  figure svg .ln.accln{stroke:var(--accent); stroke-width:1.6;}
+  figure svg .ln.setln{stroke:var(--settled); stroke-width:1.6;}
+  figure svg .head{fill:currentColor;}
+  figure svg .head.redh{fill:var(--redline);}
+  figure svg .head.acch{fill:var(--accent);}
+  figure svg .head.seth{fill:var(--settled);}
+
+  :focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+
+  @media (max-width:640px){
+    .wrap{padding:0 18px 80px;}
+    nav.rail .inner{padding:8px 18px;}
+    .facts div{border-right:none; border-bottom:1px solid var(--rule);}
+    .finding{grid-template-columns:1fr;}
+    .finding .id{justify-self:start; margin-bottom:8px;}
+  }
+</style>
+</head>
+
+
+<body>
+
+<nav class="rail" aria-label="Section navigation">
+  <div class="inner">
+    <a href="#scope">Scope</a>
+    <a href="#components">Components</a>
+    <a href="#cardshell">Card shell</a>
+    <a href="#cascade">Stylesheets</a>
+    <a href="#header">Header</a>
+    <a href="#roster">Participants</a>
+    <a href="#session">Session</a>
+    <a href="#landing">Landing</a>
+    <a href="#navigation">Navigation</a>
+    <a href="#adr">Decisions</a>
+    <a href="#assumptions">Assumptions</a>
+    <a href="#findings">Findings</a>
+    <a href="#clarify">Clarifications</a>
+    <a href="#trace">Traceability</a>
+    <a href="#report">Report</a>
+  </div>
+</nav>
+
+<div class="wrap">
+
+<header class="doc">
+  <p class="eyebrow">Architecture artifact &middot; 013-UI-UX-revisions &middot; regenerated</p>
+  <h1>UI/UX Revisions Architecture</h1>
+  <p class="standfirst">Nine revisions to CrowdPoll's presentation layer &mdash; and, since the last artifact, one behavioural mechanism underneath them. The requirements grew from 117 lines to 290, and the growth is two new sections: a session snapshot shared across a page and broadcast between windows, and a landing state for a verification link that arrives with no session. Between them they close the largest open question the previous run raised. One of them cannot work as written.</p>
+  <dl class="facts">
+    <div><dt>Source requirements</dt><dd>013 &middot; 290 lines</dd></div>
+    <div><dt>Revisions</dt><dd>R1&ndash;R9</dd></div>
+    <div><dt>Directives</dt><dd>D1&ndash;D8</dd></div>
+    <div><dt>Diagrams</dt><dd>11</dd></div>
+    <div><dt>Findings</dt><dd>30</dd></div>
+    <div><dt>Open questions</dt><dd>10</dd></div>
+  </dl>
+</header>
+
+<section id="scope">
+  <h2><span class="num">01 &middot; Scope</span>Nine revisions, and the mechanism that arrived with two of them</h2>
+
+  <p class="lede">Seven of these revisions move markup, CSS and client rendering; none of them needs the server. The two that arrived since the last artifact &mdash; session propagation and the verification landing &mdash; are different in kind. They describe runtime behaviour rather than appearance, they answer a question the previous run could only raise, and one of them requires an edit to a file the requirements do not mention.</p>
+
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>ID</th><th>Revision</th><th>What it asks for</th><th>Depth</th></tr></thead>
+    <tbody>
+      <tr><td><span class="m">R1</span></td><td>Invited / Voted labels</td><td>Invitation-only rows read <span class="m">- Invited</span> always and <span class="m">- Voted</span> when the address has voted; link-only and public rows read <span class="m">- Voted</span>. Every roster sorts by email address.</td><td>Data &amp; render</td></tr>
+      <tr><td><span class="m">R2</span></td><td>Add &rarr; Invite</td><td>The invite-row button is renamed.</td><td>Markup</td></tr>
+      <tr><td><span class="m">R3</span></td><td>Header</td><td>Brand becomes a link; <span class="m">.header-nav</span> moves after <span class="m">.header-search</span> in source order, and nothing else changes.</td><td>Markup &amp; CSS</td></tr>
+      <tr><td><span class="m">R4</span></td><td>Login card</td><td>Rebuilt on a new shell: title, subtitle, one field group, one action, a close control, no rear face.</td><td>Page rebuild</td></tr>
+      <tr><td><span class="m">R5</span></td><td>Create Account card</td><td>Same shell, one field, one action. Now fully specified rather than delegated to R4.</td><td>Page rebuild</td></tr>
+      <tr><td><span class="m">R6</span></td><td>Profile card</td><td>Same shell; avatar in the subtitle slot; three field groups; two right-justified actions, one of which stays on the page. <span class="m">min-height:640px</span>.</td><td>Page rebuild</td></tr>
+      <tr><td><span class="m">R7</span></td><td>Session propagation <span class="m">NEW</span></td><td>One session snapshot per page, broadcast between windows and re-checked when a window is seen again, so no window is left orphaned after an email link opens another one.</td><td>Client mechanism</td></tr>
+      <tr><td><span class="m">R8</span></td><td>Verification landing <span class="m">NEW</span></td><td><span class="m">/profile</span> renders a result card for a verification link that lands without a session, instead of discarding the confirmation.</td><td>Client state <b>+ server guard</b></td></tr>
+      <tr><td><span class="m">R9</span></td><td>Admin back arrow</td><td><span class="m">/admin</span> gains the edit page's arrow, pointing at <span class="m">/</span>.</td><td>Markup &amp; CSS</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Eight cross-cutting directives</h3>
+  <p>These appear in the requirements as prose paragraphs rather than headed sections, but each constrains more than one revision, so they are tracked separately. D6&ndash;D8 are new with R7.</p>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>ID</th><th>Directive</th><th>Binds</th></tr></thead>
+    <tbody>
+      <tr><td><span class="m">D1</span></td><td>Extract a card shell &mdash; one face, title row with a close control, optional subtitle, body, optional action row. Share <span class="m">pollCard.css</span>'s tokens and the <span class="m">.card-face</span> / <span class="m">.question</span> / <span class="m">.subtitle</span> / <span class="m">.btn-primary.btn-vote</span> rules. Do not instantiate <span class="m">PollCard</span>.</td><td>R4, R5, R6, R8</td></tr>
+      <tr><td><span class="m">D2</span></td><td>The card pages load <span class="m">pollGrid.css</span>, <span class="m">pollCard.css</span>, <span class="m">site.css</span> and the Fraunces/Inter link, and do <em>not</em> load <span class="m">styles.css</span>. What they still need from it moves into <span class="m">site.css</span>.</td><td>R4, R5, R6</td></tr>
+      <tr><td><span class="m">D3</span></td><td>Submissions await their response: <span class="m">200</span> navigates, <span class="m">429</span> and <span class="m">400</span> stay on the card and render the reason.</td><td>R4, R5, R6</td></tr>
+      <tr><td><span class="m">D4</span></td><td>Labels are derived on the client from data already on the wire. No new field, no new route, no change to <span class="m">postman/openapi.json</span>, and unsaved draft edits stay correct.</td><td>R1</td></tr>
+      <tr><td><span class="m">D5</span></td><td>Every new navigation is a declared destination &mdash; anchors with <span class="m">href</span>, or <span class="m">location.href</span>. Nothing calls <span class="m">history.back()</span>.</td><td>R3, R4, R5, R6, R8, R9</td></tr>
+      <tr><td><span class="m">D6</span></td><td>One session snapshot per page &mdash; the parsed <span class="m">/api/me</span> body or <span class="m">null</span> &mdash; owned by <span class="m">app.js</span> and read by every other module instead of each fetching for itself.</td><td>R7, R8</td></tr>
+      <tr><td><span class="m">D7</span></td><td>The broadcast payload is the snapshot itself, never a signed-in flag; a page re-broadcasts only what it fetched, never what it received.</td><td>R7</td></tr>
+      <tr><td><span class="m">D8</span></td><td>Re-checks are event-driven only &mdash; load, <span class="m">visibilitychange</span>, persisted <span class="m">pageshow</span>, and the page's own successful <span class="m">PATCH</span>. No timer polls <span class="m">/api/me</span>.</td><td>R7</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="note">
+    <p><span class="k">What the new sections closed</span>The previous run's largest unspecified aspect was <b>UNS&#8209;6, &ldquo;the window left behind after a submission navigates&rdquo;</b> &mdash; the requirements navigated the requesting window home and said nothing about what it showed once the link was clicked elsewhere. R7 answers it in full, and R8 answers the mirror case in the window that consumed the link. Both answers are architecturally sound. R8's is blocked one layer above the file it names.</p>
+  </div>
+</section>
+
+<section id="components">
+  <h2><span class="num">02 &middot; Components</span>Where the nine revisions land</h2>
+
+  <p class="lede">Eight of the nine revisions are confined to <span class="m">src/public</span>. The ninth reaches the server &mdash; not through an API, which the requirements correctly rule out, but through the page route that decides whether <span class="m">profile.html</span> is sent at all.</p>
+
+  <figure>
+    <svg viewBox="0 0 960 452" role="img" aria-label="Eight of the nine revisions touch only client files under src/public. R8, the verification landing, additionally forces a change to the page-route guard in src/routes/pages.ts, a file the requirements never mention.">
+      <defs>
+        <marker id="f1a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path class="head acch" d="M0 0 L10 5 L0 10 z"/>
+        </marker>
+        <marker id="f1r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path class="head redh" d="M0 0 L10 5 L0 10 z"/>
+        </marker>
+      </defs>
+
+      <text class="band" x="20" y="28">REVISIONS</text>
+      <rect class="box" x="20" y="40" width="210" height="28" rx="2"/>
+      <text class="xs" x="30" y="58">R1 &nbsp;Roster labels</text>
+      <rect class="box" x="20" y="76" width="210" height="28" rx="2"/>
+      <text class="xs" x="30" y="94">R2 &nbsp;Add &rarr; Invite</text>
+      <rect class="box" x="20" y="112" width="210" height="28" rx="2"/>
+      <text class="xs" x="30" y="130">R3 &nbsp;Header source order</text>
+      <rect class="box" x="20" y="148" width="210" height="28" rx="2"/>
+      <text class="xs" x="30" y="166">R4 &nbsp;Login card</text>
+      <rect class="box" x="20" y="184" width="210" height="28" rx="2"/>
+      <text class="xs" x="30" y="202">R5 &nbsp;Create Account card</text>
+      <rect class="box" x="20" y="220" width="210" height="28" rx="2"/>
+      <text class="xs" x="30" y="238">R6 &nbsp;Profile card</text>
+      <rect class="accbox" x="20" y="256" width="210" height="28" rx="2"/>
+      <text class="xs acc" x="30" y="274">R7 &nbsp;Session propagation</text>
+      <rect class="redbox" x="20" y="292" width="210" height="28" rx="2"/>
+      <text class="xs red" x="30" y="310">R8 &nbsp;Verification landing</text>
+      <rect class="box" x="20" y="328" width="210" height="28" rx="2"/>
+      <text class="xs" x="30" y="346">R9 &nbsp;Admin back arrow</text>
+
+      <path class="ln accln" d="M230 178 H296" marker-end="url(#f1a)"/>
+      <text class="xs acc" x="236" y="170">all nine</text>
+
+      <rect class="box2" x="300" y="40" width="360" height="386" rx="3"/>
+      <text class="band" x="316" y="28">SRC/PUBLIC &mdash; CLIENT</text>
+      <rect class="box" x="316" y="56" width="328" height="30" rx="2"/>
+      <text class="xs" x="326" y="75">app.js &mdash; header, and now the session snapshot</text>
+      <rect class="accbox" x="316" y="92" width="328" height="30" rx="2"/>
+      <text class="xs acc" x="326" y="111">card shell &mdash; NEW, module not named by 013</text>
+      <rect class="box" x="316" y="128" width="328" height="30" rx="2"/>
+      <text class="xs" x="326" y="147">pollGrid.js &mdash; stops closing over its session copy</text>
+      <rect class="box" x="316" y="164" width="328" height="30" rx="2"/>
+      <text class="xs" x="326" y="183">adminPoll.js &mdash; roster labels and sort</text>
+      <rect class="box" x="316" y="200" width="328" height="30" rx="2"/>
+      <text class="xs" x="326" y="219">login.html &nbsp;&middot;&nbsp; create-account.html</text>
+      <rect class="box" x="316" y="236" width="328" height="30" rx="2"/>
+      <text class="xs" x="326" y="255">profile.html &mdash; card, plus the R8 result state</text>
+      <rect class="box" x="316" y="272" width="328" height="30" rx="2"/>
+      <text class="xs" x="326" y="291">admin.html &mdash; back arrow</text>
+      <rect class="box" x="316" y="308" width="328" height="30" rx="2"/>
+      <text class="xs" x="326" y="327">site.css &mdash; receives the promoted rules</text>
+      <rect class="boxq" x="316" y="344" width="328" height="30" rx="2"/>
+      <text class="xs mut" x="326" y="363">styles.css &mdash; dropped by the three card pages</text>
+      <rect class="box" x="316" y="380" width="328" height="30" rx="2"/>
+      <text class="xs" x="326" y="399">pollCard.css &nbsp;&middot;&nbsp; pollGrid.css &mdash; read, not edited</text>
+
+      <rect class="box2" x="716" y="40" width="228" height="196" rx="3"/>
+      <text class="band" x="732" y="28">SRC/ROUTES &mdash; SERVER</text>
+      <rect class="redbox" x="732" y="62" width="196" height="58" rx="2"/>
+      <text class="xs red" x="742" y="82">pages.ts</text>
+      <text class="xs red" x="742" y="98">the /profile guard must</text>
+      <text class="xs red" x="742" y="112">change &mdash; 013 says otherwise</text>
+      <rect class="boxq" x="732" y="136" width="196" height="58" rx="2"/>
+      <text class="xs mut" x="742" y="156">api.ts</text>
+      <text class="xs mut" x="742" y="172">unchanged, correctly &mdash;</text>
+      <text class="xs mut" x="742" y="186">neither verify route moves</text>
+      <text class="xs mut" x="732" y="216">No API contract impact.</text>
+
+      <path class="ln redln dash" d="M230 306 H262 V440 H890 V248" marker-end="url(#f1r)"/>
+      <text class="xs red" x="600" y="434">R8 reaches past the client &mdash; see section 08</text>
+    </svg>
+    <figcaption>The blast radius. Everything above the dashed redline is presentation; the redline is the one edge the requirements do not acknowledge.</figcaption>
+  </figure>
+
+  <p>The claim that no API changes is worth stating plainly, because it is true and it is load-bearing: <span class="m">/api/me</span> is unchanged, both verify routes are unchanged, and <span class="m">postman/openapi.json</span> needs no edit for any of R1&ndash;R7 or R9. R8's cost is a page route, not an endpoint &mdash; but <span class="m">contracts/page-routes.md</span> documents that route's behaviour, and <span class="m">tests/pages.test.ts</span> asserts it.</p>
+</section>
+
+<section id="cardshell">
+  <h2><span class="num">03 &middot; Card shell</span>A sibling of the poll card, not a subclass of it</h2>
+
+  <p class="lede">D1 is precise about provenance, and the precision matters. The three pages take <span class="m">pollCard.css</span>'s tokens and four of its rules, and they take none of <span class="m">PollCard</span>'s behaviour &mdash; no rear face, no flip, no polling timer, no <span class="m">applyPoll</span>. Reusing <span class="m">POLL_CARD_TEMPLATE</span> would have imported all of it.</p>
+
+  <figure>
+    <svg viewBox="0 0 960 372" role="img" aria-label="The card shell and PollCard both consume pollCard.css tokens and four shared rules, but the shell does not instantiate PollCard. Three pages consume the shell.">
+      <defs>
+        <marker id="f2a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path class="head" d="M0 0 L10 5 L0 10 z"/>
+        </marker>
+      </defs>
+
+      <text class="band" x="20" y="42">SHARED RULES &amp; TOKENS</text>
+      <rect class="box2" x="20" y="54" width="240" height="252" rx="3"/>
+      <text class="xs" x="34" y="80">pollCard.css</text>
+      <text class="xs mut" x="34" y="106">.card-face</text>
+      <text class="xs mut" x="34" y="128">.question &mdash; the title</text>
+      <text class="xs mut" x="34" y="150">.subtitle</text>
+      <text class="xs mut" x="34" y="172">.btn-primary.btn-vote</text>
+      <text class="xs mut" x="34" y="194">.icon-btn.back-btn</text>
+      <text class="xs mut" x="34" y="216">colour, radius, shadow tokens</text>
+      <text class="xs mut" x="34" y="238">.card-flip &mdash; min-height:420px</text>
+      <path class="ln rule" d="M34 254 H246"/>
+      <text class="xs mut" x="34" y="276">read by both consumers;</text>
+      <text class="xs mut" x="34" y="292">edited by neither</text>
+
+      <path class="ln thin" d="M260 112 H326" marker-end="url(#f2a)"/>
+      <path class="ln thin" d="M260 250 H326" marker-end="url(#f2a)"/>
+
+      <rect class="box" x="330" y="56" width="228" height="112" rx="3"/>
+      <text class="hd" x="344" y="82">PollCard</text>
+      <text class="xs mut" x="344" y="104">POLL_CARD_TEMPLATE</text>
+      <text class="xs mut" x="344" y="124">front face + back face</text>
+      <text class="xs mut" x="344" y="144">flip state, own polling timer</text>
+
+      <path class="ln thin dash" d="M444 168 V194"/>
+      <path class="ln thin" d="M437 174 L451 188"/>
+      <path class="ln thin" d="M451 174 L437 188"/>
+      <text class="xs mut" x="468" y="184">no dependency</text>
+
+      <rect class="accbox" x="330" y="196" width="228" height="112" rx="3"/>
+      <text class="hd" x="344" y="222">Card shell</text>
+      <text class="xs acc" x="344" y="244">one face &mdash; no rear, no flip</text>
+      <text class="xs acc" x="344" y="264">title row with a close control</text>
+      <text class="xs acc" x="344" y="284">subtitle &middot; body &middot; action row</text>
+
+      <path class="ln thin" d="M558 252 H614 V96 H620" marker-end="url(#f2a)"/>
+      <path class="ln thin" d="M558 252 H620" marker-end="url(#f2a)"/>
+      <path class="ln thin" d="M558 252 H614 V276 H620" marker-end="url(#f2a)"/>
+
+      <rect class="box" x="624" y="60" width="316" height="72" rx="3"/>
+      <text class="xs" x="638" y="84">Login</text>
+      <text class="xs mut" x="638" y="104">email + stay-signed-in checkbox,</text>
+      <text class="xs mut" x="638" y="120">one action, one status line</text>
+
+      <rect class="box" x="624" y="216" width="316" height="72" rx="3"/>
+      <text class="xs" x="638" y="240">Create Account</text>
+      <text class="xs mut" x="638" y="260">email only,</text>
+      <text class="xs mut" x="638" y="276">one action, one status line</text>
+
+      <rect class="box" x="624" y="140" width="316" height="68" rx="3"/>
+      <text class="xs" x="638" y="164">Profile</text>
+      <text class="xs mut" x="638" y="184">avatar in the subtitle slot, three field</text>
+      <text class="xs mut" x="638" y="200">groups, two actions, min-height:640px</text>
+    </svg>
+    <figcaption>Shared styling, no shared implementation. The crossed link is the directive's whole point: the shell is a sibling of the poll card, so nothing the poll card learns about polls can leak into a login form.</figcaption>
+  </figure>
+
+  <h3>The three anatomies</h3>
+  <p>All three cards use the same four regions in the same order. What differs is what the body holds and how many actions hang off it &mdash; and, on Profile, that the subtitle slot carries the avatar rather than text.</p>
+
+  <figure>
+    <svg viewBox="0 0 960 344" role="img" aria-label="Login, Create Account and Profile drawn as the same four-region shell: a title row with a close control, a subtitle slot, a body of field groups, and right-justified actions. Profile puts the avatar in the subtitle slot and carries two actions.">
+      <text class="band" x="20" y="28">LOGIN</text>
+      <rect class="box2" x="20" y="38" width="286" height="222" rx="4"/>
+      <rect class="box" x="34" y="52" width="258" height="32" rx="2"/>
+      <text class="xs" x="44" y="72">Login</text>
+      <rect class="box" x="262" y="58" width="20" height="20" rx="2"/>
+      <text class="xs mut" x="268" y="73">&times;</text>
+      <rect class="box" x="34" y="92" width="258" height="26" rx="2"/>
+      <text class="xs mut" x="44" y="109">No passwords here &mdash; one-time link.</text>
+      <rect class="box" x="34" y="126" width="258" height="72" rx="2"/>
+      <text class="xs mut" x="44" y="146">Email address</text>
+      <rect class="boxq" x="44" y="152" width="238" height="18" rx="2"/>
+      <text class="xs mut" x="44" y="188">&#9744;&nbsp; Stay signed in on this device</text>
+      <rect class="setbox" x="176" y="208" width="116" height="26" rx="2"/>
+      <text class="xs set" x="186" y="225">Email me a link</text>
+      <text class="xs mut" x="34" y="252">status line &mdash; 429 / 400 render here</text>
+
+      <text class="band" x="336" y="28">CREATE ACCOUNT</text>
+      <rect class="box2" x="336" y="38" width="286" height="182" rx="4"/>
+      <rect class="box" x="350" y="52" width="258" height="32" rx="2"/>
+      <text class="xs" x="360" y="72">Create Account</text>
+      <rect class="box" x="578" y="58" width="20" height="20" rx="2"/>
+      <text class="xs mut" x="584" y="73">&times;</text>
+      <rect class="box" x="350" y="92" width="258" height="26" rx="2"/>
+      <text class="xs mut" x="360" y="109">We'll email your first sign-in link.</text>
+      <rect class="box" x="350" y="126" width="258" height="42" rx="2"/>
+      <text class="xs mut" x="360" y="146">Email address</text>
+      <rect class="boxq" x="360" y="152" width="238" height="12" rx="2"/>
+      <rect class="setbox" x="500" y="178" width="108" height="26" rx="2"/>
+      <text class="xs set" x="510" y="195">Create Account</text>
+      <text class="xs mut" x="350" y="238">status line</text>
+
+      <text class="band" x="652" y="28">PROFILE</text>
+      <rect class="box2" x="652" y="38" width="288" height="288" rx="4"/>
+      <rect class="box" x="666" y="52" width="260" height="32" rx="2"/>
+      <text class="xs" x="676" y="72">Profile</text>
+      <rect class="box" x="896" y="58" width="20" height="20" rx="2"/>
+      <text class="xs mut" x="902" y="73">&times;</text>
+      <rect class="accbox" x="666" y="92" width="260" height="38" rx="2"/>
+      <text class="xs acc" x="676" y="115">subtitle slot &mdash; no text</text>
+      <circle class="box" cx="902" cy="111" r="14"/>
+      <rect class="box" x="666" y="138" width="260" height="56" rx="2"/>
+      <text class="xs mut" x="676" y="156">User Name</text>
+      <rect class="boxq" x="676" y="162" width="240" height="12" rx="2"/>
+      <rect class="setbox" x="820" y="178" width="96" height="12" rx="2"/>
+      <rect class="box" x="666" y="200" width="260" height="36" rx="2"/>
+      <text class="xs mut" x="676" y="218">Email Address</text>
+      <text class="xs" x="676" y="232">the current value, bold</text>
+      <rect class="box" x="666" y="242" width="260" height="56" rx="2"/>
+      <text class="xs mut" x="676" y="260">Change Email Address</text>
+      <rect class="boxq" x="676" y="266" width="240" height="12" rx="2"/>
+      <rect class="setbox" x="800" y="282" width="116" height="12" rx="2"/>
+      <text class="xs mut" x="576" y="340">min-height:640px &mdash; overrides the inherited 420px</text>
+    </svg>
+    <figcaption>One shell, three fills. The green blocks are the actions, all right-justified in the style of the poll card's Vote button; the dashed blocks are inputs.</figcaption>
+  </figure>
+
+  <div class="note red">
+    <p><span class="k">Two sentences in tension</span>&ldquo;A single card body with no slack&rdquo; and <span class="m">min-height:640px</span> are both requirements of the Profile card. A fixed minimum produces slack whenever the content is shorter than it &mdash; which, at three field groups, it will be on a wide viewport. Recorded as INC&#8209;6.</p>
+  </div>
+</section>
+
+<section id="cascade">
+  <h2><span class="num">04 &middot; Stylesheets</span>What D2 moves, and where it lands</h2>
+
+  <p class="lede">D2 is stated as a swap: the three card pages stop loading <span class="m">styles.css</span> and start loading what <span class="m">index.html</span> loads, with anything they still need promoted into <span class="m">site.css</span>. Read against the working tree, the swap has a consequence the directive does not mention &mdash; four other pages keep loading <span class="m">styles.css</span>, so every promoted rule ends up present twice on those pages.</p>
+
+  <figure>
+    <svg viewBox="0 0 960 376" role="img" aria-label="A matrix of which stylesheet each page loads, before and after directive D2. The three card pages drop styles.css and gain pollGrid.css and pollCard.css. The four admin pages and index.html are unchanged, and the admin pages keep loading styles.css.">
+      <text class="band" x="20" y="30">BEFORE</text>
+      <rect class="box2" x="20" y="42" width="420" height="286" rx="3"/>
+      <text class="xs mut" x="196" y="76">styles</text>
+      <text class="xs mut" x="248" y="76">site</text>
+      <text class="xs mut" x="296" y="76">grid</text>
+      <text class="xs mut" x="346" y="76">card</text>
+      <text class="xs mut" x="392" y="76">admin</text>
+      <path class="ln rule" d="M32 84 H428"/>
+      <text class="xs" x="32" y="110">index.html</text>
+      <circle class="head" cx="258" cy="106" r="4.5"/><circle class="head" cx="306" cy="106" r="4.5"/><circle class="head" cx="356" cy="106" r="4.5"/>
+      <text class="xs" x="32" y="140">login.html</text>
+      <circle class="head" cx="206" cy="136" r="4.5"/><circle class="head" cx="258" cy="136" r="4.5"/>
+      <text class="xs" x="32" y="170">create-account.html</text>
+      <circle class="head" cx="206" cy="166" r="4.5"/><circle class="head" cx="258" cy="166" r="4.5"/>
+      <text class="xs" x="32" y="200">profile.html</text>
+      <circle class="head" cx="206" cy="196" r="4.5"/><circle class="head" cx="258" cy="196" r="4.5"/>
+      <path class="ln rule dash" d="M32 214 H428"/>
+      <text class="xs" x="32" y="240">admin.html</text>
+      <circle class="head" cx="206" cy="236" r="4.5"/><circle class="head" cx="258" cy="236" r="4.5"/><circle class="head" cx="306" cy="236" r="4.5"/><circle class="head" cx="356" cy="236" r="4.5"/><circle class="head" cx="402" cy="236" r="4.5"/>
+      <text class="xs" x="32" y="270">admin-poll.html</text>
+      <circle class="head" cx="206" cy="266" r="4.5"/><circle class="head" cx="258" cy="266" r="4.5"/><circle class="head" cx="306" cy="266" r="4.5"/><circle class="head" cx="356" cy="266" r="4.5"/><circle class="head" cx="402" cy="266" r="4.5"/>
+      <text class="xs" x="32" y="300">admin-results.html</text>
+      <circle class="head" cx="206" cy="296" r="4.5"/><circle class="head" cx="258" cy="296" r="4.5"/><circle class="head" cx="306" cy="296" r="4.5"/><circle class="head" cx="356" cy="296" r="4.5"/><circle class="head" cx="402" cy="296" r="4.5"/>
+
+      <text class="band" x="500" y="30">AFTER</text>
+      <rect class="box2" x="500" y="42" width="440" height="286" rx="3"/>
+      <text class="xs mut" x="686" y="76">styles</text>
+      <text class="xs mut" x="738" y="76">site</text>
+      <text class="xs mut" x="786" y="76">grid</text>
+      <text class="xs mut" x="836" y="76">card</text>
+      <text class="xs mut" x="882" y="76">admin</text>
+      <path class="ln rule" d="M512 84 H928"/>
+      <text class="xs" x="512" y="110">index.html</text>
+      <circle class="head" cx="748" cy="106" r="4.5"/><circle class="head" cx="796" cy="106" r="4.5"/><circle class="head" cx="846" cy="106" r="4.5"/>
+      <text class="xs" x="512" y="140">login.html</text>
+      <circle class="boxq" cx="696" cy="136" r="4.5"/><circle class="head" cx="748" cy="136" r="4.5"/><circle class="head seth" cx="796" cy="136" r="4.5"/><circle class="head seth" cx="846" cy="136" r="4.5"/>
+      <text class="xs" x="512" y="170">create-account.html</text>
+      <circle class="boxq" cx="696" cy="166" r="4.5"/><circle class="head" cx="748" cy="166" r="4.5"/><circle class="head seth" cx="796" cy="166" r="4.5"/><circle class="head seth" cx="846" cy="166" r="4.5"/>
+      <text class="xs" x="512" y="200">profile.html</text>
+      <circle class="boxq" cx="696" cy="196" r="4.5"/><circle class="head" cx="748" cy="196" r="4.5"/><circle class="head seth" cx="796" cy="196" r="4.5"/><circle class="head seth" cx="846" cy="196" r="4.5"/>
+      <path class="ln rule dash" d="M512 214 H928"/>
+      <text class="xs" x="512" y="240">admin.html</text>
+      <circle class="head redh" cx="696" cy="236" r="4.5"/><circle class="head" cx="748" cy="236" r="4.5"/><circle class="head" cx="796" cy="236" r="4.5"/><circle class="head" cx="846" cy="236" r="4.5"/><circle class="head" cx="892" cy="236" r="4.5"/>
+      <text class="xs" x="512" y="270">admin-poll.html</text>
+      <circle class="head redh" cx="696" cy="266" r="4.5"/><circle class="head" cx="748" cy="266" r="4.5"/><circle class="head" cx="796" cy="266" r="4.5"/><circle class="head" cx="846" cy="266" r="4.5"/><circle class="head" cx="892" cy="266" r="4.5"/>
+      <text class="xs" x="512" y="300">admin-results.html</text>
+      <circle class="head redh" cx="696" cy="296" r="4.5"/><circle class="head" cx="748" cy="296" r="4.5"/><circle class="head" cx="796" cy="296" r="4.5"/><circle class="head" cx="846" cy="296" r="4.5"/><circle class="head" cx="892" cy="296" r="4.5"/>
+
+      <circle class="head" cx="32" cy="352" r="4.5"/>
+      <text class="xs mut" x="44" y="356">loaded</text>
+      <circle class="boxq" cx="128" cy="352" r="4.5"/>
+      <text class="xs mut" x="140" y="356">dropped by D2</text>
+      <circle class="head seth" cx="266" cy="352" r="4.5"/>
+      <text class="xs set" x="278" y="356">added by D2</text>
+      <circle class="head redh" cx="392" cy="352" r="4.5"/>
+      <text class="xs red" x="404" y="356">still loads styles.css &mdash; and now also its promoted copy in site.css</text>
+    </svg>
+    <figcaption>D2 changes three rows. The four red dots are what it does not change, and where the duplicated rules land.</figcaption>
+  </figure>
+
+  <div class="note red">
+    <p><span class="k">The promotion is one-way, the loading is not</span>Every rule moved out of <span class="m">styles.css</span> into <span class="m">site.css</span> keeps applying to the four pages that load both sheets &mdash; from a different file, at a different position in the cascade. If a rule is <em>copied</em> the two can drift; if it is <em>moved</em>, its selector now reaches <span class="m">index.html</span> and every admin page, which previously never saw it. Neither outcome is stated. Recorded as UNS&#8209;2 and UNS&#8209;3, and as breaking change BC&#8209;2.</p>
+  </div>
+</section>
+
+<section id="header">
+  <h2><span class="num">05 &middot; Header</span>One element moves; the layout follows on its own</h2>
+
+  <p class="lede">R3 is careful to specify a mechanism rather than an outcome: move <span class="m">.header-nav</span> after <span class="m">.header-search</span> in <span class="m">SITE_HEADER_MARKUP</span>, add no spacer, no <span class="m">margin-left:auto</span>, and leave <span class="m">justify-content:space-between</span> alone. That works because <span class="m">.header-search</span> already carries <span class="m">flex:1 1 auto</span> and <span class="m">max-width:640px</span> in <span class="m">site.css</span> &mdash; it is the only flexible child, so it is the only thing that can absorb the slack.</p>
+
+  <figure>
+    <svg viewBox="0 0 960 268" role="img" aria-label="Before, the header runs brand, Create Poll nav, search, then actions. After, the nav moves after the search, so the flexible search box sits between the left and right clusters and separates them by itself.">
+      <text class="band" x="20" y="30">BEFORE &mdash; SOURCE ORDER</text>
+      <rect class="box" x="20" y="42" width="140" height="46" rx="3"/>
+      <text class="xs" x="34" y="70">div.brand</text>
+      <rect class="box" x="168" y="42" width="120" height="46" rx="3"/>
+      <text class="xs" x="182" y="70">Create Poll</text>
+      <rect class="box2" x="296" y="42" width="340" height="46" rx="3"/>
+      <text class="xs mut" x="310" y="70">.header-search &mdash; flex:1 1 auto</text>
+      <rect class="box" x="644" y="42" width="296" height="46" rx="3"/>
+      <text class="xs" x="658" y="70">#header-actions &mdash; name + avatar</text>
+
+      <text class="band" x="20" y="146">AFTER &mdash; ONE ELEMENT MOVED, ONE TAG CHANGED</text>
+      <rect class="accbox" x="20" y="158" width="140" height="46" rx="3"/>
+      <text class="xs acc" x="34" y="180">a.brand</text>
+      <text class="xs acc" x="34" y="196">href="/"</text>
+      <rect class="box2" x="168" y="158" width="468" height="46" rx="3"/>
+      <text class="xs mut" x="182" y="186">.header-search &mdash; unchanged rules, more room</text>
+      <rect class="box" x="644" y="158" width="120" height="46" rx="3"/>
+      <text class="xs" x="658" y="186">Create Poll</text>
+      <rect class="box" x="772" y="158" width="168" height="46" rx="3"/>
+      <text class="xs" x="786" y="186">name + avatar</text>
+
+      <path class="ln setln thin" d="M168 218 V228 H636 V218"/>
+      <text class="xs set" x="300" y="246">the only flexible child &mdash; absorbs all slack, capped at 640px</text>
+      <text class="xs mut" x="20" y="246">far left</text>
+      <text class="xs mut" x="884" y="246">far right</text>
+    </svg>
+    <figcaption>No spacer element and no new alignment rule: the arrangement the requirement describes is what source order plus the existing flex declaration already produces.</figcaption>
+  </figure>
+
+  <p>Two things the requirement does not reach. The header's <em>signed-out</em> state puts a Log In and a Create Account button in <span class="m">#header-actions</span>, and R3 describes only &ldquo;the user name and avatar at the far right&rdquo;.</p>
+
+  <p>And the source-order mechanism stops applying below 768&nbsp;px. <span class="m">site.css</span> gives <span class="m">.header-search</span> <span class="m">order:3</span>, <span class="m">flex:1 1 100%</span> and <span class="m">max-width:none</span> in its <span class="m">max-width:767.98px</span> block, which drops the search onto its own line after every other child &mdash; explicitly overriding source order. The good news is that the outcome is unchanged: brand, Create Poll, actions, then search, both before and after R3. The reorder is a no-op on narrow viewports, and the requirement neither says so nor says it should be. Recorded as UNS&#8209;13 and UNS&#8209;14.</p>
+</section>
+
+<section id="roster">
+  <h2><span class="num">06 &middot; Participants</span>Three visibilities, two sources, one sort</h2>
+
+  <p class="lede">R1's problem statement is exact: today an admin looking at an invitation-only poll sees who was invited and an admin looking at a public poll sees who voted, and neither can see which invited people have voted. The fix needs the voted set in a branch that has never loaded it &mdash; <span class="m">adminPoll.js</span> fetches it only when the poll is <em>not</em> invitation-only.</p>
+
+  <figure>
+    <svg viewBox="0 0 960 392" role="img" aria-label="Invitation-only rosters draw their rows from the invited list and must now also load the voted set to add a Voted suffix. Link-only and public rosters draw rows from the voted set. All three sort by email address.">
+      <defs>
+        <marker id="f6a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path class="head" d="M0 0 L10 5 L0 10 z"/>
+        </marker>
+        <marker id="f6c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path class="head acch" d="M0 0 L10 5 L0 10 z"/>
+        </marker>
+      </defs>
+
+      <text class="band" x="20" y="30">ALREADY ON THE WIRE</text>
+      <rect class="box" x="20" y="42" width="224" height="72" rx="3"/>
+      <text class="xs" x="34" y="64">poll detail</text>
+      <text class="xs mut" x="34" y="82">invitedVoterList</text>
+      <text class="xs mut" x="34" y="100">plus unsaved draft edits</text>
+      <rect class="box" x="20" y="152" width="224" height="72" rx="3"/>
+      <text class="xs" x="34" y="174">results endpoint</text>
+      <text class="xs mut" x="34" y="192">voted</text>
+      <text class="xs mut" x="34" y="210">emailAddress + userName</text>
+
+      <path class="ln thin" d="M244 78 H296" marker-end="url(#f6a)"/>
+      <path class="ln accln" d="M244 188 H268 V104 H296" marker-end="url(#f6c)"/>
+      <text class="xs acc" x="252" y="126">new</text>
+      <text class="xs acc" x="252" y="140">edge</text>
+      <path class="ln thin" d="M244 188 H296" marker-end="url(#f6a)"/>
+      <path class="ln thin" d="M244 188 H268 V292 H296" marker-end="url(#f6a)"/>
+
+      <rect class="box2" x="300" y="42" width="292" height="96" rx="3"/>
+      <text class="xs" x="314" y="64">PRIVATE &mdash; INVITATION ONLY</text>
+      <text class="xs mut" x="314" y="86">rows = invited addresses</text>
+      <text class="xs acc" x="314" y="108">must also hold the voted set</text>
+      <text class="xs mut" x="314" y="128">to know who has voted</text>
+
+      <rect class="box2" x="300" y="152" width="292" height="72" rx="3"/>
+      <text class="xs" x="314" y="174">PRIVATE &mdash; ANYONE WITH THE LINK</text>
+      <text class="xs mut" x="314" y="196">rows = voters</text>
+      <text class="xs mut" x="314" y="214">unchanged source</text>
+
+      <rect class="box2" x="300" y="256" width="292" height="72" rx="3"/>
+      <text class="xs" x="314" y="278">PUBLIC</text>
+      <text class="xs mut" x="314" y="300">rows = voters</text>
+      <text class="xs mut" x="314" y="318">unchanged source</text>
+
+      <path class="ln thin" d="M592 90 H636" marker-end="url(#f6a)"/>
+      <path class="ln thin" d="M592 188 H636" marker-end="url(#f6a)"/>
+      <path class="ln thin" d="M592 292 H636" marker-end="url(#f6a)"/>
+
+      <rect class="accbox" x="640" y="42" width="300" height="96" rx="3"/>
+      <text class="xs acc" x="654" y="66">addr &nbsp;- Invited</text>
+      <text class="xs acc" x="654" y="88">addr &nbsp;- Invited - Voted</text>
+      <text class="xs mut" x="654" y="112">every row carries - Invited;</text>
+      <text class="xs mut" x="654" y="130">- Voted is added when they voted</text>
+
+      <rect class="box" x="640" y="152" width="300" height="72" rx="3"/>
+      <text class="xs" x="654" y="182">addr &nbsp;- Voted</text>
+      <text class="xs mut" x="654" y="208">every row</text>
+
+      <rect class="box" x="640" y="256" width="300" height="72" rx="3"/>
+      <text class="xs" x="654" y="286">addr &nbsp;- Voted</text>
+      <text class="xs mut" x="654" y="312">every row</text>
+
+      <rect class="setbox" x="20" y="344" width="920" height="34" rx="3"/>
+      <text class="xs set" x="34" y="366">Every roster sorts by email address &mdash; today invited rows use a bare sort and voter rows sort by userName.localeCompare</text>
+    </svg>
+    <figcaption>The only new data dependency in the whole feature is the accent edge: the voted set, into a branch that has never asked for it.</figcaption>
+  </figure>
+
+  <p>Two questions the picture raises and the requirements do not answer. A roster row already renders a second piece of text beside the address &mdash; the voter's display name &mdash; and carries a Ban from Voting control; whether the suffix joins the address, replaces the display name, or occupies its own slot decides what that row looks like. And &ldquo;sorted by email address&rdquo; does not say whether the comparison folds case. Recorded as AMB&#8209;9, AMB&#8209;2 and AMB&#8209;3. R2 renames the invite-row button from Add to Invite and raises nothing.</p>
+</section>
+
+<section id="session">
+  <h2><span class="num">07 &middot; Session</span>One snapshot per page, and how it reaches the other window</h2>
+
+  <p class="lede">The problem R7 names is concrete and currently real: <span class="m">app.js</span> fetches <span class="m">/api/me</span> once on <span class="m">DOMContentLoaded</span>, and <span class="m">pollGrid.js</span> captures that result and closes over it in <span class="m">isSignedIn</span>. A window that was open when the session changed elsewhere stays as it was &mdash; a logged-out header, guest-gated cards, a stale email address &mdash; until someone reloads it. The fix is a single owned value plus two ways of learning it changed.</p>
+
+  <figure>
+    <svg viewBox="0 0 960 316" role="img" aria-label="The session snapshot has two states, guest and member. A snapshot identical to the held one is discarded; a differing one is adopted and re-rendered; a network failure holds the current state; a 401 is an answer that moves to guest.">
+      <defs>
+        <marker id="f7a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path class="head" d="M0 0 L10 5 L0 10 z"/>
+        </marker>
+      </defs>
+
+      <circle class="head" cx="40" cy="150" r="7"/>
+      <path class="ln thin" d="M52 150 H130" marker-end="url(#f7a)"/>
+      <text class="xs mut" x="46" y="140">load</text>
+
+      <rect class="box" x="134" y="112" width="200" height="76" rx="4"/>
+      <text class="hd" x="150" y="140">Guest</text>
+      <text class="xs mut" x="150" y="162">snapshot = null</text>
+      <text class="xs mut" x="150" y="178">header and cards gate</text>
+
+      <path class="ln thin" d="M334 132 H556" marker-end="url(#f7a)"/>
+      <text class="xs" x="360" y="124">adopt a signed-in snapshot</text>
+      <path class="ln thin" d="M556 172 H334" marker-end="url(#f7a)"/>
+      <text class="xs" x="392" y="190">401 on a re-check</text>
+
+      <rect class="box" x="560" y="112" width="220" height="76" rx="4"/>
+      <text class="hd" x="576" y="140">Member</text>
+      <text class="xs mut" x="576" y="162">userName, emailAddress,</text>
+      <text class="xs mut" x="576" y="178">profileAvatar, status, isAdmin</text>
+
+      <path class="ln thin dash" d="M660 112 C 650 66, 700 62, 712 96" marker-end="url(#f7a)"/>
+      <text class="xs mut" x="620" y="56">fields differ &rarr; adopt and re-render in place</text>
+      <path class="ln thin dash" d="M212 188 C 202 236, 258 240, 268 206" marker-end="url(#f7a)"/>
+      <text class="xs mut" x="120" y="262">identical snapshot &rarr; discard, no re-render</text>
+      <text class="xs mut" x="120" y="280">network failure &rarr; hold what is held</text>
+
+      <rect class="box2" x="800" y="40" width="146" height="228" rx="3"/>
+      <text class="band" x="812" y="62">SNAPSHOT SOURCES</text>
+      <text class="xs mut" x="812" y="88">page load</text>
+      <text class="xs mut" x="812" y="110">visibilitychange</text>
+      <text class="xs mut" x="812" y="132">persisted pageshow</text>
+      <text class="xs mut" x="812" y="154">own PATCH /api/me</text>
+      <text class="xs mut" x="812" y="176">a received broadcast</text>
+      <path class="ln rule" d="M812 192 H934"/>
+      <text class="xs set" x="812" y="214">the first four are</text>
+      <text class="xs set" x="812" y="230">re-broadcast;</text>
+      <text class="xs set" x="812" y="246">the fifth never is</text>
+    </svg>
+    <figcaption>Two states, four ways in, one rule that stops an echo. Nothing here runs on a timer.</figcaption>
+  </figure>
+
+  <p>Adoption re-renders; it does not navigate &mdash; with one exception the requirement states explicitly. Login and Create Account exist to obtain a session, so on <span class="m">null</span> &rarr; signed-in they navigate to the home page. In practice this fires rarely, because D3 already navigates those cards home when the link request returns 200; it is the window that was left sitting on the form that it rescues.</p>
+
+  <h3>Same browser: the broadcast closes it immediately</h3>
+
+  <figure>
+    <svg viewBox="0 0 960 436" role="img" aria-label="Window A requests a login link and navigates home. The link opens Window B, which verifies, receives a session cookie, fetches its own snapshot and posts it on the auth-state channel. Window A adopts it and re-renders without a reload.">
+      <defs>
+        <marker id="f8a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path class="head" d="M0 0 L10 5 L0 10 z"/>
+        </marker>
+        <marker id="f8s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path class="head seth" d="M0 0 L10 5 L0 10 z"/>
+        </marker>
+      </defs>
+
+      <rect class="box" x="20" y="30" width="150" height="34" rx="2"/>
+      <text class="xs" x="32" y="52">Window A</text>
+      <rect class="box" x="272" y="30" width="120" height="34" rx="2"/>
+      <text class="xs" x="284" y="52">Server</text>
+      <rect class="box" x="470" y="30" width="110" height="34" rx="2"/>
+      <text class="xs" x="482" y="52">Mailbox</text>
+      <rect class="box" x="642" y="30" width="150" height="34" rx="2"/>
+      <text class="xs" x="654" y="52">Window B</text>
+      <rect class="accbox" x="836" y="30" width="108" height="34" rx="2"/>
+      <text class="xs acc" x="848" y="52">channel</text>
+
+      <path class="ln rule dash" d="M95 68 V416"/>
+      <path class="ln rule dash" d="M332 68 V416"/>
+      <path class="ln rule dash" d="M525 68 V416"/>
+      <path class="ln rule dash" d="M717 68 V416"/>
+      <path class="ln rule dash" d="M890 68 V416"/>
+
+      <path class="ln thin" d="M95 96 H328" marker-end="url(#f8a)"/>
+      <text class="xs mut" x="104" y="90">POST &mdash; email me a login link</text>
+      <path class="ln thin" d="M332 128 H99" marker-end="url(#f8a)"/>
+      <text class="xs mut" x="104" y="122">200</text>
+      <path class="ln thin" d="M95 156 H140 V172 H99" marker-end="url(#f8a)"/>
+      <text class="xs mut" x="150" y="170">D3: navigate to /</text>
+      <path class="ln thin" d="M332 200 H521" marker-end="url(#f8a)"/>
+      <text class="xs mut" x="340" y="194">magic-link email</text>
+      <path class="ln thin" d="M525 228 H713" marker-end="url(#f8a)"/>
+      <text class="xs mut" x="534" y="222">clicked &mdash; a new window opens</text>
+      <path class="ln thin" d="M717 256 H336" marker-end="url(#f8a)"/>
+      <text class="xs mut" x="440" y="250">GET /api/auth/verify?token</text>
+      <path class="ln thin" d="M332 284 H713" marker-end="url(#f8a)"/>
+      <text class="xs mut" x="404" y="278">Set-Cookie session_token &middot; 302 to /</text>
+      <path class="ln thin" d="M717 312 H336" marker-end="url(#f8a)"/>
+      <text class="xs mut" x="500" y="306">GET /api/me</text>
+      <path class="ln thin" d="M332 340 H713" marker-end="url(#f8a)"/>
+      <text class="xs mut" x="500" y="334">200 &mdash; the snapshot</text>
+      <path class="ln setln" d="M717 368 H886" marker-end="url(#f8s)"/>
+      <text class="xs set" x="726" y="362">post what it fetched itself</text>
+      <path class="ln setln" d="M890 396 H99" marker-end="url(#f8s)"/>
+      <text class="xs set" x="150" y="390">same payload &rarr; A adopts, re-renders header and grid gating, and does not re-broadcast</text>
+    </svg>
+    <figcaption>Neither verify route changes: the redirect target is an ordinary page running <span class="m">app.js</span>, so it publishes as soon as it loads.</figcaption>
+  </figure>
+
+  <p>Where <span class="m">BroadcastChannel</span> is unavailable the snapshot goes to a single <span class="m">localStorage</span> key and the page listens for <span class="m">storage</span>; the payload, the comparison and the re-render are identical. That fallback stores the user's email address on the device, and the requirement sets no lifetime for it &mdash; recorded as AMB&#8209;8 and raised as CL&#8209;2.</p>
+</section>
+
+<section id="landing">
+  <h2><span class="num">08 &middot; Landing</span>The window that consumed the link, and the guard in its way</h2>
+
+  <p class="lede">R7 keeps the requesting window current. R8 handles the other half: the window the link opened, which for an email-change verification may hold no session at all. <span class="m">/api/me/email-change/verify</span> requires none &mdash; it consumes the token, updates the address and redirects &mdash; so a link opened in a mail client's in-app browser succeeds and lands somewhere that cannot show what happened.</p>
+
+  <figure>
+    <svg viewBox="0 0 960 424" role="img" aria-label="An email-change link opened in a second browser verifies successfully, but that browser has no session cookie and no shared broadcast channel. Today its landing request is redirected to the login page and the confirmation is lost. The original window learns the new address on its next visibility re-check.">
+      <defs>
+        <marker id="f9a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path class="head" d="M0 0 L10 5 L0 10 z"/>
+        </marker>
+        <marker id="f9r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path class="head redh" d="M0 0 L10 5 L0 10 z"/>
+        </marker>
+        <marker id="f9s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path class="head seth" d="M0 0 L10 5 L0 10 z"/>
+        </marker>
+      </defs>
+
+      <rect class="box" x="20" y="30" width="210" height="34" rx="2"/>
+      <text class="xs" x="32" y="52">Window A &mdash; Profile, signed in</text>
+      <rect class="box" x="392" y="30" width="120" height="34" rx="2"/>
+      <text class="xs" x="404" y="52">Server</text>
+      <rect class="box" x="676" y="30" width="264" height="34" rx="2"/>
+      <text class="xs" x="688" y="52">Window B &mdash; other browser, no cookie</text>
+
+      <path class="ln rule dash" d="M125 68 V404"/>
+      <path class="ln rule dash" d="M452 68 V404"/>
+      <path class="ln rule dash" d="M808 68 V404"/>
+
+      <path class="ln thin" d="M125 96 H448" marker-end="url(#f9a)"/>
+      <text class="xs mut" x="134" y="90">POST /api/me/email-change</text>
+      <path class="ln thin" d="M452 124 H129" marker-end="url(#f9a)"/>
+      <text class="xs mut" x="134" y="118">202 &mdash; verification sent</text>
+
+      <path class="ln thin" d="M808 160 H456" marker-end="url(#f9a)"/>
+      <text class="xs mut" x="500" y="154">GET /api/me/email-change/verify?token</text>
+      <path class="ln thin" d="M452 186 H500 V204 H456" marker-end="url(#f9a)"/>
+      <text class="xs mut" x="510" y="202">consume token &middot; update the user's email</text>
+      <path class="ln thin" d="M452 232 H804" marker-end="url(#f9a)"/>
+      <text class="xs mut" x="560" y="226">302 to /profile?changed=1</text>
+      <path class="ln thin" d="M808 260 H456" marker-end="url(#f9a)"/>
+      <text class="xs mut" x="600" y="254">GET /profile?changed=1</text>
+      <path class="ln redln" d="M452 288 H804" marker-end="url(#f9r)"/>
+      <text class="xs red" x="486" y="282">today: 302 to /login &mdash; the confirmation is discarded</text>
+
+      <path class="ln redln thin dash" d="M135 322 H798"/>
+      <path class="ln redln thin" d="M459 314 L475 330"/>
+      <path class="ln redln thin" d="M475 314 L459 330"/>
+      <text class="xs red" x="135" y="344">no shared cookie jar and no shared channel &mdash; the broadcast cannot reach A</text>
+
+      <path class="ln setln" d="M125 372 H448" marker-end="url(#f9s)"/>
+      <text class="xs set" x="134" y="366">GET /api/me when A is seen again</text>
+      <path class="ln setln" d="M452 400 H129" marker-end="url(#f9s)"/>
+      <text class="xs set" x="134" y="394">200 &mdash; A adopts the new address and clears the Change Email box</text>
+    </svg>
+    <figcaption>The re-check, not the broadcast, is what makes the server the authority here. The red run across the middle is the case R8 exists for &mdash; and the red arrow above it is what happens to it today.</figcaption>
+  </figure>
+
+  <h3>The guard R8 does not name</h3>
+
+  <p>R8 locates the redirect in <span class="m">profile.html</span>, which does send a session-less visitor to <span class="m">/login</span>, and requires the page to render the result before it evaluates the session. But <span class="m">pages.ts</span> makes the same decision one layer earlier, and <span class="m">profile.html</span> is never sent at all. R8 also states that no endpoint is added and neither verify route changes &mdash; both true, and both beside the point. The change it needs is to a page route.</p>
+
+  <figure>
+    <svg viewBox="0 0 960 372" role="img" aria-label="A request for /profile carrying a result parameter and no session must be served the page, but the server-side guard in pages.ts redirects it to the login page before the file is sent.">
+      <defs>
+        <marker id="f10a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path class="head" d="M0 0 L10 5 L0 10 z"/>
+        </marker>
+        <marker id="f10r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path class="head redh" d="M0 0 L10 5 L0 10 z"/>
+        </marker>
+      </defs>
+
+      <rect class="box" x="20" y="132" width="140" height="52" rx="3"/>
+      <text class="xs" x="32" y="154">GET /profile</text>
+      <text class="xs mut" x="32" y="172">pages.ts</text>
+
+      <path class="ln thin" d="M160 158 H196" marker-end="url(#f10a)"/>
+
+      <rect class="boxq" x="200" y="120" width="176" height="76" rx="3"/>
+      <text class="xs" x="212" y="146">changed=1 or</text>
+      <text class="xs" x="212" y="164">error=invalid-link</text>
+      <text class="xs mut" x="212" y="184">present?</text>
+
+      <path class="ln thin" d="M288 120 V72 H420" marker-end="url(#f10a)"/>
+      <text class="xs mut" x="300" y="64">yes</text>
+      <path class="ln thin" d="M288 196 V262 H420" marker-end="url(#f10a)"/>
+      <text class="xs mut" x="300" y="282">no</text>
+
+      <rect class="boxq" x="424" y="46" width="120" height="52" rx="3"/>
+      <text class="xs" x="436" y="78">session?</text>
+      <rect class="boxq" x="424" y="236" width="120" height="52" rx="3"/>
+      <text class="xs" x="436" y="268">session?</text>
+
+      <path class="ln thin" d="M544 60 H628" marker-end="url(#f10a)"/>
+      <text class="xs mut" x="556" y="52">yes</text>
+      <path class="ln redln" d="M544 88 H600 V150 H628" marker-end="url(#f10r)"/>
+      <text class="xs red" x="556" y="108">no</text>
+      <path class="ln thin" d="M544 250 H628" marker-end="url(#f10a)"/>
+      <text class="xs mut" x="556" y="242">yes</text>
+      <path class="ln thin" d="M544 278 H600 V320 H628" marker-end="url(#f10a)"/>
+      <text class="xs mut" x="556" y="298">no</text>
+
+      <rect class="box" x="632" y="34" width="308" height="52" rx="3"/>
+      <text class="xs" x="644" y="56">send profile.html</text>
+      <text class="xs mut" x="644" y="74">result reported in the card's message line</text>
+
+      <rect class="redbox" x="632" y="122" width="308" height="70" rx="3"/>
+      <text class="xs red" x="644" y="146">send profile.html</text>
+      <text class="xs red" x="644" y="164">REQUIRED &mdash; and refused today by the</text>
+      <text class="xs red" x="644" y="182">guard in pages.ts. R8 changes only the client.</text>
+
+      <rect class="box" x="632" y="224" width="308" height="52" rx="3"/>
+      <text class="xs" x="644" y="254">send profile.html &mdash; unchanged</text>
+
+      <rect class="box" x="632" y="296" width="308" height="52" rx="3"/>
+      <text class="xs" x="644" y="326">302 to /login &mdash; unchanged, and correct</text>
+
+      <rect class="box2" x="20" y="300" width="580" height="52" rx="3"/>
+      <text class="xs mut" x="34" y="322">Then, in the client: /api/me returns 200 &rarr; the Profile card renders with the result in its</text>
+      <text class="xs mut" x="34" y="340">message line; 401 &rarr; the result card renders instead, with a single Log In action.</text>
+    </svg>
+    <figcaption>Three of the four branches are today's behaviour and stay. The fourth is the feature.</figcaption>
+  </figure>
+
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>Query</th><th>Title</th><th>Subtitle</th><th>Action</th></tr></thead>
+    <tbody>
+      <tr><td><span class="m">changed=1</span></td><td>Email Address Changed</td><td>Your email address has been updated. Sign in with your new address to continue.</td><td>Log In &rarr; <span class="m">/login</span></td></tr>
+      <tr><td><span class="m">error=invalid-link</span></td><td>Link No Longer Valid</td><td>Expired, already used, replaced by a newer request, or the address is now in use &mdash; the four causes stated together.</td><td>Log In &rarr; <span class="m">/login</span></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>Two properties of this card are deliberate and worth preserving through the spec. It names no email address &mdash; the window cannot obtain one, and R8 forbids passing it through the redirect to be reflected back into the page. And its wording describes the link's outcome rather than the window's session, so it stays accurate when the browser happens to hold a session for a different account.</p>
+</section>
+
+<section id="navigation">
+  <h2><span class="num">09 &middot; Navigation</span>Declared destinations only</h2>
+
+  <p class="lede">D5 settles a question that would otherwise recur on every new control: where does &ldquo;back&rdquo; go? Every navigation this feature adds is an anchor with a literal <span class="m">href</span>, or a <span class="m">location.href</span> assignment. Nothing consults browser history, so no control's destination depends on how the user arrived.</p>
+
+  <figure>
+    <svg viewBox="0 0 960 344" role="img" aria-label="Every navigation control introduced by this feature points at a literal destination: the home page for six of them and the admin list for the pre-existing edit-page arrow. The history API is not used.">
+      <defs>
+        <marker id="f11a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path class="head" d="M0 0 L10 5 L0 10 z"/>
+        </marker>
+      </defs>
+
+      <text class="band" x="20" y="30">CONTROL</text>
+      <rect class="box" x="20" y="40" width="320" height="30" rx="2"/>
+      <text class="xs" x="32" y="59">a.brand &mdash; icon and wordmark, one anchor</text>
+      <rect class="box" x="20" y="78" width="320" height="30" rx="2"/>
+      <text class="xs" x="32" y="97">Login card &mdash; &times; close</text>
+      <rect class="box" x="20" y="116" width="320" height="30" rx="2"/>
+      <text class="xs" x="32" y="135">Create Account card &mdash; &times; close</text>
+      <rect class="box" x="20" y="154" width="320" height="30" rx="2"/>
+      <text class="xs" x="32" y="173">Profile card &mdash; &times; close</text>
+      <rect class="box" x="20" y="192" width="320" height="30" rx="2"/>
+      <text class="xs" x="32" y="211">Admin page &mdash; back arrow (new)</text>
+      <rect class="box" x="20" y="230" width="320" height="30" rx="2"/>
+      <text class="xs" x="32" y="249">Successful submission &mdash; location.href</text>
+      <rect class="box" x="20" y="268" width="320" height="30" rx="2"/>
+      <text class="xs" x="32" y="287">Edit poll page &mdash; back arrow (existing)</text>
+
+      <path class="ln thin" d="M340 55 H460 V128 H556" marker-end="url(#f11a)"/>
+      <path class="ln thin" d="M340 93 H460 V128 H556" marker-end="url(#f11a)"/>
+      <path class="ln thin" d="M340 131 H556" marker-end="url(#f11a)"/>
+      <path class="ln thin" d="M340 169 H460 V128 H556" marker-end="url(#f11a)"/>
+      <path class="ln thin" d="M340 207 H460 V128 H556" marker-end="url(#f11a)"/>
+      <path class="ln thin" d="M340 245 H460 V128 H556" marker-end="url(#f11a)"/>
+      <path class="ln thin" d="M340 283 H500 V250 H556" marker-end="url(#f11a)"/>
+
+      <rect class="setbox" x="560" y="100" width="200" height="56" rx="3"/>
+      <text class="xs set" x="574" y="126">/</text>
+      <text class="xs set" x="574" y="146">the home page</text>
+
+      <rect class="setbox" x="560" y="222" width="200" height="56" rx="3"/>
+      <text class="xs set" x="574" y="248">/admin</text>
+      <text class="xs set" x="574" y="268">the poll list</text>
+
+      <rect class="boxq" x="792" y="150" width="152" height="56" rx="3"/>
+      <text class="xs mut" x="806" y="176">history.back()</text>
+      <text class="xs mut" x="806" y="196">never called</text>
+      <path class="ln thin" d="M800 194 L936 158"/>
+    </svg>
+    <figcaption>Seven controls, two destinations, no history. R9 gives <span class="m">/admin</span> the arrow the edit page already has, left-justified above Create New Poll &mdash; pointing home rather than at the list it already shows.</figcaption>
+  </figure>
+</section>
+
+<section id="adr">
+  <h2><span class="num">10 &middot; Decisions</span>Positions this architecture takes</h2>
+
+  <p class="lede">Six decisions the requirements leave open, resolved here so the spec has somewhere to start. Each is reversible by a one-line answer from the product owner; the clarifications in section 13 are the questions that would reverse them.</p>
+
+  <div class="adr">
+    <h3><span>ADR&#8209;1</span>The <code>/profile</code> guard is relaxed narrowly, not removed</h3>
+    <p><code>pages.ts</code> serves <code>profile.html</code> to a session-less request <em>only</em> when <code>changed=1</code> or <code>error=invalid-link</code> is present. Every other session-less request keeps redirecting to <code>/login</code>, so FR&#8209;014 holds everywhere the result card is not involved.</p>
+    <p>The alternative &mdash; making <code>/profile</code> public and letting the client decide &mdash; is simpler and rejected: it turns a guarded route into an unguarded one for the sake of two query strings, and the page's own JavaScript would become the only thing standing between a guest and a profile editor.</p>
+    <p class="because">Because the narrow form buys the whole feature at the cost of one condition, and the broad form spends a guard to buy nothing extra.</p>
+  </div>
+
+  <div class="adr">
+    <h3><span>ADR&#8209;2</span>The snapshot is owned by <code>app.js</code> and read through it</h3>
+    <p><code>app.js</code> holds the value, exposes a getter and a subscribe function on the existing client namespace, and is the only module that calls <code>/api/me</code>. <code>pollGrid.js</code>'s <code>isSignedIn</code> becomes a read of that value rather than a closure over one captured in <code>init</code>; the three card pages subscribe rather than fetch.</p>
+    <p>Without this, the grid's gating and the header can disagree inside one page &mdash; which is today's behaviour, and is the second orphan the feature has to remove.</p>
+    <p class="because">Because two fetches of the same fact is how the two halves of a page drift apart.</p>
+  </div>
+
+  <div class="adr">
+    <h3><span>ADR&#8209;3</span>The shell is one small module plus rules in <code>site.css</code></h3>
+    <p>No fourth stylesheet. The shell's markup helper ships as a client module the three pages load, and its rules join <span class="m">site.css</span> &mdash; the sheet D2 already nominates as the destination for promoted rules.</p>
+    <p class="because">Because a new sheet would need adding to every page that loads the shell, and D2 has already chosen where shared page-level rules live.</p>
+  </div>
+
+  <div class="adr">
+    <h3><span>ADR&#8209;4</span>Promoted rules are moved, not copied</h3>
+    <p>Rules the card pages still need leave <code>styles.css</code> and land in <code>site.css</code> once. The four admin pages load both sheets, so a copy would give them two definitions that can drift; a move gives them one, at a new cascade position.</p>
+    <p>The cost is that a moved selector now also reaches <code>index.html</code> and the admin pages, which never saw it from <code>styles.css</code>&hellip; except that they did, because they load <code>styles.css</code> too. The only page whose exposure genuinely widens is <code>index.html</code>, which loads <code>site.css</code> and not <code>styles.css</code>. That page is the one to check visually after the migration.</p>
+    <p class="because">Because one definition that moves is auditable; two that agree today are not.</p>
+  </div>
+
+  <div class="adr">
+    <h3><span>ADR&#8209;5</span>The label is a suffix on the address, not a column</h3>
+    <p>R1 says the address &ldquo;will be followed by the text&rdquo;, so the suffix joins the address in the row's first slot: <code>addr&nbsp;- Invited&nbsp;- Voted</code>. The row's existing display-name slot and its Ban from Voting control keep their positions.</p>
+    <p>An earlier draft of these requirements asked for a separate status column, and the architecture that answered it built a three-track grid. The current text asks for something smaller, and gets a smaller change.</p>
+    <p class="because">Because &ldquo;followed by&rdquo; is a statement about one row, and a column is a statement about all of them.</p>
+  </div>
+
+  <div class="adr">
+    <h3><span>ADR&#8209;6</span>The <code>localStorage</code> fallback is cleared when the snapshot is <code>null</code></h3>
+    <p>The fallback stores the whole snapshot, including the user's email address. Writing <code>null</code> on sign-out removes it rather than leaving the last signed-in identity readable on a shared device, and it is also what makes the fallback deliver a sign-out to other tabs at all.</p>
+    <p class="because">Because a cache of an identity that outlives the session is a liability, and clearing it is also the correct signal.</p>
+  </div>
+</section>
+
+<section id="assumptions">
+  <h2><span class="num">11 &middot; Assumptions</span>Defaults taken where the text is silent</h2>
+
+  <ul class="assume">
+    <li><span class="tag">A&#8209;1</span><p>A row that is both invited and voted carries both suffixes, in that order: <span class="m">addr - Invited - Voted</span>. Replacement would lose the fact that the address was invited, which is the column's original purpose.</p></li>
+    <li><span class="tag">A&#8209;2</span><p>Voter rows keep the display name they render today; the <span class="m">- Voted</span> suffix joins the address, not the name.</p></li>
+    <li><span class="tag">A&#8209;3</span><p>The roster sort compares email addresses case-insensitively. Addresses are stored lower-cased on the server, so the two comparisons agree in practice; the folded one also survives a draft address typed in mixed case.</p></li>
+    <li><span class="tag">A&#8209;4</span><p>The Banned Voter List keeps its current unlabelled rendering and its own sort. A ban removes the address from the invited list and drops its vote, so both suffixes would be false on every banned row.</p></li>
+    <li><span class="tag">A&#8209;5</span><p>The close control is an anchor to <span class="m">/</span> carrying an &times; glyph in the poll card's <span class="m">.icon-btn</span> chrome, with an accessible name of &ldquo;Close&rdquo;.</p></li>
+    <li><span class="tag">A&#8209;6</span><p>The three cards take a <span class="m">max-width</span> in the region of the poll card's own width and centre horizontally; if a card outgrows a short viewport the page scrolls, and the card does not become a scroll container.</p></li>
+    <li><span class="tag">A&#8209;7</span><p>&ldquo;Send Verification Link&rdquo; follows D3 like every other submission, treating the endpoint's <span class="m">202</span> as the success case and staying on the card for <span class="m">429</span> and <span class="m">400</span>.</p></li>
+    <li><span class="tag">A&#8209;8</span><p>Each card carries one status line per action, below the action it belongs to, and page-load notices such as <span class="m">/login?error=invalid-link</span> render in the card's first status line.</p></li>
+    <li><span class="tag">A&#8209;9</span><p>The oauth provider-button branch in <span class="m">login.html</span> is carried into the shell unchanged and stays hidden in native mode, consistent with the Exclusions section deferring all oauth work.</p></li>
+    <li><span class="tag">A&#8209;10</span><p>An adopted snapshot re-renders the Profile card the same way whatever its source &mdash; a broadcast clears the Change Email Address box exactly as a visibility re-check does.</p></li>
+  </ul>
+</section>
+
+<section id="findings">
+  <h2><span class="num">12 &middot; Findings</span>Thirty, of which one is structural</h2>
+
+  <p class="lede">Read against the working tree at generation time. Inconsistencies are contradictions inside 013 itself; ambiguities admit more than one reading; unspecified aspects are details the text never reaches. Differences between 013 and the current implementation are not defects &mdash; they are the feature &mdash; and appear as breaking changes at the end.</p>
+
+  <h3>Inconsistencies</h3>
+
+  <div class="finding inc">
+    <span class="id">INC&#8209;1</span>
+    <div>
+      <p class="hd">The verification landing cannot be reached by the change it specifies</p>
+      <p class="bd">R8 states that &ldquo;no new endpoint is added, and neither verify route changes&rdquo;, and locates the redirect it must remove in <span class="m">profile.html</span>. That redirect exists, but it is the second one. <span class="m">pages.ts</span> redirects any session-less request for <span class="m">/profile</span> to <span class="m">/login</span> before <span class="m">profile.html</span> is sent, so the result card is unreachable in exactly the case &mdash; a link opened in a browser with no session &mdash; that R8 exists to serve.</p>
+      <p class="bd">The claim about endpoints and verify routes is true and does not help: what has to change is a page route, which is neither.</p>
+      <span class="take"><b>taken</b> ADR&#8209;1 &mdash; relax the guard for result parameters only. See CL&#8209;1, Figure 10, BC&#8209;1.</span>
+    </div>
+  </div>
+
+  <div class="finding inc">
+    <span class="id">INC&#8209;2</span>
+    <div>
+      <p class="hd">Create Account navigates both on click and on response</p>
+      <p class="bd">R5 says &ldquo;when the &lsquo;Create Account&rsquo; button is clicked, the user will be navigated to the home page&rdquo;. Four lines later D3 says submissions await the response, and that <span class="m">429</span> or <span class="m">400</span> stays on the card and renders the reason. Both cannot hold on a rate-limited submission.</p>
+      <span class="take"><b>taken</b> D3 governs; the click-time sentence is read as shorthand for the success case. Same reading as R4, whose text has the same shape.</span>
+    </div>
+  </div>
+
+  <div class="finding inc">
+    <span class="id">INC&#8209;3</span>
+    <div>
+      <p class="hd">Send Verification Link navigates unconditionally, and its endpoint does not return 200</p>
+      <p class="bd">R6 says the click navigates home, with no await and no failure path &mdash; while the paragraph directly below it applies the await-then-branch rule to Save User Name. Compounding it, <span class="m">POST /api/me/email-change</span> returns <span class="m">202</span>, so a rule phrased as &ldquo;200 navigates&rdquo; would not fire for this button even if it were applied.</p>
+      <span class="take"><b>taken</b> A&#8209;7 &mdash; treat 202 as the success case and follow D3. See CL&#8209;6.</span>
+    </div>
+  </div>
+
+  <div class="finding inc">
+    <span class="id">INC&#8209;4</span>
+    <div>
+      <p class="hd">Two new requirements, three visibilities</p>
+      <p class="bd">R1 opens by saying &ldquo;there are two new requirements, one for &lsquo;PRIVATE - INVITATION ONLY&rsquo; polls and one for &lsquo;PUBLIC&rsquo; polls&rdquo;, then specifies three &mdash; the third being <span class="m">PRIVATE - ANYONE WITH THE LINK</span>. The count is stale, not the content.</p>
+      <span class="take"><b>taken</b> All three branches are specified and implemented. Editorial fix.</span>
+    </div>
+  </div>
+
+  <div class="finding inc">
+    <span class="id">INC&#8209;5</span>
+    <div>
+      <p class="hd"><span class="m">create-profile.html</span> does not exist</p>
+      <p class="bd">The stylesheet-migration paragraph names <span class="m">login.html</span>, <span class="m">create-profile.html</span> and <span class="m">profile.html</span> &mdash; twice, once under R4 and once under R5. The page R5 otherwise describes is <span class="m">create-account.html</span>.</p>
+      <span class="take"><b>taken</b> Read as <span class="m">create-account.html</span> throughout. Editorial fix.</span>
+    </div>
+  </div>
+
+  <div class="finding inc">
+    <span class="id">INC&#8209;6</span>
+    <div>
+      <p class="hd">The Profile card is both slack-free and 640&nbsp;px tall</p>
+      <p class="bd">R6 asks for &ldquo;a single card body with no slack&rdquo; and for <span class="m">min-height:640px</span>. At three field groups the content will be shorter than 640&nbsp;px on a wide viewport, and the difference is slack.</p>
+      <span class="take"><b>taken</b> The minimum wins where they conflict; &ldquo;no slack&rdquo; is read as &ldquo;no rear face and no filler regions&rdquo;, which is what it means on the other two cards.</span>
+    </div>
+  </div>
+
+  <h3>Ambiguities</h3>
+
+  <div class="finding amb">
+    <span class="id">AMB&#8209;1</span>
+    <div>
+      <p class="hd">Whether an invited voter carries one suffix or two</p>
+      <p class="bd">&ldquo;Followed by the text &lsquo;&nbsp;- Invited&rsquo; for every row. And then the text &lsquo;&nbsp;- Voted&rsquo; if they have exercised their vote&rdquo; reads as concatenation, but replacement is a defensible reading of the same two sentences.</p>
+      <span class="take"><b>taken</b> A&#8209;1 &mdash; both, in order. See CL&#8209;3.</span>
+    </div>
+  </div>
+
+  <div class="finding amb">
+    <span class="id">AMB&#8209;2</span>
+    <div>
+      <p class="hd">Whether the display name survives on voter rows</p>
+      <p class="bd">Voter rows currently render the voter's <span class="m">userName</span> beside the address. R1 describes only the address and its suffix.</p>
+      <span class="take"><b>taken</b> A&#8209;2 &mdash; the name stays. See CL&#8209;5.</span>
+    </div>
+  </div>
+
+  <div class="finding amb">
+    <span class="id">AMB&#8209;3</span>
+    <div>
+      <p class="hd">The collation of the email sort</p>
+      <p class="bd">&ldquo;Sorted by email address&rdquo; does not say whether the comparison folds case or is locale-aware. Invited rows currently use a bare <span class="m">.sort()</span>; voter rows use <span class="m">localeCompare</span> on the display name.</p>
+      <span class="take"><b>taken</b> A&#8209;3 &mdash; case-insensitive. See CL&#8209;10.</span>
+    </div>
+  </div>
+
+  <div class="finding amb">
+    <span class="id">AMB&#8209;4</span>
+    <div>
+      <p class="hd">What the &lsquo;X&rsquo; control is</p>
+      <p class="bd">&ldquo;An &lsquo;X&rsquo; icon &hellip; rendered in the style of the &lsquo;Back arrow&rsquo; on the back-side of the poll card&rdquo; names a glyph and a style from a different glyph. And &ldquo;back arrow&rdquo; refers to two different elements in this document: the poll card's <span class="m">.icon-btn.back-btn</span> here, and the edit page's <span class="m">.admin-back-link</span> in R9.</p>
+      <span class="take"><b>taken</b> A&#8209;5 &mdash; the card's icon-button chrome, carrying an &times;.</span>
+    </div>
+  </div>
+
+  <div class="finding amb">
+    <span class="id">AMB&#8209;5</span>
+    <div>
+      <p class="hd">Whether a broadcast clears the Change Email Address box</p>
+      <p class="bd">R7 specifies the clearing for &ldquo;a re-check that changes the snapshot&rdquo;. Nothing elsewhere distinguishes a re-check from an adopted broadcast, and the reason for clearing &mdash; the pending link has been superseded &mdash; applies identically to both.</p>
+      <span class="take"><b>taken</b> A&#8209;10 &mdash; any adopted snapshot clears it.</span>
+    </div>
+  </div>
+
+  <div class="finding amb">
+    <span class="id">AMB&#8209;6</span>
+    <div>
+      <p class="hd">Card width, and what happens on a short viewport</p>
+      <p class="bd">&ldquo;Sized appropriately to fit the contents&rdquo; and &ldquo;centered horizontally&rdquo; fix no width. Poll cards take theirs from the grid, which these cards do not join. The Profile card's 640&nbsp;px minimum exceeds a phone's viewport height.</p>
+      <span class="take"><b>taken</b> A&#8209;6 &mdash; a max-width near the poll card's, and the page scrolls rather than the card.</span>
+    </div>
+  </div>
+
+  <div class="finding amb">
+    <span class="id">AMB&#8209;7</span>
+    <div>
+      <p class="hd">The oauth branch inside a page being rebuilt</p>
+      <p class="bd">The Exclusions section defers all <span class="m">ENV_SIGNIN_METHOD=oauth</span> work, and R4 rebuilds the page that currently contains the provider-button branch. Whether the shell keeps it, hides it, or drops it is not stated.</p>
+      <span class="take"><b>taken</b> A&#8209;9 &mdash; carried across unchanged and hidden in native mode. See CL&#8209;7.</span>
+    </div>
+  </div>
+
+  <div class="finding amb">
+    <span class="id">AMB&#8209;8</span>
+    <div>
+      <p class="hd">The <span class="m">localStorage</span> fallback's key and lifetime</p>
+      <p class="bd">R7 specifies &ldquo;a single <span class="m">localStorage</span> key&rdquo; without naming it or saying when it is removed. The stored payload is the whole snapshot, which contains the user's email address.</p>
+      <span class="take"><b>taken</b> ADR&#8209;6 &mdash; cleared when the snapshot becomes null. See CL&#8209;2.</span>
+    </div>
+  </div>
+
+  <div class="finding amb">
+    <span class="id">AMB&#8209;9</span>
+    <div>
+      <p class="hd">Where the suffix sits in a row that already has three parts</p>
+      <p class="bd">A roster row renders an address, an optional display name, and a Ban from Voting control. &ldquo;The email address will be followed by the text&rdquo; does not say whether the suffix joins the address text, takes the display name's slot, or opens a new one &mdash; which decides whether the Ban control moves.</p>
+      <span class="take"><b>taken</b> ADR&#8209;5 &mdash; the suffix joins the address; nothing else moves. See CL&#8209;4.</span>
+    </div>
+  </div>
+
+  <div class="finding amb">
+    <span class="id">AMB&#8209;10</span>
+    <div>
+      <p class="hd">Where a refusal renders on each card</p>
+      <p class="bd">D3 requires <span class="m">429</span> and <span class="m">400</span> to &ldquo;render the reason&rdquo; on the card, but the shell's regions are a title row, a subtitle, a body and an action row &mdash; none of them a status line. Profile has two independent actions and therefore needs two. Page-load notices such as <span class="m">/login?error=invalid-link</span> belong to no action at all.</p>
+      <span class="take"><b>taken</b> A&#8209;8 &mdash; one status line per action, page-load notices in the first. See CL&#8209;8.</span>
+    </div>
+  </div>
+
+  <h3>Unspecified aspects</h3>
+
+  <div class="finding uns">
+    <span class="id">UNS&#8209;1</span>
+    <div>
+      <p class="hd">Where the card shell lives</p>
+      <p class="bd">D1 mandates extraction but names no module, no file and no loading order for the three pages.</p>
+      <span class="take"><b>taken</b> ADR&#8209;3. See CL&#8209;9.</span>
+    </div>
+  </div>
+
+  <div class="finding uns">
+    <span class="id">UNS&#8209;2</span>
+    <div>
+      <p class="hd">Which rules move out of <span class="m">styles.css</span></p>
+      <p class="bd">&ldquo;Whatever those pages still need from it &mdash; the <span class="m">.error</span> colour, the field styles the card body wants&rdquo; is an example, not a list. The migration is the largest regression surface in the feature.</p>
+      <span class="take"><b>taken</b> Enumerate by auditing the three pages against <span class="m">styles.css</span> during <span class="m">/speckit-plan</span>; the list belongs in the plan, not the requirements.</span>
+    </div>
+  </div>
+
+  <div class="finding uns">
+    <span class="id">UNS&#8209;3</span>
+    <div>
+      <p class="hd">Whether promoted rules are moved or copied</p>
+      <p class="bd">Four pages keep loading <span class="m">styles.css</span> as well as <span class="m">site.css</span>. A copy leaves two definitions to drift; a move changes the cascade position on those pages and newly exposes the rule to <span class="m">index.html</span>.</p>
+      <span class="take"><b>taken</b> ADR&#8209;4 &mdash; moved. Check <span class="m">index.html</span> visually after.</span>
+    </div>
+  </div>
+
+  <div class="finding uns">
+    <span class="id">UNS&#8209;4</span>
+    <div>
+      <p class="hd">Whether sign-out propagates</p>
+      <p class="bd">Logout navigates its own window to <span class="m">/</span>, and the reloaded page will fetch and broadcast <span class="m">null</span> &mdash; so other windows do drop to the guest state, as a side effect. R7 never states it as a requirement, so nothing would catch it regressing.</p>
+      <span class="take"><b>taken</b> Falls out of D6/D7; worth an explicit acceptance criterion in the spec.</span>
+    </div>
+  </div>
+
+  <div class="finding uns">
+    <span class="id">UNS&#8209;5</span>
+    <div>
+      <p class="hd"><span class="m">status</span> is compared but never rendered</p>
+      <p class="bd">It is in the comparison tuple alongside five fields the pages do render. Either something is meant to depend on it, or comparing it only causes re-renders nothing can show.</p>
+      <span class="take"><b>taken</b> Keep it in the comparison &mdash; a spurious re-render is cheap, a missed one is not.</span>
+    </div>
+  </div>
+
+  <div class="finding uns">
+    <span class="id">UNS&#8209;6</span>
+    <div>
+      <p class="hd">The double fetch on an ordinary load</p>
+      <p class="bd">R7 re-checks on <span class="m">pageshow</span> only when <span class="m">event.persisted</span> is true, which avoids this &mdash; but the ordering against the load fetch, and whether a re-check may overtake it, is not stated.</p>
+      <span class="take"><b>taken</b> One in-flight fetch at a time; a re-check while one is outstanding is dropped.</span>
+    </div>
+  </div>
+
+  <div class="finding uns">
+    <span class="id">UNS&#8209;7</span>
+    <div>
+      <p class="hd">How the result card announces itself</p>
+      <p class="bd">The pages it replaces announce through <span class="m">&lt;p role="status"&gt;</span>. The result card is a whole page state arriving at load, and R8 says nothing about assistive technology.</p>
+      <span class="take"><b>taken</b> Rendered at load in the document, not injected into a live region &mdash; it is the page, not an update to it.</span>
+    </div>
+  </div>
+
+  <div class="finding uns">
+    <span class="id">UNS&#8209;8</span>
+    <div>
+      <p class="hd">The close control's name and focus order</p>
+      <p class="bd">Three cards gain an icon-only control whose accessible name, position in the tab order, and keyboard behaviour are unstated.</p>
+      <span class="take"><b>taken</b> A&#8209;5 &mdash; an anchor named &ldquo;Close&rdquo;, first in the card's tab order because it is first in the markup.</span>
+    </div>
+  </div>
+
+  <div class="finding uns">
+    <span class="id">UNS&#8209;9</span>
+    <div>
+      <p class="hd">Whether the admin pages' stylesheet set changes</p>
+      <p class="bd">D2 speaks only of the three card pages. The four admin pages keep <span class="m">styles.css</span> by omission rather than by decision.</p>
+      <span class="take"><b>taken</b> Unchanged &mdash; they are outside this feature.</span>
+    </div>
+  </div>
+
+  <div class="finding uns">
+    <span class="id">UNS&#8209;10</span>
+    <div>
+      <p class="hd">Contract documents for the changed page route</p>
+      <p class="bd">D4's &ldquo;no change to <span class="m">postman/openapi.json</span>&rdquo; is scoped to the roster labels. <span class="m">contracts/page-routes.md</span> documents the <span class="m">/profile</span> guard that ADR&#8209;1 changes, and nothing says it must be updated.</p>
+      <span class="take"><b>taken</b> Update <span class="m">contracts/page-routes.md</span>; <span class="m">postman/openapi.json</span> genuinely needs nothing.</span>
+    </div>
+  </div>
+
+  <div class="finding uns">
+    <span class="id">UNS&#8209;11</span>
+    <div>
+      <p class="hd">Test impact is not acknowledged</p>
+      <p class="bd"><span class="m">tests/pages.test.ts</span> asserts the page-route guards; several suites assert markup on the rebuilt pages. 013 mentions no test at all.</p>
+      <span class="take"><b>taken</b> Enumerate affected suites in <span class="m">/speckit-tasks</span>; at minimum the <span class="m">/profile</span> guard assertions change.</span>
+    </div>
+  </div>
+
+  <div class="finding uns">
+    <span class="id">UNS&#8209;12</span>
+    <div>
+      <p class="hd">The Banned Voter List</p>
+      <p class="bd">R1 re-keys &ldquo;the Participants list&rdquo; to the email address and adds suffixes. The banned list sits in the same section, renders the same row shape, and is not mentioned.</p>
+      <span class="take"><b>taken</b> A&#8209;4 &mdash; unlabelled, and left on its own sort. See CL&#8209;4.</span>
+    </div>
+  </div>
+
+  <div class="finding uns">
+    <span class="id">UNS&#8209;13</span>
+    <div>
+      <p class="hd">The header's signed-out far right</p>
+      <p class="bd">R3 describes the far right as &ldquo;the user name and avatar&rdquo;. Signed out, that slot holds a Log In and a Create Account button, and the requirement does not say the arrangement is meant to hold for guests too.</p>
+      <span class="take"><b>taken</b> The same arrangement; only the contents of <span class="m">#header-actions</span> differ, as today.</span>
+    </div>
+  </div>
+
+  <div class="finding uns">
+    <span class="id">UNS&#8209;14</span>
+    <div>
+      <p class="hd">Source order stops governing below 768&nbsp;px</p>
+      <p class="bd"><span class="m">site.css</span> gives <span class="m">.header-search</span> <span class="m">order:3</span> under <span class="m">max-width:767.98px</span>, explicitly overriding source order. R3's mechanism therefore applies only to wide viewports &mdash; harmlessly, since the narrow result is identical before and after, but the requirement neither notices nor sanctions it.</p>
+      <span class="take"><b>taken</b> Leave the media block alone; record the no-op so a later reader does not &ldquo;fix&rdquo; it.</span>
+    </div>
+  </div>
+
+  <h3>Breaking changes</h3>
+
+  <p>Not failures &mdash; the cost of the feature. BC&#8209;1 and BC&#8209;2 need a recorded decision before implementation.</p>
+
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>ID</th><th>Change</th><th>What it breaks</th></tr></thead>
+    <tbody>
+      <tr><td><span class="m">BC&#8209;1</span></td><td><span class="m">/profile</span> stops redirecting every session-less visitor</td><td>Behaviour documented as FR&#8209;014; assertions in <span class="m">tests/pages.test.ts</span>; <span class="m">contracts/page-routes.md</span>.</td></tr>
+      <tr><td><span class="m">BC&#8209;2</span></td><td>Three pages stop loading <span class="m">styles.css</span>; rules move to <span class="m">site.css</span></td><td>Any rule not migrated regresses on those pages; any rule migrated newly reaches <span class="m">index.html</span>.</td></tr>
+      <tr><td><span class="m">BC&#8209;3</span></td><td>Header source order changes</td><td>Sibling-combinator CSS and any DOM-order assertion over <span class="m">SITE_HEADER_MARKUP</span>.</td></tr>
+      <tr><td><span class="m">BC&#8209;4</span></td><td><span class="m">div.brand</span> becomes <span class="m">a.brand</span></td><td>Descendant selectors on the brand block; both SVGs become children of an interactive element and need <span class="m">aria-hidden</span> discipline.</td></tr>
+      <tr><td><span class="m">BC&#8209;5</span></td><td>Roster sort re-keys from display name to email address</td><td>Visible reordering of every existing roster. Behavioural, not contractual.</td></tr>
+      <tr><td><span class="m">BC&#8209;6</span></td><td>A successful <span class="m">PATCH /api/me</span> re-renders every open window</td><td>Nothing contractual; a change in what a user with several windows sees.</td></tr>
+      <tr><td><span class="m">BC&#8209;7</span></td><td><span class="m">pollGrid.js</span> stops closing over its session copy</td><td>Card affordances can now change mid-session without a reload &mdash; the intended effect, and a change in behaviour.</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section id="clarify">
+  <h2><span class="num">13 &middot; Clarifications</span>Ten questions, in the order they change the work</h2>
+
+  <p class="lede">Each has a default recorded in section 11, so none of them blocks drafting. The first three change what gets built rather than how it is described, and CL&#8209;1 changes whether R8 works at all.</p>
+
+  <div class="finding cl">
+    <span class="id">CL&#8209;1</span>
+    <div>
+      <p class="hd">Does <span class="m">/profile</span> become servable without a session &mdash; and how widely?</p>
+      <p class="bd">Only when <span class="m">changed=1</span> or <span class="m">error=invalid-link</span> is present, which keeps FR&#8209;014 everywhere else? Or for every request, letting the page decide? R8 assumes neither, because it does not know the guard is there.</p>
+      <span class="take"><b>default</b> ADR&#8209;1 &mdash; the narrow relaxation. <b>scope &amp; security</b></span>
+    </div>
+  </div>
+
+  <div class="finding cl">
+    <span class="id">CL&#8209;2</span>
+    <div>
+      <p class="hd">Is the <span class="m">localStorage</span> fallback cleared on sign-out?</p>
+      <p class="bd">It holds the snapshot, including the email address, on the device. Clearing it is also what delivers a sign-out to other tabs when <span class="m">BroadcastChannel</span> is unavailable.</p>
+      <span class="take"><b>default</b> ADR&#8209;6 &mdash; cleared. <b>privacy</b></span>
+    </div>
+  </div>
+
+  <div class="finding cl">
+    <span class="id">CL&#8209;3</span>
+    <div>
+      <p class="hd">Does an invited voter's row read <span class="m">- Invited - Voted</span>, or does <span class="m">- Voted</span> replace <span class="m">- Invited</span>?</p>
+      <p class="bd">The whole point of R1 is letting an admin see which invitees have voted; both readings do that, but they answer &ldquo;who was invited and has not voted&rdquo; differently at a glance.</p>
+      <span class="take"><b>default</b> A&#8209;1 &mdash; both suffixes. <b>user experience</b></span>
+    </div>
+  </div>
+
+  <div class="finding cl">
+    <span class="id">CL&#8209;4</span>
+    <div>
+      <p class="hd">Does the suffix join the address, and does the Ban control stay where it is?</p>
+      <p class="bd">And does the Banned Voter List, which shares the row shape, take the labels and the new sort or keep what it has?</p>
+      <span class="take"><b>default</b> ADR&#8209;5 and A&#8209;4 &mdash; the suffix joins the address; nothing else moves; banned rows stay unlabelled. <b>user experience</b></span>
+    </div>
+  </div>
+
+  <div class="finding cl">
+    <span class="id">CL&#8209;5</span>
+    <div>
+      <p class="hd">Does the voter's display name still render on public and link-only rows?</p>
+      <p class="bd">It renders today. R1 describes only the address and its suffix, and re-keys the sort away from the name.</p>
+      <span class="take"><b>default</b> A&#8209;2 &mdash; it stays. <b>user experience</b></span>
+    </div>
+  </div>
+
+  <div class="finding cl">
+    <span class="id">CL&#8209;6</span>
+    <div>
+      <p class="hd">Does Send Verification Link navigate on click, or await the response?</p>
+      <p class="bd">If it awaits, the success status is <span class="m">202</span>, not <span class="m">200</span> &mdash; and D3 needs re-wording to say so, or to say &ldquo;a successful response&rdquo; instead of naming a code.</p>
+      <span class="take"><b>default</b> A&#8209;7 &mdash; await, treating 202 as success. <b>user experience</b></span>
+    </div>
+  </div>
+
+  <div class="finding cl">
+    <span class="id">CL&#8209;7</span>
+    <div>
+      <p class="hd">What do the three rebuilt cards do in oauth mode?</p>
+      <p class="bd">The Exclusions section defers oauth work, but R4 rebuilds the page that currently branches on it. Carrying the branch across costs little; dropping it means restoring it later inside a shell that never held it.</p>
+      <span class="take"><b>default</b> A&#8209;9 &mdash; carried across unchanged. <b>scope</b></span>
+    </div>
+  </div>
+
+  <div class="finding cl">
+    <span class="id">CL&#8209;8</span>
+    <div>
+      <p class="hd">Where does a card render a refusal, and where does a page-load notice go?</p>
+      <p class="bd">D3 requires a reason to render on the card without giving the shell a region for it. Profile has two actions and needs two; <span class="m">/login?error=invalid-link</span> belongs to no action.</p>
+      <span class="take"><b>default</b> A&#8209;8 &mdash; one status line per action, notices in the first. <b>user experience</b></span>
+    </div>
+  </div>
+
+  <div class="finding cl">
+    <span class="id">CL&#8209;9</span>
+    <div>
+      <p class="hd">Where does the card shell live, and does it add a stylesheet?</p>
+      <p class="bd">A fourth sheet would have to be added to every page that uses the shell; folding its rules into <span class="m">site.css</span> keeps the page heads as D2 specifies them.</p>
+      <span class="take"><b>default</b> ADR&#8209;3 &mdash; one module, rules in <span class="m">site.css</span>. <b>technical</b></span>
+    </div>
+  </div>
+
+  <div class="finding cl">
+    <span class="id">CL&#8209;10</span>
+    <div>
+      <p class="hd">Case-folded or byte-order for the roster sort?</p>
+      <p class="bd">Stored addresses are lower-cased, so the two agree on saved data and differ only on an address typed into a draft.</p>
+      <span class="take"><b>default</b> A&#8209;3 &mdash; case-insensitive. <b>technical</b></span>
+    </div>
+  </div>
+</section>
+
+<section id="trace">
+  <h2><span class="num">14 &middot; Traceability</span>Every revision, its surface, and what it raised</h2>
+
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>ID</th><th>Touches</th><th>Figures</th><th>Findings</th></tr></thead>
+    <tbody>
+      <tr><td><span class="m">R1</span></td><td><span class="m">adminPoll.js</span> &mdash; roster render, sort, and the results fetch in the invitation-only branch</td><td>1, 6</td><td>INC&#8209;4, AMB&#8209;1, AMB&#8209;2, AMB&#8209;3, AMB&#8209;9, UNS&#8209;12</td></tr>
+      <tr><td><span class="m">R2</span></td><td><span class="m">admin-poll.html</span> &mdash; button label</td><td>&mdash;</td><td>none</td></tr>
+      <tr><td><span class="m">R3</span></td><td><span class="m">app.js</span> <span class="m">SITE_HEADER_MARKUP</span>, <span class="m">site.css</span></td><td>1, 5</td><td>UNS&#8209;13, UNS&#8209;14, BC&#8209;3, BC&#8209;4</td></tr>
+      <tr><td><span class="m">R4</span></td><td><span class="m">login.html</span>, card shell, <span class="m">site.css</span></td><td>1, 2, 3, 4</td><td>AMB&#8209;4, AMB&#8209;6, AMB&#8209;7, AMB&#8209;10, UNS&#8209;1, UNS&#8209;2, UNS&#8209;3</td></tr>
+      <tr><td><span class="m">R5</span></td><td><span class="m">create-account.html</span>, card shell</td><td>1, 2, 3, 4</td><td>INC&#8209;2, INC&#8209;5</td></tr>
+      <tr><td><span class="m">R6</span></td><td><span class="m">profile.html</span>, card shell</td><td>1, 2, 3, 4</td><td>INC&#8209;3, INC&#8209;6, AMB&#8209;5, AMB&#8209;10</td></tr>
+      <tr><td><span class="m">R7</span></td><td><span class="m">app.js</span>, <span class="m">pollGrid.js</span>, all three card pages</td><td>1, 7, 8, 9</td><td>AMB&#8209;5, AMB&#8209;8, UNS&#8209;4, UNS&#8209;5, UNS&#8209;6, BC&#8209;6, BC&#8209;7</td></tr>
+      <tr><td><span class="m">R8</span></td><td><span class="m">profile.html</span>, card shell, <b><span class="m">src/routes/pages.ts</span></b></td><td>1, 9, 10</td><td><b>INC&#8209;1</b>, UNS&#8209;7, UNS&#8209;10, UNS&#8209;11, BC&#8209;1</td></tr>
+      <tr><td><span class="m">R9</span></td><td><span class="m">admin.html</span>, <span class="m">admin.css</span></td><td>1, 11</td><td>AMB&#8209;4</td></tr>
+      <tr><td><span class="m">D1&ndash;D5</span></td><td>bind R1 and R3&ndash;R9 as noted in section 01</td><td>2, 3, 4, 11</td><td>UNS&#8209;1, UNS&#8209;2, UNS&#8209;3, UNS&#8209;9</td></tr>
+      <tr><td><span class="m">D6&ndash;D8</span></td><td>bind R7 and R8</td><td>7, 8, 9</td><td>UNS&#8209;4, UNS&#8209;5, UNS&#8209;6</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section id="report">
+  <h2><span class="num">15 &middot; Report</span>Completion</h2>
+
+  <div class="tablewrap">
+  <table>
+    <tbody>
+      <tr><td>Mode</td><td><b>REGENERATE</b> &mdash; the recorded directory was reused; the previous artifact had been set aside by hand as <span class="m">indexbackup20260905-01.html</span> and was left in place.</td></tr>
+      <tr><td>Architecture directory</td><td><span class="m">architecture/013-ui-ux-revisions</span></td></tr>
+      <tr><td>Main document</td><td><span class="m">architecture/013-ui-ux-revisions/index.html</span></td></tr>
+      <tr><td>Source requirements</td><td><span class="m">designDocs/013-high-level-requirements-UI-UX-revisions.md</span> &mdash; 290 lines, up from 117 at the last run</td></tr>
+      <tr><td>Diagrams</td><td>11</td></tr>
+      <tr><td>Inconsistencies</td><td>6</td></tr>
+      <tr><td>Ambiguities</td><td>10</td></tr>
+      <tr><td>Unspecified aspects</td><td>14</td></tr>
+      <tr><td>Needs Clarification items</td><td>10</td></tr>
+      <tr><td>Breaking changes</td><td>7</td></tr>
+      <tr><td>Decisions recorded</td><td>6 &mdash; ADR&#8209;1 &hellip; ADR&#8209;6</td></tr>
+      <tr><td>Assumptions recorded</td><td>10 &mdash; A&#8209;1 &hellip; A&#8209;10</td></tr>
+      <tr><td>API contract impact</td><td>None. <span class="m">postman/openapi.json</span> unchanged; <span class="m">contracts/page-routes.md</span> changes with ADR&#8209;1.</td></tr>
+      <tr><td>Readiness for <span class="m">/speckit-specify</span></td><td><b>Not yet</b> &mdash; INC&#8209;1 and CL&#8209;1 decide whether R8 is buildable as written.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="note red">
+    <p><span class="k">One finding blocks, the rest do not</span>Every ambiguity and unspecified aspect above carries a default, and a spec drafted on those defaults would be a good spec. <b>INC&#8209;1 is different in kind</b>: R8 describes a client change that cannot produce the behaviour R8 requires, because the request never reaches the client. Answering CL&#8209;1 &mdash; one sentence adding the result-parameter condition to the <span class="m">/profile</span> page route &mdash; closes it, and takes the whole feature to ready.</p>
+    <p>Two editorial fixes are worth making in the same pass, because both are cheap and both mislead a reader: the &ldquo;two new requirements&rdquo; count in R1, which is three, and <span class="m">create-profile.html</span>, which is <span class="m">create-account.html</span>.</p>
+  </div>
+
+  <div class="note">
+    <p><span class="k">Against the previous run</span>Inconsistencies 4 &rarr; 6, ambiguities 6 &rarr; 10, unspecified 8 &rarr; 14, clarifications 9 &rarr; 10 &mdash; and this is progress, not regression. The requirements grew by 173 lines, and the new material is a runtime mechanism with more edges than the presentation work it joined. The previous run's largest gap, UNS&#8209;6, is closed outright. Three of its findings were closed by rewriting: the status-column question, the vertical-centring contradiction, and D3's self-disclaiming paragraph are all gone from the text.</p>
+  </div>
+</section>
+
+<footer class="doc">
+  <p>Generated by <span class="m">/speckit-architecture</span> for <span class="m">designDocs/013-high-level-requirements-UI-UX-revisions.md</span>. Every claim about current behaviour was read from the working tree at generation time &mdash; <span class="m">src/public/app.js</span>, <span class="m">pollGrid.js</span>, <span class="m">adminPoll.js</span>, <span class="m">pollCard.js</span>, <span class="m">pollCard.css</span>, <span class="m">site.css</span>, <span class="m">styles.css</span>, <span class="m">login.html</span>, <span class="m">create-account.html</span>, <span class="m">profile.html</span>, <span class="m">admin.html</span>, <span class="m">admin-poll.html</span>, <span class="m">src/routes/pages.ts</span>, <span class="m">src/routes/api.ts</span> and <span class="m">tests/pages.test.ts</span>.</p>
+  <p>Markdown companion for the same requirements: <span class="m">architecture/013-ui-ux-revisions/index.md</span>. Previous feature: <span class="m">architecture/012-admin-revisions/index.html</span>.</p>
+</footer>
+
+</div>
+</body>
+</html>

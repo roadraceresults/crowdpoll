@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Poll Card — design harness</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,440;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Load order is production's: the card's own sheet, then the application's
+       additions. Swapping them breaks the [hidden] and .vote-btn rules. -->
+  <link rel="stylesheet" href="poll-card.css">
+  <link rel="stylesheet" href="poll-card-app.css">
+
+  <style>
+    /* Harness chrome only — nothing here is part of the card. Delete this
+       block and you have the card on a bare page. */
+    body{ padding:32px 20px 64px; }
+    .harness-head{ max-width:1180px; margin:0 auto 28px; }
+    .harness-head h1{
+      font-family:'Fraunces', Georgia, serif; font-weight:600;
+      font-size:clamp(22px, 3vw, 30px); margin:0 0 6px;
+    }
+    .harness-head p{ margin:0; color:var(--muted); font-size:13.5px; max-width:70ch; }
+    .harness-controls{ max-width:1180px; margin:0 auto 24px; display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+    .harness-controls button{
+      font-family:'Inter', sans-serif; font-size:12.5px; font-weight:600;
+      padding:7px 12px; border-radius:10px; border:1px solid var(--line);
+      background:var(--paper-raised); color:var(--ink); cursor:pointer;
+    }
+    .harness-controls button[aria-pressed="true"]{ background:var(--amber-tint); border-color:var(--amber); }
+    .harness-controls .harness-note{ color:var(--muted); font-size:12px; }
+    .harness-grid{ max-width:1180px; margin:0 auto; }
+    .harness-case{ margin:0 0 34px; }
+    .harness-case > h2{
+      font-family:'Inter', sans-serif; font-weight:600; font-size:12px;
+      letter-spacing:0.08em; text-transform:uppercase; color:var(--muted);
+      margin:0 0 10px;
+    }
+    .harness-log{
+      position:fixed; right:16px; bottom:16px; width:min(340px, 46vw);
+      max-height:32vh; overflow:auto; z-index:10;
+      background:var(--paper-raised); border:1px solid var(--line); border-radius:12px;
+      padding:10px 12px; font-family:ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size:11.5px; line-height:1.5; color:var(--muted);
+      box-shadow:var(--shadow);
+    }
+    .harness-log b{ color:var(--ink); }
+    .harness-log:empty{ display:none; }
+  </style>
+</head>
+<body>
+
+  <div class="harness-controls">
+    <button type="button" id="toggleSignedIn" aria-pressed="true">Signed in</button>
+    <button type="button" id="toggleLive" aria-pressed="false">Live Results tab (X form)</button>
+    <button type="button" id="toggleSearch" aria-pressed="false">Search tab (no Vote)</button>
+    <button type="button" id="flipAll">Flip every card</button>
+    <span class="harness-note">The card flips on Vote; the harness stubs the vote submission.</span>
+  </div>
+
+  <div class="harness-grid" id="cases"></div>
+  <div class="harness-log" id="log" aria-live="polite"></div>
+
+  <script src="poll-card.js"></script>
+  <script src="sample-data.js"></script>
+  <script>
+  /*
+    The harness: the two globals the card expects, the card options each tab
+    passes in production, and one grid per sample case.
+
+    In the application the card is mounted by tabs.js's createGrid() and fed by
+    deltaClient.js. Here it is mounted directly, so what you see is the card's
+    own behaviour with nothing else in the way.
+  */
+  (function () {
+    "use strict";
+
+    var log = document.getElementById("log");
+    function say(what, detail) {
+      var line = document.createElement("div");
+      line.innerHTML = "<b>" + what + "</b> " + (detail || "");
+      log.insertBefore(line, log.firstChild);
+      while (log.childNodes.length > 40) log.removeChild(log.lastChild);
+    }
+
+    var signedIn = true;
+
+    /* The card calls this before every action that needs an account; returning
+       false is what sends a guest to /login in production. */
+    function isSignedIn() { return signedIn; }
+
+    /* pollCard.js submits through window.VoteClient. The stub accepts the vote,
+       adds it to the counts and hands back the outcome shape the card expects. */
+    window.VoteClient = {
+      QUEUED_NOTICE: "Your vote has been counted and will be stored within moments.",
+      canVote: function () { return true; },
+      submit: function (pid, choiceIds) {
+        var card = mounted[pid];
+        if (!card) return Promise.resolve({ ok: false });
+        var detail = card.detail;
+        var counts = {};
+        detail.choices.forEach(function (c) {
+          counts[c.id] = c.count + (choiceIds.indexOf(c.id) !== -1 ? 1 : 0);
+        });
+        var total = detail.totalVoted + 1;
+        say("vote submitted", pid + " → " + choiceIds.join(", "));
+        return Promise.resolve({
+          ok: true,
+          outcome: {
+            status: "counted",
+            voteCount: total,
+            choiceCounts: counts,
+            countsVersion: (detail.countsVersion || 0) + 1,
+            myChoiceIds: choiceIds
+          }
+        });
+      }
+    };
+
+    var mounted = {};
+    var cases = document.getElementById("cases");
+    var liveForm = false;
+    var searchForm = false;
+
+    function optionsFor(sample) {
+      var opts = Object.assign({}, sample.opts, {
+        isSignedIn: isSignedIn,
+        tab: "harness",
+        onVoted: function (pid, outcome) {
+          // The owning tab applies the outcome to its copy and re-renders; here
+          // the sample data is updated in place so the bars move.
+          var card = mounted[pid];
+          card.detail.totalVoted = outcome.voteCount;
+          card.detail.myChoiceIds = outcome.myChoiceIds;
+          card.detail.choices.forEach(function (c) {
+            c.count = outcome.choiceCounts[c.id] || 0;
+            c.pct = outcome.voteCount > 0 ? Math.round((c.count / outcome.voteCount) * 100) : 0;
+          });
+          card.instance.applyPoll(card.detail);
+          say("onVoted", pid);
+        },
+        onLive: function (pid) { say("onLive", pid + " — would add to the Live Results tab"); },
+        onBookmark: function (pid, bookmarked) {
+          var card = mounted[pid];
+          card.detail.bookmarked = bookmarked;
+          card.instance.applyPoll(card.detail);
+          say("onBookmark", pid + " → " + bookmarked);
+        }
+      });
+      if (liveForm) {
+        // What liveResults.js passes: no Vote change, and a remove handler, which
+        // is what puts the link into its X form (020-LIVE-RESULTS-X).
+        opts.onClose = function (pid) { say("onClose", pid + " — would remove from Live Results"); };
+      }
+      if (searchForm) {
+        opts.showVote = false;   // the Search tab's cards carry no Vote button
+      }
+      return opts;
+    }
+
+    function build() {
+      cases.innerHTML = "";
+      mounted = {};
+      window.SAMPLE_CARDS.forEach(function (sample) {
+        var section = document.createElement("section");
+        section.className = "harness-case";
+        var heading = document.createElement("h2");
+        heading.textContent = sample.heading;
+        var grid = document.createElement("div");
+        grid.className = "card-grid";
+        section.append(heading, grid);
+        cases.appendChild(section);
+
+        var detail = JSON.parse(JSON.stringify(sample.detail));
+        var instance = window.PollCard.mount(grid, detail.pid, optionsFor(sample));
+        instance.applyPoll(detail);
+        mounted[detail.pid] = { instance: instance, detail: detail };
+      });
+      document.body.classList.toggle("is-guest", !signedIn);
+    }
+
+    function toggle(id, get, set) {
+      var btn = document.getElementById(id);
+      btn.addEventListener("click", function () {
+        set(!get());
+        btn.setAttribute("aria-pressed", String(get()));
+        build();
+      });
+      btn.setAttribute("aria-pressed", String(get()));
+    }
+
+    toggle("toggleSignedIn", function () { return signedIn; }, function (v) { signedIn = v; });
+    toggle("toggleLive", function () { return liveForm; }, function (v) { liveForm = v; if (v) searchForm = false; document.getElementById("toggleSearch").setAttribute("aria-pressed", "false"); });
+    toggle("toggleSearch", function () { return searchForm; }, function (v) { searchForm = v; if (v) liveForm = false; document.getElementById("toggleLive").setAttribute("aria-pressed", "false"); });
+
+    document.getElementById("flipAll").addEventListener("click", function () {
+      document.querySelectorAll(".card-flip").forEach(function (flip) {
+        flip.classList.toggle("is-flipped");
+      });
+    });
+
+    build();
+  })();
+  </script>
+</body>
+</html>

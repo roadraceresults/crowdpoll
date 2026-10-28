@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Choices</title>
+<style>
+  .choices-hint,
+  .choices-editor,
+  .choices-count { font: 15px/1.45 ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+
+  .choices-hint {
+    color: #6f6d68;
+    font-size: 13px;
+    margin: 0 0 12px;
+  }
+
+  .choices-editor {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+
+  .choices-editor textarea {
+    flex: 1 1 320px;
+    min-width: 260px;
+    height: 190px;
+    padding: 8px 10px;
+    background: #fff;
+    color: #1c1b19;
+    border: 1px solid #b8b6b0;
+    border-radius: 3px;
+    font: inherit;
+    line-height: 1.5;
+    resize: vertical;
+    overflow-y: auto;
+    box-sizing: border-box;
+  }
+  .choices-editor textarea:focus { outline: 2px solid #4a6fa5; outline-offset: 1px; }
+  .choices-editor textarea.invalid { border-color: #a33a2a; }
+
+  .choices-gutter {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-top: 2px;
+    min-width: 132px;
+  }
+
+  .choices-count {
+    font-variant-numeric: tabular-nums;
+    font-size: 13px;
+    color: #6f6d68;
+  }
+  .choices-count b { color: #1c1b19; font-weight: 600; }
+  .choices-count.invalid b { color: #a33a2a; }
+
+  .choices-gutter button {
+    font: inherit;
+    padding: 9px 14px;
+    background: #fff;
+    color: #1c1b19;
+    border: 1px solid #b8b6b0;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+  .choices-gutter button:hover:not(:disabled) { background: #f7f6f3; }
+  .choices-gutter button:focus-visible { outline: 2px solid #4a6fa5; outline-offset: 1px; }
+  .choices-gutter button:disabled { color: #a5a39d; cursor: not-allowed; }
+  .choices-gutter button[hidden] { display: none; }
+</style>
+</head>
+<body>
+
+<!-- ---------- markup to port ---------- -->
+<p class="choices-hint">One choice per line. Blank lines are not permitted.</p>
+
+<div class="choices-editor">
+  <textarea id="choices"
+            spellcheck="false"
+            aria-describedby="counter"></textarea>
+
+  <div class="choices-gutter">
+    <div class="choices-count" id="counter">
+      <b><span id="lineCount">0</span></b> / <span id="maxCount"></span> lines
+    </div>
+    <button id="saveBtn" type="button" hidden>Save Choices</button>
+  </div>
+</div>
+<!-- ---------- end markup ---------- -->
+
+<script>
+"use strict";
+
+/* ------------------------------------------------------------------ *
+ * Rules
+ * ------------------------------------------------------------------ */
+const MAX_CHOICES      = 50;   // hard ceiling on lines while editing
+const MIN_CHOICES      = 2;    // floor required before Save is allowed
+const CHOICE_LABEL_MAX = 100;  // characters per line
+
+/* ------------------------------------------------------------------ *
+ * Elements
+ * ------------------------------------------------------------------ */
+const ta          = document.getElementById("choices");
+const saveBtn     = document.getElementById("saveBtn");
+const counterEl   = document.getElementById("counter");
+const lineCountEl = document.getElementById("lineCount");
+
+document.getElementById("maxCount").textContent = MAX_CHOICES;
+
+/* This is the array the Save button fills, and the array the textbox is
+   seeded from on first render. Swap in whatever your app has stored. */
+let savedChoices = [];
+
+/* First line when there is nothing stored at all; the rest are numbered. */
+const FIRST_CHOICE_PROMPT = "Enter the poll choices here";
+
+let isDirty = false;   // has the user changed anything since load/last save?
+
+/* ------------------------------------------------------------------ *
+ * Messaging hook — deliberately empty. Wire this to your app's own
+ * toast / inline-validation component if you want the user to see why
+ * an edit was rejected.
+ * ------------------------------------------------------------------ */
+function say(message, isSuccess) { /* no-op */ }
+
+/* ------------------------------------------------------------------ *
+ * Helpers
+ * ------------------------------------------------------------------ */
+const isBlank = s => s.trim() === "";
+
+/* Start index of the line containing position `pos`. */
+function lineStartAt(value, pos) {
+  return value.lastIndexOf("\n", pos - 1) + 1;
+}
+
+/* ------------------------------------------------------------------ *
+ * Sanitiser — repairs the text after any input (typing, paste, drop,
+ * undo) and puts the caret back where it belongs.
+ *
+ * caretLine is exempt from the blank-line rule so that pressing Enter
+ * at the end of a good line doesn't instantly undo itself while the
+ * user is still on that empty new line.
+ * ------------------------------------------------------------------ */
+function sanitize(text, caret, { keepCaretLine = true } = {}) {
+  text = text.replace(/\r\n?/g, "\n");
+  if (caret > text.length) caret = text.length;
+
+  const head      = text.slice(0, caret);
+  let   caretLine = head.split("\n").length - 1;
+  let   caretCol  = caret - (head.lastIndexOf("\n") + 1);
+
+  let lines = text.split("\n");
+  let truncated = false, droppedBlank = false, droppedOverflow = false;
+
+  /* 1. cap each line's length */
+  lines = lines.map((line, i) => {
+    if (line.length <= CHOICE_LABEL_MAX) return line;
+    truncated = true;
+    if (i === caretLine) caretCol = Math.min(caretCol, CHOICE_LABEL_MAX);
+    return line.slice(0, CHOICE_LABEL_MAX);
+  });
+
+  /* 2. drop blank lines (except the one the caret is sitting on) */
+  const kept = [];
+  let newCaretLine = 0;
+  lines.forEach((line, i) => {
+    const exempt = keepCaretLine && i === caretLine;
+    if (!isBlank(line) || exempt) {
+      if (i === caretLine) newCaretLine = kept.length;
+      kept.push(line);
+    } else {
+      droppedBlank = true;
+    }
+  });
+  if (kept.length === 0) kept.push("");
+
+  /* 3. cap the number of lines */
+  if (kept.length > MAX_CHOICES) {
+    kept.length = MAX_CHOICES;
+    droppedOverflow = true;
+    if (newCaretLine >= MAX_CHOICES) {
+      newCaretLine = MAX_CHOICES - 1;
+      caretCol = kept[newCaretLine].length;
+    }
+  }
+
+  /* rebuild caret offset */
+  let newCaret = 0;
+  for (let i = 0; i < newCaretLine; i++) newCaret += kept[i].length + 1;
+  newCaret += Math.min(caretCol, kept[newCaretLine].length);
+
+  return {
+    text: kept.join("\n"),
+    caret: newCaret,
+    truncated, droppedBlank, droppedOverflow
+  };
+}
+
+/* Lines as the user sees them, minus anything blank. */
+function currentLines() {
+  return ta.value.split("\n").filter(l => !isBlank(l));
+}
+
+/* ------------------------------------------------------------------ *
+ * State refresh
+ * ------------------------------------------------------------------ */
+function refresh() {
+  const count  = currentLines().length;
+  const tooFew = count < MIN_CHOICES;
+
+  lineCountEl.textContent = count;
+  counterEl.classList.toggle("invalid", tooFew);
+  ta.classList.toggle("invalid", tooFew && isDirty);
+
+  saveBtn.disabled = tooFew;
+  saveBtn.title = tooFew ? `Add at least ${MIN_CHOICES} choices to save.` : "";
+}
+
+/* ------------------------------------------------------------------ *
+ * First render — fill the box from savedChoices, padding out to
+ * MIN_CHOICES with placeholder lines when there isn't enough stored.
+ *
+ *   []            -> "Enter the poll choices here" / "Choice 2"
+ *   ["Coffee"]    -> "Coffee"                      / "Choice 2"
+ *   ["A","B","C"] -> "A" / "B" / "C"
+ * ------------------------------------------------------------------ */
+function placeholderFor(index) {          // index is 0-based
+  return index === 0 ? FIRST_CHOICE_PROMPT : `Choice ${index + 1}`;
+}
+
+function populate(choices) {
+  const lines = (Array.isArray(choices) ? choices : [])
+    .map(c => String(c).trim().slice(0, CHOICE_LABEL_MAX))
+    .filter(c => c.length > 0)
+    .slice(0, MAX_CHOICES);
+
+  while (lines.length < MIN_CHOICES) lines.push(placeholderFor(lines.length));
+
+  ta.value = lines.join("\n");
+
+  /* seeding is not a user edit, so the box starts clean and the
+     Save button stays hidden until they actually change something */
+  isDirty = false;
+  saveBtn.hidden = true;
+
+  refresh();
+}
+
+/* ------------------------------------------------------------------ *
+ * Enter key — blocked on a blank line, and blocked at the ceiling
+ * ------------------------------------------------------------------ */
+ta.addEventListener("keydown", (e) => {
+  if (e.key !== "Enter" || e.isComposing) return;
+
+  const { value, selectionStart: start, selectionEnd: end } = ta;
+  const textOnLineBeforeCaret = value.slice(lineStartAt(value, start), start);
+
+  if (isBlank(textOnLineBeforeCaret)) {
+    e.preventDefault();
+    say("Type a choice before starting a new line.");
+    return;
+  }
+
+  const after = value.slice(0, start) + "\n" + value.slice(end);
+  if (after.split("\n").length > MAX_CHOICES) {
+    e.preventDefault();
+    say(`That's the limit — ${MAX_CHOICES} choices maximum.`);
+  }
+});
+
+/* ------------------------------------------------------------------ *
+ * Any input at all — sanitise, reveal the button, refresh state
+ * ------------------------------------------------------------------ */
+ta.addEventListener("input", () => {
+  const result = sanitize(ta.value, ta.selectionStart);
+
+  if (result.text !== ta.value) {
+    ta.value = result.text;
+    ta.setSelectionRange(result.caret, result.caret);
+  }
+
+  if (result.droppedOverflow)   say(`Only the first ${MAX_CHOICES} choices were kept.`);
+  else if (result.truncated)    say(`Choices are capped at ${CHOICE_LABEL_MAX} characters.`);
+  else if (result.droppedBlank) say("Blank lines were removed.");
+
+  if (!isDirty) {          // first change reveals the button
+    isDirty = true;
+    saveBtn.hidden = false;
+  }
+  refresh();
+});
+
+/* Leaving the box tidies up any trailing blank line the caret was holding open. */
+ta.addEventListener("blur", () => {
+  const result = sanitize(ta.value, ta.selectionStart, { keepCaretLine: false });
+  if (result.text !== ta.value) ta.value = result.text;
+  refresh();
+});
+
+/* ------------------------------------------------------------------ *
+ * Save — trim each line into the array
+ * ------------------------------------------------------------------ */
+saveBtn.addEventListener("click", () => {
+  const choices = ta.value
+    .split("\n")
+    .map(line => line.trim())          // trimmed at both ends
+    .filter(line => line.length > 0);  // no blanks survive
+
+  if (choices.length < MIN_CHOICES) { say(`Add at least ${MIN_CHOICES} choices.`); return; }
+  if (choices.length > MAX_CHOICES) { say(`Remove some — ${MAX_CHOICES} choices maximum.`); return; }
+  if (choices.some(c => c.length > CHOICE_LABEL_MAX)) {
+    say(`Choices are capped at ${CHOICE_LABEL_MAX} characters.`); return;
+  }
+
+  savedChoices = choices;
+
+  /* normalise the box to exactly what was saved */
+  ta.value = choices.join("\n");
+
+  /* back to a clean state: hide the button until the next edit */
+  isDirty = false;
+  saveBtn.hidden = true;
+
+  say(`Saved ${savedChoices.length} choices.`, true);
+  refresh();
+
+  /* hand the array off to the rest of your app */
+  document.dispatchEvent(new CustomEvent("choices:saved", { detail: savedChoices }));
+});
+
+/* ------------------------------------------------------------------ *
+ * Boot
+ * ------------------------------------------------------------------ */
+populate(savedChoices);
+</script>
+</body>
+</html>

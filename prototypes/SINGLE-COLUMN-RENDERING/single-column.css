@@ -1,0 +1,151 @@
+/*
+  Every rule this prototype adds for the single-column layout goes inside the
+  media query below, and nowhere else, so the file is the layer that is later
+  ported into the app. The block holds the marker the width readout and the card
+  script read, and the poll card sizes for the single column.
+*/
+
+.prototype-bar{ display:flex; align-items:center; flex-wrap:wrap; gap:12px; padding:0 0 12px;
+  font:500 13px 'Inter', sans-serif; color:var(--muted, #5a6a5f); }
+.prototype-bar select{ font:inherit; padding:4px 8px; }
+.width-readout{ margin-left:auto; padding:2px 10px; border-radius:999px; background:rgba(0,0,0,0.06); font-variant-numeric:tabular-nums; }
+.width-readout.is-single{ background:rgba(61,90,70,0.18); }
+
+/* Tab Bar Refactor: the scroll buttons, menu button and menu exist only in the single column. */
+.tab-scroll, .tab-menu-btn, .tab-menu{ display:none; }
+
+/* Floating Buttons: the guest's Log In and Create Account buttons float over the cards in the single column only. */
+.floating-actions{ display:none; }
+
+@media (max-width: 639.98px){
+  :root{ --single-column:1; }
+  /* Tab label size: 1 = the site's 14px. Change this number to try other sizes. */
+  :root{ --tab-label-scale:0.9; }
+  /* Tab label letter spacing (the site's is +0.1px) and the space either side of each tab. Change these numbers. */
+  :root{ --tab-label-tracking:-0.03em; --tab-pad:6px; }
+  /* Highlight behind the arrows and the hamburger: slight on hover, stronger while pressed or held. Change these numbers. */
+  :root{ --tab-hover-opacity:0.08; --tab-press-opacity:0.2; }
+  /* Space between the poll cards (the site's is 18px). Change this number. */
+  :root{ --card-gap:16px; }
+  /* Space above and below the Refresh button, which sits on its own row under the tab bar line. Change this number. */
+  :root{ --refresh-gap:10px; }
+  .card-grid{ gap:var(--card-gap); }
+
+  /* Poll Card Height In Single-Column Layout. pollCard.js sets 36 px bars, a 6 px
+     gap and no scrolling when the marker above reads 1; the rules below let the card
+     follow its content and size the rest at 75%. The maximized card keeps its own
+     sizing. */
+  .card-flip:not(.maximized-card-flip){ min-height:0; }
+  .card-flip:not(.maximized-card-flip) .bar-scroll-wrap{ flex:0 0 auto; }
+  .card-flip:not(.maximized-card-flip) .bar-scroll-inner{ position:static; overflow:visible; }
+  .card-flip:not(.maximized-card-flip) .results-list,
+  .card-flip:not(.maximized-card-flip) .voting-list{ flex:0 0 auto; overflow:visible; }
+  .card-flip:not(.maximized-card-flip) .arrow-row{ display:none; }
+
+  .card-flip:not(.maximized-card-flip) .card-face .question{
+    font-size:calc(clamp(18px, 1.8vw, var(--md-sys-typescale-title-large-size)) * 0.75);
+  }
+  .card-flip:not(.maximized-card-flip) .card-face .subtitle{
+    font-size:calc(var(--md-sys-typescale-body-medium-size) * 0.75);
+  }
+  .card-flip:not(.maximized-card-flip) .card-face .poll-totals,
+  .card-flip:not(.maximized-card-flip) .card-face .poll-voted{
+    font-size:calc(var(--md-sys-typescale-label-large-size) * 0.75);
+  }
+  .card-flip:not(.maximized-card-flip) .card-face .btn-vote,
+  .card-flip:not(.maximized-card-flip) .card-face .live-link{
+    height:21px;
+    font-size:calc(var(--md-sys-typescale-label-large-size) * 0.75);
+  }
+  .card-flip:not(.maximized-card-flip) .card-face .icon-btn,
+  .card-flip:not(.maximized-card-flip) .card-face .bookmark-btn,
+  .card-flip:not(.maximized-card-flip) .card-face .maximize-btn{ width:24px; height:24px; }
+  .card-flip:not(.maximized-card-flip) .card-face .icon-btn svg,
+  .card-flip:not(.maximized-card-flip) .card-face .bookmark-btn svg,
+  .card-flip:not(.maximized-card-flip) .card-face .maximize-btn svg{ width:15px; height:15px; }
+  .card-flip:not(.maximized-card-flip) .card-face .live-bars{ height:10.5px; }
+
+  .btn-header-ghost,
+  .btn-header-primary{ height:24px; }
+  #tabBar .tab{ font-size:calc(var(--md-sys-typescale-title-small-size) * var(--tab-label-scale)); }
+  .site-header{ margin-bottom:8px; }
+  .brand-logo,
+  .brand-wordmark{ height:24px; }
+  .header-nav,
+  #header-username,
+  .header-search{ display:none; }
+
+  /* Tab Bar Refactor. Scroll buttons (shown by prototype.js only on a side that holds
+     more tabs), the all-tabs menu button and the menu. Refresh is hidden for now. */
+  .tab-bar-wrap{ flex-wrap:nowrap; gap:2px; }
+  #tabBar{ flex:1 1 0; min-width:0; -webkit-mask-image:none !important; mask-image:none !important;
+    touch-action:pan-x; cursor:grab; user-select:none; -webkit-user-select:none; }
+  #tabBar.is-dragging{ cursor:grabbing; }
+  #tabBar .tab{ min-width:0; height:56px; gap:0; padding:0 var(--tab-pad); letter-spacing:var(--tab-label-tracking); }
+  #tabBar .tab.is-active::after{ left:var(--tab-pad); right:var(--tab-pad); }
+  /* Refresh: under the line (the Material 3 sheet puts the line on the row's bottom edge), flush right; the row makes room for it, except on Live Results, which hides it. */
+  .tab-bar-wrap{ margin-bottom:calc(40px + var(--refresh-gap) * 2); }
+  .tab-bar-wrap[data-active="live"]{ margin-bottom:20px; }
+  .tab-bar-wrap .tab-refresh--icon{ position:absolute; right:0; top:calc(100% + var(--refresh-gap)); }
+  .tab-scroll, .tab-menu-btn{
+    display:inline-flex; align-items:center; justify-content:center; flex:0 0 auto;
+    width:32px; padding:0; border:0; background:none; cursor:pointer;
+    color:var(--md-sys-color-on-surface-variant);
+    touch-action:manipulation; user-select:none; -webkit-user-select:none;
+  }
+  .tab-scroll{ align-self:center; height:56px; }
+  .tab-menu-btn{ align-self:flex-start; height:32px; }
+  .tab-scroll--before{ justify-content:flex-start; }
+  .tab-scroll--after{ justify-content:flex-end; }
+  .tab-scroll[aria-disabled="true"]{
+    color:color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+    cursor:default;
+  }
+  .tab-scroll svg, .tab-menu-btn svg{ position:relative; width:24px; height:24px; }
+  .tab-scroll, .tab-menu-btn{ position:relative; }
+  .tab-scroll::before, .tab-menu-btn::before{
+    content:''; position:absolute; left:0; top:50%; width:32px; height:32px; margin-top:-16px;
+    border-radius:50%; background:currentColor; opacity:0; pointer-events:none;
+  }
+  @media (hover:hover){
+    .tab-scroll:not([aria-disabled="true"]):hover::before, .tab-menu-btn:hover::before{ opacity:var(--tab-hover-opacity); }
+  }
+  .tab-scroll:not([aria-disabled="true"]):active::before, .tab-menu-btn:active::before{ opacity:var(--tab-press-opacity); }
+  .tab-menu-btn[aria-expanded="true"]::before{ opacity:var(--tab-hover-opacity); }
+  .tab-menu{
+    display:block; position:absolute; top:100%; right:0; z-index:20; min-width:200px; padding:4px 0;
+    background:var(--md-sys-color-surface);
+    border:1px solid var(--md-sys-color-outline-variant);
+    border-radius:var(--md-sys-shape-corner-medium);
+    box-shadow:0 2px 6px rgba(0,0,0,.15);
+  }
+  .tab-menu[hidden]{ display:none; }
+  .tab-menu-item{
+    position:relative; display:flex; align-items:center; gap:12px; width:100%;
+    padding:10px 16px; border:0; background:none; text-align:left; cursor:pointer;
+    font-family:var(--md-sys-typescale-font); font-weight:500;
+    font-size:calc(var(--md-sys-typescale-title-small-size) * var(--tab-label-scale));
+    color:var(--md-sys-color-on-surface-variant);
+  }
+  .tab-menu-item .tab-icon{ width:24px; height:24px; flex:0 0 auto; }
+  .tab-menu-item.is-active{ color:var(--md-sys-color-primary); }
+  .tab-menu-item.is-active span::after{
+    content:''; display:block; height:3px; margin-top:2px; border-radius:3px 3px 0 0;
+    background:var(--md-sys-color-primary);
+  }
+  .tab-menu-item[aria-disabled="true"]{
+    color:color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+    cursor:not-allowed;
+  }
+
+  /* Floating Buttons. Fixed on the screen; prototype.js sets left and top. */
+  .floating-actions{
+    position:fixed; left:0; top:0; z-index:15; display:flex; gap:8px;
+    touch-action:none; cursor:grab;
+  }
+  .floating-actions[hidden]{ display:none; }
+  .floating-actions.is-dragging{ cursor:grabbing; }
+  .floating-actions .btn-header-ghost,
+  .floating-actions .btn-header-primary{ box-shadow:0 1px 4px rgba(0,0,0,.3); touch-action:none; }
+  .floating-actions .btn-header-ghost{ background:var(--md-sys-color-surface); }
+}

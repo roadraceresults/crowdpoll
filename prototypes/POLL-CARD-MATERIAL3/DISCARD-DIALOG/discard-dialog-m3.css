@@ -1,0 +1,68 @@
+/*
+  NOT SAVED DIALOG — MATERIAL 3 LAYER (REQUIREMENT Not Saved Dialog Box). The
+  dialog is Tabs.modal's markup, so ../TABS-MODAL/tabs-modal-m3.css gives the
+  scrim, the container, the supporting text and the entrance. This file adds
+  only what Tabs.modal lacks: the headline and a second action. Loaded after
+  ../pollCard-m3.css (roles, type scale, shape and state tokens) and
+  ../TABS-MODAL/tabs-modal-m3.css.
+
+  Order: 1 headline, 2 actions, 3 state layer and focus.
+*/
+
+:root{
+  --md-sys-typescale-headline-small-size:24px;
+  --md-sys-typescale-headline-small-line-height:32px;
+  --md-sys-typescale-headline-small-weight:400;
+  --md-sys-typescale-headline-small-tracking:0;
+}
+
+/* ---------- 1. Headline (clarification 3a) ---------- */
+.modal-headline{
+  margin:0 0 16px;
+  font-family:var(--md-sys-typescale-font);
+  font-weight:var(--md-sys-typescale-headline-small-weight);
+  font-size:var(--md-sys-typescale-headline-small-size);
+  line-height:var(--md-sys-typescale-headline-small-line-height);
+  letter-spacing:var(--md-sys-typescale-headline-small-tracking);
+  color:var(--md-sys-color-on-surface);
+}
+
+/* ---------- 2. Actions: Keep editing, then Discard ----------
+   Text buttons, as Tabs.modal's OK. (0,2,0) outranks production's
+   .tab-refresh (0,1,0). Discard stays primary, as M3 dialog actions do. */
+.modal .modal-action{
+  position:relative;
+  overflow:hidden;
+  height:40px;
+  min-width:48px;
+  padding:0 12px;
+  border:0;
+  border-radius:var(--md-sys-shape-corner-full);
+  background:transparent;
+  color:var(--md-sys-color-primary);
+  font-family:var(--md-sys-typescale-font);
+  font-weight:var(--md-sys-typescale-label-large-weight);
+  font-size:var(--md-sys-typescale-label-large-size);
+  line-height:var(--md-sys-typescale-label-large-line-height);
+  letter-spacing:var(--md-sys-typescale-label-large-tracking);
+}
+
+/* ---------- 3. State layer and focus ----------
+   As Tabs.modal's OK and the card's buttons. */
+.modal .modal-action::before{
+  content:'';
+  position:absolute;
+  inset:0;
+  border-radius:inherit;
+  background:currentColor;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity 0.15s ease;
+}
+.modal .modal-action:hover::before{ opacity:var(--md-sys-state-hover-state-layer-opacity); }
+.modal .modal-action:focus-visible::before{ opacity:var(--md-sys-state-focus-state-layer-opacity); }
+.modal .modal-action:active::before{ opacity:var(--md-sys-state-pressed-state-layer-opacity); }
+.modal .modal-action:focus-visible{
+  outline:3px solid var(--md-sys-color-secondary);
+  outline-offset:2px;
+}

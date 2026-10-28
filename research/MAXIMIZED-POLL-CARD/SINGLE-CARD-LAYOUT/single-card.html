@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Poll Card — single-card layout</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,440;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!--
+    Load order is production's: the card's own sheet first, then the page shell,
+    then the application's additions — several rules in the last deliberately beat
+    the first at equal specificity (the .vote-btn grid, the [hidden] rules).
+  -->
+  <link rel="stylesheet" href="poll-card.css">
+  <link rel="stylesheet" href="page-layout.css">
+  <link rel="stylesheet" href="poll-card-app.css">
+
+  <style>
+    /*
+      The rules this page adds. In the application .maximized-card-grid holds the tab bar and
+      a .card-grid; with the grid gone it holds the card and the panel beside it,
+      as a wrapping flex row.
+
+      How the two share the width, as the window narrows:
+
+        window ≥ 898px   card 420px (its cap); .maximized-space-right takes all the rest
+        898px → 808px    both are equal and shrink together, 420px → 375px
+        window < 808px   .maximized-space-right wraps below the card, at full width
+
+      The numbers fall out of three values, not out of media queries: the card's
+      420px cap (poll-card.css .maximized-card-viewport), the 375px floor both items carry,
+      and the 18px trough between them (two 8px gaps either side of the 2px
+      rule). Change any of them and the two thresholds move with it —
+      898 = 420 + 420 + 18 + 40 of container padding, 808 = 375 + 375 + 18 + 40.
+
+      Equal flex-basis is what makes the middle band work: with the surplus all
+      going to .maximized-space-right (flex-grow:1) and neither item able to grow past its
+      basis, the two meet at 420px and then shrink at the same rate, because
+      shrinkage is distributed in proportion to the basis they share.
+
+      The card is left-justified beside the panel and centred once the panel has
+      wrapped below it, and that costs nothing extra: it is poll-card.css's own
+      `margin:0 auto` on .maximized-card-viewport, simply left in place. An auto margin on
+      a flex item only absorbs the free space that is left AFTER the line has
+      flexed, so while the two share a line .maximized-space-right's flex-grow has taken
+      all of it and the auto margins resolve to zero. Once the card is alone on
+      its line nothing grows, the whole surplus is free space, and the two auto
+      margins split it — which is the card, centred.
+    */
+    .maximized-card-grid{
+      display:flex;
+      flex-wrap:wrap;          /* the panel drops below the card when both no longer fit */
+      align-items:stretch;
+      gap:18px 8px;            /* 8 + the rule's 2 + 8 = the card grid's 18px gap */
+      container-type:inline-size;   /* so the rule can be dropped on the wrapped layout */
+    }
+    /*
+      The close control, at the top right of .maximized-card-grid. It is on a row of
+      its own (flex-basis 100%) ahead of the card, so it never covers the card's
+      bookmark star or the panel's text, and it stays at the top right whether the
+      panel sits beside the card or below it. It sits outside .maximized-card-flip,
+      so it does not turn with the card and shows on both faces. The negative
+      margin takes the grid's 18px row gap down to 10px under it. The look is
+      poll-card.css's .icon-btn, as on the app's card-shell close control.
+    */
+    .maximized-card-close-row{
+      flex:0 0 100%;
+      display:flex;
+      justify-content:flex-end;
+      margin-bottom:-8px;
+    }
+    /* 1.5 times poll-card.css's .icon-btn (28px button, 14px icon, 11px radius),
+       so it reads at the size of a maximized card. The × strokes are in viewBox
+       units and scale with the icon. */
+    .maximized-card-close{
+      width:42px; height:42px;
+      border-radius:16.5px;
+    }
+    .maximized-card-close svg{
+      width:21px; height:21px;
+    }
+    /* The app defines no :focus-visible rule of its own; this matches the card
+       shell's close control (site.css .card-shell-close:focus-visible). */
+    .maximized-card-close:focus-visible{
+      outline:2px solid var(--moss, #3D5A46);
+      outline-offset:2px;
+    }
+    .maximized-card-grid > .maximized-card-viewport{
+      flex:0 1 420px;          /* never wider than the cap; free to shrink to the floor */
+      min-width:375px;
+      margin:0 auto;           /* poll-card.css's own rule, kept — see the note above */
+    }
+    .maximized-space-right{
+      flex:1 1 420px;          /* same basis as the card, and takes the surplus */
+      min-width:375px;
+      align-self:flex-start;   /* as tall as its text, not as tall as the card */
+      padding:10px;
+      background:#E6E6E6;
+      font-family:'Inter', system-ui, sans-serif;
+      font-size:13px;
+      color:var(--muted);
+    }
+    .maximized-space-right p{ margin:0 0 1em; line-height:1.65; }
+    .maximized-space-right p:last-child{ margin-bottom:0; }
+
+    /*
+      The rule between the two. It is a flex item of its own rather than a border
+      or a pseudo-element, which is what makes it behave as asked with no
+      measuring: the two 8px gaps put it exactly halfway across the trough, and
+      align-items:stretch gives every item the flex line's cross size — the
+      height of whichever of the card and the panel is taller. It starts at the
+      top of the card because that is where the line starts. .maximized-space-right opts
+      out of that stretch (align-self:flex-start) so its grey block ends with its
+      text; the rule keeps its own stretch, so it still runs to the bottom of
+      whichever of the two is lower.
+
+      Once .maximized-space-right wraps below the card the rule has nothing to separate, so
+      it is dropped. The query is on .maximized-card-grid's own width (container-type above),
+      not the window's, because .maximized-card-grid's width is what decides the wrap: the
+      items need 375 + 8 + 2 + 8 + 375 = 768px to sit side by side.
+    */
+    .col-rule{
+      flex:0 0 2px;
+      align-self:stretch;
+      background:var(--line);   /* #D8DCD3 */
+    }
+    @container (max-width:767.98px){
+      .col-rule{ display:none; }
+    }
+
+    /*
+      The white band behind the results text (RESULTS_TEXT_BAND in the script, which
+      puts .text-band on .maximized-card-flip). The label and percentage boxes run the full
+      height of the bar, so the band is a pseudo-element sized to the text line
+      (1.5em of the row's font size) and centred on it; the blur softens all four
+      edges. It spans the box's padding too, which is what carries it a few pixels
+      beyond the first and last letters. z-index:-1 puts it behind the text but, since
+      the label is its own stacking context (z-index:2), still in front of the fill.
+    */
+    .maximized-card-flip.text-band .result-label::before,
+    .maximized-card-flip.text-band .result-pct::before{
+      content:'';
+      position:absolute;
+      left:0; right:0;
+      top:50%;
+      height:1.5em;
+      transform:translateY(-50%);
+      z-index:-1;
+      background:rgba(255,255,255,0.85);
+      border-radius:0.75em;
+      filter:blur(2px);
+      pointer-events:none;
+    }
+
+    /*
+      The white copy of a Yes/No bar's text (addInkOnFill in the script): it covers
+      the whole row, above the text it copies (z-index 2), and its clip-path trims it
+      to the fill.
+    */
+    .result-ink-on-fill{
+      position:absolute;
+      inset:0;
+      z-index:3;
+      pointer-events:none;
+    }
+  </style>
+
+  <script>
+    // The choice-count bounds that set the min and max height of the bars in .maximized-card-flip.
+    // when integrating this with the main CrowdPoll webapp,
+    // these constants will be removed since they are environment variables in the main CrowdPoll webapp
+    const ENV_MIN_CHOICES = 2; // minimum number of choices in a poll
+    const ENV_MAX_CHOICES = 50; // maximum number of choices in a poll
+
+    // The same bar-height and row-gap bounds as the main CrowdPoll webapp (src/public/pollCard.js).
+    const RESULTS_MAX_BAR_HEIGHT = 50; // cap so 2–3 bars don't grow absurdly tall
+    const RESULTS_MIN_BAR_HEIGHT = 25; // floor so bars stay visible at high choice counts
+    const RESULTS_GAP_MAX = 20;
+    const RESULTS_GAP_MIN = 1;
+    // The results text — label and percentage — on every bar: always black, on a
+    // pronounced white halo, in place of the live card's choice between black and white
+    // by fill colour (textStyleFor in src/public/pollCard.js). Three things are being
+    // tried together, each adjustable here:
+    //   - the halo: tight, fully opaque shadows stacked under wider soft ones, so each
+    //     glyph gets a thick solid white edge that reads over the darkest fill;
+    //   - the left reach: shadows offset to the left, so the white runs a few pixels
+    //     ahead of the first letter;
+    //   - the band: a soft white strip behind the whole text, first letter to last, so
+    //     the gaps between letters and words are white too (.text-band in the <style>).
+    const RESULTS_TEXT_COLOR = '#000';
+    const RESULTS_TEXT_SHADOW = [
+      '0 0 1px #fff',
+      '0 0 1px #fff',
+      '0 0 2px #fff',
+      '0 0 3px #fff',
+      '0 0 4px #fff',
+      '-2px 0 3px #fff',    // the left reach
+      '-4px 0 4px #fff',
+      '0 0 6px rgba(255,255,255,0.9)',
+      '0 0 10px rgba(255,255,255,0.7)',
+    ].join(', ');
+    // Room inside each text box, either side of the text, for the band and the left
+    // reach to draw into. Truncated labels clip at their own box (overflow:hidden for
+    // the ellipsis), so without it nothing left of the first letter can show.
+    const RESULTS_TEXT_PAD = 6;
+    const RESULTS_TEXT_BAND = true; // false: halo only, no band
+
+    // Which results text style the card uses:
+    //   'vibrant' — every bar drawn as the Yes/No bars are: its RESULTS_PALETTE_ENTRIES
+    //               colour as the fill, a very light tint of it as the track, and text
+    //               that is a light or dark shade of the fill over the fill and the
+    //               tint's dark shade over the track, changing colour exactly where the
+    //               fill ends (setVibrantStyle);
+    //   'shade'   — Polymarket's technique: a light fill from RESULTS_PALETTE_ENTRIES and
+    //               text in a very dark shade of the same hue, no halo, no band;
+    //   'halo'    — the first experiment: the fills baked into the markup, black text
+    //               on the white halo and band above.
+    const RESULTS_TEXT_MODE = 'vibrant';
+
+    // The bar fills, in bar order: 50 entries, one per allowed choice. Entries 1–10 are
+    // xkcd colour-survey colours (xkcd.com/color/rgb.txt, as matplotlib ships it); each
+    // later entry is the entry ten before it made slightly lighter — the same hue and
+    // saturation, PALETTE_LIGHTER_STEP more HSL lightness — so 11–20 are 1–10 one step
+    // lighter, 21–30 two steps, and so on to 41–50 at four. The values are baked in; the
+    // names are only for reading (the webapp reads `hex` alone).
+    // The Yes/No colours — see semanticColorFor below.
+    // A Yes/No bar is drawn differently from the palette bars, because its fill is
+    // dark: white text reads on it, but not on the light track beside it, and dark
+    // text is the reverse. So the bar gets its own track — a pale tint of its colour,
+    // SEMANTIC_TRACK_TINT of the way to white, as Polymarket's Yes/No buttons are —
+    // and its text changes colour exactly where the fill ends: white over the fill
+    // (SEMANTIC_TEXT_COLOR), and over the tint the dark shade of the tint, as on every
+    // other bar. setShadeStyle does it with a white copy of the text clipped to the
+    // fill's width, laid over the dark original.
+    //
+    // Measured at 0.8: over the tint the dark green reaches 7.33:1 and the dark red 8.21:1;
+    // over the fill, white reaches 5.66:1 on the red but only 3.94:1 on the green.
+    const SEMANTIC_AFFIRMATIVE_COLOR = '#019529'; // xkcd 'irish green'
+    const SEMANTIC_NEGATIVE_COLOR = '#CF0234';    // xkcd 'cherry'
+    const SEMANTIC_TEXT_COLOR = '#FFF';
+    const SEMANTIC_TRACK_TINT = 0.8;
+
+    const PALETTE_LIGHTER_STEP = 0.07; // how the baked values below were made; not read
+    const RESULTS_PALETTE_ENTRIES = [
+      { hex: '#014182', name: 'darkish blue' },
+      { hex: '#1F6357', name: 'dark green blue' },
+      { hex: '#FCC006', name: 'marigold' },
+      { hex: '#C45508', name: 'rust orange' },
+      { hex: '#0203E2', name: 'pure blue' },
+      { hex: '#000000', name: 'black' },
+      { hex: '#DB4BDA', name: 'pink purple' },
+      { hex: '#7F5F00', name: 'shit' },
+      { hex: '#8B3103', name: 'rust brown' },
+      { hex: '#929591', name: 'grey' },
+      { hex: '#0153A5', name: 'darkish blue, lighter ×1' },
+      { hex: '#287E6F', name: 'dark green blue, lighter ×1' },
+      { hex: '#FCC929', name: 'marigold, lighter ×1' },
+      { hex: '#E66409', name: 'rust orange, lighter ×1' },
+      { hex: '#0B0CFD', name: 'pure blue, lighter ×1' },
+      { hex: '#121212', name: 'black, lighter ×1' },
+      { hex: '#E169E0', name: 'pink purple, lighter ×1' },
+      { hex: '#A37A00', name: 'shit, lighter ×1' },
+      { hex: '#AE3D04', name: 'rust brown, lighter ×1' },
+      { hex: '#A4A7A3', name: 'grey, lighter ×1' },
+      { hex: '#0165C8', name: 'darkish blue, lighter ×2' },
+      { hex: '#319987', name: 'dark green blue, lighter ×2' },
+      { hex: '#FCD24C', name: 'marigold, lighter ×2' },
+      { hex: '#F6761D', name: 'rust orange, lighter ×2' },
+      { hex: '#2E2FFD', name: 'pure blue, lighter ×2' },
+      { hex: '#242424', name: 'black, lighter ×2' },
+      { hex: '#E787E6', name: 'pink purple, lighter ×2' },
+      { hex: '#C79500', name: 'shit, lighter ×2' },
+      { hex: '#D14905', name: 'rust brown, lighter ×2' },
+      { hex: '#B6B8B5', name: 'grey, lighter ×2' },
+      { hex: '#0177EC', name: 'darkish blue, lighter ×3' },
+      { hex: '#3AB49F', name: 'dark green blue, lighter ×3' },
+      { hex: '#FDDB6F', name: 'marigold, lighter ×3' },
+      { hex: '#F78B3F', name: 'rust orange, lighter ×3' },
+      { hex: '#5152FD', name: 'pure blue, lighter ×3' },
+      { hex: '#363636', name: 'black, lighter ×3' },
+      { hex: '#EDA5EC', name: 'pink purple, lighter ×3' },
+      { hex: '#EBB000', name: 'shit, lighter ×3' },
+      { hex: '#F45506', name: 'rust brown, lighter ×3' },
+      { hex: '#C8C9C7', name: 'grey, lighter ×3' },
+      { hex: '#1389FE', name: 'darkish blue, lighter ×4' },
+      { hex: '#4CC5B1', name: 'dark green blue, lighter ×4' },
+      { hex: '#FDE492', name: 'marigold, lighter ×4' },
+      { hex: '#F8A061', name: 'rust orange, lighter ×4' },
+      { hex: '#7475FD', name: 'pure blue, lighter ×4' },
+      { hex: '#484848', name: 'black, lighter ×4' },
+      { hex: '#F3C3F2', name: 'pink purple, lighter ×4' },
+      { hex: '#FFC310', name: 'shit, lighter ×4' },
+      { hex: '#FA6B24', name: 'rust brown, lighter ×4' },
+      { hex: '#DADBD9', name: 'grey, lighter ×4' }
+    ];
+
+    // Yes/No bars take these instead of a palette entry. The rules that decide which
+    // labels count are semanticColorFor's, copied from src/public/pollCard.js; the two
+    // colours are the ones proposed for this experiment (the application currently
+    // has #43F781 and #FC9E9E); they are declared above the palette, which uses them.
+    const AFFIRMATIVE_WORDS = /(?<![a-z])(?:yes|true|correct|agree|yay)(?![a-z])/i;
+    const NEGATIVE_WORDS = /(?<![a-z])(?:no|false|incorrect|disagree|nay)(?![a-z])/i;
+    const AFFIRMATIVE_EXACT = ['y', 'yup'];
+    const NEGATIVE_EXACT = ['n', 'nope'];
+
+    function semanticColorFor(label) {
+      const text = (typeof label === 'string' ? label : '').trim();
+      if (!text) return null;
+      const lower = text.toLowerCase();
+      if (AFFIRMATIVE_WORDS.test(text) || AFFIRMATIVE_EXACT.includes(lower)) return SEMANTIC_AFFIRMATIVE_COLOR;
+      if (NEGATIVE_WORDS.test(text) || NEGATIVE_EXACT.includes(lower)) return SEMANTIC_NEGATIVE_COLOR;
+      return null;
+    }
+
+    // One fill per label, in bar order: a semantic colour where a rule matches, else
+    // the next palette entry — only non-semantic bars use one up (assignResultColors).
+    function assignResultColors(labels) {
+      let paletteIndex = 0;
+      return labels.map((label) => semanticColorFor(label)
+        || RESULTS_PALETTE_ENTRIES[paletteIndex++ % RESULTS_PALETTE_ENTRIES.length].hex);
+    }
+
+    // The dark shade: the fill's own hue and saturation at a low HSL lightness. It
+    // starts at RESULTS_INK_START_LIGHTNESS and steps down until the text reaches
+    // RESULTS_INK_TARGET_CONTRAST against its fill, stopping at the floor. No single
+    // lightness serves the whole palette — at a fixed 20%, cool blue reaches only
+    // 3.2:1 — so each colour darkens only as far as it needs to.
+    //
+    // Measured on this palette: every palette fill reaches 7:1, and over the bare
+    // track, where a short bar's text sits, every shade is at least 5.7:1. The Yes/No
+    // fills are dark and are drawn their own way — see SEMANTIC_TRACK_TINT.
+    const RESULTS_INK_TARGET_CONTRAST = 7;       // WCAG AAA for normal text
+    const RESULTS_INK_START_LIGHTNESS = 0.25;
+    const RESULTS_INK_FLOOR_LIGHTNESS = 0.08;
+
+    function hexToRgb(hex) {
+      const c = hex.replace('#', '');
+      return [0, 2, 4].map((i) => parseInt(c.substring(i, i + 2), 16) / 255);
+    }
+
+    function luminanceOf(hex) {
+      const lin = (v) => (v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
+      const [r, g, b] = hexToRgb(hex).map(lin);
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    }
+
+    function contrastRatio(a, b) {
+      const [hi, lo] = [luminanceOf(a), luminanceOf(b)].sort((x, y) => y - x);
+      return (hi + 0.05) / (lo + 0.05);
+    }
+
+    function hexToHsl(hex) {
+      const [r, g, b] = hexToRgb(hex);
+      const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+      const l = (max + min) / 2;
+      if (!d) return [0, 0, l];
+      const s = d / (1 - Math.abs(2 * l - 1));
+      let h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+      h *= 60;
+      return [h < 0 ? h + 360 : h, s, l];
+    }
+
+    function hslToHex(h, s, l) {
+      const c = (1 - Math.abs(2 * l - 1)) * s;
+      const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+      const m = l - c / 2;
+      const [r, g, b] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x]
+        : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];
+      return '#' + [r, g, b].map((v) => Math.round((v + m) * 255).toString(16).padStart(2, '0')).join('');
+    }
+
+    function darkShadeOf(hex) {
+      const [h, s] = hexToHsl(hex);
+      let l = RESULTS_INK_START_LIGHTNESS;
+      let ink = hslToHex(h, s, l);
+      while (contrastRatio(ink, hex) < RESULTS_INK_TARGET_CONTRAST && l > RESULTS_INK_FLOOR_LIGHTNESS + 1e-9) {
+        l = Math.round((l - 0.01) * 100) / 100;
+        ink = hslToHex(h, s, l);
+      }
+      return ink;
+    }
+
+    // Trying a fixed gap for now. RESULTS_GAP_MAX / RESULTS_GAP_MIN and rowGapFor are
+    // kept, unused, in case the gap needs to scale with the bar count after all.
+    const RESULTS_GAP_FIXED = 2;
+
+    // The value for a poll with `count` bars: `atMin` at ENV_MIN_CHOICES, `atMax` at
+    // ENV_MAX_CHOICES, linear in between. Counts outside the range are clamped to it.
+    function interpolateByChoices(count, atMin, atMax) {
+      if (ENV_MAX_CHOICES <= ENV_MIN_CHOICES) return atMin;
+      const n = Math.min(Math.max(count, ENV_MIN_CHOICES), ENV_MAX_CHOICES);
+      const t = (n - ENV_MIN_CHOICES) / (ENV_MAX_CHOICES - ENV_MIN_CHOICES);
+      return atMin - t * (atMin - atMax);
+    }
+
+    function barHeightFor(count) {
+      return interpolateByChoices(count, RESULTS_MAX_BAR_HEIGHT, RESULTS_MIN_BAR_HEIGHT);
+    }
+
+    function rowGapFor(count) {
+      return interpolateByChoices(count, RESULTS_GAP_MAX, RESULTS_GAP_MIN);
+    }
+
+    // Sets the height of every bar in .maximized-card-flip — the result rows on the front and the
+    // vote rows on the back — from the number of bars in the poll, and the row gap of
+    // both lists to RESULTS_GAP_FIXED. A truncated label's line-height follows its row, as the live card sets
+    // it, so it stays centred.
+    function setBarHeights(cardFlip) {
+      const count = cardFlip.querySelectorAll('.results-list > .result-row').length;
+      const px = barHeightFor(count) + 'px';
+      const gap = RESULTS_GAP_FIXED + 'px'; // not rowGapFor(count), for now
+      cardFlip.querySelectorAll('.results-list, .voting-list').forEach((list) => {
+        list.style.rowGap = gap;
+      });
+      cardFlip.querySelectorAll('.result-row, .vote-row').forEach((row) => {
+        row.style.height = px;
+        row.querySelectorAll('.result-label, .vote-label').forEach((label) => {
+          if (label.style.lineHeight) label.style.lineHeight = px;
+        });
+      });
+    }
+
+    // Styles the results text of every bar in .maximized-card-flip, per RESULTS_TEXT_MODE. Runs
+    // once, at load.
+    function setResultTextStyle(cardFlip) {
+      if (RESULTS_TEXT_MODE === 'vibrant') setVibrantStyle(cardFlip);
+      else if (RESULTS_TEXT_MODE === 'shade') setShadeStyle(cardFlip);
+      else setHaloStyle(cardFlip);
+    }
+
+    // 'vibrant' — the palette's colours used as they are:
+    //   - the fill: the palette colour;
+    //   - the text over the fill: whichever of its light shade (the fill's hue and
+    //     saturation at RESULTS_LIGHT_INK_LIGHTNESS) and its dark shade (darkShadeOf)
+    //     reads better on it — light on the darker fills, dark on the lighter ones;
+    //   - the track: the fill RESULTS_TRACK_TINT of the way to white — very light (0.8, as
+    //     the Yes/No bars' SEMANTIC_TRACK_TINT; 0.9 and then 0.85 read as too pale);
+    //   - the text over the track: the track's dark shade (darkShadeOf), 7:1.
+    // Yes/No bars keep their own treatment (SEMANTIC_*), which this generalises.
+    //
+    // Measured on this palette: dark text on every track 7.02:1 or better; text on the
+    // fill 4.05:1 or better, and below 4.5:1 on four mid-brightness fills — rust brown
+    // lighter ×2 and rust orange (4.05), shit lighter ×1 (4.14) and darkish blue lighter
+    // ×3 (4.29) — where no shade of their own hue reaches 4.5. A light fill cannot stand
+    // far from a tint of itself: 29 fills are below 3:1 against their own track (marigold
+    // lighter ×4 the lowest, 1.20), so the dark trailing edge on every fill
+    // (poll-card-app.css, .result-fill) is what marks where those fills end.
+    const RESULTS_LIGHT_INK_LIGHTNESS = 0.95;
+    const RESULTS_TRACK_TINT = 0.8;
+
+    function lightShadeOf(hex) {
+      const [h, s] = hexToHsl(hex);
+      return hslToHex(h, s, RESULTS_LIGHT_INK_LIGHTNESS);
+    }
+
+    function inkOnFillFor(fill) {
+      const light = lightShadeOf(fill);
+      const dark = darkShadeOf(fill);
+      return contrastRatio(light, fill) >= contrastRatio(dark, fill) ? light : dark;
+    }
+
+    function setVibrantStyle(cardFlip) {
+      const rows = [...cardFlip.querySelectorAll('.results-list > .result-row')];
+      const labels = rows.map((row) => row.querySelector('.result-label')?.textContent ?? '');
+      const colors = assignResultColors(labels);
+      const semantic = [SEMANTIC_AFFIRMATIVE_COLOR, SEMANTIC_NEGATIVE_COLOR];
+      rows.forEach((row, i) => {
+        const isSemantic = semantic.includes(colors[i]);
+        const fill = colors[i];
+        const track = mixWithWhite(fill, isSemantic ? SEMANTIC_TRACK_TINT : RESULTS_TRACK_TINT);
+        row.querySelector('.result-fill').style.background = fill;
+        row.style.background = track;
+        row.querySelector('.result-ink-on-fill')?.remove();
+        const texts = row.querySelectorAll('.result-label, .result-pct');
+        texts.forEach((text) => {
+          text.style.color = darkShadeOf(track);
+          text.style.textShadow = 'none';
+        });
+        addInkOnFill(row, texts, isSemantic ? SEMANTIC_TEXT_COLOR : inkOnFillFor(fill));
+      });
+    }
+
+    // 'shade': each bar's fill from the palette (or its semantic colour) and its label
+    // and percentage in that fill's dark shade, with the markup's halo removed. A Yes/No
+    // bar, whose fill is dark, gets a tinted track and two-colour text (addInkOnFill).
+    function setShadeStyle(cardFlip) {
+      const rows = [...cardFlip.querySelectorAll('.results-list > .result-row')];
+      const labels = rows.map((row) => row.querySelector('.result-label')?.textContent ?? '');
+      const fills = assignResultColors(labels);
+      const semantic = [SEMANTIC_AFFIRMATIVE_COLOR, SEMANTIC_NEGATIVE_COLOR];
+      rows.forEach((row, i) => {
+        row.querySelector('.result-fill').style.background = fills[i];
+        const texts = row.querySelectorAll('.result-label, .result-pct');
+        row.querySelector('.result-ink-on-fill')?.remove();
+        row.style.background = '';
+        let ink = darkShadeOf(fills[i]);
+        if (semantic.includes(fills[i])) {
+          const tint = mixWithWhite(fills[i], SEMANTIC_TRACK_TINT);
+          row.style.background = tint;
+          ink = darkShadeOf(tint);
+        }
+        texts.forEach((text) => {
+          text.style.color = ink;
+          text.style.textShadow = 'none';
+        });
+        if (semantic.includes(fills[i])) addInkOnFill(row, texts, SEMANTIC_TEXT_COLOR);
+      });
+    }
+
+    // Lays a copy of the bar's label and percentage, in `color`, over the originals, clipped
+    // to the fill: the copy spans the whole row, so each copied element sits exactly
+    // on its original, and the clip cuts it off where the fill ends. Reads the fill's
+    // width as set, so it runs after the percentages are final.
+    function addInkOnFill(row, texts, color) {
+      const overlay = document.createElement('span');
+      overlay.className = 'result-ink-on-fill';
+      overlay.setAttribute('aria-hidden', 'true');
+      const width = row.querySelector('.result-fill').style.width || '0%';
+      overlay.style.clipPath = `inset(0 calc(100% - ${width}) 0 0)`;
+      texts.forEach((text) => {
+        const copy = text.cloneNode(true);
+        copy.style.color = color;
+        overlay.append(copy);
+      });
+      row.append(overlay);
+    }
+
+    // `hex` moved `amount` (0–1) of the way to white.
+    function mixWithWhite(hex, amount) {
+      return '#' + hexToRgb(hex)
+        .map((v) => Math.round((v * (1 - amount) + amount) * 255).toString(16).padStart(2, '0'))
+        .join('');
+    }
+
+    // 'halo': black text on the white halo (and band) for every bar, over the fills
+    // baked into the markup. Each box grows by RESULTS_TEXT_PAD on both sides and moves
+    // out by the same amount (label leftwards, percentage rightwards), so the text
+    // itself stays where it was.
+    function setHaloStyle(cardFlip) {
+      cardFlip.classList.toggle('text-band', RESULTS_TEXT_BAND);
+      cardFlip.querySelectorAll('.result-label, .result-pct')
+        .forEach((text) => applyHalo(text, RESULTS_TEXT_COLOR, RESULTS_TEXT_SHADOW));
+    }
+
+    // Text in `color` on the halo `shadow`, for one label or percentage: black on white
+    // for every bar in 'halo'.
+    function applyHalo(text, color, shadow) {
+      text.style.color = color;
+      text.style.textShadow = shadow;
+      text.style.padding = `0 ${RESULTS_TEXT_PAD}px`;
+      const side = text.classList.contains('result-pct') ? 'right' : 'left';
+      text.style[side] = (parseFloat(text.style[side]) || 10) - RESULTS_TEXT_PAD + 'px';
+    }
+
+    // The close control. In the application it closes the maximized card and returns
+    // to the tab it was opened from; this copy has no tabs, so it goes back one page
+    // in the browser's history, which does the same when the page was opened from
+    // another. When integrating, replace the body with the app's own return to the
+    // current tab.
+    function closeMaximizedCard() {
+      history.back();
+    }
+
+    // TEMPORARY — for checking the palette: every bar's fill and percentage are set to
+    // RESULTS_PREVIEW_PERCENT, so each colour shows with its text half over the fill and
+    // half over the track. Meaningless as a vote. null keeps the markup's numbers.
+    // Remove it and setPreviewPercent before integrating.
+    const RESULTS_PREVIEW_PERCENT = 50;
+
+    function setPreviewPercent(cardFlip) {
+      if (RESULTS_PREVIEW_PERCENT == null) return;
+      cardFlip.querySelectorAll('.results-list > .result-row').forEach((row) => {
+        row.querySelector('.result-fill').style.width = RESULTS_PREVIEW_PERCENT + '%';
+        row.querySelector('.result-pct').textContent = RESULTS_PREVIEW_PERCENT + '%';
+      });
+    }
+
+    // Which face the page shows: the back (the vote rows) when the address ends in
+    // #back — single-card-back.html opens the page that way — else the front. The
+    // flip is instant, without the card's 0.7s turn, so the page opens on the face
+    // asked for. Editing the hash in the address bar flips the card in place.
+    function showFace(cardFlip) {
+      const back = location.hash === '#back';
+      cardFlip.style.transition = 'none';
+      cardFlip.classList.toggle('is-flipped', back);
+      void cardFlip.offsetWidth;   // apply the flip before the transition returns
+      cardFlip.style.transition = '';
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('.maximized-card-flip').forEach((cardFlip) => {
+        setBarHeights(cardFlip);
+        setPreviewPercent(cardFlip);   // before the text style, which reads the fill widths
+        setResultTextStyle(cardFlip);
+        showFace(cardFlip);
+        window.addEventListener('hashchange', () => showFace(cardFlip));
+      });
+      document.querySelectorAll('.maximized-card-close').forEach((btn) => {
+        btn.addEventListener('click', closeMaximizedCard);
+      });
+    });
+  </script>
+</head>
+<body>
+
+  <!--
+    The page shell, exactly as src/public/index.html nests it:
+    .page-decor (the fixed background wash) then .page > .maximized-card-container > .maximized-card-grid.
+    Removed from that file for this extraction: the #site-header, the
+    .tab-bar-wrap tab row, the .tab-notice line, every .tab-panel but this
+    card, and all scripts.
+  -->
+  <div class="page-decor"></div>
+  <div class="page">
+    <div class="maximized-card-container">
+      <div class="maximized-card-grid">
+
+        <div class="maximized-card-close-row">
+          <button class="icon-btn maximized-card-close" type="button" aria-label="Close Poll Card">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6L6 18"></path><path d="M6 6l12 12"></path></svg>
+          </button>
+        </div>
+
+        <div class="maximized-card-viewport">
+              <div class="maximized-card-flip">
+
+                <!-- FRONT — Results-mode -->
+                <div class="card-face card-front">
+                  <div class="question-wrap">
+                    <div class="question-row">
+                      <p class="question">Which of these deliberately over-long option labels wraps in the way you would want it to on a narrow card?</p>
+                      <!-- FIX03/FIX05: a tag-with-star icon; aria-pressed drives which of the
+                           two looks the stylesheet draws (light grey outline / red star). -->
+                      <button class="bookmark-btn" type="button" aria-pressed="false" aria-label="Add to Favorites" title="Add to Favorites">
+                        <svg class="bookmark-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                          <path class="bookmark-tag" d="M11.41 2.59A2 2 0 0 1 12.83 2H20a2 2 0 0 1 2 2v7.17a2 2 0 0 1-.586 1.41l-8.7 8.7a2.43 2.43 0 0 1-3.42 0l-6.58-6.58a2.43 2.43 0 0 1 0-3.42z"></path>
+                          <circle class="bookmark-hole" cx="16.5" cy="7.5" r="1.25"></circle>
+                          <path class="bookmark-halo" d="M12 2.5l2.94 5.96 6.58.96-4.76 4.64 1.12 6.55L12 17.52l-5.88 3.09 1.12-6.55-4.76-4.64 6.58-.96z" transform="translate(10.5 11) scale(0.52)"></path>
+                          <path class="bookmark-star" d="M12 2.5l2.94 5.96 6.58.96-4.76 4.64 1.12 6.55L12 17.52l-5.88 3.09 1.12-6.55-4.76-4.64 6.58-.96z" transform="translate(10.5 11) scale(0.52)"></path>
+                        </svg>
+                      </button>
+                    </div>
+                    <p class="subtitle">A stress case for the type scale, the bar heights and the scroll arrows</p>
+                  </div>
+
+                  <div class="bar-scroll-wrap results-scroll-wrap">
+                    <div class="bar-scroll-inner" style="row-gap: 20px;">
+                    <ul class="results-list" style="row-gap: 20px;" data-render-signature="50|50|20|false|11|10">
+                      <li class="result-row" style="height: 50px;" title="An option whose label runs on long enough to wrap onto a second line at most card widths — 4%">
+                        <span class="result-fill" style="background: rgb(59, 95, 204); width: 4%;"></span>
+                        <span class="result-label is-truncated" style="font-size: 11px; left: 10px; max-width: 324.8px; line-height: 50px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">An option whose label runs on long enough to wrap onto a second line at most card widths</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">4%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="A shorter one — 4%">
+                        <span class="result-fill" style="background: rgb(184, 74, 31); width: 4%;"></span>
+                        <span class="result-label" style="font-size: 11px; left: 10px; max-width: none; color: rgb(255, 255, 255); text-shadow: 0 1px 3px rgba(0,0,0,0.9), 0 0 6px rgba(0,0,0,0.55);">A shorter one</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">4%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Another that is middling in length, as labels tend to be — 4%">
+                        <span class="result-fill" style="background: rgb(22, 97, 75); width: 4%;"></span>
+                        <span class="result-label is-truncated" style="font-size: 11px; left: 10px; max-width: 324.8px; line-height: 50px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">Another that is middling in length, as labels tend to be</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">4%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Fourth — 4%">
+                        <span class="result-fill" style="background: rgb(122, 63, 160); width: 4%;"></span>
+                        <span class="result-label" style="font-size: 11px; left: 10px; max-width: none; color: rgb(255, 255, 255); text-shadow: 0 1px 3px rgba(0,0,0,0.9), 0 0 6px rgba(0,0,0,0.55);">Fourth</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">4%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Fifth — 4%">
+                        <span class="result-fill" style="background: rgb(176, 36, 46); width: 4%;"></span>
+                        <span class="result-label" style="font-size: 11px; left: 10px; max-width: none; color: rgb(255, 255, 255); text-shadow: 0 1px 3px rgba(0,0,0,0.9), 0 0 6px rgba(0,0,0,0.55);">Fifth</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">4%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Sixth — 4%">
+                        <span class="result-fill" style="background: rgb(30, 110, 140); width: 4%;"></span>
+                        <span class="result-label" style="font-size: 11px; left: 10px; max-width: none; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">Sixth</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">4%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Seventh, which is where the scroll arrows earn their keep — 4%">
+                        <span class="result-fill" style="background: rgb(92, 107, 31); width: 4%;"></span>
+                        <span class="result-label is-truncated" style="font-size: 11px; left: 10px; max-width: 324.8px; line-height: 50px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">Seventh, which is where the scroll arrows earn their keep</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">4%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Bar Number 8,umber victor far ink delta foxtrot kilo romeo c — 3%">
+                        <span class="result-fill" style="background: rgb(161, 61, 111); width: 3%;"></span>
+                        <span class="result-label is-truncated" style="font-size: 11px; left: 10px; max-width: 324.8px; line-height: 50px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">Bar Number 8,umber victor far ink delta foxtrot kilo romeo c</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">3%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Bar Number 9,yankee last golf kilo north kilo amber mike ink hotel delta upper golf j — 3%">
+                        <span class="result-fill" style="background: rgb(46, 92, 63); width: 3%;"></span>
+                        <span class="result-label is-truncated" style="font-size: 11px; left: 10px; max-width: 324.8px; line-height: 50px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">Bar Number 9,yankee last golf kilo north kilo amber mike ink hotel delta upper golf j</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">3%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Bar Number 10,amber golf first near west amber south slate first south — 3%">
+                        <span class="result-fill" style="background: rgb(140, 74, 30); width: 3%;"></span>
+                        <span class="result-label is-truncated" style="font-size: 11px; left: 10px; max-width: 324.8px; line-height: 50px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">Bar Number 10,amber golf first near west amber south slate first south</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">3%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Bar Number 11,chalk november victor juliet victor east north ochre sierra east — 3%">
+                        <span class="result-fill" style="background: rgb(63, 78, 156); width: 3%;"></span>
+                        <span class="result-label is-truncated" style="font-size: 11px; left: 10px; max-width: 324.8px; line-height: 50px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">Bar Number 11,chalk november victor juliet victor east north ochre sierra east</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">3%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Bar Number 12,foxtrot — 3%">
+                        <span class="result-fill" style="background: rgb(138, 31, 61); width: 3%;"></span>
+                        <span class="result-label" style="font-size: 11px; left: 10px; max-width: none; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">Bar Number 12,foxtrot</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">3%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Bar Number 13,uni — 3%">
+                        <span class="result-fill" style="background: rgb(31, 122, 122); width: 3%;"></span>
+                        <span class="result-label" style="font-size: 11px; left: 10px; max-width: none; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">Bar Number 13,uni</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">3%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Bar Number 14,whiskey west oscar alpha quebec quiet east plain chalk inner kilo i — 3%">
+                        <span class="result-fill" style="background: rgb(107, 63, 160); width: 3%;"></span>
+                        <span class="result-label is-truncated" style="font-size: 11px; left: 10px; max-width: 324.8px; line-height: 50px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">Bar Number 14,whiskey west oscar alpha quebec quiet east plain chalk inner kilo i</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">3%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Bar Number 15,amber loud q — 3%">
+                        <span class="result-fill" style="background: rgb(156, 90, 31); width: 3%;"></span>
+                        <span class="result-label" style="font-size: 11px; left: 10px; max-width: none; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">Bar Number 15,amber loud q</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">3%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Bar Number 16,india quiet — 3%">
+                        <span class="result-fill" style="background: rgb(47, 92, 140); width: 3%;"></span>
+                        <span class="result-label" style="font-size: 11px; left: 10px; max-width: none; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">Bar Number 16,india quiet</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">3%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Bar Number 17,amber yankee alpha quebec echo last hotel east lower north — 3%">
+                        <span class="result-fill" style="background: rgb(252, 158, 158); width: 3%;"></span>
+                        <span class="result-label is-truncated" style="font-size: 11px; left: 10px; max-width: 324.8px; line-height: 50px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">Bar Number 17,amber yankee alpha quebec echo last hotel east lower north</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">3%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Bar Number 18,kilo juliet ink foxtrot sienna tango west far quebe — 3%">
+                        <span class="result-fill" style="background: rgb(122, 31, 92); width: 3%;"></span>
+                        <span class="result-label is-truncated" style="font-size: 11px; left: 10px; max-width: 324.8px; line-height: 50px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">Bar Number 18,kilo juliet ink foxtrot sienna tango west far quebe</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">3%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Bar Number 19,oscar cha — 3%">
+                        <span class="result-fill" style="background: rgb(63, 122, 46); width: 3%;"></span>
+                        <span class="result-label" style="font-size: 11px; left: 10px; max-width: none; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">Bar Number 19,oscar cha</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">3%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Bar Number 20,near west sienna ya — 2%">
+                        <span class="result-fill" style="background: rgb(160, 63, 31); width: 2%;"></span>
+                        <span class="result-label" style="font-size: 11px; left: 10px; max-width: none; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">Bar Number 20,near west sienna ya</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">2%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Bar Number 21,far quebec west foxtrot plain kilo zulu slate outer south paper ink — 2%">
+                        <span class="result-fill" style="background: rgb(74, 74, 140); width: 2%;"></span>
+                        <span class="result-label is-truncated" style="font-size: 11px; left: 10px; max-width: 324.8px; line-height: 50px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">Bar Number 21,far quebec west foxtrot plain kilo zulu slate outer south paper ink</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">2%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Bar Number 22,zulu mike delta chalk east lower umber chalk echo w — 2%">
+                        <span class="result-fill" style="background: rgb(31, 92, 74); width: 2%;"></span>
+                        <span class="result-label is-truncated" style="font-size: 11px; left: 10px; max-width: 324.8px; line-height: 50px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">Bar Number 22,zulu mike delta chalk east lower umber chalk echo w</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">2%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Bar Number 23,hotel romeo last ink uniform north kilo — 2%">
+                        <span class="result-fill" style="background: rgb(140, 46, 92); width: 2%;"></span>
+                        <span class="result-label" style="font-size: 11px; left: 10px; max-width: none; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">Bar Number 23,hotel romeo last ink uniform north kilo</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">2%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Bar Number 24,delta zulu quiet delta yankee first last south alpha qu — 2%">
+                        <span class="result-fill" style="background: rgb(92, 122, 31); width: 2%;"></span>
+                        <span class="result-label is-truncated" style="font-size: 11px; left: 10px; max-width: 324.8px; line-height: 50px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">Bar Number 24,delta zulu quiet delta yankee first last south alpha qu</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">2%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Bar Number 25,yankee quebec sierra west loud inner chalk plain inner first rom — 2%">
+                        <span class="result-fill" style="background: rgb(46, 63, 122); width: 2%;"></span>
+                        <span class="result-label is-truncated" style="font-size: 11px; left: 10px; max-width: 324.8px; line-height: 50px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">Bar Number 25,yankee quebec sierra west loud inner chalk plain inner first rom</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">2%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Bar Number 26,amber plain juliet inner romeo ochre near umbe — 2%">
+                        <span class="result-fill" style="background: rgb(122, 74, 31); width: 2%;"></span>
+                        <span class="result-label is-truncated" style="font-size: 11px; left: 10px; max-width: 324.8px; line-height: 50px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">Bar Number 26,amber plain juliet inner romeo ochre near umbe</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">2%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Bar Number 27,quiet ochre alpha juli — 2%">
+                        <span class="result-fill" style="background: rgb(23, 105, 69); width: 2%;"></span>
+                        <span class="result-label" style="font-size: 11px; left: 10px; max-width: none; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">Bar Number 27,quiet ochre alpha juli</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">2%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Bar Number 28,whiskey first near victor moss foxtrot plain near zulu u — 2%">
+                        <span class="result-fill" style="background: rgb(140, 31, 31); width: 2%;"></span>
+                        <span class="result-label is-truncated" style="font-size: 11px; left: 10px; max-width: 324.8px; line-height: 50px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">Bar Number 28,whiskey first near victor moss foxtrot plain near zulu u</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">2%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Bar Number 29,quiet romeo outer yankee upper i — 2%">
+                        <span class="result-fill" style="background: rgb(74, 31, 122); width: 2%;"></span>
+                        <span class="result-label" style="font-size: 11px; left: 10px; max-width: none; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">Bar Number 29,quiet romeo outer yankee upper i</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">2%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Bar Number 30,yankee — 2%">
+                        <span class="result-fill" style="background: rgb(31, 74, 122); width: 2%;"></span>
+                        <span class="result-label" style="font-size: 11px; left: 10px; max-width: none; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">Bar Number 30,yankee</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">2%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Bar Number 31,last bravo umber lima umber yankee romeo ju — 2%">
+                        <span class="result-fill" style="background: rgb(92, 31, 74); width: 2%;"></span>
+                        <span class="result-label is-truncated" style="font-size: 11px; left: 10px; max-width: 324.8px; line-height: 50px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">Bar Number 31,last bravo umber lima umber yankee romeo ju</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">2%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Bar Number 32,uniform outer chalk xray whiskey moss linen juliet umber charl — 2%">
+                        <span class="result-fill" style="background: rgb(32, 107, 60); width: 2%;"></span>
+                        <span class="result-label is-truncated" style="font-size: 11px; left: 10px; max-width: 324.8px; line-height: 50px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">Bar Number 32,uniform outer chalk xray whiskey moss linen juliet umber charl</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">2%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Bar Number 33,mike first last juliet delta mike oscar papa slate amber uniform victo — 1%">
+                        <span class="result-fill" style="background: rgb(140, 107, 31); width: 1%;"></span>
+                        <span class="result-label is-truncated" style="font-size: 11px; left: 10px; max-width: 324.8px; line-height: 50px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">Bar Number 33,mike first last juliet delta mike oscar papa slate amber uniform victo</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">1%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Bar Number 34,papa first sie — 1%">
+                        <span class="result-fill" style="background: rgb(31, 61, 140); width: 1%;"></span>
+                        <span class="result-label" style="font-size: 11px; left: 10px; max-width: none; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">Bar Number 34,papa first sie</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">1%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Bar Number 35,tango victor zulu xray juliet oscar golf romeo victor quebec east zulu — 1%">
+                        <span class="result-fill" style="background: rgb(122, 46, 31); width: 1%;"></span>
+                        <span class="result-label is-truncated" style="font-size: 11px; left: 10px; max-width: 324.8px; line-height: 50px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">Bar Number 35,tango victor zulu xray juliet oscar golf romeo victor quebec east zulu</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">1%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Bar Number 36,zulu — 1%">
+                        <span class="result-fill" style="background: rgb(53, 122, 122); width: 1%;"></span>
+                        <span class="result-label" style="font-size: 11px; left: 10px; max-width: none; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">Bar Number 36,zulu</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">1%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Bar Number 37,umber papa ink upper east south whiskey lower india victor outer jul — 1%">
+                        <span class="result-fill" style="background: rgb(92, 46, 140); width: 1%;"></span>
+                        <span class="result-label is-truncated" style="font-size: 11px; left: 10px; max-width: 324.8px; line-height: 50px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">Bar Number 37,umber papa ink upper east south whiskey lower india victor outer jul</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">1%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Bar Number 38,outer xray quebec slate umber ochre lima golf xray echo tango fo — 1%">
+                        <span class="result-fill" style="background: rgb(102, 89, 23); width: 1%;"></span>
+                        <span class="result-label is-truncated" style="font-size: 11px; left: 10px; max-width: 324.8px; line-height: 50px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">Bar Number 38,outer xray quebec slate umber ochre lima golf xray echo tango fo</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">1%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Bar Number 39,hotel tango oscar pap — 1%">
+                        <span class="result-fill" style="background: rgb(46, 122, 92); width: 1%;"></span>
+                        <span class="result-label" style="font-size: 11px; left: 10px; max-width: none; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">Bar Number 39,hotel tango oscar pap</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">1%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Bar Number 40,juliet sierra zulu outer inner sierra lima s — 1%">
+                        <span class="result-fill" style="background: rgb(140, 31, 122); width: 1%;"></span>
+                        <span class="result-label is-truncated" style="font-size: 11px; left: 10px; max-width: 324.8px; line-height: 50px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">Bar Number 40,juliet sierra zulu outer inner sierra lima s</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">1%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Bar Number 41,linen paper quebec inner p — 1%">
+                        <span class="result-fill" style="background: rgb(74, 107, 46); width: 1%;"></span>
+                        <span class="result-label" style="font-size: 11px; left: 10px; max-width: none; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">Bar Number 41,linen paper quebec inner p</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">1%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Bar Number 42,chalk f — 1%">
+                        <span class="result-fill" style="background: rgb(31, 92, 140); width: 1%;"></span>
+                        <span class="result-label" style="font-size: 11px; left: 10px; max-width: none; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">Bar Number 42,chalk f</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">1%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Bar Number 43,ink inner plain plain tango lower echo linen lower chalk lower inner m — 0%">
+                        <span class="result-fill" style="background: rgb(107, 31, 46); width: 0%;"></span>
+                        <span class="result-label is-truncated" style="font-size: 11px; left: 10px; max-width: 324.8px; line-height: 50px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">Bar Number 43,ink inner plain plain tango lower echo linen lower chalk lower inner m</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">0%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Bar Number 44,tango amber victor lin — 0%">
+                        <span class="result-fill" style="background: rgb(32, 97, 44); width: 0%;"></span>
+                        <span class="result-label" style="font-size: 11px; left: 10px; max-width: none; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">Bar Number 44,tango amber victor lin</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">0%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Bar Number 45,oscar sierra mike quebec ink golf mike alpha uniform last golf — 0%">
+                        <span class="result-fill" style="background: rgb(107, 74, 140); width: 0%;"></span>
+                        <span class="result-label is-truncated" style="font-size: 11px; left: 10px; max-width: 324.8px; line-height: 50px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">Bar Number 45,oscar sierra mike quebec ink golf mike alpha uniform last golf</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">0%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Bar Number 46,oscar south yankee bravo plain golf chalk foxtrot pa — 0%">
+                        <span class="result-fill" style="background: rgb(140, 92, 61); width: 0%;"></span>
+                        <span class="result-label is-truncated" style="font-size: 11px; left: 10px; max-width: 324.8px; line-height: 50px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">Bar Number 46,oscar south yankee bravo plain golf chalk foxtrot pa</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">0%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Bar Number 47,inner bravo first north — 0%">
+                        <span class="result-fill" style="background: rgb(252, 158, 158); width: 0%;"></span>
+                        <span class="result-label" style="font-size: 11px; left: 10px; max-width: none; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">Bar Number 47,inner bravo first north</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">0%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Bar Number 48,november far pl — 0%">
+                        <span class="result-fill" style="background: rgb(27, 120, 120); width: 0%;"></span>
+                        <span class="result-label" style="font-size: 11px; left: 10px; max-width: none; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">Bar Number 48,november far pl</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">0%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Bar Number 49,alpha near romeo xray west ink zulu east kilo first loud bravo charl — 0%">
+                        <span class="result-fill" style="background: rgb(74, 46, 107); width: 0%;"></span>
+                        <span class="result-label is-truncated" style="font-size: 11px; left: 10px; max-width: 324.8px; line-height: 50px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">Bar Number 49,alpha near romeo xray west ink zulu east kilo first loud bravo charl</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">0%</span>
+                      </li>
+                      <li class="result-row" style="height: 50px;" title="Bar Number 50,india sie — 0%">
+                        <span class="result-fill" style="background: rgb(140, 61, 31); width: 0%;"></span>
+                        <span class="result-label" style="font-size: 11px; left: 10px; max-width: none; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">Bar Number 50,india sie</span>
+                        <span class="result-pct" style="font-size: 11px; right: 10px; color: rgb(26, 26, 26); text-shadow: 0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.55);">0%</span>
+                      </li>
+                    </ul>
+                    </div>
+                  </div>
+
+                  <div class="actions">
+                    <a class="live-link" href="#" role="button" title="Add to Live Results" tabindex="0">
+                      <span class="live-bars" aria-hidden="true"><i></i><i></i><i></i></span>
+                      <span class="live-x" aria-hidden="true" hidden=""><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18"></path><path d="M6 6l12 12"></path></svg></span>
+                      <span class="live-link-label">Live Results</span>
+                    </a>
+                    <p class="poll-closed-message" hidden=""></p>
+                    <!-- 012 FR-042: takes the same slot as the closed message, and takes
+                         precedence over it while the poll is being edited. -->
+                    <p class="poll-editing-message" hidden=""></p>
+                    <!-- 012 FR-057: shown when this viewer may not vote — banned, not invited,
+                         or the poll is full. Results stay readable; only the controls go. -->
+                    <p class="poll-blocked-message" hidden=""></p>
+                    <p class="poll-vote-notice" hidden=""></p>
+                    <!-- 008 FR-007: .btn-vote-sizer carries the OTHER button's label so
+                         this one resolves to the same width at every card size. Three
+                         things it depends on: the sizer text must stay identical to
+                         .submit-vote-btn's label below; the visible label needs its own
+                         span (a bare text node becomes an anonymous grid item that
+                         site.css's .vote-btn child rule can't stack); and aria-hidden
+                         keeps the button from announcing "Vote Submit vote". -->
+                    <button class="btn-primary btn-vote vote-btn" type="button"><span class="btn-vote-label">Vote</span><span class="btn-vote-sizer" aria-hidden="true">Submit vote</span></button>
+                  </div>
+                  <!-- FIX022: the vote count and, on the personal tabs, why the poll is
+                       listed (FIX020) sit under the action row. -->
+                  <div class="card-foot">
+                    <!-- FIX023: the count on the left and "you voted" on the right of one
+                         line; any other reason the poll is listed on its own line, right. -->
+                    <div class="card-foot-row">
+                      <p class="poll-totals">100 votes</p>
+                      <p class="poll-voted" hidden=""></p>
+                    </div>
+                    <p class="poll-listed-because" hidden=""></p>
+                  </div>
+                </div>
+
+                <!-- BACK — Vote-mode -->
+                <div class="card-face card-back">
+                  <div class="question-wrap">
+                    <p class="question">Which of these deliberately over-long option labels wraps in the way you would want it to on a narrow card?</p>
+                    <p class="subtitle">A stress case for the type scale, the bar heights and the scroll arrows</p>
+                  </div>
+
+                  <div class="bar-scroll-wrap voting-scroll-wrap">
+                    <div class="bar-scroll-inner" style="row-gap: 20px;">
+                    <ul class="voting-list" style="row-gap: 20px;">
+                      <li class="vote-row" style="height: 50px;" data-index="0" title="An option whose label runs on long enough to wrap onto a second line at most card widths">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label is-truncated" style="font-size: 11px; left: 34px; max-width: 300.8px; line-height: 50px;">An option whose label runs on long enough to wrap onto a second line at most card widths</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="1" title="A shorter one">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label" style="font-size: 11px; left: 34px; max-width: none;">A shorter one</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="2" title="Another that is middling in length, as labels tend to be">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label is-truncated" style="font-size: 11px; left: 34px; max-width: 300.8px; line-height: 50px;">Another that is middling in length, as labels tend to be</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="3" title="Fourth">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label" style="font-size: 11px; left: 34px; max-width: none;">Fourth</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="4" title="Fifth">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label" style="font-size: 11px; left: 34px; max-width: none;">Fifth</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="5" title="Sixth">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label" style="font-size: 11px; left: 34px; max-width: none;">Sixth</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="6" title="Seventh, which is where the scroll arrows earn their keep">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label is-truncated" style="font-size: 11px; left: 34px; max-width: 300.8px; line-height: 50px;">Seventh, which is where the scroll arrows earn their keep</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="7" title="Bar Number 8,umber victor far ink delta foxtrot kilo romeo c">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label is-truncated" style="font-size: 11px; left: 34px; max-width: 300.8px; line-height: 50px;">Bar Number 8,umber victor far ink delta foxtrot kilo romeo c</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="8" title="Bar Number 9,yankee last golf kilo north kilo amber mike ink hotel delta upper golf j">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label is-truncated" style="font-size: 11px; left: 34px; max-width: 300.8px; line-height: 50px;">Bar Number 9,yankee last golf kilo north kilo amber mike ink hotel delta upper golf j</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="9" title="Bar Number 10,amber golf first near west amber south slate first south">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label is-truncated" style="font-size: 11px; left: 34px; max-width: 300.8px; line-height: 50px;">Bar Number 10,amber golf first near west amber south slate first south</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="10" title="Bar Number 11,chalk november victor juliet victor east north ochre sierra east">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label is-truncated" style="font-size: 11px; left: 34px; max-width: 300.8px; line-height: 50px;">Bar Number 11,chalk november victor juliet victor east north ochre sierra east</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="11" title="Bar Number 12,foxtrot">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label" style="font-size: 11px; left: 34px; max-width: none;">Bar Number 12,foxtrot</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="12" title="Bar Number 13,uni">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label" style="font-size: 11px; left: 34px; max-width: none;">Bar Number 13,uni</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="13" title="Bar Number 14,whiskey west oscar alpha quebec quiet east plain chalk inner kilo i">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label is-truncated" style="font-size: 11px; left: 34px; max-width: 300.8px; line-height: 50px;">Bar Number 14,whiskey west oscar alpha quebec quiet east plain chalk inner kilo i</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="14" title="Bar Number 15,amber loud q">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label" style="font-size: 11px; left: 34px; max-width: none;">Bar Number 15,amber loud q</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="15" title="Bar Number 16,india quiet">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label" style="font-size: 11px; left: 34px; max-width: none;">Bar Number 16,india quiet</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="16" title="Bar Number 17,amber yankee alpha quebec echo last hotel east lower north">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label is-truncated" style="font-size: 11px; left: 34px; max-width: 300.8px; line-height: 50px;">Bar Number 17,amber yankee alpha quebec echo last hotel east lower north</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="17" title="Bar Number 18,kilo juliet ink foxtrot sienna tango west far quebe">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label is-truncated" style="font-size: 11px; left: 34px; max-width: 300.8px; line-height: 50px;">Bar Number 18,kilo juliet ink foxtrot sienna tango west far quebe</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="18" title="Bar Number 19,oscar cha">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label" style="font-size: 11px; left: 34px; max-width: none;">Bar Number 19,oscar cha</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="19" title="Bar Number 20,near west sienna ya">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label" style="font-size: 11px; left: 34px; max-width: none;">Bar Number 20,near west sienna ya</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="20" title="Bar Number 21,far quebec west foxtrot plain kilo zulu slate outer south paper ink">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label is-truncated" style="font-size: 11px; left: 34px; max-width: 300.8px; line-height: 50px;">Bar Number 21,far quebec west foxtrot plain kilo zulu slate outer south paper ink</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="21" title="Bar Number 22,zulu mike delta chalk east lower umber chalk echo w">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label is-truncated" style="font-size: 11px; left: 34px; max-width: 300.8px; line-height: 50px;">Bar Number 22,zulu mike delta chalk east lower umber chalk echo w</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="22" title="Bar Number 23,hotel romeo last ink uniform north kilo">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label is-truncated" style="font-size: 11px; left: 34px; max-width: 300.8px; line-height: 50px;">Bar Number 23,hotel romeo last ink uniform north kilo</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="23" title="Bar Number 24,delta zulu quiet delta yankee first last south alpha qu">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label is-truncated" style="font-size: 11px; left: 34px; max-width: 300.8px; line-height: 50px;">Bar Number 24,delta zulu quiet delta yankee first last south alpha qu</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="24" title="Bar Number 25,yankee quebec sierra west loud inner chalk plain inner first rom">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label is-truncated" style="font-size: 11px; left: 34px; max-width: 300.8px; line-height: 50px;">Bar Number 25,yankee quebec sierra west loud inner chalk plain inner first rom</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="25" title="Bar Number 26,amber plain juliet inner romeo ochre near umbe">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label is-truncated" style="font-size: 11px; left: 34px; max-width: 300.8px; line-height: 50px;">Bar Number 26,amber plain juliet inner romeo ochre near umbe</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="26" title="Bar Number 27,quiet ochre alpha juli">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label" style="font-size: 11px; left: 34px; max-width: none;">Bar Number 27,quiet ochre alpha juli</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="27" title="Bar Number 28,whiskey first near victor moss foxtrot plain near zulu u">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label is-truncated" style="font-size: 11px; left: 34px; max-width: 300.8px; line-height: 50px;">Bar Number 28,whiskey first near victor moss foxtrot plain near zulu u</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="28" title="Bar Number 29,quiet romeo outer yankee upper i">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label" style="font-size: 11px; left: 34px; max-width: none;">Bar Number 29,quiet romeo outer yankee upper i</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="29" title="Bar Number 30,yankee">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label" style="font-size: 11px; left: 34px; max-width: none;">Bar Number 30,yankee</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="30" title="Bar Number 31,last bravo umber lima umber yankee romeo ju">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label is-truncated" style="font-size: 11px; left: 34px; max-width: 300.8px; line-height: 50px;">Bar Number 31,last bravo umber lima umber yankee romeo ju</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="31" title="Bar Number 32,uniform outer chalk xray whiskey moss linen juliet umber charl">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label is-truncated" style="font-size: 11px; left: 34px; max-width: 300.8px; line-height: 50px;">Bar Number 32,uniform outer chalk xray whiskey moss linen juliet umber charl</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="32" title="Bar Number 33,mike first last juliet delta mike oscar papa slate amber uniform victo">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label is-truncated" style="font-size: 11px; left: 34px; max-width: 300.8px; line-height: 50px;">Bar Number 33,mike first last juliet delta mike oscar papa slate amber uniform victo</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="33" title="Bar Number 34,papa first sie">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label" style="font-size: 11px; left: 34px; max-width: none;">Bar Number 34,papa first sie</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="34" title="Bar Number 35,tango victor zulu xray juliet oscar golf romeo victor quebec east zulu">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label is-truncated" style="font-size: 11px; left: 34px; max-width: 300.8px; line-height: 50px;">Bar Number 35,tango victor zulu xray juliet oscar golf romeo victor quebec east zulu</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="35" title="Bar Number 36,zulu">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label" style="font-size: 11px; left: 34px; max-width: none;">Bar Number 36,zulu</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="36" title="Bar Number 37,umber papa ink upper east south whiskey lower india victor outer jul">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label is-truncated" style="font-size: 11px; left: 34px; max-width: 300.8px; line-height: 50px;">Bar Number 37,umber papa ink upper east south whiskey lower india victor outer jul</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="37" title="Bar Number 38,outer xray quebec slate umber ochre lima golf xray echo tango fo">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label is-truncated" style="font-size: 11px; left: 34px; max-width: 300.8px; line-height: 50px;">Bar Number 38,outer xray quebec slate umber ochre lima golf xray echo tango fo</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="38" title="Bar Number 39,hotel tango oscar pap">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label" style="font-size: 11px; left: 34px; max-width: none;">Bar Number 39,hotel tango oscar pap</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="39" title="Bar Number 40,juliet sierra zulu outer inner sierra lima s">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label is-truncated" style="font-size: 11px; left: 34px; max-width: 300.8px; line-height: 50px;">Bar Number 40,juliet sierra zulu outer inner sierra lima s</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="40" title="Bar Number 41,linen paper quebec inner p">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label" style="font-size: 11px; left: 34px; max-width: none;">Bar Number 41,linen paper quebec inner p</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="41" title="Bar Number 42,chalk f">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label" style="font-size: 11px; left: 34px; max-width: none;">Bar Number 42,chalk f</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="42" title="Bar Number 43,ink inner plain plain tango lower echo linen lower chalk lower inner m">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label is-truncated" style="font-size: 11px; left: 34px; max-width: 300.8px; line-height: 50px;">Bar Number 43,ink inner plain plain tango lower echo linen lower chalk lower inner m</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="43" title="Bar Number 44,tango amber victor lin">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label" style="font-size: 11px; left: 34px; max-width: none;">Bar Number 44,tango amber victor lin</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="44" title="Bar Number 45,oscar sierra mike quebec ink golf mike alpha uniform last golf">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label is-truncated" style="font-size: 11px; left: 34px; max-width: 300.8px; line-height: 50px;">Bar Number 45,oscar sierra mike quebec ink golf mike alpha uniform last golf</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="45" title="Bar Number 46,oscar south yankee bravo plain golf chalk foxtrot pa">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label is-truncated" style="font-size: 11px; left: 34px; max-width: 300.8px; line-height: 50px;">Bar Number 46,oscar south yankee bravo plain golf chalk foxtrot pa</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="46" title="Bar Number 47,inner bravo first north">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label" style="font-size: 11px; left: 34px; max-width: none;">Bar Number 47,inner bravo first north</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="47" title="Bar Number 48,november far pl">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label" style="font-size: 11px; left: 34px; max-width: none;">Bar Number 48,november far pl</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="48" title="Bar Number 49,alpha near romeo xray west ink zulu east kilo first loud bravo charl">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label is-truncated" style="font-size: 11px; left: 34px; max-width: 300.8px; line-height: 50px;">Bar Number 49,alpha near romeo xray west ink zulu east kilo first loud bravo charl</span>
+                      </li>
+                      <li class="vote-row" style="height: 50px;" data-index="49" title="Bar Number 50,india sie">
+                        <span class="vote-radio" style="width: 18px; height: 18px; left: 10px;"></span>
+                        <span class="vote-label" style="font-size: 11px; left: 34px; max-width: none;">Bar Number 50,india sie</span>
+                      </li>
+                    </ul>
+                    </div>
+                  </div>
+
+                  <p class="poll-closed-message poll-closed-message--back" hidden=""></p>
+                  <!-- 012 FR-058: a refused vote says why, on the face the voter is on. -->
+                  <p class="poll-vote-error" hidden=""></p>
+
+                  <div class="actions">
+                    <button class="icon-btn back-btn" type="button" aria-label="Back to results without voting">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M19 12H5"></path>
+                        <path d="M11 18l-6-6 6-6"></path>
+                      </svg>
+                    </button>
+                    <!-- 008 FR-007: this label is the width both buttons size to. If it
+                         changes, update .btn-vote-sizer on the front face to match. -->
+                    <button class="btn-primary btn-vote submit-vote-btn" type="button" disabled="">Submit vote</button>
+                  </div>
+                  <!-- 008 FR-004 / FIX022: the same count as the front, in the same place
+                       (under the action row), so the two faces keep equal height and the
+                       choices and results regions line up (FR-001). -->
+                  <div class="card-foot">
+                    <p class="poll-totals">100 votes</p>
+                  </div>
+
+                </div>
+
+              </div>
+            </div>
+
+        <div class="col-rule" aria-hidden="true"></div>
+
+        <div class="maximized-space-right">
+          <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent sit amet malesuada ante. Curabitur feugiat aliquet ante vel hendrerit. Vestibulum vel viverra odio. Nam accumsan, nulla nec consequat elementum, nisi nunc tempor turpis, id convallis neque ligula eu nulla. In tempus, justo id accumsan faucibus, velit elit convallis sem, a tincidunt mi ligula quis ipsum. Vestibulum quis blandit nunc. Donec quis risus magna. Nam velit diam, interdum id vestibulum in, iaculis nec lorem. Vestibulum eu dolor eu nisi varius suscipit sed eu ipsum. Nam a sagittis arcu, ut vehicula erat.</p>
+          <p>In hac habitasse platea dictumst. Cras ac erat et sapien aliquam tempus et vel dui. Nunc sed erat faucibus, convallis augue sed, volutpat orci. Quisque lacus libero, feugiat id accumsan consequat, interdum vitae metus. Aliquam sed dignissim nulla. Integer in mauris nisi. Cras purus massa, posuere quis diam quis, rutrum mollis tortor.</p>
+          <p>Phasellus neque ligula, posuere nec blandit eget, tempus et nunc. Praesent ac efficitur dolor. Sed cursus dolor et orci scelerisque finibus. Sed ac faucibus nisi, at rutrum nisi. Etiam ut eros sit amet massa ornare suscipit a eu enim. Fusce mattis, magna sit amet dictum scelerisque, ipsum libero vehicula dolor, nec pulvinar turpis leo in lacus. Suspendisse non pulvinar turpis. Curabitur feugiat justo et eros eleifend volutpat. Nam euismod leo eget mauris facilisis pellentesque. Phasellus at tincidunt magna.</p>
+          <p>Nunc tincidunt massa vel quam elementum, lacinia convallis ligula consectetur. Nam blandit sed libero eget facilisis. Vivamus cursus nibh ut pellentesque viverra. Vestibulum ultricies auctor ipsum a aliquet. Aenean tempus lacinia mauris quis faucibus. Donec non scelerisque augue, vitae dictum justo. Ut vestibulum quam quis turpis congue, vitae convallis ante imperdiet. Nulla venenatis euismod quam, vel sodales sapien sagittis ut. Aliquam nec ligula metus. Duis ut eros id nunc viverra commodo id in nisl. Nunc a est rutrum, fringilla justo eu, mollis eros. Curabitur pulvinar at metus eget mattis. Etiam aliquam, nisl quis dictum placerat, risus ipsum malesuada mauris, a condimentum massa ante non purus. Aliquam iaculis purus in risus hendrerit, vitae suscipit massa maximus.</p>
+          <p>Sed neque arcu, porta vel felis nec, varius porttitor lectus. Nam eget feugiat metus. Donec placerat libero ut turpis euismod suscipit. Donec venenatis, sem id venenatis fermentum, augue lacus tincidunt tellus, ac imperdiet diam dolor et magna. Cras lacinia venenatis mi, ut malesuada tellus. Integer venenatis, ex id faucibus lobortis, neque arcu gravida ligula, ac dapibus tortor sem nec mauris. Sed sagittis dui a augue maximus vehicula. Curabitur auctor pharetra purus, eget hendrerit purus cursus eget. Donec accumsan porttitor tincidunt.</p>
+          <p>Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Nullam vulputate feugiat neque, sed sagittis sem suscipit eget. Morbi rutrum neque quis erat eleifend cursus. Morbi venenatis pretium velit, vel mollis urna iaculis ut. Quisque sed volutpat magna, quis eleifend metus. Mauris dictum, felis ac commodo blandit, ex nibh ultricies est, vitae placerat lorem est id dolor. Ut ipsum dui, tristique vel magna nec, congue finibus sapien. Etiam quis gravida eros. Quisque at posuere arcu, at interdum nunc. Integer et gravida leo. Quisque vitae metus laoreet, iaculis velit molestie, congue sapien. Donec dignissim id purus nec malesuada. Sed pharetra nulla non lectus fringilla pharetra. Sed vitae nisl sed sapien dapibus finibus. Integer eget aliquam turpis, id vulputate odio. Praesent pharetra nunc libero, in mollis lacus faucibus eget.</p>
+          <p>Nulla facilisi. In ac volutpat enim. Nunc turpis eros, fermentum eget lacus ac, semper tincidunt purus. Donec vel orci viverra, dictum velit et, iaculis justo. Pellentesque rhoncus ligula at ex maximus sodales. Donec fringilla urna sem, non tincidunt tortor varius ut. Ut non faucibus eros. Maecenas gravida sed justo id placerat. Suspendisse vel efficitur ante. Nullam facilisis velit in tortor pretium vehicula. Suspendisse potenti. Suspendisse euismod viverra mattis. Vestibulum quis ligula et sem convallis mattis ut sed elit. Aliquam lacinia est et suscipit malesuada. Quisque congue posuere turpis, vitae porta orci. Fusce viverra rhoncus eros sed gravida.</p>
+          <p>Fusce ullamcorper sodales rhoncus. Nam faucibus mauris sit amet lorem elementum scelerisque. Sed lorem erat, aliquet a dui vitae, porta ultrices velit. Suspendisse nec libero eget eros imperdiet volutpat. Praesent at dolor blandit, mollis ipsum quis, ullamcorper ipsum. Phasellus pulvinar nulla vel lacus consectetur, at consequat dolor blandit. Sed malesuada condimentum tristique. Mauris tristique neque sit amet est scelerisque mattis. Sed interdum sapien tellus, vulputate convallis lorem convallis sed. Phasellus congue justo felis, eu mattis enim aliquam sit amet.</p>
+          <p>Nullam rhoncus sapien vitae urna commodo, sed dignissim ex blandit. Integer sit amet nulla sed justo mattis mollis eu id nisl. Aenean dapibus metus et odio tincidunt malesuada. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Praesent elementum posuere maximus. Maecenas ac nunc vitae dolor eleifend venenatis. Integer vestibulum vestibulum libero, a ornare felis molestie nec. Nullam imperdiet ipsum ac enim eleifend suscipit. Nunc cursus tincidunt neque. Nulla facilisis est nibh, ut feugiat lorem luctus id. Nullam venenatis lobortis nisi, sed suscipit orci blandit at. Nam sodales volutpat purus a eleifend. Integer ac sagittis nisl. Cras congue nec neque tristique pulvinar.</p>
+          <p>Maecenas dolor tortor, varius vel tincidunt ac, rhoncus fringilla lectus. Quisque tempor quam quis gravida hendrerit. Donec cursus auctor velit, in eleifend nisi fringilla ac. Curabitur quam magna, dignissim eu diam at, commodo consequat massa. Morbi ante ex, volutpat et libero nec, ullamcorper commodo quam. Maecenas scelerisque risus id dui mollis, quis finibus leo commodo. Pellentesque mattis tellus risus, eget suscipit erat tincidunt a. Donec sit amet velit nisi. Aenean quam nunc, tincidunt eu lobortis vitae, consectetur ac enim. Mauris interdum nec elit sit amet maximus. Quisque tempus blandit arcu, sit amet faucibus lacus lacinia in. Donec tempus, metus vitae tempus aliquam, sem diam rutrum mauris, ac vulputate est metus non justo. Etiam eu magna eu nunc feugiat eleifend. Mauris quis molestie lorem.</p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

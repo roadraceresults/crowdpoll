@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin Poll Card</title>
+  <link rel="stylesheet" href="admin-card.css">
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <symbol id="icon-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="9" y="9" width="12" height="12" rx="2"/>
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+    </symbol>
+    <symbol id="icon-link" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/>
+      <path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/>
+    </symbol>
+    <symbol id="icon-results" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="4" width="18" height="16" rx="2"/>
+      <path d="M7 9h7"/><path d="M7 13h10"/><path d="M7 17h4"/>
+    </symbol>
+    <symbol id="icon-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/>
+      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+      <path d="M10 11v6"/><path d="M14 11v6"/>
+    </symbol>
+  </svg>
+  <div class="canvas-bar">
+    <button type="button" class="canvas-theme-btn" data-theme-choice="light" aria-pressed="true">Light</button>
+    <button type="button" class="canvas-theme-btn" data-theme-choice="dark" aria-pressed="false">Dark</button>
+    <span class="canvas-bar-gap"></span>
+    <button type="button" class="canvas-theme-btn canvas-state-btn" data-poll-state="OPEN" aria-pressed="true">Open poll</button>
+    <button type="button" class="canvas-theme-btn canvas-state-btn" data-poll-state="CLOSED" aria-pressed="false">Closed poll</button>
+  </div>
+  <div class="page-decor"></div>
+  <div class="page">
+    <div class="container">
+      <div class="layout">
+        <main>
+          <div class="admin-card-list" id="pollList">
+            <article class="poll-admin-card" data-pid="3f6c2a9e-4b1d-4e8a-9c7f-1a2b3c4d5e6f" aria-label="Poll: When do you want to meet?">
+              <p class="card-status-line" hidden="" role="status"></p>
+              <div class="card-header card-readonly-header">
+                <div class="card-state"><span class="card-field-label">Poll State Is:</span><span class="card-state-value">OPEN</span><span class="card-state-detail" hidden=""></span></div>
+                <div class="card-actions"><button class="admin-icon-btn" type="button" title="Duplicate poll: When do you want to meet?" aria-label="Duplicate poll: When do you want to meet?"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#icon-copy"></use></svg></button><button class="admin-icon-btn" type="button" title="Copy link to poll: When do you want to meet?" aria-label="Copy link to poll: When do you want to meet?"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#icon-link"></use></svg></button><a class="admin-icon-btn" href="/admin/poll/results?PID=3f6c2a9e-4b1d-4e8a-9c7f-1a2b3c4d5e6f" title="View results for poll: When do you want to meet?" aria-label="View results for poll: When do you want to meet?"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#icon-results"></use></svg></a><button class="admin-icon-btn" type="button" disabled="" title="Delete poll: When do you want to meet?" aria-label="Delete poll: When do you want to meet?"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#icon-trash"></use></svg></button><button class="actions-menu-trigger" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Actions for When do you want to meet?"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="12" cy="19" r="2"></circle></svg></button><div class="actions-menu" role="menu" hidden=""><button type="button" role="menuitem" aria-label="Duplicate poll: When do you want to meet?">Duplicate Poll</button><button type="button" role="menuitem" aria-label="Copy link to poll: When do you want to meet?">Copy Poll Link</button><a href="/admin/poll/results?PID=3f6c2a9e-4b1d-4e8a-9c7f-1a2b3c4d5e6f" role="menuitem" aria-label="View results for poll: When do you want to meet?">View Results</a></div>
+                </div>
+              </div>
+              <div class="card-readonly">
+                <div class="card-panel card-dates-panel">
+                  <div class="card-state-buttons"><button class="admin-state-btn" type="button" disabled="" title="Open is not available while the poll is OPEN" aria-label="Open poll: When do you want to meet?">Open</button><button class="admin-state-btn" type="button" title="Close your poll" aria-label="Close poll: When do you want to meet?">Close</button><button class="admin-state-btn" type="button" disabled="" title="Archive is not available while the poll is OPEN" aria-label="Archive poll: When do you want to meet?">Archive</button></div>
+                  <div class="card-field"><span class="card-field-label">Created By</span><span class="card-field-value">David Brooks (roadraceresults@gmail.com)</span></div>
+                  <div class="card-field"><span class="card-field-label">Created</span><span class="card-field-value">10/26/2026, 8:06:11 AM</span></div>
+                  <div class="card-field"><span class="card-field-label">Launched</span><span class="card-field-value">10/26/2026, 8:07:53 AM</span></div>
+                </div>
+                <div class="card-panel card-counts-panel">
+                  <div class="card-field"><span class="card-field-label">Vote Count</span><span class="card-field-value" data-count="votes">1</span></div>
+                  <div class="card-field"><span class="card-field-label">Invitation Count</span><span class="card-field-value" data-count="invitations">7</span></div>
+                  <div class="card-field"><span class="card-field-label">Accepted Count</span><span class="card-field-value" data-count="accepted">2</span></div>
+                  <div class="card-field"><span class="card-field-label">Banned Voter Count</span><span class="card-field-value">0</span></div>
+                </div>
+                <section class="card-panel card-invitees-panel" aria-labelledby="invitees-title">
+                  <div class="invitees-heading">
+                    <h3 class="invitees-title" id="invitees-title">Invitees</h3>
+                    <span class="invitees-capacity" data-count="capacity">7 of 100</span>
+                  </div>
+                  <div class="invitees-add">
+                    <label class="invitees-field-label" for="invitees-input">Invite by email</label>
+                    <textarea class="invitees-input" id="invitees-input" rows="3" placeholder="Paste or type addresses, separated by commas, spaces or new lines" aria-describedby="invitees-results">bob@ spammer@example.com</textarea>
+                    <div class="invitees-add-actions">
+                      <span class="invitees-hint">Ctrl+Enter</span>
+                      <button class="invitees-invite-btn" type="button">Invite</button>
+                    </div>
+                    <div class="invitees-results" id="invitees-results">
+                      <p class="invitees-summary" role="status">Invited 1. 2 could not be added.</p>
+                      <ul class="invitees-refusals">
+                        <li><span class="invitees-refused-address">bob@</span> — Not a valid email address.</li>
+                        <li><span class="invitees-refused-address">spammer@example.com</span> — Banned from this poll.</li>
+                      </ul>
+                    </div>
+                  </div>
+                  <ul class="invitee-list" aria-label="Invitees"></ul>
+                  <div class="invitees-pager">
+                    <span class="invitees-pager-range" aria-live="polite"></span>
+                    <button class="invitees-page-btn" type="button" data-step="-1" aria-label="Previous invitees"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+                    <button class="invitees-page-btn" type="button" data-step="1" aria-label="Next invitees"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+                  </div>
+                </section>
+                <section class="wizard-summary" aria-label="Settings summary">
+                  <p class="question wizard-summary-title"><span class="wizard-summary-part wizard-summary-link" role="button" tabindex="0" aria-label="When do you want to meet?: change in Step 2">When do you want to meet?</span></p>
+                  <p class="subtitle wizard-summary-subtitle"><span class="wizard-summary-part wizard-summary-link" role="button" tabindex="0" aria-label="November Birthdays: change in Step 2">November Birthdays</span></p>
+                  <p class="wizard-summary-text wizard-summary-who">Your poll is a <span class="wizard-summary-part wizard-summary-link" role="button" tabindex="0" aria-label="Private Poll: change in Step 1">Private Poll</span>. <span class="wizard-summary-part wizard-summary-link" role="button" tabindex="0" aria-label="Only people you invite: change in Step 1">Only people you invite</span> by email can vote. <span class="wizard-summary-part wizard-summary-link" role="button" tabindex="0" aria-label="Users can see who voted for what.: change in Step 1">Users can see who voted for what.</span></p>
+                  <p class="wizard-summary-text wizard-summary-choices">Voters choose from <span class="wizard-summary-part wizard-summary-link" role="button" tabindex="0" aria-label="Nov 14, Nov 21: change in Step 3">Nov 14, Nov 21</span>.</p>
+                  <p class="wizard-summary-text wizard-summary-colors"><span class="wizard-summary-part wizard-summary-link" role="button" tabindex="0" aria-label="Bar colors are assigned automatically.: change in Step 4">Bar colors are assigned automatically.</span></p>
+                  <p class="wizard-summary-text wizard-summary-how">Each voter picks <span class="wizard-summary-part wizard-summary-link" role="button" tabindex="0" aria-label="from 1 to 2 choices: change in Step 5">from 1 to 2 choices</span>, and <span class="wizard-summary-part wizard-summary-link" role="button" tabindex="0" aria-label="can change their vote: change in Step 5">can change their vote</span>.</p>
+                  <p class="wizard-summary-text wizard-summary-when">Voting <span class="wizard-summary-part">is open now</span> and closes <span class="wizard-summary-part wizard-summary-link" role="button" tabindex="0" aria-label="on Fri, Nov 13 at 8:07 AM: change in Step 6">on Fri, Nov 13 at 8:07 AM</span>.</p>
+                </section>
+              </div>
+            </article>
+          </div>
+        </main>
+      </div>
+    </div>
+  </div>
+  <script src="admin-card.js"></script>
+</body>
+</html>

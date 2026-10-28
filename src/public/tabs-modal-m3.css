@@ -1,0 +1,82 @@
+/* Material 3 basic dialog: https://m3.material.io/components/dialogs/specs */
+
+/* ---------- 1. Scrim ---------- */
+.modal-backdrop{
+  background:rgb(0 0 0 / 0.32);
+}
+
+/* ---------- 2. Container ---------- */
+.modal{
+  padding:24px;
+  border:0;
+  border-radius:var(--md-sys-shape-corner-extra-large);
+  background:var(--md-sys-color-surface-container-high);
+  color:var(--md-sys-color-on-surface);
+  box-shadow:var(--md-sys-elevation-3);
+}
+
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .modal{ box-shadow:none; } }
+:root[data-theme="dark"] .modal{ box-shadow:none; }
+
+/* ---------- 3. Supporting text ---------- */
+.modal-text{
+  margin:0 0 24px;
+  font-family:var(--md-sys-typescale-font);
+  font-weight:var(--md-sys-typescale-body-medium-weight);
+  font-size:var(--md-sys-typescale-body-medium-size);
+  line-height:var(--md-sys-typescale-body-medium-line-height);
+  letter-spacing:var(--md-sys-typescale-body-medium-tracking);
+  color:var(--md-sys-color-on-surface-variant);
+}
+
+/* ---------- 4. Actions and OK ---------- */
+.modal-actions{ gap:8px; }
+.modal .modal-ok{
+  position:relative;
+  overflow:hidden;
+  height:40px;
+  min-width:48px;
+  padding:0 12px;
+  border:0;
+  border-radius:var(--md-sys-shape-corner-full);
+  background:transparent;
+  color:var(--md-sys-color-primary);
+  font-family:var(--md-sys-typescale-font);
+  font-weight:var(--md-sys-typescale-label-large-weight);
+  font-size:var(--md-sys-typescale-label-large-size);
+  line-height:var(--md-sys-typescale-label-large-line-height);
+  letter-spacing:var(--md-sys-typescale-label-large-tracking);
+}
+
+/* ---------- 5. State layer and focus ---------- */
+.modal .modal-ok::before{
+  content:'';
+  position:absolute;
+  inset:0;
+  border-radius:inherit;
+  background:currentColor;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity 0.15s ease;
+}
+.modal .modal-ok:hover::before{ opacity:var(--md-sys-state-hover-state-layer-opacity); }
+.modal .modal-ok:focus-visible::before{ opacity:var(--md-sys-state-focus-state-layer-opacity); }
+.modal .modal-ok:active::before{ opacity:var(--md-sys-state-pressed-state-layer-opacity); }
+.modal .modal-ok:focus-visible{
+  outline:3px solid var(--md-sys-color-secondary);
+  outline-offset:2px;
+}
+
+/* ---------- 6. Entrance ---------- */
+.modal-backdrop{ animation:m3-scrim-in 200ms linear; }
+.modal{ animation:m3-dialog-in 200ms var(--md-sys-motion-easing-emphasized-decelerate); }
+@keyframes m3-scrim-in{
+  from{ opacity:0; }
+}
+@keyframes m3-dialog-in{
+  from{ opacity:0; transform:scale(0.95); }
+}
+@media (prefers-reduced-motion: reduce){
+  .modal-backdrop,
+  .modal{ animation:none; }
+}

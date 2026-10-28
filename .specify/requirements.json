@@ -1,0 +1,23 @@
+{
+    "requirements_directory": "requirements/20261028-114023-line-graph-toggle",
+    "last_written": {
+        "requirements/20261019-153514-production-email/requirements.md": "e0bd2b0bf28c2fbd6699c99cdf364c1398d3b7aed8eb456198295f78d108ee08",
+        "requirements/20261019-153514-production-email/requirements-report.md": "4f75f5e263fa092fc0fcedc4a7cdaa32128382e287f2ac0394e4957e8d8bd413",
+        "requirements/20261021-143942-prelaunch-signup-allowlist/requirements.md": "3954c7258bc2641e1a6d3b4d4c24f4b9f1cb0f8531c13e234ea439525585c9a4",
+        "requirements/20261021-143942-prelaunch-signup-allowlist/requirements-report.md": "1267fe2d1c0e0c195d187d9c0eba1fa17746b6fc8368878e89dc21f742b2870e",
+        "requirements/20261021-204537-privacy-and-terms/requirements.md": "12f47061c972479a8e411606e72a4d92e032ce5bbd18c024d414ef029b3bf44c",
+        "requirements/20261021-204537-privacy-and-terms/requirements-report.md": "51be1a207404e46d8fdaca84b801c3b794866ec68bf73e99d154a8fa0176df0f",
+        "requirements/20261022-131728-social-oauth-providers/requirements.md": "07991a9eed0253ade0bf654aebbfe5d27a9ae7d86fe7ce80af83ad679bbb5663",
+        "requirements/20261022-131728-social-oauth-providers/requirements-report.md": "1a3191f733e2a4a5ad8426dbf6e7cfb7a3db3aa86942cf797c2e74852a5ee512",
+        "requirements/20261023-155959-phone-tab-bar/requirements.md": "edbe8226d88e8fbb984354eaecf8f85356d2febee248071b801e038f0f532c12",
+        "requirements/20261023-155959-phone-tab-bar/requirements-report.md": "3c377ccb3a0e4455a415136eb27aac62432755fd07d21456d8dacb130563cb3c",
+        "requirements/20261026-152737-populate-test-poll/requirements.md": "594ede1d7d7d220fcda794adf4e531d40a4b865a1504829c8e30d01d78220dde",
+        "requirements/20261026-152737-populate-test-poll/requirements-report.md": "38b09f03ff253ba5245695f2b482f8a9f46fc8dd78fee1642eff4a2a98a542aa",
+        "requirements/20261026-085056-poll-invitations/requirements.md": "598aad7d93787a636bd7f896e5c6f8bcd8ba801d1d3724b92d09642cd83a14f1",
+        "requirements/20261026-085056-poll-invitations/requirements-report.md": "846418bed11ebf18f5cd1d41abb6d20e162f469a4bac5cba0a22934294b7082f",
+        "requirements/20261027-133129-single-email-invite/requirements.md": "6a18864130710fe65f99bd14123e5c3491ff19f1092ea757242a546a9894954a",
+        "requirements/20261027-133129-single-email-invite/requirements-report.md": "b51680c40390959cb474153360810e2d9f4f470fa31ce13fd1b4897037ad29d5",
+        "requirements/20261028-114023-line-graph-toggle/requirements.md": "ffbb33c3c4a4055c258c29dcf8a5fc0fefe45896f59989b1ac17f30b328eceeb",
+        "requirements/20261028-114023-line-graph-toggle/requirements-report.md": "880df749e7a1b56ca7eb865186b14dec4a28a2b74d2a0c34b7bdd380caaab20f"
+    }
+}

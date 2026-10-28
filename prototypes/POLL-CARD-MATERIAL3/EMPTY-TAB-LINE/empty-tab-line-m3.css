@@ -1,0 +1,46 @@
+/*
+  EMPTY-TAB LINE — MATERIAL 3 LAYER (REQUIREMENT Use Material 3 For empty-tab
+  line (.tab-empty)): M3's empty state, plain supporting text on the page.
+  Loaded after ../pollCard-m3.css, whose roles, type scale and shape token it
+  reads, and after empty-tab-line.css, which stays a copy of production.
+  .tab-notice is not touched: HEADER-TAB-BAR/ holds its Material 3 form, and
+  the merge splits production's grouped rule.
+
+  Order: 1 supporting text, 2 alignment, 3 under a full grid, 4 focus.
+*/
+
+/* ---------- 1. Supporting text (clarification 1a) ----------
+   No fill, border or margin. 16px of padding gives the space above and below
+   and keeps the focus ring off the text; the 12px corner shows only in the
+   ring. (0,1,0) as the copied rule, and later, so it wins. */
+.tab-empty{
+  margin:0;
+  padding:16px;
+  border:0;
+  border-radius:var(--md-sys-shape-corner-medium);
+  background:transparent;
+  color:var(--md-sys-color-on-surface-variant);
+  font-family:var(--md-sys-typescale-font);
+  font-weight:var(--md-sys-typescale-body-medium-weight);
+  font-size:var(--md-sys-typescale-body-medium-size);
+  line-height:var(--md-sys-typescale-body-medium-line-height);
+  letter-spacing:var(--md-sys-typescale-body-medium-tracking);
+}
+
+/* ---------- 2. Alignment (clarification 2a) ----------
+   Centred on every tab; the copied FIX029 rule now changes nothing. */
+.tab-empty{ text-align:center; }
+
+/* ---------- 3. Under a full grid (clarification 3a) ----------
+   The grid's own 18px gap above the line when cards are mounted. Production's
+   grid holds no whitespace, so :empty holds whenever no card is. */
+.card-grid:not(:empty) + .tab-empty{ margin-top:18px; }
+
+/* ---------- 4. Focus (clarification 5a) ----------
+   Production focuses the line when a tab has no cards. The ring shows for
+   keyboard users only, as on the Poll Card's buttons. */
+.tab-empty:focus-visible{
+  outline:3px solid var(--md-sys-color-secondary);
+  outline-offset:2px;
+}
+.tab-empty:focus:not(:focus-visible){ outline:none; }

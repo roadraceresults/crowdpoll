@@ -1,0 +1,203 @@
+# DigitalOcean App Platform app spec.
+# Reference: https://docs.digitalocean.com/products/app-platform/reference/app-spec/
+# Instance slugs: https://docs.digitalocean.com/products/app-platform/details/pricing/
+name: crowdpoll
+region: tor1
+services:
+  - name: web
+    github:
+      repo: roadraceresults/crowdpoll02
+      branch: dev
+      deploy_on_push: false
+    build_command: npm ci && npm run build && npm run publish-assets
+    run_command: npm start
+    environment_slug: node-js
+    http_port: 8080
+    instance_size_slug: apps-d-1vcpu-2gb
+    autoscaling:
+      min_instance_count: 1
+      max_instance_count: 1
+      metrics:
+        cpu:
+          percent: 70
+    health_check:
+      http_path: /healthz
+      initial_delay_seconds: 10
+      period_seconds: 10
+      timeout_seconds: 3
+      success_threshold: 1
+      failure_threshold: 3
+    termination_grace_period_seconds: 30
+    alerts:
+      - rule: CPU_UTILIZATION
+        operator: GREATER_THAN
+        value: 85
+        window: FIVE_MINUTES
+      - rule: RESTART_COUNT
+        operator: GREATER_THAN
+        value: 3
+        window: FIVE_MINUTES
+    log_destinations: []
+    envs:
+      - key: ENV_PORT
+        value: "8080"
+      - key: ENV_DATABASE_URL
+        scope: RUN_TIME
+        type: SECRET
+        value: ${db-pgsql-tor1-crowdpoll.DATABASE_URL}
+      - key: ENV_DATABASE_CA_CERT
+        scope: RUN_TIME
+        value: ${db-pgsql-tor1-crowdpoll.CA_CERT}
+      - key: ENV_VALKEY_URL
+        scope: RUN_TIME
+        type: SECRET
+        value: ${valkey-tor1-crowdpoll.DATABASE_URL}
+      - key: ENV_SPACES_BUCKET
+        value: crowdpoll
+      - key: ENV_SPACES_REGION
+        value: tor1
+      - key: ENV_SPACES_KEY
+        scope: RUN_AND_BUILD_TIME
+        type: SECRET
+        value: ""
+      - key: ENV_SPACES_SECRET
+        scope: RUN_AND_BUILD_TIME
+        type: SECRET
+        value: ""
+      - key: ENV_SPACES_CDN_URL
+        scope: RUN_AND_BUILD_TIME
+        value: https://crowdpoll.tor1.cdn.digitaloceanspaces.com
+      - key: ENV_BETTER_AUTH_SECRET
+        scope: RUN_AND_BUILD_TIME
+        type: SECRET
+        value: ""
+      - key: ENV_ADMINS
+        value: roadraceresults@gmail.com
+      - key: ENV_PROTOTYPES
+        value: SINGLE-COLUMN-RENDERING
+      - key: ENV_PUBLIC_ORIGIN
+        value: https://crowdpoll.vote
+      - key: ENV_SIGNIN_METHOD
+        value: native
+      - key: ENV_SIGNIN_COOKIE_DURATION_MAX
+        value: "2592000000"
+      - key: ENV_API_CALL_TIMEOUT
+        value: "10000"
+      - key: ENV_POLL_APPROVAL_POLLING_INTERVAL
+        value: "5000"
+      - key: ENV_POLL_DATE_CHECK_POLLING_INTERVAL
+        value: "60000"
+      - key: ENV_POLL_EDIT_UPDATE_HEARTBEAT_INTERVAL
+        value: "10000"
+      - key: ENV_MAX_ACCEPTABILITY_SCREENING_ATTEMPTS
+        value: "10"
+      - key: ENV_POLL_ADMIN_PAGE_REFRESH_INTERVAL
+        value: "5000"
+      - key: ENV_PARTICIPANTS_VIEWPORT_SIZE
+        value: "10"
+      - key: ENV_EMAIL_RATE_LIMIT_MINUTES_WINDOW
+        value: "15"
+      - key: ENV_EMAIL_RATE_LIMIT_MAX_REQUESTS_PER_WINDOW
+        value: "5"
+      - key: ENV_PRIVATE_VOTER_LIMIT_DEFAULT
+        value: "100"
+      - key: ENV_MIN_CHOICES
+        value: "2"
+      - key: ENV_MAX_CHOICES
+        value: "50"
+      - key: ENV_EMAIL_TRANSPORT
+        scope: RUN_TIME
+        value: ses
+      - key: ENV_SES_REGION
+        value: ca-central-1
+      - key: ENV_SES_ACCESS_KEY_ID
+        scope: RUN_TIME
+        type: SECRET
+        value: ""
+      - key: ENV_SES_SECRET_ACCESS_KEY
+        scope: RUN_TIME
+        type: SECRET
+        value: ""
+      - key: ENV_EMAIL_FROM
+        value: CrowdPoll <no-reply@mail.crowdpoll.vote>
+      - key: ENV_SESSION_CACHE_TTL
+        value: "300000"
+      - key: ENV_MAX_POLLS_SEARCH_RESULTS
+        value: "200"
+      - key: ENV_MAX_POLLS_ADMIN_SEARCH_RESULTS
+        value: "200"
+      - key: ENV_MAX_TRENDING_POLLS
+        value: "200"
+      - key: ENV_TRENDING_POLLS_RECOMPUTE_INTERVAL
+        value: "60000"
+      - key: ENV_MAX_NEWEST_POLLS
+        value: "50"
+      - key: ENV_NEWEST_POLLS_RECOMPUTE_INTERVAL
+        value: "60000"
+      - key: ENV_MIN_LIVE_REFRESH_INTERVAL
+        value: "2000"
+      - key: ENV_MIN_MANUAL_REFRESH_INTERVAL
+        value: "5000"
+      - key: ENV_MANUAL_REFRESH_BURST
+        value: "5"
+      - key: ENV_SEARCH_BURST
+        value: "3"
+      - key: ENV_MIN_SEARCH_INTERVAL
+        value: "2000"
+      - key: ENV_MIN_VOTE_INTERVAL
+        value: "2000"
+      - key: ENV_MAX_VOTES_PER_IP_PER_MINUTE
+        value: "600"
+      - key: ENV_MAX_LIVE_RESULTS_PER_USER
+        value: "5"
+      - key: ENV_MAX_IDLE_TIME
+        value: "1800000"
+      - key: ENV_SERVER_MAX_REFRESH_PER_INSTANCE_PER_SECOND
+        value: "1250"
+      - key: ENV_SERVER_MAX_REFRESH_PER_SECOND
+        value: "15000"
+      - key: ENV_SERVER_MAX_SEARCH_PER_SECOND
+        value: "2000"
+      - key: ENV_SERVER_MAX_SEARCH_PER_SECOND_FALLBACK
+        value: "200"
+      - key: ENV_BUDGET_CONTROLLER_INTERVAL
+        value: "1000"
+      - key: ENV_MAX_STRETCH
+        value: "8"
+      - key: ENV_BUDGET_LOWER_THRESHOLD_PERCENT
+        value: "80"
+      - key: ENV_INSTANCE_MAX_INFLIGHT
+        value: "200"
+      - key: ENV_INSTANCE_MAX_EVENT_LOOP_LAG
+        value: "100"
+      - key: ENV_SHED_RETRY_AFTER
+        value: "2000"
+      - key: ENV_COUNTER_FLUSH_INTERVAL
+        value: "2000"
+      - key: ENV_VOTE_BATCH_SIZE
+        value: "500"
+      - key: ENV_VOTE_QUEUE_LAG_NOTICE
+        value: "2000"
+      - key: ENV_SEARCH_CACHE_TTL
+        value: "10000"
+      - key: ENV_OUTBOX_DRAIN_INTERVAL
+        value: "15000"
+      - key: ENV_MAX_BOOKMARKS_PER_USER
+        value: "200"
+      - key: ENV_BOOKMARK_EXPIRY_MONTHS
+        value: "6"
+      - key: ENV_PAGE_LOADS_PER_MINUTE
+        value: "120"
+databases:
+  - name: db-pgsql-tor1-crowdpoll
+    engine: PG
+    version: "18"
+    production: true
+    cluster_name: db-pgsql-tor1-crowdpoll
+    db_name: defaultdb
+    db_user: doadmin
+  - name: valkey-tor1-crowdpoll
+    engine: VALKEY
+    version: "9"
+    production: true
+    cluster_name: valkey-tor1-crowdpoll

@@ -1,0 +1,39 @@
+# 030 — Integrate Single Column Prototype
+
+A stand-alone prototype for the single-column rendering of the UI-UX private polls application has been iteratively designed and can be found in the `prototypes/SINGLE-COLUMN-RENDERING` directory.
+
+## Integrate
+
+Integrate the single-column prototype into the main CrowdPoll webapp.
+
+## Amended by feature 031 (2026-10-14)
+
+- The logo icon is no longer hidden on a phone: it is shown at every width (031 FIX08).
+- The header's Log In and Create Account to Vote buttons take the card Vote button's height and text size: 21 px high at three quarters of the text size on a phone, not 24 px, and 32 px with 16 px side padding from 641 to 900 px (031 FIX05).
+- The tab sizing, the arrows, the all-tabs button and its menu and the Refresh row apply from 900 px down, not only below 640 px. The all-tabs button sits on the Refresh row, flush left, with three dots before its three lines, and the right arrow ends the tab bar; that row keeps its room on Live Results. The tab bar's edge fade stays on from 640 to 900 px and is off below 640 px (031 FIX02 to FIX04).
+- A guest and a user without permission have no Create Poll link in the header at any width (031 FIX07).
+
+## Decisions from the architecture review
+
+These were applied by "Apply all" on 2026-10-13 17:20 from `architecture/030-integrate-single-column-prototype/architecture.md`.
+
+- **Sheet layout.** `single-column-m3.css` holds the layout rules inside `@media (max-width: 639.98px)`. The defaults that hide the single-column controls (`.tab-scroll`, `.tab-menu-btn`, `.tab-menu`, `.floating-actions`) sit above the block. The prototype's harness rules (`.prototype-bar`, `.width-readout`) are not ported, and the sheet's header comment says so.
+- **Logo icon.** In the single column the header shows the banner only: `.brand-logo{display:none}` inside the media block, matching the approved prototype. This is revisited when the icon is final. (Reversed by feature 031 FIX08: the icon is shown at every width, phone included.)
+- **The prototype folder and route.** `prototypes/SINGLE-COLUMN-RENDERING` stays as the design record. The `ENV_PROTOTYPES` value in `.do/app.yaml` stays until the integrated page has been checked on a phone, and is removed in a later change.
+- **Floating pair after header rebuilds.** `app.js` is not changed for the floating pair. `tabBarScroll.js` observes `#site-header` and re-runs the placement after every rebuild and on a change of window width across 640 px. The pair is measured each time, so one button (OAuth sign-in) or two clamp correctly.
+- **Floating pair on the home page only.** `#floatingActions` and the script are on `index.html` only; no other page floats its buttons.
+- **Tests and guards.** `window.matchMedia` is guarded as `m3-ripple.js` does. `tests/m3-assets.test.ts` lists the new sheet, its place in `LAYER_ORDER` and the new script for `index.html`. New jsdom tests, with layout numbers stubbed, cover the step targets, the hold stopping at each end (including a first frame whose time stamp is older than the hold's start), the drag threshold and swallowed click, the arrows' `aria-disabled`, the menu build, and the floating pair's clamp and reset. How it looks is checked by hand on a phone.
+- **Accessibility.** The hamburger menu supports Arrow keys and Escape, and focus returns to the hamburger when it closes. The arrows and the menu keep their `aria-label`s. The floating buttons keep their normal order in the page, so they are reachable by keyboard; moving the pair needs no keyboard equivalent.
+- **Existing tab-bar code.** `tabs.js` is not changed: its `scrollIntoView` and the `has-tabs-before` / `has-tabs-after` classes keep working. `tabBarScroll.js` cancels its own animation when the bar is scrolled by anything else, and the layer switches the edge-fade masks off inside the media block with `mask-image:none !important`.
+- **Refresh button.** The production disabled styling is kept. The 60 px bottom margin under the tab row is the default (20 px on Live Results), so the first paint before the first tab selection is already correct.
+- **Documentation.** `CLAUDE.md` gets one feature section when the plan is made, naming `single-column-m3.css` and `tabBarScroll.js` and the decisions here.
+- **Hamburger menu items.** An item calls the real tab's `click()`, so a guest's greyed item goes to `/login` exactly as from the tab bar; the menu closes when a tab is chosen.
+- **Header on every page (A1, Option B, 2026-10-13 17:28).** The header rules (24 px banner, logo and header buttons, search box, Create Poll link and user name hidden, 8 px margin, logo icon hidden) are a second layer, `header-single-column-m3.css`, loaded after `header-tab-bar-m3.css` on all seven pages that have the header: `index`, `login`, `create-account`, `profile`, `not-authorized`, `admin` and `admin-results`. The rest of the single-column layer stays in `single-column-m3.css` on the home page only. Each of the seven pages is checked on a phone.
+- **Layers, not edits (A2, Option A, 2026-10-13 17:29).** The prototype is integrated as new layer sheets (`single-column-m3.css`, `header-single-column-m3.css`). The existing production sheets are not edited.
+- **Search on phones (N1, Option B, 2026-10-13 17:32).** In the single column the header search box stays hidden, and the Search tab's panel gets its own search field at the top (shown only in the single column) that makes the same request as the header box; `searchTab.js` reads it. On pages other than the home page there is no search box at phone width.
+- **Create Poll on phones (N2, 2026-10-13 17:42).** In the single column the header's Create Poll link stays hidden and the avatar menu gets a **Create Poll** item (a link to `/admin`) after Edit Profile and before Poll Administration. It is disabled (`aria-disabled`, dimmed, not followed) when the user may not create polls (`canCreatePolls`: an administrator, or both `Create Poll` and `View Polls`). It is shown only in the single column.
+- **Rollout (N4, Option A, 2026-10-13 17:44).** The single-column layout ships directly, with no environment variable or switch, and applies to every visitor below 640 px on deploy.
+- **Search tab field (U8, 2026-10-13 17:47).** The field is a second form at the top of `#panel-search` with its own ids (`searchTabBox`, `searchTabClear`), the placeholder "Search CrowdPoll", `maxlength` 200 and a clear button. It makes the same request as the header box, subject to the same floor (`ENV_MIN_SEARCH_INTERVAL`) and burst. The field is self-contained in `searchTab.js`: its submit calls `SearchTab.submit`, its clear button calls `SearchTab.clear`, `/` focuses it when it is visible (handled in the capture phase, so the `app.js` handler does not also run), and `SearchTab.submit` copies the terms into it so that a `?q=` link fills it. `app.js` is not changed for search.
+- **Create Poll avatar item (U9, 2026-10-13 17:47).** The item is labelled exactly "Create Poll". When the user may not create polls it is `aria-disabled="true"`, focusable, does nothing when activated, and has the tooltip "You need permission to create polls". It is deliberately shown dimmed, unlike Poll Administration, which stays absent for such a user (spec 012 FR-052); the `app.js` avatar menu is the only edit to that file.
+- **Phone check of seven pages (U10, 2026-10-13 17:47).** A manual checklist is run at 360, 384, 414 and 639 px on `index`, `login`, `create-account`, `profile`, `not-authorized`, `admin` and `admin-results`: the header does not overflow, nothing is cut off or overlapped, the avatar menu opens and its items are reachable, and the page's own cards or forms keep their layout. The checklist is recorded in the plan's quickstart.
+- **Search code stays in `searchTab.js` (I4, Option A, 2026-10-13 17:54).** The Search tab field does not depend on `app.js`; the avatar menu remains the only edit to `app.js`.

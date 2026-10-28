@@ -1,0 +1,18 @@
+/* Extracted from src/public/tabs.css (REQUIREMENT empty-tab line (.tab-empty)):
+   the rule .tab-empty shares with .tab-notice, copied as is (clarification
+   3a), the FIX029 Search centring, and .tab-panel[hidden]. The shared
+   ../tabs.css has none of them. */
+  .tab-notice,
+  .tab-empty{
+    margin:0 0 16px;
+    padding:10px 14px;
+    border-radius:10px;
+    background:var(--paper-raised);
+    color:var(--muted);
+    font-size:13px;
+  }
+
+  /* FIX029: the Search tab's prompt line is centred; the box is otherwise the same. */
+  .tab-panel[data-panel="search"] .tab-empty{ text-align:center; }
+
+  .tab-panel[hidden]{ display:none; }
