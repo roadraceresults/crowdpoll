@@ -220,7 +220,7 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
    * truncated. See specs/014-poll-edit-card/contracts/api-endpoints.md.
    */
   function withinDisplayLimit<T>(list: T[]): T[] {
-    return list.length > config.privateVoterLimitDefault ? [] : list;
+    return list.length > config.maxPrivatePollVoters ? [] : list;
   }
 
   function buildAdminPollDetail(poll: Poll) {

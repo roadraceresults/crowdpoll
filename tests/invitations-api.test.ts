@@ -128,10 +128,10 @@ describe("A2 add", () => {
     expect(res.body.results[1].reason).toBe("The poll's voter limit of 2 is reached.");
 
     const unlimited = await seed({ voterCountLimit: null });
-    const many = Array.from({ length: ctx.config.privateVoterLimitDefault + 1 }, (_, i) => `v${i}@example.com`).join(" ");
+    const many = Array.from({ length: ctx.config.maxPrivatePollVoters + 1 }, (_, i) => `v${i}@example.com`).join(" ");
     const body = (await post(unlimited._id, { add: many })).body;
     expect(body.results.at(-1).outcome).toBe("voter-limit");
-    expect(body.invitationCount).toBe(ctx.config.privateVoterLimitDefault);
+    expect(body.invitationCount).toBe(ctx.config.maxPrivatePollVoters);
   });
 
   it("refuses an address the allowlist does not hold", async () => {

@@ -42,7 +42,7 @@
   var MS_PER_DAY = 86400000;
   var MS_PER_HOUR = 3600000;
 
-  /* How long "stay signed in" lasts, from ENV_SIGNIN_COOKIE_DURATION_MAX: whole
+  /* How long "stay signed in" lasts, from ENV_MAX_SIGNIN_COOKIE_DURATION: whole
      days (rounded down), "day" for one and "days" for more. Under a day it is
      hours to two decimals, which only a test deployment uses. */
   function stayDuration(ms) {
@@ -211,7 +211,7 @@
     stay.name = "stay";
     stay.type = "checkbox";
     stay.checked = config.staySignedInDefault === true;
-    var duration = stayDuration(config.signinCookieDurationMaxMs);
+    var duration = stayDuration(config.maxSigninCookieDurationMs);
     stayLabel.append(stay, document.createTextNode(" Stay signed in on this device" + (duration ? " for " + duration : "")));
 
     form.append(label, input, stayLabel);

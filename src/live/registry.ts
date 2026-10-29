@@ -13,7 +13,7 @@ export const LIVE_LIST_KEY = (sessionId: string) => `live:${sessionId}`;
 export interface LiveRegistryDeps {
   db: Db;
   cache: Cache;
-  config: Pick<AppConfig, "maxLiveResultsPerUser" | "maxIdleTimeMs" | "floors">;
+  config: Pick<AppConfig, "maxLiveResultsPerUser" | "liveResultsMaxIdleTimeMs" | "floors">;
   rosters: RosterCache;
 }
 
@@ -34,7 +34,7 @@ export interface LiveRegistry {
 }
 
 export function createLiveRegistry({ db, cache, config, rosters }: LiveRegistryDeps): LiveRegistry {
-  const listTtlMs = () => config.maxIdleTimeMs + config.floors.live * 2;
+  const listTtlMs = () => config.liveResultsMaxIdleTimeMs + config.floors.live * 2;
 
   async function ordered(sessionId: string): Promise<string[]> {
     const hash = await cache.hgetall(LIVE_LIST_KEY(sessionId));
@@ -88,7 +88,7 @@ export function createLiveRegistry({ db, cache, config, rosters }: LiveRegistryD
     },
     polls: ordered,
     async touch(sessionId, nextRefreshMs, now = new Date()) {
-      await cache.zadd(LIVE_ACTIVE_KEY, now.getTime() + nextRefreshMs + config.maxIdleTimeMs, sessionId);
+      await cache.zadd(LIVE_ACTIVE_KEY, now.getTime() + nextRefreshMs + config.liveResultsMaxIdleTimeMs, sessionId);
       await cache.expire(LIVE_LIST_KEY(sessionId), listTtlMs());
     },
     async isRegistered(sessionId, now = new Date()) {

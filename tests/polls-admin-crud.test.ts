@@ -982,7 +982,7 @@ describe("Admin poll CRUD (US4)", () => {
    * refused to honour.
    */
   it("012 FR-066: a configured ceiling governs both the maximum and the blank default", async () => {
-    const small = await startTestContext({ ENV_PRIVATE_VOTER_LIMIT_DEFAULT: "10" });
+    const small = await startTestContext({ ENV_MAX_PRIVATE_POLL_VOTERS: "10" });
     try {
       const { cookie } = await forgeSession(small, small.config.admins[0]!);
       const poll = makePoll({

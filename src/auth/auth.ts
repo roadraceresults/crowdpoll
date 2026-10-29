@@ -39,7 +39,7 @@ export const NON_PERSISTENT_SESSION_SECONDS = 24 * 60 * 60;
  * The window shared by every email-sending endpoint, built from configuration.
  *
  * 012: was a hard-coded 2 requests / 15 minutes. Both halves are now settable —
- * `ENV_EMAIL_RATE_LIMIT_MINUTES_WINDOW` and
+ * `ENV_EMAIL_RATE_LIMIT_WINDOW_MINUTES` and
  * `ENV_EMAIL_RATE_LIMIT_MAX_REQUESTS_PER_WINDOW` — because the defaults make manual
  * testing painful: two login links and you are locked out for a quarter of an hour.
  *
@@ -49,7 +49,7 @@ export const NON_PERSISTENT_SESSION_SECONDS = 24 * 60 * 60;
 export function emailRateLimit(config: AppConfig): { window: number; max: number } {
   return {
     window: config.emailRateLimitWindowMinutes * 60,
-    max: config.emailRateLimitMaxRequests
+    max: config.emailRateLimitMaxRequestsPerWindow
   };
 }
 
@@ -171,7 +171,7 @@ export function createAuth(db: Db, config: AppConfig, cache?: Cache) {
     appName: "NativeAuthOAuth",
     baseURL: config.publicOrigin,
     trustedOrigins: [config.publicOrigin],
-    secret: config.authSecret,
+    secret: config.betterAuthSecret,
     database: { db, type: "postgres" },
     account: { accountLinking: { enabled: true } },
     session: {

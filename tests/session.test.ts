@@ -75,7 +75,7 @@ describe("session cookie", () => {
   it("persists for the configured maximum with stay-signed-in (FR-006)", async () => {
     const { setCookie } = await signIn(freshEmail(), { stay: true });
     const maxAge = Number(/max-age=(\d+)/i.exec(setCookie)?.[1]);
-    expect(maxAge).toBe(ctx.config.signinCookieDurationMaxMs / 1000);
+    expect(maxAge).toBe(ctx.config.maxSigninCookieDurationMs / 1000);
   });
 });
 

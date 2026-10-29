@@ -84,12 +84,12 @@ export async function startTestContext(
     ENV_MIN_CHOICES: "2",
     ENV_MAX_CHOICES: "50",
     // Suites that exercise the floors set their own; the rest vote freely.
-    ENV_MIN_VOTE_INTERVAL: "1",
+    ENV_MIN_VOTE_REFRESH_INTERVAL: "1",
     // FIX008: the floors' tests are written one request at a time; the suites
     // about the burst allowance set their own sizes.
     ENV_MANUAL_REFRESH_BURST: "1",
     ENV_SEARCH_BURST: "1",
-    ENV_BUDGET_CONTROLLER_INTERVAL: "1",
+    ENV_BUDGET_CONTROLLER_SWEEP_INTERVAL: "1",
     ...envOverrides
   });
 
@@ -171,7 +171,7 @@ export async function forgeSession(
   });
   const session = await authCtx.internalAdapter.createSession(user.id);
   const { createHmac } = await import("node:crypto");
-  const signature = createHmac("sha256", ctx.config.authSecret)
+  const signature = createHmac("sha256", ctx.config.betterAuthSecret)
     .update(session.token)
     .digest("base64");
   return {

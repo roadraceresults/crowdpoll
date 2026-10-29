@@ -108,7 +108,7 @@ describe("listInvitees", () => {
     ]);
     expect(list.invitationCount).toBe(5);
     expect(list.acceptedCount).toBe(2);
-    expect(list.voterLimit).toBe(poll.voterCountLimit ?? ctx.config.privateVoterLimitDefault);
+    expect(list.voterLimit).toBe(poll.voterCountLimit ?? ctx.config.maxPrivatePollVoters);
     expect(list.editable).toBe(true);
   });
 

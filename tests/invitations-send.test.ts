@@ -83,14 +83,16 @@ describe("sending invitations", () => {
     expect(await sends()).toBe(2);
   });
 
-  it("the invitation sweep runs every 30 s, and the counter flush at ENV_COUNTER_FLUSH_INTERVAL (feature 20261028 R10)", () => {
+  it("the invitation sweep runs at ENV_INVITATION_SWEEP_INTERVAL, and the counter flush at ENV_COUNTER_FLUSH_SWEEP_INTERVAL (feature 20261028 R10)", () => {
     const intervals = Object.fromEntries(buildSweepSchedules(ctx.config, ctx).map((s) => [s.name, s.intervalMs]));
-    expect(intervals.invitationSweep).toBe(30_000);
-    expect(intervals.counterFlushSweep).toBe(ctx.config.counterFlushIntervalMs);
-    expect(intervals.scheduleSweep).toBe(ctx.config.pollDateCheckPollingIntervalMs);
-    expect(intervals.outboxDrainSweep).toBe(ctx.config.outboxDrainIntervalMs);
-    expect(intervals.trendingSweep).toBe(ctx.config.trendingRecomputeIntervalMs);
-    expect(intervals.newestSweep).toBe(ctx.config.newestRecomputeIntervalMs);
+    expect(ctx.config.invitationSweepIntervalMs).toBe(30_000);
+    expect(intervals.invitationSweep).toBe(ctx.config.invitationSweepIntervalMs);
+    expect(Object.fromEntries(buildSweepSchedules({ ...ctx.config, invitationSweepIntervalMs: 7000 }, ctx).map((s) => [s.name, s.intervalMs])).invitationSweep).toBe(7000);
+    expect(intervals.counterFlushSweep).toBe(ctx.config.counterFlushSweepIntervalMs);
+    expect(intervals.scheduleSweep).toBe(ctx.config.pollDateCheckSweepIntervalMs);
+    expect(intervals.outboxDrainSweep).toBe(ctx.config.outboxDrainSweepIntervalMs);
+    expect(intervals.trendingSweep).toBe(ctx.config.trendingPollsRecomputeSweepIntervalMs);
+    expect(intervals.newestSweep).toBe(ctx.config.newestPollsRecomputeSweepIntervalMs);
   });
 
   it("sends nothing before the poll opens, then one tick sends every pending invitation", async () => {

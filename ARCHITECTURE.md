@@ -248,7 +248,7 @@ sequenceDiagram
     W->>PG: one transaction: votes upsert (last wins on Dynamic-Vote, first on Final-Vote), vote_history, user_polls
     W->>C: XACK; queue:lag sampled once a second
   end
-  Note over C,PG: flush sweep every 10 s (ENV_COUNTER_FLUSH_INTERVAL): UPDATE polls … FROM (VALUES …) for the dirty set
+  Note over C,PG: flush sweep every 10 s (ENV_COUNTER_FLUSH_SWEEP_INTERVAL): UPDATE polls … FROM (VALUES …) for the dirty set
 ```
 
 A vote is never refused for load: the route touches the cache only, answers from the
@@ -666,18 +666,18 @@ as `Created By: <username> (<email>)` above its dates.
 
 | Sweep | Interval | Lock |
 |---|---|---|
-| screening (approval) | `ENV_POLL_APPROVAL_POLLING_INTERVAL` | 1 |
-| schedule (+ next month's `vote_history` partition) | `ENV_POLL_DATE_CHECK_POLLING_INTERVAL` | 2 |
-| counter flush | `ENV_COUNTER_FLUSH_INTERVAL` | 3 |
-| trending recompute + publish | `ENV_TRENDING_POLLS_RECOMPUTE_INTERVAL` | 4 |
-| search outbox drain | `ENV_OUTBOX_DRAIN_INTERVAL` | 5 |
+| screening (approval) | `ENV_POLL_APPROVAL_SWEEP_INTERVAL` | 1 |
+| schedule (+ next month's `vote_history` partition) | `ENV_POLL_DATE_CHECK_SWEEP_INTERVAL` | 2 |
+| counter flush | `ENV_COUNTER_FLUSH_SWEEP_INTERVAL` | 3 |
+| trending recompute + publish | `ENV_TRENDING_POLLS_RECOMPUTE_SWEEP_INTERVAL` | 4 |
+| search outbox drain | `ENV_OUTBOX_DRAIN_SWEEP_INTERVAL` | 5 |
 | bookmark removal | daily | 6 |
 | nightly reconcile of yesterday's dirty polls | daily | 7 |
-| budget controller | `ENV_BUDGET_CONTROLLER_INTERVAL` | 8 |
+| budget controller | `ENV_BUDGET_CONTROLLER_SWEEP_INTERVAL` | 8 |
 | stale editing session release | 2 × heartbeat | 9 |
-| newest recompute + publish (also once at start) | `ENV_NEWEST_POLLS_RECOMPUTE_INTERVAL` | 10 |
+| newest recompute + publish (also once at start) | `ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL` | 10 |
 | retention: expired sessions, links, email changes and rate-limit rows; `invitation_emails` older than 24 hours; `vote_history` partitions older than 12 months | daily | 11 |
-| invitations: claim and send the pending invitations of every open Invitation Only poll | 30 s | 12 |
+| invitations: claim and send the pending invitations of every open Invitation Only poll | `ENV_INVITATION_SWEEP_INTERVAL` | 12 |
 
 ```mermaid
 gantt

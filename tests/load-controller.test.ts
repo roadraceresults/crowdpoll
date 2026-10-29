@@ -12,12 +12,12 @@ let deps: ControllerDeps;
 
 beforeAll(async () => {
   ctx = await startTestContext({
-    ENV_SERVER_MAX_REFRESH_PER_INSTANCE_PER_SECOND: "1250",
-    ENV_SERVER_MAX_REFRESH_PER_SECOND: "15000",
-    ENV_MAX_STRETCH: "3",
+    ENV_SERVER_MAX_REQUESTS_PER_INSTANCE_PER_SECOND: "1250",
+    ENV_SERVER_MAX_REQUESTS_PER_SECOND: "15000",
+    ENV_MAX_REFRESH_AND_SEARCH_STRETCH: "3",
     ENV_MIN_LIVE_REFRESH_INTERVAL: "2000",
-    ENV_MIN_VOTE_INTERVAL: "2000",
-    ENV_BUDGET_CONTROLLER_INTERVAL: "1000"
+    ENV_MIN_VOTE_REFRESH_INTERVAL: "2000",
+    ENV_BUDGET_CONTROLLER_SWEEP_INTERVAL: "1000"
   });
   deps = { cache: ctx.cache, config: ctx.config, budget: ctx.budget, search: { servingEngine: async () => engine } };
 });

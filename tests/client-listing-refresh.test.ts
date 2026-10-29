@@ -11,8 +11,8 @@ beforeAll(async () => {
   // A 2 s recompute interval is also the published max-age (below the 10 s cap).
   ctx = await startTestContext({
     ENV_MIN_MANUAL_REFRESH_INTERVAL: "1",
-    ENV_TRENDING_POLLS_RECOMPUTE_INTERVAL: "2000",
-    ENV_NEWEST_POLLS_RECOMPUTE_INTERVAL: "2000"
+    ENV_TRENDING_POLLS_RECOMPUTE_SWEEP_INTERVAL: "2000",
+    ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL: "2000"
   });
   await polls(ctx).insertOne(makePoll({ title: "Listed" }));
   await trendingSweep(ctx, ctx.config, ctx.trendingPublisher);

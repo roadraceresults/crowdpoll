@@ -17,7 +17,7 @@ export interface ControllerDeps {
   cache: Cache;
   config: Pick<
     AppConfig,
-    "floors" | "maxStretch" | "budgetLowerThresholdPercent" | "serverMaxSearchPerSecond" | "serverMaxSearchPerSecondFallback"
+    "floors" | "maxRefreshAndSearchStretch" | "budgetLowerThresholdPercent" | "serverMaxSearchPerSecond" | "serverMaxSearchFallbackPerSecond"
   >;
   budget: Budget;
   search: Pick<Search, "servingEngine">;
@@ -67,7 +67,7 @@ export async function controllerTick(deps: ControllerDeps, now: Date = new Date(
     budget.effectiveBudget(),
     search.servingEngine()
   ]);
-  const searchBudget = engine === "opensearch" ? config.serverMaxSearchPerSecond : config.serverMaxSearchPerSecondFallback;
+  const searchBudget = engine === "opensearch" ? config.serverMaxSearchPerSecond : config.serverMaxSearchFallbackPerSecond;
 
   await cache.zremrangebyscore(LIVE_ACTIVE_KEY, -Infinity, now.getTime());
   const liveTabs = await cache.zcard(LIVE_ACTIVE_KEY);
@@ -94,11 +94,11 @@ export async function controllerTick(deps: ControllerDeps, now: Date = new Date(
   const overSearch = engineQueries > searchBudget;
   const next = { ...k };
 
-  if (overSearch && next.search < config.maxStretch) {
+  if (overSearch && next.search < config.maxRefreshAndSearchStretch) {
     next.search += 1;
   } else if (overBudget) {
-    if (next.search < config.maxStretch) next.search += 1;
-    else if (next.refresh < config.maxStretch) next.refresh += 1;
+    if (next.search < config.maxRefreshAndSearchStretch) next.search += 1;
+    else if (next.refresh < config.maxRefreshAndSearchStretch) next.refresh += 1;
     else next.live += 1;
   } else if (requests < budgetNow * lowerBelow && engineQueries < searchBudget * lowerBelow) {
     if (next.live > 1 && next.live > predictedLive) next.live -= 1;

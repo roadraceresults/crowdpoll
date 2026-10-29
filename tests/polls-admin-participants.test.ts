@@ -435,7 +435,7 @@ describe("Roster display ceiling (014 FR-034, FR-035, FR-044a)", () => {
   beforeAll(async () => {
     ctx = await startTestContext({
       ENV_ADMINS: ADMIN_EMAIL,
-      ENV_PRIVATE_VOTER_LIMIT_DEFAULT: String(LIMIT)
+      ENV_MAX_PRIVATE_POLL_VOTERS: String(LIMIT)
     });
     adminCookie = (await forgeSession(ctx, ADMIN_EMAIL)).cookie;
   });

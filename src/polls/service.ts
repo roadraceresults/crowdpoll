@@ -39,15 +39,15 @@ const KEYWORD_RE = /^[a-z0-9]+( [a-z0-9]+)*$/;
  * 012 FR-008/FR-009/FR-066: one number serving as both the limit a blank field means
  * on a private poll and the maximum an administrator may enter. The two are the same
  * value by requirement, so they are the same setting —
- * `ENV_PRIVATE_VOTER_LIMIT_DEFAULT`, defaulting to 100.
+ * `ENV_MAX_PRIVATE_POLL_VOTERS`, defaulting to 100.
  *
  * This fallback exists only for the few call sites that have no config to hand; every
  * path that can reach one passes it, so the two can never disagree in practice.
  */
 export const PRIVATE_VOTER_LIMIT_FALLBACK = 100;
 
-export function privateVoterLimit(config?: Pick<AppConfig, "privateVoterLimitDefault">): number {
-  return config?.privateVoterLimitDefault ?? PRIVATE_VOTER_LIMIT_FALLBACK;
+export function privateVoterLimit(config?: Pick<AppConfig, "maxPrivatePollVoters">): number {
+  return config?.maxPrivatePollVoters ?? PRIVATE_VOTER_LIMIT_FALLBACK;
 }
 
 /**
@@ -56,7 +56,7 @@ export function privateVoterLimit(config?: Pick<AppConfig, "privateVoterLimitDef
  */
 export function effectiveVoterLimit(
   poll: Pick<Poll, "pollVisibility" | "voterCountLimit">,
-  config?: Pick<AppConfig, "privateVoterLimitDefault">
+  config?: Pick<AppConfig, "maxPrivatePollVoters">
 ): number | null {
   if (isPublicVisibility(poll.pollVisibility)) return null;
   return poll.voterCountLimit ?? privateVoterLimit(config);
@@ -344,7 +344,7 @@ export function viewerVoteBlock(
   >,
   callerEmail: string,
   isNewVoter: boolean,
-  config?: Pick<AppConfig, "privateVoterLimitDefault">
+  config?: Pick<AppConfig, "maxPrivatePollVoters">
 ): { status: number; message: string } | null {
   if (poll.bannedVoterList.includes(callerEmail)) {
     return { status: 403, message: "You have been removed from this poll and cannot vote in it." };
@@ -425,7 +425,7 @@ export function validateVoteSubmission(
   choiceIds: string[],
   existingVote: Pick<VoteEntry, "choiceIds"> | undefined,
   now: Date = new Date(),
-  config?: Pick<AppConfig, "privateVoterLimitDefault">
+  config?: Pick<AppConfig, "maxPrivatePollVoters">
 ): void {
   void now;
   const isNewVoter = !existingVote || existingVote.choiceIds.length === 0;
@@ -482,7 +482,7 @@ export function validatePollFields(
   body: Record<string, unknown>,
   hasEverVoted: boolean,
   now: Date = new Date(),
-  config?: Pick<AppConfig, "privateVoterLimitDefault">
+  config?: Pick<AppConfig, "maxPrivatePollVoters">
 ): Partial<Poll> {
   const $set: Partial<Poll> = {};
   void now;

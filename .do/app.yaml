@@ -79,15 +79,17 @@ services:
         value: https://crowdpoll.vote
       - key: ENV_SIGNIN_METHOD
         value: native
-      - key: ENV_SIGNIN_COOKIE_DURATION_MAX
+      - key: ENV_MAX_SIGNIN_COOKIE_DURATION
         value: "2592000000"
-      - key: ENV_API_CALL_TIMEOUT
+      - key: ENV_STAY_SIGNED_IN
+        value: "0"
+      - key: ENV_SCREENING_CALL_TIMEOUT
         value: "10000"
-      - key: ENV_POLL_APPROVAL_POLLING_INTERVAL
+      - key: ENV_POLL_APPROVAL_SWEEP_INTERVAL
         value: "5000"
-      - key: ENV_POLL_DATE_CHECK_POLLING_INTERVAL
+      - key: ENV_POLL_DATE_CHECK_SWEEP_INTERVAL
         value: "60000"
-      - key: ENV_POLL_EDIT_UPDATE_HEARTBEAT_INTERVAL
+      - key: ENV_POLL_EDIT_HEARTBEAT_INTERVAL
         value: "10000"
       - key: ENV_MAX_ACCEPTABILITY_SCREENING_ATTEMPTS
         value: "10"
@@ -95,11 +97,11 @@ services:
         value: "5000"
       - key: ENV_PARTICIPANTS_VIEWPORT_SIZE
         value: "10"
-      - key: ENV_EMAIL_RATE_LIMIT_MINUTES_WINDOW
+      - key: ENV_EMAIL_RATE_LIMIT_WINDOW_MINUTES
         value: "15"
       - key: ENV_EMAIL_RATE_LIMIT_MAX_REQUESTS_PER_WINDOW
-        value: "5"
-      - key: ENV_PRIVATE_VOTER_LIMIT_DEFAULT
+        value: "2"
+      - key: ENV_MAX_PRIVATE_POLL_VOTERS
         value: "100"
       - key: ENV_MIN_CHOICES
         value: "2"
@@ -120,6 +122,8 @@ services:
         value: ""
       - key: ENV_EMAIL_FROM
         value: CrowdPoll <no-reply@mail.crowdpoll.vote>
+      - key: ENV_EMAIL_SEND_TIMEOUT
+        value: "10000"
       - key: ENV_SESSION_CACHE_TTL
         value: "300000"
       - key: ENV_MAX_POLLS_SEARCH_RESULTS
@@ -128,11 +132,11 @@ services:
         value: "200"
       - key: ENV_MAX_TRENDING_POLLS
         value: "200"
-      - key: ENV_TRENDING_POLLS_RECOMPUTE_INTERVAL
+      - key: ENV_TRENDING_POLLS_RECOMPUTE_SWEEP_INTERVAL
         value: "60000"
       - key: ENV_MAX_NEWEST_POLLS
         value: "50"
-      - key: ENV_NEWEST_POLLS_RECOMPUTE_INTERVAL
+      - key: ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL
         value: "60000"
       - key: ENV_MIN_LIVE_REFRESH_INTERVAL
         value: "2000"
@@ -142,27 +146,29 @@ services:
         value: "5"
       - key: ENV_SEARCH_BURST
         value: "3"
-      - key: ENV_MIN_SEARCH_INTERVAL
+      - key: ENV_MIN_SEARCH_REFRESH_INTERVAL
         value: "2000"
-      - key: ENV_MIN_VOTE_INTERVAL
+      - key: ENV_MIN_VOTE_REFRESH_INTERVAL
         value: "2000"
       - key: ENV_MAX_VOTES_PER_IP_PER_MINUTE
         value: "600"
       - key: ENV_MAX_LIVE_RESULTS_PER_USER
         value: "5"
-      - key: ENV_MAX_IDLE_TIME
+      - key: ENV_MAX_INVITATIONS_PER_DAY
+        value: "200"
+      - key: ENV_LIVE_RESULTS_MAX_IDLE_TIME
         value: "1800000"
-      - key: ENV_SERVER_MAX_REFRESH_PER_INSTANCE_PER_SECOND
+      - key: ENV_SERVER_MAX_REQUESTS_PER_INSTANCE_PER_SECOND
         value: "1250"
-      - key: ENV_SERVER_MAX_REFRESH_PER_SECOND
+      - key: ENV_SERVER_MAX_REQUESTS_PER_SECOND
         value: "15000"
       - key: ENV_SERVER_MAX_SEARCH_PER_SECOND
         value: "2000"
-      - key: ENV_SERVER_MAX_SEARCH_PER_SECOND_FALLBACK
+      - key: ENV_SERVER_MAX_SEARCH_FALLBACK_PER_SECOND
         value: "200"
-      - key: ENV_BUDGET_CONTROLLER_INTERVAL
+      - key: ENV_BUDGET_CONTROLLER_SWEEP_INTERVAL
         value: "1000"
-      - key: ENV_MAX_STRETCH
+      - key: ENV_MAX_REFRESH_AND_SEARCH_STRETCH
         value: "8"
       - key: ENV_BUDGET_LOWER_THRESHOLD_PERCENT
         value: "80"
@@ -172,15 +178,17 @@ services:
         value: "100"
       - key: ENV_SHED_RETRY_AFTER
         value: "2000"
-      - key: ENV_COUNTER_FLUSH_INTERVAL
+      - key: ENV_COUNTER_FLUSH_SWEEP_INTERVAL
         value: "10000"
+      - key: ENV_INVITATION_SWEEP_INTERVAL
+        value: "30000"
       - key: ENV_VOTE_BATCH_SIZE
         value: "500"
       - key: ENV_VOTE_QUEUE_LAG_NOTICE
         value: "2000"
       - key: ENV_SEARCH_CACHE_TTL
         value: "10000"
-      - key: ENV_OUTBOX_DRAIN_INTERVAL
+      - key: ENV_OUTBOX_DRAIN_SWEEP_INTERVAL
         value: "15000"
       - key: ENV_MAX_BOOKMARKS_PER_USER
         value: "200"

@@ -509,14 +509,14 @@
             "items": {
               "$ref": "#/components/schemas/Participant"
             },
-            "description": "Replaced by an empty array when the list is longer than ENV_PRIVATE_VOTER_LIMIT_DEFAULT; the poll's counts and aggregates stay accurate. The JSON export is exempt."
+            "description": "Replaced by an empty array when the list is longer than ENV_MAX_PRIVATE_POLL_VOTERS; the poll's counts and aggregates stay accurate. The JSON export is exempt."
           },
           "notYetVoted": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Participant"
             },
-            "description": "PRIVATE_POLL_INVITATION_ONLY only Replaced by an empty array when the list is longer than ENV_PRIVATE_VOTER_LIMIT_DEFAULT; the poll's counts and aggregates stay accurate. The JSON export is exempt."
+            "description": "PRIVATE_POLL_INVITATION_ONLY only Replaced by an empty array when the list is longer than ENV_MAX_PRIVATE_POLL_VOTERS; the poll's counts and aggregates stay accurate. The JSON export is exempt."
           }
         }
       },
@@ -831,7 +831,7 @@
           },
           "nextRefreshMs": {
             "type": "integer",
-            "description": "Always the unstretched vote floor (ENV_MIN_VOTE_INTERVAL)"
+            "description": "Always the unstretched vote floor (ENV_MIN_VOTE_REFRESH_INTERVAL)"
           }
         }
       },
@@ -1442,7 +1442,7 @@
                     "trendingBaseUrl",
                     "assetsBaseUrl",
                     "floors",
-                    "newestRecomputeIntervalMs",
+                    "newestPollsRecomputeSweepIntervalMs",
                     "trendingMaxAgeMs",
                     "newestMaxAgeMs"
                   ],
@@ -1456,9 +1456,9 @@
                       ],
                       "description": "ENV_SIGNIN_METHOD: native (email link), oauth (sign-in providers only) or both"
                     },
-                    "signinCookieDurationMaxMs": {
+                    "maxSigninCookieDurationMs": {
                       "type": "integer",
-                      "description": "How long a stay-signed-in session lasts, in milliseconds (ENV_SIGNIN_COOKIE_DURATION_MAX); the login card shows it as whole days, or as hours below one day"
+                      "description": "How long a stay-signed-in session lasts, in milliseconds (ENV_MAX_SIGNIN_COOKIE_DURATION); the login card shows it as whole days, or as hours below one day"
                     },
                     "staySignedInDefault": {
                       "type": "boolean",
@@ -1488,13 +1488,13 @@
                       "type": "string",
                       "description": "Where the fingerprinted static assets are served from"
                     },
-                    "trendingRecomputeIntervalMs": {
+                    "trendingPollsRecomputeSweepIntervalMs": {
                       "type": "integer",
-                      "description": "ENV_TRENDING_POLLS_RECOMPUTE_INTERVAL; also the browser copy's lifetime"
+                      "description": "ENV_TRENDING_POLLS_RECOMPUTE_SWEEP_INTERVAL; also the browser copy's lifetime"
                     },
-                    "newestRecomputeIntervalMs": {
+                    "newestPollsRecomputeSweepIntervalMs": {
                       "type": "integer",
-                      "description": "ENV_NEWEST_POLLS_RECOMPUTE_INTERVAL; also the browser copy's lifetime for the Newest tab"
+                      "description": "ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL; also the browser copy's lifetime for the Newest tab"
                     },
                     "trendingMaxAgeMs": {
                       "type": "integer",
@@ -1544,9 +1544,9 @@
                       "type": "integer",
                       "description": "ENV_MAX_LIVE_RESULTS_PER_USER"
                     },
-                    "maxIdleTimeMs": {
+                    "liveResultsMaxIdleTimeMs": {
                       "type": "integer",
-                      "description": "ENV_MAX_IDLE_TIME"
+                      "description": "ENV_LIVE_RESULTS_MAX_IDLE_TIME"
                     },
                     "barPalette": {
                       "type": "array",
@@ -1827,7 +1827,7 @@
                   "staySignedIn": {
                     "type": "boolean",
                     "default": false,
-                    "description": "Persist the session for up to ENV_SIGNIN_COOKIE_DURATION_MAX (default 30 days); otherwise it ends with the browser session"
+                    "description": "Persist the session for up to ENV_MAX_SIGNIN_COOKIE_DURATION (default 30 days); otherwise it ends with the browser session"
                   },
                   "pid": {
                     "type": "string",
@@ -4147,7 +4147,7 @@
           "home"
         ],
         "operationId": "searchPolls",
-        "summary": "Free-text search of public polls (kind search; ENV_MIN_SEARCH_INTERVAL floor)",
+        "summary": "Free-text search of public polls (kind search; ENV_MIN_SEARCH_REFRESH_INTERVAL floor)",
         "description": "Title outranks subtitle outranks choices; an AND match first, then OR matches, then a misspelt title. Identical words within ENV_SEARCH_CACHE_TTL are answered from the cache; a miss counts against the search sub-budget (ENV_SERVER_MAX_SEARCH_PER_SECOND, or the fallback bound while PostgreSQL full-text search serves).",
         "requestBody": {
           "required": true,
@@ -4404,7 +4404,7 @@
         ],
         "operationId": "trendingCounts",
         "summary": "trending-counts.json: TRENDING order and live counts, every recompute",
-        "description": "Served by the instances when no delivery network is configured (otherwise the same object is fetched from trendingBaseUrl). Honours If-None-Match with 304; Cache-Control: public, max-age=<ENV_TRENDING_POLLS_RECOMPUTE_INTERVAL in seconds>. Subject to the page-load bucket.",
+        "description": "Served by the instances when no delivery network is configured (otherwise the same object is fetched from trendingBaseUrl). Honours If-None-Match with 304; Cache-Control: public, max-age=<ENV_TRENDING_POLLS_RECOMPUTE_SWEEP_INTERVAL in seconds>. Subject to the page-load bucket.",
         "parameters": [
           {
             "name": "If-None-Match",
@@ -4481,7 +4481,7 @@
         ],
         "operationId": "trendingCards",
         "summary": "trending.json: the TRENDING cards, republished only when the set of polls changes",
-        "description": "Served by the instances when no delivery network is configured (otherwise the same object is fetched from trendingBaseUrl). Honours If-None-Match with 304; Cache-Control: public, max-age=<ENV_TRENDING_POLLS_RECOMPUTE_INTERVAL in seconds>. Subject to the page-load bucket.",
+        "description": "Served by the instances when no delivery network is configured (otherwise the same object is fetched from trendingBaseUrl). Honours If-None-Match with 304; Cache-Control: public, max-age=<ENV_TRENDING_POLLS_RECOMPUTE_SWEEP_INTERVAL in seconds>. Subject to the page-load bucket.",
         "parameters": [
           {
             "name": "If-None-Match",
@@ -4558,7 +4558,7 @@
         ],
         "operationId": "newestCounts",
         "summary": "newest-counts.json: Newest order and live counts, every recompute",
-        "description": "Also served at /api/trending/newest-counts.json. Served by the instances when no delivery network is configured (otherwise the same object is fetched from trendingBaseUrl, beside the TRENDING objects). Honours If-None-Match with 304; Cache-Control: public, max-age=<ENV_NEWEST_POLLS_RECOMPUTE_INTERVAL in seconds>. Subject to the page-load bucket. Same shape as trending-counts.json; the order is the Newest order: most recently launched first, ties by total votes, then by id.",
+        "description": "Also served at /api/trending/newest-counts.json. Served by the instances when no delivery network is configured (otherwise the same object is fetched from trendingBaseUrl, beside the TRENDING objects). Honours If-None-Match with 304; Cache-Control: public, max-age=<ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL in seconds>. Subject to the page-load bucket. Same shape as trending-counts.json; the order is the Newest order: most recently launched first, ties by total votes, then by id.",
         "parameters": [
           {
             "name": "If-None-Match",
@@ -4635,7 +4635,7 @@
         ],
         "operationId": "newestCards",
         "summary": "newest.json: the Newest cards, republished only when the set of polls changes",
-        "description": "Also served at /api/trending/newest.json. Served by the instances when no delivery network is configured (otherwise the same object is fetched from trendingBaseUrl, beside the TRENDING objects). Honours If-None-Match with 304; Cache-Control: public, max-age=<ENV_NEWEST_POLLS_RECOMPUTE_INTERVAL in seconds>. Subject to the page-load bucket. Same shape as trending.json.",
+        "description": "Also served at /api/trending/newest.json. Served by the instances when no delivery network is configured (otherwise the same object is fetched from trendingBaseUrl, beside the TRENDING objects). Honours If-None-Match with 304; Cache-Control: public, max-age=<ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL in seconds>. Subject to the page-load bucket. Same shape as trending.json.",
         "parameters": [
           {
             "name": "If-None-Match",
@@ -4712,7 +4712,7 @@
         ],
         "operationId": "refreshLiveResults",
         "summary": "The Live Results refresh: the session's polls from the live counters, as a delta (kind live)",
-        "description": "Registers the session as live until now + nextRefreshMs + ENV_MAX_IDLE_TIME; nextRefreshMs = ENV_MIN_LIVE_REFRESH_INTERVAL × the live multiplier. Never reads the primary store.",
+        "description": "Registers the session as live until now + nextRefreshMs + ENV_LIVE_RESULTS_MAX_IDLE_TIME; nextRefreshMs = ENV_MIN_LIVE_REFRESH_INTERVAL × the live multiplier. Never reads the primary store.",
         "security": [
           {
             "sessionCookie": []

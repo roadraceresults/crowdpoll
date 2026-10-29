@@ -11,7 +11,7 @@ import type { Poll } from "../src/polls/store.js";
 let ctx: TestContext;
 
 beforeAll(async () => {
-  ctx = await startTestContext({ ENV_MAX_NEWEST_POLLS: "3", ENV_NEWEST_POLLS_RECOMPUTE_INTERVAL: "60000" });
+  ctx = await startTestContext({ ENV_MAX_NEWEST_POLLS: "3", ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL: "60000" });
 });
 
 afterAll(async () => {
@@ -156,7 +156,7 @@ describe("publication", () => {
         puts.push({ key, cacheControl: headers.cacheControl, contentEncoding: headers.contentEncoding });
       }
     };
-    const publisher = createListingPublisher(store, ctx.config.newestRecomputeIntervalMs, NEWEST_OBJECTS);
+    const publisher = createListingPublisher(store, ctx.config.newestPollsRecomputeSweepIntervalMs, NEWEST_OBJECTS);
 
     expect(await publisher.publish(await recomputeNewest(ctx))).toEqual({ counts: true, cards: true });
     for (let i = 0; i < 3; i++) await countVote(ctx.cache, a._id, ["c1"], [], true);

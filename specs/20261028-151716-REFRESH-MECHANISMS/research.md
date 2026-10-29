@@ -82,7 +82,7 @@ A module variable `backoffMs` (0 = none) and `serverNextMs` (the last `nextRefre
 - `resetBackoff()` (sets 0 and, if a timer is pending longer than `serverNextMs`, reschedules at `serverNextMs`) is called from the panel interaction listener when the interaction is a vote, from `addPoll`, `removePoll`, and from the `visibilitychange` handler when the page becomes visible (visibility only: a page that stays visible keeps refreshing, so window `focus` is not listened to).
 Refusals (`429`, `503`) keep today's wait (`retryAfterMs`) and also reset the back-off (`backoffMs = 0`), so the next unchanged answer starts again from `serverNextMs`.
 
-**Rationale**: `live.touch` registers the tab until `now + nextRefreshMs + ENV_MAX_IDLE_TIME`, so a 10 s wait cannot expire it; the budget controller's activity factor reads backed-off tabs as less active, which is the intended effect.
+**Rationale**: `live.touch` registers the tab until `now + nextRefreshMs + ENV_LIVE_RESULTS_MAX_IDLE_TIME`, so a 10 s wait cannot expire it; the budget controller's activity factor reads backed-off tabs as less active, which is the intended effect.
 Sequence for a quiet poll: 2, 4, 8, 10, 10… s, so at most 8 requests a minute (SC-003).
 
 ## R7. CDN lifetime of Trending and Newest (FR-011, FR-012)
@@ -119,9 +119,10 @@ The bucket keeps one state across interval changes, so when `k` rises a browser 
 ## R10. Sweep intervals and documents (FR-015–FR-019)
 
 **Decision**:
-- `ENV_COUNTER_FLUSH_INTERVAL` default `10_000` in `src/config.ts`; `10000` in `.do/app.yaml`, every configuration of `launch.json.example` and `devScripts.example/launch-dev.ps1`.
-- `INVITATION_SWEEP_INTERVAL_MS = 30_000` in `src/polls/sweeps.ts`.
-- `CLAUDE.md` and `README.md` settings tables: the flush row says 10000; the manual floor row loses "Must not be below `ENV_COUNTER_FLUSH_INTERVAL`"; the two recompute rows say the published lifetime is at most 10 s.
+- `ENV_COUNTER_FLUSH_SWEEP_INTERVAL` default `10_000` in `src/config.ts`; `10000` in `.do/app.yaml`, every configuration of `launch.json.example` and `devScripts.example/launch-dev.ps1`.
+- The invitation sweep runs at `ENV_INVITATION_SWEEP_INTERVAL`, default `30_000` (`config.invitationSweepIntervalMs`; a constant in `src/polls/sweeps.ts` until TWEAK03).
+- TWEAK03 renamed eleven settings (`ENV_COUNTER_FLUSH_INTERVAL` → `ENV_COUNTER_FLUSH_SWEEP_INTERVAL`, `ENV_MAX_STRETCH` → `ENV_MAX_REFRESH_AND_SEARCH_STRETCH`, …); `loadConfig` refuses to start while an old name is set, naming its replacement (`RENAMED_VARS` in `src/config.ts`).
+- `CLAUDE.md` and `README.md` settings tables: the flush row says 10000; the manual floor row loses "Must not be below `ENV_COUNTER_FLUSH_SWEEP_INTERVAL`"; the two recompute rows say the published lifetime is at most 10 s.
 - `ARCHITECTURE.md`: *Refresh model and the three load bounds* rewritten around the five mechanisms (sweeps, vote path, Refresh button, implicit refreshes, Live Results timer), the load table, the rate and freshness limits, the per-user list version, the Live Results back-off and the 10 s listing lifetime; the sentence "Nothing refreshes on its own except the Live Results tab" replaced; *Sweeps* table: invitations 30 s, the flush's "every 2 s" note updated; TD3 recorded as by design.
 - Tests that pin old values: `tests/config.test.ts` (flush default), `tests/newest.test.ts` and `tests/trending.test.ts` (`max-age=60`), and any jsdom test reading `refreshBtn.disabled`.
 

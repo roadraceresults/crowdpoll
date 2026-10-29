@@ -67,8 +67,8 @@ export function createAppContext(deps: AppDeps): AppContext {
   const floors = createFloors({ config: deps.config, cache: deps.cache, sessions, budget });
   const pageLoads = createPageLoadBucket({ config: deps.config, cache: deps.cache, sessions });
   const store = deps.config.spaces ? createSpacesStore(deps.config.spaces) : null;
-  const trendingPublisher = createListingPublisher(store, deps.config.trendingRecomputeIntervalMs, TRENDING_OBJECTS);
-  const newestPublisher = createListingPublisher(store, deps.config.newestRecomputeIntervalMs, NEWEST_OBJECTS);
+  const trendingPublisher = createListingPublisher(store, deps.config.trendingPollsRecomputeSweepIntervalMs, TRENDING_OBJECTS);
+  const newestPublisher = createListingPublisher(store, deps.config.newestPollsRecomputeSweepIntervalMs, NEWEST_OBJECTS);
   const search = createSearch({
     db: deps.db,
     cache: deps.cache,

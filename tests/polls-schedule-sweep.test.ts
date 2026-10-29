@@ -142,7 +142,7 @@ describe("Manual transitions survive the date sweep (012 FR-028)", () => {
   });
 
   const T = new Date("2026-06-01T12:00:00Z");
-  const LATER = new Date(T.getTime() + 60_000); // one ENV_POLL_DATE_CHECK_POLLING_INTERVAL
+  const LATER = new Date(T.getTime() + 60_000); // one ENV_POLL_DATE_CHECK_SWEEP_INTERVAL
   const HOUR = 3600_000;
 
   it("a poll reopened from CLOSED stays OPEN after a sweep tick", async () => {

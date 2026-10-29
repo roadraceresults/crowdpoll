@@ -62,8 +62,6 @@ export const SWEEP_LOCKS = {
   invitations: 12
 } as const;
 
-const INVITATION_SWEEP_INTERVAL_MS = 30_000;
-
 /**
  * Runs `fn` while holding the advisory lock, or returns null at once when another
  * instance holds it. The lock is transaction-scoped, so it is released however `fn` ends.
@@ -375,50 +373,50 @@ export function buildSweepSchedules(config: AppConfig, services: SweepServices):
   return [
     {
       name: "staleEditUpdateSweep",
-      intervalMs: config.pollEditUpdateHeartbeatIntervalMs * 2,
+      intervalMs: config.pollEditHeartbeatIntervalMs * 2,
       lockId: SWEEP_LOCKS.staleEdit,
-      tick: (deps, now) => staleEditUpdateSweep(deps, config.pollEditUpdateHeartbeatIntervalMs, now)
+      tick: (deps, now) => staleEditUpdateSweep(deps, config.pollEditHeartbeatIntervalMs, now)
     },
     {
       name: "pollsAwaitingApprovalSweep",
-      intervalMs: config.pollApprovalPollingIntervalMs,
+      intervalMs: config.pollApprovalSweepIntervalMs,
       lockId: SWEEP_LOCKS.approval,
       tick: (deps, now) =>
         pollsAwaitingApprovalSweep(
           deps,
-          { maxAttempts: config.maxAcceptabilityScreeningAttempts, callTimeoutMs: config.apiCallTimeoutMs },
+          { maxAttempts: config.maxAcceptabilityScreeningAttempts, callTimeoutMs: config.screeningCallTimeoutMs },
           now
         )
     },
     {
       name: "scheduleSweep",
-      intervalMs: config.pollDateCheckPollingIntervalMs,
+      intervalMs: config.pollDateCheckSweepIntervalMs,
       lockId: SWEEP_LOCKS.schedule,
       tick: (deps, now) => scheduleSweep(deps, now)
     },
     {
       name: "counterFlushSweep",
-      intervalMs: config.counterFlushIntervalMs,
+      intervalMs: config.counterFlushSweepIntervalMs,
       lockId: SWEEP_LOCKS.counterFlush,
       tick: (deps, now) => counterFlushSweep(deps, now)
     },
     {
       name: "trendingSweep",
-      intervalMs: config.trendingRecomputeIntervalMs,
+      intervalMs: config.trendingPollsRecomputeSweepIntervalMs,
       lockId: SWEEP_LOCKS.trending,
       runAtStart: true,
       tick: (deps, now) => trendingSweep(deps, config, services.trendingPublisher, now)
     },
     {
       name: "newestSweep",
-      intervalMs: config.newestRecomputeIntervalMs,
+      intervalMs: config.newestPollsRecomputeSweepIntervalMs,
       lockId: SWEEP_LOCKS.newest,
       runAtStart: true,
       tick: (deps, now) => newestSweep(deps, config, services.newestPublisher, now)
     },
     {
       name: "outboxDrainSweep",
-      intervalMs: config.outboxDrainIntervalMs,
+      intervalMs: config.outboxDrainSweepIntervalMs,
       lockId: SWEEP_LOCKS.outbox,
       tick: (deps) => drainOutbox(deps.db, services.search.openSearch)
     },
@@ -430,7 +428,7 @@ export function buildSweepSchedules(config: AppConfig, services: SweepServices):
     },
     {
       name: "invitationSweep",
-      intervalMs: INVITATION_SWEEP_INTERVAL_MS,
+      intervalMs: config.invitationSweepIntervalMs,
       lockId: SWEEP_LOCKS.invitations,
       tick: (deps, now) => sendPendingInvitations({ db: deps.db, config }, undefined, now)
     },
@@ -448,7 +446,7 @@ export function buildSweepSchedules(config: AppConfig, services: SweepServices):
     },
     {
       name: "budgetController",
-      intervalMs: config.budgetControllerIntervalMs,
+      intervalMs: config.budgetControllerSweepIntervalMs,
       lockId: SWEEP_LOCKS.controller,
       tick: async (deps, now) => {
         await controllerTick({ cache: deps.cache, config, budget: services.budget, search: services.search }, now);

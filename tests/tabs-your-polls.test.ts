@@ -15,7 +15,7 @@ let admin: { cookie: string; userId: string };
 const meEmail = "your-polls@example.com";
 
 beforeAll(async () => {
-  ctx = await startTestContext({ ENV_ADMINS: ADMIN, ENV_MAX_POLLS_SEARCH_RESULTS: "3", ENV_MAX_NEWEST_POLLS: "3", ENV_MIN_MANUAL_REFRESH_INTERVAL: "1", ENV_MIN_SEARCH_INTERVAL: "1" });
+  ctx = await startTestContext({ ENV_ADMINS: ADMIN, ENV_MAX_POLLS_SEARCH_RESULTS: "3", ENV_MAX_NEWEST_POLLS: "3", ENV_MIN_MANUAL_REFRESH_INTERVAL: "1", ENV_MIN_SEARCH_REFRESH_INTERVAL: "1" });
   me = await forgeSession(ctx, meEmail);
   other = await forgeSession(ctx, "your-polls-other@example.com");
   admin = await forgeSession(ctx, ADMIN);

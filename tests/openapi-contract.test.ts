@@ -270,7 +270,7 @@ describe("openapi.json tracks the 017 surfaces", () => {
       responses: { "200": { content: { "application/json": { schema: unknown } } } };
     };
     const props = schemaProperties(config.responses["200"].content["application/json"].schema);
-    expect(Object.keys(props)).toContain("newestRecomputeIntervalMs");
+    expect(Object.keys(props)).toContain("newestPollsRecomputeSweepIntervalMs");
   });
 
   it("no longer documents the retired listing and single-poll fetch", () => {

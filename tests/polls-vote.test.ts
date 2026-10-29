@@ -15,7 +15,7 @@ let ctx: TestContext;
 let users = 0;
 
 beforeAll(async () => {
-  ctx = await startTestContext({ ENV_MIN_VOTE_INTERVAL: "100", ENV_PRIVATE_VOTER_LIMIT_DEFAULT: "3" });
+  ctx = await startTestContext({ ENV_MIN_VOTE_REFRESH_INTERVAL: "100", ENV_MAX_PRIVATE_POLL_VOTERS: "3" });
 });
 
 afterAll(async () => {
@@ -270,7 +270,7 @@ describe("POST /api/polls/:pid/vote", () => {
   });
 
   it("caps votes per address per minute, counting the excess for the operator", async () => {
-    const small = await startTestContext({ ENV_MAX_VOTES_PER_IP_PER_MINUTE: "2", ENV_MIN_VOTE_INTERVAL: "100" });
+    const small = await startTestContext({ ENV_MAX_VOTES_PER_IP_PER_MINUTE: "2", ENV_MIN_VOTE_REFRESH_INTERVAL: "100" });
     try {
       const poll = makePoll();
       await polls(small).insertOne(poll);

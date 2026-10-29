@@ -52,7 +52,7 @@ async function livePage() {
   };
 
   (window as unknown as { Tabs: unknown }).Tabs = {
-    config: async () => ({ floors: { live: 2000 }, maxIdleTimeMs: 1e12 }),
+    config: async () => ({ floors: { live: 2000 }, liveResultsMaxIdleTimeMs: 1e12 }),
     createOverlayFetcher: () => ({ fetch: async () => {}, reset() {} }),
     createGrid: (_el: unknown, opts: { onClose: typeof onClose }) => {
       onClose = opts.onClose;

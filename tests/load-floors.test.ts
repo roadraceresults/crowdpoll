@@ -9,10 +9,10 @@ let app: Express;
 
 beforeAll(async () => {
   ctx = await startTestContext({
-    ENV_MIN_SEARCH_INTERVAL: "300",
+    ENV_MIN_SEARCH_REFRESH_INTERVAL: "300",
     ENV_MIN_MANUAL_REFRESH_INTERVAL: "500",
     ENV_MIN_LIVE_REFRESH_INTERVAL: "200",
-    ENV_MIN_VOTE_INTERVAL: "250"
+    ENV_MIN_VOTE_REFRESH_INTERVAL: "250"
   });
   app = express();
   app.set("trust proxy", true);
@@ -73,8 +73,8 @@ describe("per-kind floors", () => {
   it("a burst allowance serves that many back to back, then holds to one per floor (FIX008)", async () => {
     const burst = await startTestContext({
       ENV_MIN_MANUAL_REFRESH_INTERVAL: "400",
-      ENV_MIN_SEARCH_INTERVAL: "300",
-      ENV_MIN_VOTE_INTERVAL: "250",
+      ENV_MIN_SEARCH_REFRESH_INTERVAL: "300",
+      ENV_MIN_VOTE_REFRESH_INTERVAL: "250",
       ENV_MANUAL_REFRESH_BURST: "3",
       ENV_SEARCH_BURST: "2"
     });

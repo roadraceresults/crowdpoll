@@ -211,7 +211,7 @@ After this feature, the architecture document explains the five refresh mechanis
 **Sweeps (User Story 6)**
 
 - **FR-015**: The default counter flush interval MUST be 10 s, in the application default, the production configuration and both development templates.
-- **FR-016**: The invitation sweep MUST run every 30 s; it remains a fixed value, not a setting.
+- **FR-016**: The invitation sweep MUST run every 30 s by default, set by `ENV_INVITATION_SWEEP_INTERVAL` (TWEAK03).
 - **FR-017**: No other sweep interval changes, and no configuration rule ties the counter flush interval to the manual refresh interval.
 
 **Documentation (User Story 7)**
@@ -249,5 +249,5 @@ After this feature, the architecture document explains the five refresh mechanis
 - The browser-side delta protocol, routes and response shapes are unchanged; the browser cannot tell an FR-004 answer from a full one.
 - Server push (Server-Sent Events or WebSockets) is out of scope.
 - The outbox drain, screening, schedule, stale-edit, Trending, Newest, budget controller and daily sweeps keep their intervals.
-- No new setting, migration or dependency is introduced; the 10 s CDN lifetime and the 30 s invitation interval are fixed values.
+- No migration or dependency is introduced; one setting is added, `ENV_INVITATION_SWEEP_INTERVAL` (30 s), and eleven sweep and refresh settings renamed, the old names refused at start-up (TWEAK03); the 10 s CDN lifetime is a fixed value.
 - The stretched-interval enforcement (FR-014) needs a load test of its own before production.

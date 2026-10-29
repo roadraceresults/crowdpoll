@@ -3,7 +3,7 @@
   configured number of polls, newest on top, and asks the server for a delta on a
   timer set by the last nextRefreshMs (never sooner than the live floor). The timer
   pauses while the page is hidden and stops for an idle prompt after
-  ENV_MAX_IDLE_TIME without interaction; Cancel, or a lapsed registration, closes
+  ENV_LIVE_RESULTS_MAX_IDLE_TIME without interaction; Cancel, or a lapsed registration, closes
   the tab.
 */
 (function () {
@@ -108,7 +108,7 @@
     if (!open || prompting) return;
     if (document.hidden) return;
     const cfg = await config();
-    if (Date.now() - lastInteractionAt >= (cfg.maxIdleTimeMs || 1800000)) {
+    if (Date.now() - lastInteractionAt >= (cfg.liveResultsMaxIdleTimeMs || 1800000)) {
       showIdlePrompt();
       return;
     }

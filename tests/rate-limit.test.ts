@@ -170,7 +170,7 @@ describe("create-account requests (FR-001/FR-004a)", () => {
 describe("The email rate limit honours its configuration (012)", () => {
   it("allows the configured number of requests, then refuses", async () => {
     const generous = await startTestContext({
-      ENV_EMAIL_RATE_LIMIT_MINUTES_WINDOW: "15",
+      ENV_EMAIL_RATE_LIMIT_WINDOW_MINUTES: "15",
       ENV_EMAIL_RATE_LIMIT_MAX_REQUESTS_PER_WINDOW: "4"
     });
     try {
@@ -198,7 +198,7 @@ describe("The email rate limit honours its configuration (012)", () => {
 
   it("honours a shortened window, so a locked-out client recovers sooner", async () => {
     const brief = await startTestContext({
-      ENV_EMAIL_RATE_LIMIT_MINUTES_WINDOW: "1",
+      ENV_EMAIL_RATE_LIMIT_WINDOW_MINUTES: "1",
       ENV_EMAIL_RATE_LIMIT_MAX_REQUESTS_PER_WINDOW: "1"
     });
     try {

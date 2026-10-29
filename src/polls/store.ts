@@ -135,7 +135,7 @@ export interface Poll {
    * 012 FR-006/FR-008: null on a Public Poll means "not applicable" — the field is
    * disabled there. On any private visibility null means the configured default, not unlimited:
    * the field is never auto-filled, so a blank box and a stored default are the same
-   * effective limit, where that default is ENV_PRIVATE_VOTER_LIMIT_DEFAULT.
+   * effective limit, where that default is ENV_MAX_PRIVATE_POLL_VOTERS.
    * See effectiveVoterLimit() in service.ts.
    */
   voterCountLimit: number | null;

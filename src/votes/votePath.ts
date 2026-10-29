@@ -42,7 +42,7 @@ export interface VoteResponse {
 export interface VotePathDeps {
   db: Db;
   cache: Cache;
-  config: Pick<AppConfig, "maxVotesPerIpPerMinute" | "voteQueueLagNoticeMs" | "privateVoterLimitDefault">;
+  config: Pick<AppConfig, "maxVotesPerIpPerMinute" | "voteQueueLagNoticeMs" | "maxPrivatePollVoters">;
   rosters: RosterCache;
   abuse: { ipVoteCap: number };
 }

@@ -393,7 +393,7 @@ All settings are `ENV_*` environment variables. Intervals are in milliseconds un
 | `ENV_BETTER_AUTH_SECRET` | — (required, ≥ 32 chars) | Session signing secret |
 | `ENV_ADMINS` | `roadraceresults@gmail.com` | Comma-separated administrator addresses |
 | `ENV_SIGNIN_METHOD` | `native` | `native` (email login link), `oauth` (sign-in providers only) or `both` |
-| `ENV_SIGNIN_COOKIE_DURATION_MAX` | `2592000000` | Longest stay-signed-in session (30 days) |
+| `ENV_MAX_SIGNIN_COOKIE_DURATION` | `2592000000` | Longest stay-signed-in session (30 days) |
 | `ENV_STAY_SIGNED_IN` | `0` | `1` → the login page's "Stay signed in" box starts ticked; anything else leaves it clear |
 | `ENV_EMAIL_TRANSPORT` | `smtp` | `smtp` (development) or `ses` (production); `ses` requires the three `ENV_SES_*` values |
 | `ENV_SES_REGION` / `ENV_SES_ACCESS_KEY_ID` / `ENV_SES_SECRET_ACCESS_KEY` | — | Amazon SES region and sending key |
@@ -404,48 +404,49 @@ All settings are `ENV_*` environment variables. Intervals are in milliseconds un
 | `ENV_ALLOWED_EMAILS` | unset | Comma-separated addresses allowed to create an account and sign in before launch; administrators always are. Unset or empty: everyone. An invalid entry stops the app. Production: an encrypted console variable, never in `.do/app.yaml` |
 | `ENV_OAUTH_GOOGLE_*`, `ENV_OAUTH_MICROSOFT_*`, `ENV_OAUTH_AMAZON_*` (`CLIENT_ID`, `CLIENT_SECRET`) | — | Sign-in provider credentials; a provider is on when both are set |
 | `ENV_OAUTH_APPLE_CLIENT_ID` / `_TEAM_ID` / `_KEY_ID` / `_PRIVATE_KEY` | — | Sign in with Apple: the Services ID, team, key id and the key's PEM (`\n` pairs read as line breaks) |
-| `ENV_EMAIL_RATE_LIMIT_MINUTES_WINDOW` / `ENV_EMAIL_RATE_LIMIT_MAX_REQUESTS_PER_WINDOW` | `15` / `2` | Email-sending rate limit (window in **minutes**) |
-| `ENV_API_CALL_TIMEOUT` | `10000` | Bound on one screening call |
-| `ENV_POLL_APPROVAL_POLLING_INTERVAL` | `5000` | Screening sweep interval |
-| `ENV_POLL_DATE_CHECK_POLLING_INTERVAL` | `60000` | Schedule sweep interval |
-| `ENV_POLL_EDIT_UPDATE_HEARTBEAT_INTERVAL` | `10000` | Editing-page heartbeat |
+| `ENV_EMAIL_RATE_LIMIT_WINDOW_MINUTES` / `ENV_EMAIL_RATE_LIMIT_MAX_REQUESTS_PER_WINDOW` | `15` / `2` | Email-sending rate limit (window in **minutes**) |
+| `ENV_SCREENING_CALL_TIMEOUT` | `10000` | Bound on one screening call |
+| `ENV_POLL_APPROVAL_SWEEP_INTERVAL` | `5000` | Screening sweep interval |
+| `ENV_POLL_DATE_CHECK_SWEEP_INTERVAL` | `60000` | Schedule sweep interval |
+| `ENV_POLL_EDIT_HEARTBEAT_INTERVAL` | `10000` | Editing-page heartbeat |
 | `ENV_MAX_ACCEPTABILITY_SCREENING_ATTEMPTS` | `10` | Screening attempts before a poll is rejected |
 | `ENV_POLL_ADMIN_PAGE_REFRESH_INTERVAL` | `5000` | Admin list refresh |
 | `ENV_PARTICIPANTS_VIEWPORT_SIZE` | `10` | Rows per page in the card's participant lists |
 | `ENV_MAX_INVITATIONS_PER_DAY` | `200` | Invitation and reminder emails per poll creator in any rolling 24 hours; the rest wait |
-| `ENV_PRIVATE_VOTER_LIMIT_DEFAULT` | `100` | Voter ceiling on a private poll |
+| `ENV_MAX_PRIVATE_POLL_VOTERS` | `100` | Voter ceiling on a private poll |
 | `ENV_MIN_CHOICES` / `ENV_MAX_CHOICES` | `2` / `50` | Choices a poll may be published with |
 | `ENV_SESSION_CACHE_TTL` | `300000` | How long a session lookup is served from the cache |
 | `ENV_MAX_POLLS_SEARCH_RESULTS` | `200` | Cap on search results, personal-tab rows and overlay ids |
 | `ENV_MAX_POLLS_ADMIN_SEARCH_RESULTS` | `200` | Cap on admin search results and the unfiltered admin list |
 | `ENV_MAX_TRENDING_POLLS` | `200` | Polls on the TRENDING tab |
-| `ENV_TRENDING_POLLS_RECOMPUTE_INTERVAL` | `60000` | TRENDING recompute and publication interval; the published lifetime (`max-age`) is the smaller of it and 10 s |
+| `ENV_TRENDING_POLLS_RECOMPUTE_SWEEP_INTERVAL` | `60000` | TRENDING recompute and publication interval; the published lifetime (`max-age`) is the smaller of it and 10 s |
 | `ENV_MAX_NEWEST_POLLS` | `50` | Polls on the Newest tab; at most `ENV_MAX_POLLS_SEARCH_RESULTS` |
-| `ENV_NEWEST_POLLS_RECOMPUTE_INTERVAL` | `60000` | Newest recompute and publication interval (at least 1000); the published lifetime is the smaller of it and 10 s |
+| `ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL` | `60000` | Newest recompute and publication interval (at least 1000); the published lifetime is the smaller of it and 10 s |
 | `ENV_MIN_LIVE_REFRESH_INTERVAL` | `2000` | Floor between two Live Results refreshes per visitor |
 | `ENV_MIN_MANUAL_REFRESH_INTERVAL` | `5000` | Floor between two manual refreshes per visitor |
-| `ENV_MIN_SEARCH_INTERVAL` | `2000` | Floor between two searches per visitor |
-| `ENV_MIN_VOTE_INTERVAL` | `2000` | Floor between two votes per session |
+| `ENV_MIN_SEARCH_REFRESH_INTERVAL` | `2000` | Floor between two searches per visitor |
+| `ENV_MIN_VOTE_REFRESH_INTERVAL` | `2000` | Floor between two votes per session |
 | `ENV_MANUAL_REFRESH_BURST` | `5` | Manual requests a visitor may make back to back before the floor applies |
 | `ENV_SEARCH_BURST` | `3` | Searches a visitor may make back to back before the floor applies |
 | `ENV_MAX_VOTES_PER_IP_PER_MINUTE` | `600` | Votes per address per minute before refusal |
 | `ENV_MAX_LIVE_RESULTS_PER_USER` | `5` | Polls in the Live Results tab |
-| `ENV_MAX_IDLE_TIME` | `1800000` | Idle time before Live Results asks whether to continue |
-| `ENV_SERVER_MAX_REFRESH_PER_INSTANCE_PER_SECOND` | `1250` | Dynamic requests per second each live instance adds to the budget |
-| `ENV_SERVER_MAX_REFRESH_PER_SECOND` | `15000` | Cap on the fleet's budget |
+| `ENV_LIVE_RESULTS_MAX_IDLE_TIME` | `1800000` | Idle time before Live Results asks whether to continue |
+| `ENV_SERVER_MAX_REQUESTS_PER_INSTANCE_PER_SECOND` | `1250` | Dynamic requests per second each live instance adds to the budget |
+| `ENV_SERVER_MAX_REQUESTS_PER_SECOND` | `15000` | Cap on the fleet's budget |
 | `ENV_SERVER_MAX_SEARCH_PER_SECOND` | `2000` | Search-engine queries per second before searches are stretched |
-| `ENV_SERVER_MAX_SEARCH_PER_SECOND_FALLBACK` | `200` | The same while PostgreSQL full-text search serves |
-| `ENV_BUDGET_CONTROLLER_INTERVAL` | `1000` | Controller tick; must not exceed the smallest floor |
-| `ENV_MAX_STRETCH` | `8` | Largest multiplier on the search and manual floors |
+| `ENV_SERVER_MAX_SEARCH_FALLBACK_PER_SECOND` | `200` | The same while PostgreSQL full-text search serves |
+| `ENV_BUDGET_CONTROLLER_SWEEP_INTERVAL` | `1000` | Controller tick; must not exceed the smallest floor |
+| `ENV_MAX_REFRESH_AND_SEARCH_STRETCH` | `8` | Largest multiplier on the search and manual floors |
 | `ENV_BUDGET_LOWER_THRESHOLD_PERCENT` | `80` | Load below this share of the budget relaxes the multipliers |
 | `ENV_INSTANCE_MAX_INFLIGHT` | `200` | Requests in flight on one instance before it sheds |
 | `ENV_INSTANCE_MAX_EVENT_LOOP_LAG` | `100` | Event-loop lag (ms) before an instance sheds |
 | `ENV_SHED_RETRY_AFTER` | `2000` | `Retry-After` handed out with a `503` |
-| `ENV_COUNTER_FLUSH_INTERVAL` | `10000` | How often live vote counters are written to poll rows |
+| `ENV_COUNTER_FLUSH_SWEEP_INTERVAL` | `10000` | How often live vote counters are written to poll rows |
+| `ENV_INVITATION_SWEEP_INTERVAL` | `30000` | How often pending invitation emails of open polls are picked up |
 | `ENV_VOTE_BATCH_SIZE` | `500` | Votes written per batch |
 | `ENV_VOTE_QUEUE_LAG_NOTICE` | `2000` | Writer lag above which a vote is reported as queued |
 | `ENV_SEARCH_CACHE_TTL` | `10000` | How long identical searches are answered from the cache |
-| `ENV_OUTBOX_DRAIN_INTERVAL` | `15000` | How often changed polls are pushed to the search index |
+| `ENV_OUTBOX_DRAIN_SWEEP_INTERVAL` | `15000` | How often changed polls are pushed to the search index |
 | `ENV_MAX_BOOKMARKS_PER_USER` | `200` | Bookmarks per visitor |
 | `ENV_BOOKMARK_EXPIRY_MONTHS` | `6` | Months of closure or inactivity before a bookmark is removed |
 | `ENV_PAGE_LOADS_PER_MINUTE` | `120` | Page loads per session (or address) per minute before a notice |

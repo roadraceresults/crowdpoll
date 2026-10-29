@@ -40,7 +40,7 @@
   const runtime = { privateVoterLimit: 100, participantsViewportSize: 10, maxInvitationsPerDay: 200, minChoices: 2, maxChoices: 50, barPalette: [] };
 
   function setRuntimeConfig(cfg) {
-    if (Number.isInteger(cfg.privateVoterLimitDefault)) runtime.privateVoterLimit = cfg.privateVoterLimitDefault;
+    if (Number.isInteger(cfg.maxPrivatePollVoters)) runtime.privateVoterLimit = cfg.maxPrivatePollVoters;
     if (Number.isInteger(cfg.participantsViewportSize)) runtime.participantsViewportSize = cfg.participantsViewportSize;
     if (Number.isInteger(cfg.maxInvitationsPerDay)) runtime.maxInvitationsPerDay = cfg.maxInvitationsPerDay;
     if (Number.isInteger(cfg.minChoices)) runtime.minChoices = cfg.minChoices;

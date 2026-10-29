@@ -13,7 +13,7 @@ let ctx: TestContext;
 let page: BrowserPage | null = null;
 
 beforeAll(async () => {
-  ctx = await startTestContext({ ENV_MIN_MANUAL_REFRESH_INTERVAL: "1200", ENV_MIN_VOTE_INTERVAL: "2000", ...LISTING_MAX_AGE_1S });
+  ctx = await startTestContext({ ENV_MIN_MANUAL_REFRESH_INTERVAL: "1200", ENV_MIN_VOTE_REFRESH_INTERVAL: "2000", ...LISTING_MAX_AGE_1S });
 });
 
 afterAll(async () => {
@@ -550,7 +550,7 @@ describe("the Live Results tab in a browser", () => {
     const live = await startTestContext({
       ENV_MIN_LIVE_REFRESH_INTERVAL: "300",
       ENV_MIN_MANUAL_REFRESH_INTERVAL: "1",
-      ENV_MAX_IDLE_TIME: "60000"
+      ENV_LIVE_RESULTS_MAX_IDLE_TIME: "60000"
     });
     let livePage: BrowserPage | null = null;
     try {
@@ -594,7 +594,7 @@ describe("the Live Results tab in a browser", () => {
     const live = await startTestContext({
       ENV_MIN_LIVE_REFRESH_INTERVAL: "300",
       ENV_MIN_MANUAL_REFRESH_INTERVAL: "1",
-      ENV_MAX_IDLE_TIME: "60000"
+      ENV_LIVE_RESULTS_MAX_IDLE_TIME: "60000"
     });
     let livePage: BrowserPage | null = null;
     try {
@@ -666,7 +666,7 @@ describe("the Live Results tab in a browser", () => {
     const live = await startTestContext({
       ENV_MIN_LIVE_REFRESH_INTERVAL: "300",
       ENV_MIN_MANUAL_REFRESH_INTERVAL: "1",
-      ENV_MAX_IDLE_TIME: "60000"
+      ENV_LIVE_RESULTS_MAX_IDLE_TIME: "60000"
     });
     let livePage: BrowserPage | null = null;
     try {
@@ -701,7 +701,7 @@ describe("the Live Results tab in a browser", () => {
   });
 
   it("a closed poll on another tab still offers no Live Results link", async () => {
-    const live = await startTestContext({ ENV_MIN_MANUAL_REFRESH_INTERVAL: "1", ENV_MIN_SEARCH_INTERVAL: "1" });
+    const live = await startTestContext({ ENV_MIN_MANUAL_REFRESH_INTERVAL: "1", ENV_MIN_SEARCH_REFRESH_INTERVAL: "1" });
     let livePage: BrowserPage | null = null;
     try {
       const { cookie } = await forgeSession(live, "live-closed-elsewhere@example.com");
@@ -734,7 +734,7 @@ describe("the Live Results tab in a browser", () => {
     const live = await startTestContext({
       ENV_MIN_LIVE_REFRESH_INTERVAL: "300",
       ENV_MIN_MANUAL_REFRESH_INTERVAL: "1",
-      ENV_MAX_IDLE_TIME: "60000"
+      ENV_LIVE_RESULTS_MAX_IDLE_TIME: "60000"
     });
     let livePage: BrowserPage | null = null;
     try {
@@ -811,7 +811,7 @@ describe("the Live Results tab in a browser", () => {
       ENV_MAX_LIVE_RESULTS_PER_USER: "1",
       ENV_MIN_LIVE_REFRESH_INTERVAL: "300",
       ENV_MIN_MANUAL_REFRESH_INTERVAL: "1",
-      ENV_MAX_IDLE_TIME: "60000"
+      ENV_LIVE_RESULTS_MAX_IDLE_TIME: "60000"
     });
     let livePage: BrowserPage | null = null;
     try {
@@ -847,7 +847,7 @@ describe("the Live Results tab in a browser", () => {
     const live = await startTestContext({
       ENV_MIN_LIVE_REFRESH_INTERVAL: "200",
       ENV_MIN_MANUAL_REFRESH_INTERVAL: "1",
-      ENV_MAX_IDLE_TIME: "400"
+      ENV_LIVE_RESULTS_MAX_IDLE_TIME: "400"
     });
     let livePage: BrowserPage | null = null;
     try {
@@ -1352,7 +1352,7 @@ describe("the burst allowance in a browser (FIX008)", () => {
 
 describe("the Live Results tab's overlay (FIX011)", () => {
   it("a bookmarked poll shows as bookmarked in Live Results, from the handing-over tab at once and from the server when no tab holds it", async () => {
-    const live = await startTestContext({ ENV_MIN_LIVE_REFRESH_INTERVAL: "300", ENV_MIN_MANUAL_REFRESH_INTERVAL: "1", ENV_MAX_IDLE_TIME: "60000" });
+    const live = await startTestContext({ ENV_MIN_LIVE_REFRESH_INTERVAL: "300", ENV_MIN_MANUAL_REFRESH_INTERVAL: "1", ENV_LIVE_RESULTS_MAX_IDLE_TIME: "60000" });
     let livePage: BrowserPage | null = null;
     try {
       const me = "live-marks@example.com";
@@ -1411,7 +1411,7 @@ describe("arriving with search terms on the URL (FIX013)", () => {
 
 describe("the Live Results tab in another window or after a reload (FIX018)", () => {
   it("a window that holds nothing asks the server for the session's registered polls when the tab is opened", async () => {
-    const live = await startTestContext({ ENV_MIN_LIVE_REFRESH_INTERVAL: "300", ENV_MIN_MANUAL_REFRESH_INTERVAL: "1", ENV_MAX_IDLE_TIME: "60000" });
+    const live = await startTestContext({ ENV_MIN_LIVE_REFRESH_INTERVAL: "300", ENV_MIN_MANUAL_REFRESH_INTERVAL: "1", ENV_LIVE_RESULTS_MAX_IDLE_TIME: "60000" });
     let first: BrowserPage | null = null;
     let second: BrowserPage | null = null;
     try {
@@ -1466,7 +1466,7 @@ describe("the Live Results tab in another window or after a reload (FIX018)", ()
 
 describe("two visible windows on Live Results (FIX019)", () => {
   it("share the session's live floor by turns, so both windows end up with the same polls; the Refresh control is hidden there", async () => {
-    const live = await startTestContext({ ENV_MIN_LIVE_REFRESH_INTERVAL: "300", ENV_MIN_MANUAL_REFRESH_INTERVAL: "1", ENV_MAX_IDLE_TIME: "60000" });
+    const live = await startTestContext({ ENV_MIN_LIVE_REFRESH_INTERVAL: "300", ENV_MIN_MANUAL_REFRESH_INTERVAL: "1", ENV_LIVE_RESULTS_MAX_IDLE_TIME: "60000" });
     let a: BrowserPage | null = null;
     let b: BrowserPage | null = null;
     try {

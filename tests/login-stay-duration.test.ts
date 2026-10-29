@@ -1,5 +1,5 @@
 /**
- * The login card says how long "stay signed in" lasts, from ENV_SIGNIN_COOKIE_DURATION_MAX:
+ * The login card says how long "stay signed in" lasts, from ENV_MAX_SIGNIN_COOKIE_DURATION:
  * whole days rounded down ("day" for one, "days" for more), and hours to two decimals
  * below a day (a test deployment only).
  */
@@ -15,7 +15,7 @@ let originalDefault: boolean;
 
 beforeAll(async () => {
   ctx = await startTestContext();
-  original = ctx.config.signinCookieDurationMaxMs;
+  original = ctx.config.maxSigninCookieDurationMs;
   originalDefault = ctx.config.staySignedInDefault;
 });
 afterAll(async () => {
@@ -24,12 +24,12 @@ afterAll(async () => {
 afterEach(() => {
   page?.close();
   page = null;
-  ctx.config.signinCookieDurationMaxMs = original;
+  ctx.config.maxSigninCookieDurationMs = original;
   ctx.config.staySignedInDefault = originalDefault;
 });
 
 async function stayText(ms: number | null): Promise<string> {
-  if (ms !== null) ctx.config.signinCookieDurationMaxMs = ms;
+  if (ms !== null) ctx.config.maxSigninCookieDurationMs = ms;
   page = await openPage(ctx, "login.html", {
     url: "http://localhost/login",
     scripts: ["app.js", "cardShell.js", "loginCard.js"]
@@ -44,7 +44,7 @@ const HOUR = 3600000;
 describe("the stay-signed-in help text", () => {
   it("serves the duration in the configuration", async () => {
     const res = await request(ctx.app).get("/api/config");
-    expect(res.body.signinCookieDurationMaxMs).toBe(original);
+    expect(res.body.maxSigninCookieDurationMs).toBe(original);
   });
 
   it("says 30 days for the default setting", async () => {

@@ -25,12 +25,12 @@ Unchanged, except that projections are written only when missing or stale (R5).
 
 ## A4. `GET /api/config`
 
-Two new fields, beside the existing `trendingRecomputeIntervalMs` and `newestRecomputeIntervalMs`:
+Two new fields, beside the existing `trendingPollsRecomputeSweepIntervalMs` and `newestPollsRecomputeSweepIntervalMs`:
 
 | Field | Value |
 |---|---|
-| `trendingMaxAgeMs` | `min(ENV_TRENDING_POLLS_RECOMPUTE_INTERVAL, 10000)` |
-| `newestMaxAgeMs` | `min(ENV_NEWEST_POLLS_RECOMPUTE_INTERVAL, 10000)` |
+| `trendingMaxAgeMs` | `min(ENV_TRENDING_POLLS_RECOMPUTE_SWEEP_INTERVAL, 10000)` |
+| `newestMaxAgeMs` | `min(ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL, 10000)` |
 
 ## A5. Trending and Newest objects
 
@@ -54,7 +54,7 @@ The line is still written when a multiplier changes, when over budget, and at le
 
 | Sweep | Interval |
 |---|---|
-| `counterFlushSweep` | `ENV_COUNTER_FLUSH_INTERVAL`, default **10000** (was 2000) |
-| `invitationSweep` | **30000**, fixed (was 5000) |
+| `counterFlushSweep` | `ENV_COUNTER_FLUSH_SWEEP_INTERVAL`, default **10000** (was 2000) |
+| `invitationSweep` | `ENV_INVITATION_SWEEP_INTERVAL`, default **30000** (was a fixed 5000) |
 
 The start-up lines `[sweeps] <name> every <ms>ms (lock <n>)` show the new values.

@@ -116,9 +116,9 @@ export function createTabsApiRouter(context: AppContext): Router {
     });
   }
   const trendingObject = (which: "counts" | "cards") =>
-    serveListingObject(readTrendingObjects, "trending-not-ready", config.trendingRecomputeIntervalMs, which);
+    serveListingObject(readTrendingObjects, "trending-not-ready", config.trendingPollsRecomputeSweepIntervalMs, which);
   const newestObject = (which: "counts" | "cards") =>
-    serveListingObject(readNewestObjects, "newest-not-ready", config.newestRecomputeIntervalMs, which);
+    serveListingObject(readNewestObjects, "newest-not-ready", config.newestPollsRecomputeSweepIntervalMs, which);
   router.get(["/api/trending/counts", "/api/trending/trending-counts.json"], pageLoads, trendingObject("counts"));
   router.get(["/api/trending/cards", "/api/trending/trending.json"], pageLoads, trendingObject("cards"));
   router.get(["/api/trending/newest-counts", "/api/trending/newest-counts.json"], pageLoads, newestObject("counts"));

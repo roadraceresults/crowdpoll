@@ -30,7 +30,7 @@ Research R1–R10.
 
 **Performance Goals**: shortcut answer with no database query, under 50 ms at the server for 200 polls (SC-001); ≥ 80 % of personal-tab answers by the shortcut (SC-002); a quiet Live Results tab ≤ 8 requests a minute (SC-003).
 
-**Constraints**: response shapes unchanged; no new setting, cookie or storage key; every change signal after commit; a lost cache costs only full answers.
+**Constraints**: response shapes unchanged; one new setting (`ENV_INVITATION_SWEEP_INTERVAL`, TWEAK03) and twenty renamed (TWEAK03, TWEAK06, TWEAK08; an old name still set stops the app), no cookie or storage key; every change signal after commit; a lost cache costs only full answers.
 
 **Scale/Scope**: up to 200 polls per tab; one `tabs:v` key per active user and one `tabs:seen` record per active tab (≤ ~10 KB each).
 
@@ -39,7 +39,7 @@ Research R1–R10.
 | Principle | Check |
 |---|---|
 | I. Think Before Coding | Every behaviour traces to a resolved requirements finding or a clarification; the one deviation (a single refusal when `k` rises, R9) is stated. ✅ |
-| II. Simplicity First | Delete-to-signal instead of fan-out or triggers (R1, R3); two cache methods (R5); one constant for the listing lifetime (R7); no new setting. ✅ |
+| II. Simplicity First | Delete-to-signal instead of fan-out or triggers (R1, R3); two cache methods (R5); one constant for the listing lifetime (R7); one new setting, `ENV_INVITATION_SWEEP_INTERVAL` (TWEAK03). ✅ |
 | III. Surgical Changes | Server: `floors.ts`, `controller.ts`, `tabsApi.ts`, `store.ts`, `bookmarks.ts`, `invitations.ts`, `userPolls.ts`, `consumer.ts`, `deleteAccount.ts`, `publish.ts`, `sweeps.ts`, `config.ts`, `api.ts` (config fields), cache interface and two implementations; one new module `src/refresh/tabVersions.ts`. Browser: `tabs.js`, `liveResults.js`, `trending.js`, `newest.js`, two stylesheets. ✅ |
 | IV. Goal-Driven Execution | Each FR has a test named in `tasks.md`; quickstart steps 1–7 check SC-001–SC-007. ✅ |
 | V. Code Quality | The controller logs the new counts; a failed cache call on the shortcut falls back to a full answer; the browser logs nothing new. ✅ |
@@ -85,8 +85,8 @@ src/
 ├── load/floors.ts              # stretched refill; stretched-refusal counter
 ├── load/controller.ts          # tabs= and stretched= on the log line
 ├── trending/publish.ts         # listingMaxAgeMs
-├── polls/sweeps.ts             # INVITATION_SWEEP_INTERVAL_MS = 30000
-├── config.ts                   # ENV_COUNTER_FLUSH_INTERVAL default 10000
+├── polls/sweeps.ts             # invitationSweep at config.invitationSweepIntervalMs (30000)
+├── config.ts                   # ENV_COUNTER_FLUSH_SWEEP_INTERVAL default 10000
 └── public/
     ├── tabs.js                 # aria-disabled Refresh, countdown title, refreshAvailableIn
     ├── liveResults.js          # back-off

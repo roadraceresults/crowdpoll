@@ -14,7 +14,7 @@ beforeAll(async () => {
   ctx = await startTestContext({
     ENV_MAX_POLLS_SEARCH_RESULTS: "3",
     ENV_MAX_NEWEST_POLLS: "3",
-    ENV_MIN_SEARCH_INTERVAL: "300",
+    ENV_MIN_SEARCH_REFRESH_INTERVAL: "300",
     ENV_SEARCH_CACHE_TTL: "10000"
   });
 });

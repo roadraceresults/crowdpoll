@@ -80,7 +80,7 @@ export function createBudget(config: AppConfig, cache: Cache, instanceId: string
     liveInstances: async () => (await cache.scan("instance:*")).length,
     async effectiveBudget() {
       const instances = Math.max(1, (await cache.scan("instance:*")).length);
-      return Math.min(instances * config.serverMaxRefreshPerInstancePerSecond, config.serverMaxRefreshPerSecond);
+      return Math.min(instances * config.serverMaxRequestsPerInstancePerSecond, config.serverMaxRequestsPerSecond);
     },
     async multiplier(kind) {
       return (await readMultipliers())[kind];

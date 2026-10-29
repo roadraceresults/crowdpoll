@@ -77,7 +77,7 @@ export function resendBlockedReason(
 export async function listInvitees(
   db: Db,
   poll: Poll,
-  config: Pick<AppConfig, "privateVoterLimitDefault">,
+  config: Pick<AppConfig, "maxPrivatePollVoters">,
   now: Date = new Date()
 ): Promise<InviteeList> {
   const rows = (await db

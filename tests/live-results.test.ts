@@ -15,8 +15,8 @@ beforeAll(async () => {
     ENV_MAX_LIVE_RESULTS_PER_USER: "3",
     ENV_MIN_LIVE_REFRESH_INTERVAL: "300",
     ENV_MIN_MANUAL_REFRESH_INTERVAL: "1",
-    ENV_MAX_IDLE_TIME: "1000",
-    ENV_COUNTER_FLUSH_INTERVAL: "30000"
+    ENV_LIVE_RESULTS_MAX_IDLE_TIME: "1000",
+    ENV_COUNTER_FLUSH_SWEEP_INTERVAL: "30000"
   });
   const forged = await forgeSession(ctx, me);
   cookie = forged.cookie;
@@ -159,8 +159,8 @@ describe("the Live Results tab", () => {
   });
 
   it("keeps a session registered, never live-expired, while its backed-off tab refreshes every 10 s", async () => {
-    // ENV_MAX_IDLE_TIME's default; this suite lowers it to 1 s.
-    const live = createLiveRegistry({ db: ctx.db, cache: ctx.cache, config: { ...ctx.config, maxIdleTimeMs: 1_800_000 }, rosters: ctx.rosters });
+    // ENV_LIVE_RESULTS_MAX_IDLE_TIME's default; this suite lowers it to 1 s.
+    const live = createLiveRegistry({ db: ctx.db, cache: ctx.cache, config: { ...ctx.config, liveResultsMaxIdleTimeMs: 1_800_000 }, rosters: ctx.rosters });
     const start = Date.now();
     for (let step = 0; step <= 6; step++) {
       const at = new Date(start + step * 10_000);

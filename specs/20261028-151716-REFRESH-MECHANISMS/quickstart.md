@@ -4,7 +4,7 @@ Validates the feature end to end on a development server.
 
 ## Prerequisites
 
-- PostgreSQL as for `npm run dev`; `devScripts/launch-dev.ps1` regenerated from `devScripts.example/launch-dev.ps1` (it now sets `ENV_COUNTER_FLUSH_INTERVAL=10000`).
+- PostgreSQL as for `npm run dev`; `devScripts/launch-dev.ps1` regenerated from `devScripts.example/launch-dev.ps1` (it now sets `ENV_COUNTER_FLUSH_SWEEP_INTERVAL=10000`).
 - Two browsers (A and B), each signed in as a different account with `View Polls` and `Vote on Polls`.
 - A test poll with votes: `npx tsx devScripts/populate/populate-poll.ts tests/fixtures/populate-poll.json`.
 
@@ -53,4 +53,4 @@ In a test (or with the cache key `k:refresh` set to `3` by hand), send refreshes
 
 ## 7. Documents (FR-018, FR-019)
 
-`ARCHITECTURE.md`'s refresh and sweeps sections describe the five mechanisms and the new values; searching `CLAUDE.md`, `README.md` and `ARCHITECTURE.md` finds no "every 2 s" flush and no "Must not be below `ENV_COUNTER_FLUSH_INTERVAL`".
+`ARCHITECTURE.md`'s refresh and sweeps sections describe the five mechanisms and the new values; searching `CLAUDE.md`, `README.md` and `ARCHITECTURE.md` finds no "every 2 s" flush and no "Must not be below `ENV_COUNTER_FLUSH_SWEEP_INTERVAL`".

@@ -23,12 +23,12 @@ function baseEnv(overrides: Record<string, string | undefined> = {}) {
 describe("ENV_BETTER_AUTH_SECRET (FR-002, FR-010)", () => {
   it("reads the secret from ENV_BETTER_AUTH_SECRET", () => {
     const config = loadConfig(baseEnv());
-    expect(config.authSecret).toBe(VALID_SECRET);
+    expect(config.betterAuthSecret).toBe(VALID_SECRET);
   });
 
   it("accepts a secret of exactly 32 characters", () => {
     const secret = "x".repeat(32);
-    expect(loadConfig(baseEnv({ ENV_BETTER_AUTH_SECRET: secret })).authSecret).toBe(secret);
+    expect(loadConfig(baseEnv({ ENV_BETTER_AUTH_SECRET: secret })).betterAuthSecret).toBe(secret);
   });
 
   it("ignores every superseded name, with no fallback (011 research R6)", () => {
@@ -41,7 +41,7 @@ describe("ENV_BETTER_AUTH_SECRET (FR-002, FR-010)", () => {
       ).toThrow(ConfigError);
     }
     const both = loadConfig(baseEnv({ APP_BETTER_AUTH_SECRET: "legacy-value-legacy-value-legacy" }));
-    expect(both.authSecret).toBe(VALID_SECRET);
+    expect(both.betterAuthSecret).toBe(VALID_SECRET);
   });
 
   it.each([
@@ -198,10 +198,10 @@ describe("degraded email mode (FR-008)", () => {
 
 describe("011 poll-lifecycle settings", () => {
   const SETTINGS: [string, keyof ReturnType<typeof loadConfig>, number][] = [
-    ["ENV_API_CALL_TIMEOUT", "apiCallTimeoutMs", 10_000],
-    ["ENV_POLL_APPROVAL_POLLING_INTERVAL", "pollApprovalPollingIntervalMs", 5_000],
-    ["ENV_POLL_DATE_CHECK_POLLING_INTERVAL", "pollDateCheckPollingIntervalMs", 60_000],
-    ["ENV_POLL_EDIT_UPDATE_HEARTBEAT_INTERVAL", "pollEditUpdateHeartbeatIntervalMs", 10_000],
+    ["ENV_SCREENING_CALL_TIMEOUT", "screeningCallTimeoutMs", 10_000],
+    ["ENV_POLL_APPROVAL_SWEEP_INTERVAL", "pollApprovalSweepIntervalMs", 5_000],
+    ["ENV_POLL_DATE_CHECK_SWEEP_INTERVAL", "pollDateCheckSweepIntervalMs", 60_000],
+    ["ENV_POLL_EDIT_HEARTBEAT_INTERVAL", "pollEditHeartbeatIntervalMs", 10_000],
     ["ENV_MAX_ACCEPTABILITY_SCREENING_ATTEMPTS", "maxAcceptabilityScreeningAttempts", 10],
     ["ENV_POLL_ADMIN_PAGE_REFRESH_INTERVAL", "pollAdminPageRefreshIntervalMs", 5_000],
     ["ENV_PARTICIPANTS_VIEWPORT_SIZE", "participantsViewportSize", 10],
@@ -219,7 +219,7 @@ describe("011 poll-lifecycle settings", () => {
   it("reads each from the environment when set", () => {
     for (const [name, key] of SETTINGS) {
       const env = baseEnv({ [name]: "7" });
-      if (name === "ENV_SERVER_MAX_REFRESH_PER_SECOND") env.ENV_SERVER_MAX_REFRESH_PER_INSTANCE_PER_SECOND = "7";
+      if (name === "ENV_SERVER_MAX_REQUESTS_PER_SECOND") env.ENV_SERVER_MAX_REQUESTS_PER_INSTANCE_PER_SECOND = "7";
       expect(loadConfig(env)[key], name).toBe(7);
     }
   });
@@ -265,21 +265,21 @@ describe("Email rate limit configuration (012)", () => {
   it("defaults to 2 requests per 15 minutes", () => {
     const config = loadConfig(baseEnv());
     expect(config.emailRateLimitWindowMinutes).toBe(15);
-    expect(config.emailRateLimitMaxRequests).toBe(2);
+    expect(config.emailRateLimitMaxRequestsPerWindow).toBe(2);
   });
 
   it("takes both values from the environment", () => {
     const config = loadConfig({
       ...baseEnv(),
-      ENV_EMAIL_RATE_LIMIT_MINUTES_WINDOW: "1",
+      ENV_EMAIL_RATE_LIMIT_WINDOW_MINUTES: "1",
       ENV_EMAIL_RATE_LIMIT_MAX_REQUESTS_PER_WINDOW: "50"
     });
     expect(config.emailRateLimitWindowMinutes).toBe(1);
-    expect(config.emailRateLimitMaxRequests).toBe(50);
+    expect(config.emailRateLimitMaxRequestsPerWindow).toBe(50);
   });
 
   it("converts the window to seconds for the limiter, and only there", () => {
-    const config = loadConfig({ ...baseEnv(), ENV_EMAIL_RATE_LIMIT_MINUTES_WINDOW: "3" });
+    const config = loadConfig({ ...baseEnv(), ENV_EMAIL_RATE_LIMIT_WINDOW_MINUTES: "3" });
     // The config holds minutes; emailRateLimit() is the single place that converts.
     expect(config.emailRateLimitWindowMinutes).toBe(3);
     expect(emailRateLimit(config)).toEqual({ window: 180, max: 2 });
@@ -288,7 +288,7 @@ describe("Email rate limit configuration (012)", () => {
   it("rejects a non-positive or non-integer value, like every other numeric setting", () => {
     for (const bad of ["0", "-1", "2.5", "abc"]) {
       expect(() =>
-        loadConfig({ ...baseEnv(), ENV_EMAIL_RATE_LIMIT_MINUTES_WINDOW: bad })
+        loadConfig({ ...baseEnv(), ENV_EMAIL_RATE_LIMIT_WINDOW_MINUTES: bad })
       , bad).toThrow(ConfigError);
       expect(() =>
         loadConfig({ ...baseEnv(), ENV_EMAIL_RATE_LIMIT_MAX_REQUESTS_PER_WINDOW: bad })
@@ -305,18 +305,18 @@ describe("Email rate limit configuration (012)", () => {
  */
 describe("Private voter limit configuration (012)", () => {
   it("defaults to 100", () => {
-    expect(loadConfig(baseEnv()).privateVoterLimitDefault).toBe(100);
+    expect(loadConfig(baseEnv()).maxPrivatePollVoters).toBe(100);
   });
 
   it("takes its value from the environment", () => {
-    const config = loadConfig({ ...baseEnv(), ENV_PRIVATE_VOTER_LIMIT_DEFAULT: "10" });
-    expect(config.privateVoterLimitDefault).toBe(10);
+    const config = loadConfig({ ...baseEnv(), ENV_MAX_PRIVATE_POLL_VOTERS: "10" });
+    expect(config.maxPrivatePollVoters).toBe(10);
   });
 
   it("rejects a non-positive or non-integer value", () => {
     for (const bad of ["0", "-1", "2.5", "abc"]) {
       expect(() =>
-        loadConfig({ ...baseEnv(), ENV_PRIVATE_VOTER_LIMIT_DEFAULT: bad })
+        loadConfig({ ...baseEnv(), ENV_MAX_PRIVATE_POLL_VOTERS: bad })
       , bad).toThrow(ConfigError);
     }
   });
@@ -360,27 +360,28 @@ describe("017 storage, cache and load settings", () => {
     ["ENV_MAX_POLLS_SEARCH_RESULTS", "maxPollsSearchResults", 200],
     ["ENV_MAX_POLLS_ADMIN_SEARCH_RESULTS", "maxPollsAdminSearchResults", 200],
     ["ENV_MAX_TRENDING_POLLS", "maxTrendingPolls", 200],
-    ["ENV_TRENDING_POLLS_RECOMPUTE_INTERVAL", "trendingRecomputeIntervalMs", 60_000],
+    ["ENV_TRENDING_POLLS_RECOMPUTE_SWEEP_INTERVAL", "trendingPollsRecomputeSweepIntervalMs", 60_000],
     ["ENV_MAX_NEWEST_POLLS", "maxNewestPolls", 50],
-    ["ENV_NEWEST_POLLS_RECOMPUTE_INTERVAL", "newestRecomputeIntervalMs", 60_000],
+    ["ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL", "newestPollsRecomputeSweepIntervalMs", 60_000],
     ["ENV_MAX_VOTES_PER_IP_PER_MINUTE", "maxVotesPerIpPerMinute", 600],
     ["ENV_MAX_LIVE_RESULTS_PER_USER", "maxLiveResultsPerUser", 5],
-    ["ENV_MAX_IDLE_TIME", "maxIdleTimeMs", 1_800_000],
-    ["ENV_SERVER_MAX_REFRESH_PER_INSTANCE_PER_SECOND", "serverMaxRefreshPerInstancePerSecond", 1_250],
-    ["ENV_SERVER_MAX_REFRESH_PER_SECOND", "serverMaxRefreshPerSecond", 15_000],
+    ["ENV_LIVE_RESULTS_MAX_IDLE_TIME", "liveResultsMaxIdleTimeMs", 1_800_000],
+    ["ENV_SERVER_MAX_REQUESTS_PER_INSTANCE_PER_SECOND", "serverMaxRequestsPerInstancePerSecond", 1_250],
+    ["ENV_SERVER_MAX_REQUESTS_PER_SECOND", "serverMaxRequestsPerSecond", 15_000],
     ["ENV_SERVER_MAX_SEARCH_PER_SECOND", "serverMaxSearchPerSecond", 2_000],
-    ["ENV_SERVER_MAX_SEARCH_PER_SECOND_FALLBACK", "serverMaxSearchPerSecondFallback", 200],
-    ["ENV_BUDGET_CONTROLLER_INTERVAL", "budgetControllerIntervalMs", 1_000],
-    ["ENV_MAX_STRETCH", "maxStretch", 8],
+    ["ENV_SERVER_MAX_SEARCH_FALLBACK_PER_SECOND", "serverMaxSearchFallbackPerSecond", 200],
+    ["ENV_BUDGET_CONTROLLER_SWEEP_INTERVAL", "budgetControllerSweepIntervalMs", 1_000],
+    ["ENV_MAX_REFRESH_AND_SEARCH_STRETCH", "maxRefreshAndSearchStretch", 8],
     ["ENV_BUDGET_LOWER_THRESHOLD_PERCENT", "budgetLowerThresholdPercent", 80],
     ["ENV_INSTANCE_MAX_INFLIGHT", "instanceMaxInflight", 200],
     ["ENV_INSTANCE_MAX_EVENT_LOOP_LAG", "instanceMaxEventLoopLagMs", 100],
     ["ENV_SHED_RETRY_AFTER", "shedRetryAfterMs", 2_000],
-    ["ENV_COUNTER_FLUSH_INTERVAL", "counterFlushIntervalMs", 10_000],
+    ["ENV_COUNTER_FLUSH_SWEEP_INTERVAL", "counterFlushSweepIntervalMs", 10_000],
     ["ENV_VOTE_BATCH_SIZE", "voteBatchSize", 500],
     ["ENV_VOTE_QUEUE_LAG_NOTICE", "voteQueueLagNoticeMs", 2_000],
     ["ENV_SEARCH_CACHE_TTL", "searchCacheTtlMs", 10_000],
-    ["ENV_OUTBOX_DRAIN_INTERVAL", "outboxDrainIntervalMs", 15_000],
+    ["ENV_OUTBOX_DRAIN_SWEEP_INTERVAL", "outboxDrainSweepIntervalMs", 15_000],
+    ["ENV_INVITATION_SWEEP_INTERVAL", "invitationSweepIntervalMs", 30_000],
     ["ENV_MAX_BOOKMARKS_PER_USER", "maxBookmarksPerUser", 200],
     ["ENV_BOOKMARK_EXPIRY_MONTHS", "bookmarkExpiryMonths", 6],
     ["ENV_PAGE_LOADS_PER_MINUTE", "pageLoadsPerMinute", 120]
@@ -396,25 +397,53 @@ describe("017 storage, cache and load settings", () => {
   it("reads each from the environment when set", () => {
     for (const [name, key] of SETTINGS) {
       const env = baseEnv({ [name]: "7" });
-      if (name === "ENV_SERVER_MAX_REFRESH_PER_SECOND") env.ENV_SERVER_MAX_REFRESH_PER_INSTANCE_PER_SECOND = "7";
+      if (name === "ENV_SERVER_MAX_REQUESTS_PER_SECOND") env.ENV_SERVER_MAX_REQUESTS_PER_INSTANCE_PER_SECOND = "7";
       if (name === "ENV_MAX_POLLS_SEARCH_RESULTS") env.ENV_MAX_NEWEST_POLLS = "7";
-      if (name === "ENV_NEWEST_POLLS_RECOMPUTE_INTERVAL") env[name] = "7000";
-      expect(loadConfig(env)[key], name).toBe(name === "ENV_NEWEST_POLLS_RECOMPUTE_INTERVAL" ? 7000 : 7);
+      if (name === "ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL") env[name] = "7000";
+      expect(loadConfig(env)[key], name).toBe(name === "ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL" ? 7000 : 7);
     }
   });
 
   it("no longer ties the manual floor to the counter flush (feature 20261028 R10)", () => {
     const config = loadConfig(baseEnv({ ENV_MIN_MANUAL_REFRESH_INTERVAL: "5000" }));
-    expect(config.counterFlushIntervalMs).toBe(10_000);
+    expect(config.counterFlushSweepIntervalMs).toBe(10_000);
     expect(config.floors.refresh).toBe(5000);
-    expect(loadConfig(baseEnv({ ENV_COUNTER_FLUSH_INTERVAL: "3000" })).counterFlushIntervalMs).toBe(3000);
+    expect(loadConfig(baseEnv({ ENV_COUNTER_FLUSH_SWEEP_INTERVAL: "3000" })).counterFlushSweepIntervalMs).toBe(3000);
+  });
+
+  it("refuses to start while a renamed setting is still set under its old name, naming the new one", () => {
+    const RENAMED: [string, string][] = [
+      ["ENV_BUDGET_CONTROLLER_INTERVAL", "ENV_BUDGET_CONTROLLER_SWEEP_INTERVAL"],
+      ["ENV_COUNTER_FLUSH_INTERVAL", "ENV_COUNTER_FLUSH_SWEEP_INTERVAL"],
+      ["ENV_POLL_APPROVAL_POLLING_INTERVAL", "ENV_POLL_APPROVAL_SWEEP_INTERVAL"],
+      ["ENV_OUTBOX_DRAIN_INTERVAL", "ENV_OUTBOX_DRAIN_SWEEP_INTERVAL"],
+      ["ENV_POLL_EDIT_UPDATE_HEARTBEAT_INTERVAL", "ENV_POLL_EDIT_HEARTBEAT_INTERVAL"],
+      ["ENV_POLL_DATE_CHECK_POLLING_INTERVAL", "ENV_POLL_DATE_CHECK_SWEEP_INTERVAL"],
+      ["ENV_TRENDING_POLLS_RECOMPUTE_INTERVAL", "ENV_TRENDING_POLLS_RECOMPUTE_SWEEP_INTERVAL"],
+      ["ENV_NEWEST_POLLS_RECOMPUTE_INTERVAL", "ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL"],
+      ["ENV_MIN_SEARCH_INTERVAL", "ENV_MIN_SEARCH_REFRESH_INTERVAL"],
+      ["ENV_MIN_VOTE_INTERVAL", "ENV_MIN_VOTE_REFRESH_INTERVAL"],
+      ["ENV_MAX_STRETCH", "ENV_MAX_REFRESH_AND_SEARCH_STRETCH"],
+      ["ENV_POLL_EDIT_UPDATE_SWEEP_INTERVAL", "ENV_POLL_EDIT_HEARTBEAT_INTERVAL"],
+      ["ENV_MAX_IDLE_TIME", "ENV_LIVE_RESULTS_MAX_IDLE_TIME"],
+      ["ENV_API_CALL_TIMEOUT", "ENV_SCREENING_CALL_TIMEOUT"],
+      ["ENV_SIGNIN_COOKIE_DURATION_MAX", "ENV_MAX_SIGNIN_COOKIE_DURATION"],
+      ["ENV_PRIVATE_VOTER_LIMIT_DEFAULT", "ENV_MAX_PRIVATE_POLL_VOTERS"],
+      ["ENV_EMAIL_RATE_LIMIT_MINUTES_WINDOW", "ENV_EMAIL_RATE_LIMIT_WINDOW_MINUTES"],
+      ["ENV_SERVER_MAX_REFRESH_PER_SECOND", "ENV_SERVER_MAX_REQUESTS_PER_SECOND"],
+      ["ENV_SERVER_MAX_REFRESH_PER_INSTANCE_PER_SECOND", "ENV_SERVER_MAX_REQUESTS_PER_INSTANCE_PER_SECOND"],
+      ["ENV_SERVER_MAX_SEARCH_PER_SECOND_FALLBACK", "ENV_SERVER_MAX_SEARCH_FALLBACK_PER_SECOND"]
+    ];
+    for (const [old, current] of RENAMED) {
+      expect(() => loadConfig(baseEnv({ [old]: "5000" })), old).toThrow(new ConfigError(`${old} was renamed to ${current}.`));
+    }
   });
 
   it("bounds the Newest settings: at least one poll, at most the search cap, an interval of at least a second", () => {
     expect(() => loadConfig(baseEnv({ ENV_MAX_NEWEST_POLLS: "0" }))).toThrow(/ENV_MAX_NEWEST_POLLS/);
     expect(() => loadConfig(baseEnv({ ENV_MAX_NEWEST_POLLS: "201" }))).toThrow(/must not exceed ENV_MAX_POLLS_SEARCH_RESULTS/);
-    expect(() => loadConfig(baseEnv({ ENV_NEWEST_POLLS_RECOMPUTE_INTERVAL: "500" }))).toThrow(/at least 1000/);
-    expect(loadConfig(baseEnv({ ENV_NEWEST_POLLS_RECOMPUTE_INTERVAL: "1000" })).newestRecomputeIntervalMs).toBe(1000);
+    expect(() => loadConfig(baseEnv({ ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL: "500" }))).toThrow(/at least 1000/);
+    expect(loadConfig(baseEnv({ ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL: "1000" })).newestPollsRecomputeSweepIntervalMs).toBe(1000);
     expect(loadConfig(baseEnv({ ENV_MAX_NEWEST_POLLS: "200" })).maxNewestPolls).toBe(200);
   });
 
@@ -433,8 +462,8 @@ describe("017 storage, cache and load settings", () => {
       baseEnv({
         ENV_MIN_LIVE_REFRESH_INTERVAL: "1500",
         ENV_MIN_MANUAL_REFRESH_INTERVAL: "6000",
-        ENV_MIN_SEARCH_INTERVAL: "2500",
-        ENV_MIN_VOTE_INTERVAL: "3000"
+        ENV_MIN_SEARCH_REFRESH_INTERVAL: "2500",
+        ENV_MIN_VOTE_REFRESH_INTERVAL: "3000"
       })
     );
     expect(custom.floors).toEqual({ live: 1_500, refresh: 6_000, search: 2_500, vote: 3_000 });
@@ -536,9 +565,9 @@ describe("017 storage, cache and load settings", () => {
 
   it("refuses a controller interval longer than the smallest floor", () => {
     expect(() =>
-      loadConfig(baseEnv({ ENV_BUDGET_CONTROLLER_INTERVAL: "2001", ENV_MIN_LIVE_REFRESH_INTERVAL: "2000" }))
-    ).toThrow(/ENV_BUDGET_CONTROLLER_INTERVAL/);
-    expect(loadConfig(baseEnv({ ENV_BUDGET_CONTROLLER_INTERVAL: "2000" })).budgetControllerIntervalMs).toBe(
+      loadConfig(baseEnv({ ENV_BUDGET_CONTROLLER_SWEEP_INTERVAL: "2001", ENV_MIN_LIVE_REFRESH_INTERVAL: "2000" }))
+    ).toThrow(/ENV_BUDGET_CONTROLLER_SWEEP_INTERVAL/);
+    expect(loadConfig(baseEnv({ ENV_BUDGET_CONTROLLER_SWEEP_INTERVAL: "2000" })).budgetControllerSweepIntervalMs).toBe(
       2000
     );
   });
@@ -547,11 +576,11 @@ describe("017 storage, cache and load settings", () => {
     expect(() =>
       loadConfig(
         baseEnv({
-          ENV_SERVER_MAX_REFRESH_PER_INSTANCE_PER_SECOND: "2000",
-          ENV_SERVER_MAX_REFRESH_PER_SECOND: "1999"
+          ENV_SERVER_MAX_REQUESTS_PER_INSTANCE_PER_SECOND: "2000",
+          ENV_SERVER_MAX_REQUESTS_PER_SECOND: "1999"
         })
       )
-    ).toThrow(/ENV_SERVER_MAX_REFRESH_PER_SECOND/);
+    ).toThrow(/ENV_SERVER_MAX_REQUESTS_PER_SECOND/);
   });
 });
 

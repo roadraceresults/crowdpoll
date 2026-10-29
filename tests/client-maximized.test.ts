@@ -11,7 +11,7 @@ let ctx: TestContext;
 let page: BrowserPage | null = null;
 
 beforeAll(async () => {
-  ctx = await startTestContext({ ENV_MIN_MANUAL_REFRESH_INTERVAL: "1200", ENV_MIN_VOTE_INTERVAL: "2000", ENV_MAX_TRENDING_POLLS: "3", ...LISTING_MAX_AGE_1S });
+  ctx = await startTestContext({ ENV_MIN_MANUAL_REFRESH_INTERVAL: "1200", ENV_MIN_VOTE_REFRESH_INTERVAL: "2000", ENV_MAX_TRENDING_POLLS: "3", ...LISTING_MAX_AGE_1S });
 });
 
 afterAll(async () => {

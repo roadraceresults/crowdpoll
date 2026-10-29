@@ -29,7 +29,7 @@
   }
 
   function recomputeIntervalMs(config) {
-    return (config && config.trendingRecomputeIntervalMs) || 60000;
+    return (config && config.trendingPollsRecomputeSweepIntervalMs) || 60000;
   }
 
   // ---- The sessionStorage copy ----

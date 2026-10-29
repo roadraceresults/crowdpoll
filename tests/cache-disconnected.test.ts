@@ -10,7 +10,7 @@ let cookie: string;
 let adminCookie: string;
 
 beforeAll(async () => {
-  ctx = await startTestContext({ ENV_ADMINS: "admin@example.com", ENV_MIN_MANUAL_REFRESH_INTERVAL: "1", ENV_MIN_SEARCH_INTERVAL: "1", ENV_MIN_LIVE_REFRESH_INTERVAL: "1" });
+  ctx = await startTestContext({ ENV_ADMINS: "admin@example.com", ENV_MIN_MANUAL_REFRESH_INTERVAL: "1", ENV_MIN_SEARCH_REFRESH_INTERVAL: "1", ENV_MIN_LIVE_REFRESH_INTERVAL: "1" });
   cookie = (await forgeSession(ctx, "outage@example.com")).cookie;
   adminCookie = (await forgeSession(ctx, "admin@example.com")).cookie;
 });

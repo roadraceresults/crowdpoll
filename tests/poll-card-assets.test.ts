@@ -448,7 +448,7 @@ describe("The editing page reads the voter ceiling from configuration (012 FR-06
     const listJs = readFileSync("src/public/adminList.js", "utf8");
     expect(listJs).toContain("/api/config");
     expect(listJs).toContain("setRuntimeConfig");
-    expect(js).toContain("privateVoterLimitDefault");
+    expect(js).toContain("maxPrivatePollVoters");
     // The voter limit field went with the editing face; the wizard reads the
     // choice bounds from the same configuration.
   });

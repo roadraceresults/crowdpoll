@@ -10,7 +10,7 @@ import { trendingSweep } from "../src/polls/sweeps.js";
 let ctx: TestContext;
 
 beforeAll(async () => {
-  ctx = await startTestContext({ ENV_MAX_TRENDING_POLLS: "3", ENV_TRENDING_POLLS_RECOMPUTE_INTERVAL: "60000" });
+  ctx = await startTestContext({ ENV_MAX_TRENDING_POLLS: "3", ENV_TRENDING_POLLS_RECOMPUTE_SWEEP_INTERVAL: "60000" });
 });
 
 afterAll(async () => {
@@ -79,7 +79,7 @@ describe("TRENDING recompute", () => {
         puts.push({ key, cacheControl: headers.cacheControl, contentEncoding: headers.contentEncoding });
       }
     };
-    const publisher = createListingPublisher(store, ctx.config.trendingRecomputeIntervalMs, TRENDING_OBJECTS);
+    const publisher = createListingPublisher(store, ctx.config.trendingPollsRecomputeSweepIntervalMs, TRENDING_OBJECTS);
 
     expect(await publisher.publish(await recomputeTrending(ctx))).toEqual({ counts: true, cards: true });
     await vote(b._id, 5);
@@ -120,7 +120,7 @@ describe("TRENDING recompute", () => {
     await polls(ctx).insertOne(a);
     const puts: string[] = [];
     const store: ObjectStore = { put: async (key) => { puts.push(key); } };
-    const publisher = createListingPublisher(store, ctx.config.trendingRecomputeIntervalMs, TRENDING_OBJECTS);
+    const publisher = createListingPublisher(store, ctx.config.trendingPollsRecomputeSweepIntervalMs, TRENDING_OBJECTS);
 
     const first = await recomputeTrending(ctx);
     expect(await publisher.publish(first)).toEqual({ counts: true, cards: true });

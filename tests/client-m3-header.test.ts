@@ -156,7 +156,7 @@ describe("Live Results idle prompt", () => {
     const live = await startTestContext({
       ENV_MIN_LIVE_REFRESH_INTERVAL: "200",
       ENV_MIN_MANUAL_REFRESH_INTERVAL: "1",
-      ENV_MAX_IDLE_TIME: "400"
+      ENV_LIVE_RESULTS_MAX_IDLE_TIME: "400"
     });
     let livePage: BrowserPage | null = null;
     try {
@@ -197,7 +197,7 @@ describe("Live Results idle prompt", () => {
     const live = await startTestContext({
       ENV_MIN_LIVE_REFRESH_INTERVAL: "200",
       ENV_MIN_MANUAL_REFRESH_INTERVAL: "1",
-      ENV_MAX_IDLE_TIME: "400"
+      ENV_LIVE_RESULTS_MAX_IDLE_TIME: "400"
     });
     let livePage: BrowserPage | null = null;
     try {

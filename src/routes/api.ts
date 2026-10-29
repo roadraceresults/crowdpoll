@@ -137,25 +137,25 @@ export function createApiRouter({ auth, db, cache, config, sessions, pageLoads }
       signinMethod: config.signinMethod,
       oauthProviders: Object.keys(config.oauthProviders),
       // The login card says how long "stay signed in" lasts, from the same setting that enforces it.
-      signinCookieDurationMaxMs: config.signinCookieDurationMaxMs,
+      maxSigninCookieDurationMs: config.maxSigninCookieDurationMs,
       staySignedInDefault: config.staySignedInDefault,
       trendingBaseUrl: config.spaces ? config.spaces.cdnUrl.replace(/\/$/, "") : "/api/trending",
       assetsBaseUrl: config.spaces ? `${config.spaces.cdnUrl.replace(/\/$/, "")}/assets` : "/assets",
-      trendingRecomputeIntervalMs: config.trendingRecomputeIntervalMs,
-      newestRecomputeIntervalMs: config.newestRecomputeIntervalMs,
-      trendingMaxAgeMs: listingMaxAgeMs(config.trendingRecomputeIntervalMs),
-      newestMaxAgeMs: listingMaxAgeMs(config.newestRecomputeIntervalMs),
+      trendingPollsRecomputeSweepIntervalMs: config.trendingPollsRecomputeSweepIntervalMs,
+      newestPollsRecomputeSweepIntervalMs: config.newestPollsRecomputeSweepIntervalMs,
+      trendingMaxAgeMs: listingMaxAgeMs(config.trendingPollsRecomputeSweepIntervalMs),
+      newestMaxAgeMs: listingMaxAgeMs(config.newestPollsRecomputeSweepIntervalMs),
       floors: config.floors,
       bursts: config.bursts,
       maxLiveResultsPerUser: config.maxLiveResultsPerUser,
-      maxIdleTimeMs: config.maxIdleTimeMs,
+      liveResultsMaxIdleTimeMs: config.liveResultsMaxIdleTimeMs,
       // 011 FR-059: the admin list refreshes on its own interval, deliberately
       // kept distinct from the poll-card polling interval above.
       pollAdminPageRefreshIntervalMs: config.pollAdminPageRefreshIntervalMs,
       // 012 FR-066: the editing page validates the voter limit as you type and labels
       // the field with it. Hard-coding 500 there would let the two disagree the moment
       // the setting changed, so the client is told rather than assuming.
-      privateVoterLimitDefault: config.privateVoterLimitDefault,
+      maxPrivatePollVoters: config.maxPrivatePollVoters,
       participantsViewportSize: config.participantsViewportSize,
       maxInvitationsPerDay: config.maxInvitationsPerDay,
       // 014: the choices editor counts lines against these as you type, for the
@@ -444,14 +444,14 @@ export function createApiRouter({ auth, db, cache, config, sessions, pageLoads }
       .map((p) => p.trim())
       .filter((p) => !/^(max-age|expires)=/i.test(p));
     if (stay) {
-      const maxAgeSeconds = Math.floor(config.signinCookieDurationMaxMs / 1000);
+      const maxAgeSeconds = Math.floor(config.maxSigninCookieDurationMs / 1000);
       attrs.push(`Max-Age=${maxAgeSeconds}`);
       const rawSessionToken = decodeURIComponent(
         sessionCookie.slice("session_token=".length).split(";")[0]!
       ).split(".")[0]!;
       await db
         .updateTable("session")
-        .set({ expiresAt: new Date(Date.now() + config.signinCookieDurationMaxMs) })
+        .set({ expiresAt: new Date(Date.now() + config.maxSigninCookieDurationMs) })
         .where("token", "=", rawSessionToken)
         .execute();
     }

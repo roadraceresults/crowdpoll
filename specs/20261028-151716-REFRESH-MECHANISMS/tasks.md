@@ -170,12 +170,12 @@ nothing new.
 
 ### Tests for User Story 6
 
-- [X] T035 [P] [US6] Update tests/config.test.ts: `ENV_COUNTER_FLUSH_INTERVAL` defaults to 10000, an explicit value is used, and `ENV_MIN_MANUAL_REFRESH_INTERVAL` below it is accepted; in tests/sweeps-lock.test.ts (or tests/invitations-send.test.ts) the schedule list has `invitationSweep` at 30000 and every other sweep unchanged; tests/invitations-send.test.ts still shows invitations sent at once when an open poll is saved
+- [X] T035 [P] [US6] Update tests/config.test.ts: `ENV_COUNTER_FLUSH_SWEEP_INTERVAL` defaults to 10000, an explicit value is used, and `ENV_MIN_MANUAL_REFRESH_INTERVAL` below it is accepted; in tests/sweeps-lock.test.ts (or tests/invitations-send.test.ts) the schedule list has `invitationSweep` at 30000 and every other sweep unchanged; tests/invitations-send.test.ts still shows invitations sent at once when an open poll is saved
 
 ### Implementation for User Story 6
 
-- [X] T036 [P] [US6] Set the `ENV_COUNTER_FLUSH_INTERVAL` default to `10_000` in src/config.ts and `INVITATION_SWEEP_INTERVAL_MS` to `30_000` in src/polls/sweeps.ts
-- [X] T037 [P] [US6] Set `ENV_COUNTER_FLUSH_INTERVAL` to `10000` in .do/app.yaml, every configuration in launch.json.example and devScripts.example/launch-dev.ps1
+- [X] T036 [P] [US6] Set the `ENV_COUNTER_FLUSH_SWEEP_INTERVAL` default to `10_000` in src/config.ts and `INVITATION_SWEEP_INTERVAL_MS` to `30_000` in src/polls/sweeps.ts (since TWEAK03 the setting `ENV_INVITATION_SWEEP_INTERVAL`)
+- [X] T037 [P] [US6] Set `ENV_COUNTER_FLUSH_SWEEP_INTERVAL` to `10000` in .do/app.yaml, every configuration in launch.json.example and devScripts.example/launch-dev.ps1
 
 **Checkpoint**: T035 passes.
 
@@ -188,8 +188,8 @@ nothing new.
 **Independent Test**: quickstart step 7.
 
 - [X] T038 [US7] Rewrite `ARCHITECTURE.md` *Refresh model and the three load bounds*: the five mechanisms (sweeps, vote path and consumer, Refresh button, implicit refreshes, Live Results timer), sweeps produce and refreshes read, the load table at the defaults (from the requirements report RS2), the rate and freshness limits (RS4), the personal-tab shortcut and its signals, the Live Results back-off, the 10 s listing lifetime and Refresh availability, the stretched floors and the controller line fields; port Mermaid diagrams 2.1, 2.2 and 2.6 from requirements/20261028-151716-refresh-mechanisms/requirements-report.md; replace "Nothing refreshes on its own except the Live Results tab"; record the Trending/Newest browser-only floor as by design
-- [X] T039 [US7] Update `ARCHITECTURE.md` *Sweeps*: invitations 30 s, the counter-flush sequence note "every 2 s" to "every 10 s (`ENV_COUNTER_FLUSH_INTERVAL`)"
-- [X] T040 [P] [US7] Update the settings tables in CLAUDE.md and README.md: `ENV_COUNTER_FLUSH_INTERVAL` 10000; remove "Must not be below `ENV_COUNTER_FLUSH_INTERVAL`" from `ENV_MIN_MANUAL_REFRESH_INTERVAL`; `ENV_TRENDING_POLLS_RECOMPUTE_INTERVAL` and `ENV_NEWEST_POLLS_RECOMPUTE_INTERVAL` say the published lifetime is the smaller of the interval and 10 s; update any README sentence stating the 2 s flush or 5 s invitation pickup
+- [X] T039 [US7] Update `ARCHITECTURE.md` *Sweeps*: invitations 30 s, the counter-flush sequence note "every 2 s" to "every 10 s (`ENV_COUNTER_FLUSH_SWEEP_INTERVAL`)"
+- [X] T040 [P] [US7] Update the settings tables in CLAUDE.md and README.md: `ENV_COUNTER_FLUSH_SWEEP_INTERVAL` 10000; remove "Must not be below `ENV_COUNTER_FLUSH_SWEEP_INTERVAL`" from `ENV_MIN_MANUAL_REFRESH_INTERVAL`; `ENV_TRENDING_POLLS_RECOMPUTE_SWEEP_INTERVAL` and `ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL` say the published lifetime is the smaller of the interval and 10 s; update any README sentence stating the 2 s flush or 5 s invitation pickup
 
 **Checkpoint**: searching the three documents finds no 2 s flush and no manual-floor rule.
 
@@ -201,6 +201,12 @@ nothing new.
 - [X] T042 Run tests/openapi-contract.test.ts and confirm `/api/config`'s new fields are described
 - [ ] T043 Walk through quickstart.md steps 1–7 on a development server and note the results under "Notes"
 - [X] T044 Measure SC-001 with `memoryCache`: time 100 shortcut refreshes of a 200-poll tab in a test (in production it is checked through the `[controller]` line's `tabs=` counts); record the median and the 95th percentile under "Notes"
+- [X] T045 Rename the eleven sweep and refresh settings and add `ENV_INVITATION_SWEEP_INTERVAL` (30000) in src/config.ts (old names refused at start-up), src/polls/sweeps.ts, .do/app.yaml, launch.json.example, devScripts.example/launch-dev.ps1, the docs and tests/config.test.ts, tests/invitations-send.test.ts (TWEAK03)
+- [X] T046 Regroup devScripts.example/launch-dev.ps1 (and the local devScripts/launch-dev.ps1) into the eleven groups of requirements/environmentVariablesGroups.md, add `ENV_PROTOTYPES`, `ENV_DATABASE_CA_CERT` and `ENV_EMAIL_SEND_TIMEOUT`, fix `ENV_PUBLIC_ORIGIN` (8081) and the duplicate `ENV_MAX_INVITATIONS_PER_DAY`, and bring the groups document up to date (TWEAK04)
+- [X] T047 Rename eight more settings (`ENV_POLL_EDIT_HEARTBEAT_INTERVAL`, `ENV_LIVE_RESULTS_MAX_IDLE_TIME`, `ENV_SCREENING_CALL_TIMEOUT`, `ENV_MAX_SIGNIN_COOKIE_DURATION`, `ENV_MAX_PRIVATE_POLL_VOTERS`, `ENV_EMAIL_RATE_LIMIT_WINDOW_MINUTES`, `ENV_SERVER_MAX_REQUESTS_PER_SECOND`, `ENV_SERVER_MAX_REQUESTS_PER_INSTANCE_PER_SECOND`) in src/config.ts (old names refused at start-up), the configuration files, docs, source comments and tests (TWEAK06)
+- [X] T048 Rename `ENV_SERVER_MAX_SEARCH_PER_SECOND_FALLBACK` to `ENV_SERVER_MAX_SEARCH_FALLBACK_PER_SECOND` in src/config.ts (old name refused at start-up), the configuration files, docs and tests/config.test.ts (TWEAK08)
+- [X] T049 Rename eighteen `AppConfig` fields after their settings (`Ms` kept), and the six matching `/api/config` keys, in src/, src/public/ (adminCard.js, liveResults.js, loginCard.js, newest.js, trending.js), postman/openapi.json, contracts/api.md and the tests (TWEAK11)
+- [X] T050 Bring every setting in .do/app.yaml, launch.json.example, devScripts.example/launch-dev.ps1 and the local launch files to its code default, except the commented development overrides (port, stay signed in, email rate limit, private voter limit); production email requests per window 5 → 2; add the missing `ENV_EMAIL_SEND_TIMEOUT`, `ENV_MAX_INVITATIONS_PER_DAY` and `ENV_STAY_SIGNED_IN` (TWEAK12)
 
 ---
 
