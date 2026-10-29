@@ -5,6 +5,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261029-150703-BRANCH-MIGRATION-MERGE/plan.md` (research R1–R10, `data-model.md` — the in-memory plan of a run,
+no stored-data change — the CLI and start-up message contracts `contracts/cli.md` C1–C6, and the quickstart live
+alongside it in `specs/20261029-150703-BRANCH-MIGRATION-MERGE/`). The requirements report is
+`requirements/20261029-150703-branch-migration-merge/requirements-report.md`: 5 diagrams and 14 findings, all resolved.
+Decisions that are easy to get wrong:
+- **Every branch folder shares `app01`**, so a branch's migration is recorded before it is merged; this feature keeps
+  that (NC1 B) and repairs the record instead (`kysely_migration`, singular: `name`, ISO `timestamp`) (R1).
+- **One script, `npm run fix-migrations [-- --apply]`** (`devScripts/fix-migrations.ts`): dry run by default;
+  `ENV_DATABASE_URL` read directly, local hosts only, refused before connecting; the folder is the script's own
+  repository (R7, R10).
+- **One action per failure**: F2 renamed → rename the record (matched by the name after `NNN-`); F1 unknown → the
+  migration's own `down()` from a sibling folder under `C:\crowdPoll\`, then delete the record, with no confirmation
+  beyond `--apply`; F3 out of order → `up()` and a record with the **same timestamp string** as the first later record,
+  so Kysely's name tie-break orders it (R3, R5, R6).
+- **One transaction under Kysely's own lock**: `lock_timeout` 10 s + `pg_advisory_xact_lock(3853314791062309107)`;
+  renames, rollbacks newest first, applies oldest first, then Kysely's two checks before commit (R2, R4).
+- **`migrateToLatest` says `Migration check failed:`** when no migration ran, plus a line naming the script (R8).
+No migration, no new dependency, no setting.
+The preceding feature is
 `specs/20261028-151716-REFRESH-MECHANISMS/plan.md` (research R1–R10, `data-model.md` — cache keys only, no migration —
 the HTTP and operator contracts `contracts/api.md` A1–A7, the UI contracts `contracts/ui-contracts.md` C1–C3, and the
 quickstart live alongside it in `specs/20261028-151716-REFRESH-MECHANISMS/`). The requirements report is
@@ -651,6 +670,7 @@ npm test        # vitest run — all suites under ./tests on an embedded Postgre
 npx vitest run tests/auth.test.ts      # one file
 npx vitest run -t "name of the test"   # tests matching a name
 npm run reconcile       # recompute vote counters from the votes table (operator use)
+npm run fix-migrations  # repair the local database's migration record after a branch merge (-- --apply to write)
 npm run publish-assets  # push fingerprinted assets to Spaces
 npm run file-manifest   # file manifest reports (feature 028)
 npm run prototypes      # serve prototypes/ locally

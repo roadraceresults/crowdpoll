@@ -63,6 +63,9 @@
         "specs/20261028-183546-LINE-GRAPH-M3/spec.md": "485a5b294e974b2eef7d3a2892819ae731800192bcf27dd998af7bf470449716",
         "specs/20261028-183546-LINE-GRAPH-M3/data-model.md": "261106056ba97f3fa53ffd138247bef1d68f4aae5aef4d7269dfa3f5af09634e",
         "specs/20261028-183546-LINE-GRAPH-M3/research.md": "192aa00b70b128aa577f29bd5d07b1038f692ee5e9923a0864742d8fc2446a19",
-        "specs/20261028-183546-LINE-GRAPH-M3/contracts/ui-contracts.md": "6df2c3576805143e7bf48357bef64092dbefb208c5af2947ba2119e1815cf729"
+        "specs/20261028-183546-LINE-GRAPH-M3/contracts/ui-contracts.md": "6df2c3576805143e7bf48357bef64092dbefb208c5af2947ba2119e1815cf729",
+        "specs/20261029-150703-BRANCH-MIGRATION-MERGE/analyze-findings.md": "3edceee245efc32dab0675a8e7f900c89afe5ed0bf27c0f831d86cf98b031c06",
+        "specs/20261029-150703-BRANCH-MIGRATION-MERGE/tasks.md": "15760c50dfde72cf80233a2e8bb4bafbfe5d2c45afa274523d3ddbbe0a045bfc",
+        "specs/20261029-150703-BRANCH-MIGRATION-MERGE/research.md": "50743f9c5e6eb5d2b63c85c0879d8a9fb374bb801c6817e420ac32d1765f8546"
     }
 }

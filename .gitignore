@@ -18,6 +18,8 @@ devScripts/*
 !devScripts/capture-admin-card.ts
 !devScripts/render-invitation-email.ts
 !devScripts/serve-prototypes.ts
+!devScripts/fix-migrations.ts
+!devScripts/MIGRATIONS-HOWTO.md
 !devScripts/load/
 !devScripts/populate/
 devScripts/populate/*

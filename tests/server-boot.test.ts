@@ -94,6 +94,23 @@ describe("start-up", () => {
     }
   });
 
+  it("a recorded migration the code does not have rejects with the check's message and names the repair script", async () => {
+    const database = await freshDatabase(`unknown_${Date.now().toString(36)}`);
+    const db = createDb(database.url, { max: 2 });
+    try {
+      await migrateToLatest(db);
+      await db.insertInto("kysely_migration" as never).values({ name: "099-not-in-code", timestamp: new Date().toISOString() } as never).execute();
+      const failure = await migrateToLatest(db).catch((err: unknown) => err);
+      expect(failure).toBeInstanceOf(MigrationError);
+      const message = (failure as Error).message;
+      expect(message.startsWith("Migration check failed: corrupted migrations: previously executed migration 099-not-in-code is missing")).toBe(true);
+      expect(message).toContain("npm run fix-migrations");
+    } finally {
+      await closeDb(db);
+      await database.drop();
+    }
+  });
+
   it("the shutdown order lets the consumer finish and acknowledge its batch within the grace period", async () => {
     const poll = makePoll();
     await polls(ctx).insertOne(poll);

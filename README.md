@@ -259,6 +259,12 @@ poll, vote and counter paths, so the poll looks the same as one people voted on.
 poll's id and replaces only its simulated votes. The database must already be migrated; see
 `devScripts/populate/README.md` for the file format.
 
+Every branch folder shares one development database, so after a branch with a new migration is merged a server can
+refuse to start with `Migration check failed: corrupted migrations: …`. From that folder, `npm run fix-migrations` shows
+what it would change and writes nothing; `npm run fix-migrations -- --apply` renames, rolls back or applies migrations in
+one transaction until the record matches the folder. It repairs only a database on this machine; see
+`devScripts/MIGRATIONS-HOWTO.md`.
+
 ## File manifest
 
 `npm run file-manifest -- <project>` counts the files of a git project and writes the results as

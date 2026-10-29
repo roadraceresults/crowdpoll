@@ -209,7 +209,12 @@ The authentication tables (`user`, `session`, `account`, `verification`, `rateLi
 `email_change_requests`) are owned by BetterAuth on the same database. `user` also holds
 `permissions`, `terms_version` and `terms_accepted_at`, which BetterAuth does not know about;
 the session cache reads them on a miss. Sessions store no IP address or user agent. Migrations run at
-boot from `src/db/migrations/`; a failing migration stops the process.
+boot from `src/db/migrations/`; a failing migration stops the process. Before running any, Kysely checks its
+record (`kysely_migration`) against the folder: a recorded name the folder lacks, or recorded names out of the folder's
+order, stops the process with `Migration check failed: corrupted migrations: …` and a line naming
+`npm run fix-migrations`. That happens in development, where every branch folder shares one database; the script
+(`devScripts/fix-migrations.ts`, local databases only) renames, rolls back or applies migrations in one transaction under
+Kysely's migration lock until the check passes (`devScripts/MIGRATIONS-HOWTO.md`).
 
 ### Cache keys
 

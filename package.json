@@ -13,6 +13,7 @@
     "start": "node dist/server.js",
     "test": "vitest run",
     "reconcile": "tsx devScripts/reconcile.ts",
+    "fix-migrations": "tsx devScripts/fix-migrations.ts",
     "publish-assets": "tsx devScripts/publish-assets.ts",
     "file-manifest": "tsx devScripts/file-manifest.ts",
     "prototypes": "tsx devScripts/serve-prototypes.ts"
