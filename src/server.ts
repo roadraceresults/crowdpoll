@@ -12,7 +12,7 @@ import { createTermsGate } from "./legal/termsGate.js";
 import { createCache, type Cache } from "./cache/cache.js";
 import { createDb, closeDb, type Db } from "./db/client.js";
 import { migrateToLatest } from "./db/migrator.js";
-import { initMailer } from "./email/mailer.js";
+import { initMailer, maskAddress } from "./email/mailer.js";
 import { createBudget, type Budget } from "./load/budget.js";
 import { createFloors } from "./load/floors.js";
 import { createPageLoadBucket } from "./load/pageLoads.js";
@@ -140,6 +140,13 @@ function providerList(config: AppConfig): string {
   return names.length > 0 ? names.join(", ") : "none";
 }
 
+export function defaultsUsedLines(config: AppConfig): string[] {
+  return config.defaultsUsed.map(({ name, value }) => {
+    const shown = name === "ENV_ADMINS" ? value.split(",").map((address) => maskAddress(address.trim())).join(", ") : value;
+    return `[config] ${name} was not found, using default value: ${shown}.`;
+  });
+}
+
 export async function startServer(): Promise<void> {
   let config: AppConfig;
   try {
@@ -152,6 +159,7 @@ export async function startServer(): Promise<void> {
     throw err;
   }
 
+  for (const line of defaultsUsedLines(config)) console.log(line);
   console.log(`[server] Starting in ${config.signinMethod} sign-in mode`);
   console.log(`[auth] Sign-in method: ${config.signinMethod}; providers: ${providerList(config)}`);
   console.log(allowlistStatus(config));

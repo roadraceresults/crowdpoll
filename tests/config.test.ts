@@ -12,6 +12,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { loadConfig, ConfigError } from "../src/config.js";
 import { initMailer } from "../src/email/mailer.js";
 import { emailRateLimit } from "../src/auth/auth.js";
+import { defaultsUsedLines } from "../src/server.js";
 
 const VALID_SECRET = "test-secret-0123456789-0123456789-0123456789"; // 44 chars
 
@@ -626,5 +627,212 @@ describe("line-graph settings", () => {
     expect(() => loadConfig(baseEnv({ ENV_LINE_GRAPH_REFRESH_INTERVAL: value }))).toThrow(
       /ENV_LINE_GRAPH_REFRESH_INTERVAL/
     );
+  });
+});
+
+const NUMERIC_DEFAULTS: [string, string][] = [
+  ["ENV_BOOKMARK_EXPIRY_MONTHS", "6"],
+  ["ENV_BUDGET_CONTROLLER_SWEEP_INTERVAL", "1000"],
+  ["ENV_BUDGET_LOWER_THRESHOLD_PERCENT", "80"],
+  ["ENV_COUNTER_FLUSH_SWEEP_INTERVAL", "10000"],
+  ["ENV_EMAIL_RATE_LIMIT_MAX_REQUESTS_PER_WINDOW", "2"],
+  ["ENV_EMAIL_RATE_LIMIT_WINDOW_MINUTES", "15"],
+  ["ENV_EMAIL_SEND_TIMEOUT", "10000"],
+  ["ENV_INSTANCE_MAX_EVENT_LOOP_LAG", "100"],
+  ["ENV_INSTANCE_MAX_INFLIGHT", "200"],
+  ["ENV_INVITATION_SWEEP_INTERVAL", "30000"],
+  ["ENV_LINE_GRAPH_MIN_VOTE_PERCENTAGE", "1"],
+  ["ENV_LINE_GRAPH_REFRESH_INTERVAL", "60000"],
+  ["ENV_LIVE_RESULTS_MAX_IDLE_TIME", "1800000"],
+  ["ENV_MANUAL_REFRESH_BURST", "5"],
+  ["ENV_MAX_ACCEPTABILITY_SCREENING_ATTEMPTS", "10"],
+  ["ENV_MAX_BOOKMARKS_PER_USER", "200"],
+  ["ENV_MAX_CHOICES", "50"],
+  ["ENV_MAX_INVITATIONS_PER_DAY", "200"],
+  ["ENV_MAX_LIVE_RESULTS_PER_USER", "5"],
+  ["ENV_MAX_NEWEST_POLLS", "50"],
+  ["ENV_MAX_POLLS_ADMIN_SEARCH_RESULTS", "200"],
+  ["ENV_MAX_POLLS_SEARCH_RESULTS", "200"],
+  ["ENV_MAX_PRIVATE_POLL_VOTERS", "100"],
+  ["ENV_MAX_REFRESH_AND_SEARCH_STRETCH", "8"],
+  ["ENV_MAX_SIGNIN_COOKIE_DURATION", "2592000000"],
+  ["ENV_MAX_TRENDING_POLLS", "200"],
+  ["ENV_MAX_VOTES_PER_IP_PER_MINUTE", "600"],
+  ["ENV_MIN_CHOICES", "2"],
+  ["ENV_MIN_LIVE_REFRESH_INTERVAL", "2000"],
+  ["ENV_MIN_MANUAL_REFRESH_INTERVAL", "5000"],
+  ["ENV_MIN_SEARCH_REFRESH_INTERVAL", "2000"],
+  ["ENV_MIN_VOTE_REFRESH_INTERVAL", "2000"],
+  ["ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL", "60000"],
+  ["ENV_OUTBOX_DRAIN_SWEEP_INTERVAL", "15000"],
+  ["ENV_PAGE_LOADS_PER_MINUTE", "120"],
+  ["ENV_PARTICIPANTS_VIEWPORT_SIZE", "10"],
+  ["ENV_POLL_ADMIN_PAGE_REFRESH_INTERVAL", "5000"],
+  ["ENV_POLL_APPROVAL_SWEEP_INTERVAL", "5000"],
+  ["ENV_POLL_DATE_CHECK_SWEEP_INTERVAL", "60000"],
+  ["ENV_POLL_EDIT_HEARTBEAT_INTERVAL", "10000"],
+  ["ENV_PORT", "8080"],
+  ["ENV_SCREENING_CALL_TIMEOUT", "10000"],
+  ["ENV_SEARCH_BURST", "3"],
+  ["ENV_SEARCH_CACHE_TTL", "10000"],
+  ["ENV_SERVER_MAX_REQUESTS_PER_INSTANCE_PER_SECOND", "1250"],
+  ["ENV_SERVER_MAX_REQUESTS_PER_SECOND", "15000"],
+  ["ENV_SERVER_MAX_SEARCH_FALLBACK_PER_SECOND", "200"],
+  ["ENV_SERVER_MAX_SEARCH_PER_SECOND", "2000"],
+  ["ENV_SESSION_CACHE_TTL", "300000"],
+  ["ENV_SHED_RETRY_AFTER", "2000"],
+  ["ENV_SMTP_PORT", "2525"],
+  ["ENV_TRENDING_POLLS_RECOMPUTE_SWEEP_INTERVAL", "60000"],
+  ["ENV_VOTE_BATCH_SIZE", "500"],
+  ["ENV_VOTE_QUEUE_LAG_NOTICE", "2000"],
+];
+
+function defaultOf(config: { defaultsUsed: readonly { name: string; value: string }[] }, name: string) {
+  return config.defaultsUsed.find((entry) => entry.name === name)?.value;
+}
+
+describe("defaultsUsed", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("lists the text settings left at their defaults, with their values", () => {
+    const config = loadConfig(baseEnv());
+    expect(defaultOf(config, "ENV_SIGNIN_METHOD")).toBe("native");
+    expect(defaultOf(config, "ENV_DATABASE_URL")).toBe("postgres://localhost:5432/app01");
+    expect(defaultOf(config, "ENV_EMAIL_TRANSPORT")).toBe("smtp");
+    expect(defaultOf(config, "ENV_ADMINS")).toBe("roadraceresults@gmail.com");
+    expect(defaultOf(config, "ENV_EMAIL_FROM")).toBe("CrowdPoll <no-reply@mail.crowdpoll.vote>");
+  });
+
+  it("lists every numeric setting exactly once with its default", () => {
+    const names = loadConfig(baseEnv()).defaultsUsed.map((entry) => entry.name);
+    const config = loadConfig(baseEnv());
+    for (const [name, value] of NUMERIC_DEFAULTS) {
+      expect(names.filter((listed) => listed === name), name).toHaveLength(1);
+      expect(defaultOf(config, name), name).toBe(value);
+    }
+  });
+
+  it("does not list a setting given a value", () => {
+    expect(defaultOf(loadConfig(baseEnv({ ENV_PORT: "9090" })), "ENV_PORT")).toBeUndefined();
+  });
+
+  it("lists an empty number setting, which takes its default", () => {
+    expect(defaultOf(loadConfig(baseEnv({ ENV_PORT: "" })), "ENV_PORT")).toBe("8080");
+  });
+
+  it("does not list an empty text setting, which keeps its empty value", () => {
+    const config = loadConfig(baseEnv({ ENV_ADMINS: "" }));
+    expect(defaultOf(config, "ENV_ADMINS")).toBeUndefined();
+    expect(config.admins).toEqual([]);
+  });
+
+  it("is sorted by name with no setting listed twice", () => {
+    const names = loadConfig(baseEnv()).defaultsUsed.map((entry) => entry.name);
+    expect(names).toEqual([...names].sort());
+    expect(new Set(names).size).toBe(names.length);
+  });
+
+  it("never lists a required setting", () => {
+    const names = loadConfig(baseEnv()).defaultsUsed.map((entry) => entry.name);
+    expect(names).not.toContain("ENV_BETTER_AUTH_SECRET");
+    expect(names).not.toContain("ENV_PUBLIC_ORIGIN");
+  });
+
+  it("lists each setting with no value, naming what the server does instead", () => {
+    const config = loadConfig(baseEnv());
+    expect(defaultOf(config, "ENV_VALKEY_URL")).toBe("none (in-process cache, queue and registry)");
+    expect(defaultOf(config, "ENV_OPENSEARCH_URL")).toBe("none (PostgreSQL full-text search)");
+    expect(defaultOf(config, "ENV_SPACES_*")).toBe("none (TRENDING objects and assets served from the instance)");
+    expect(defaultOf(config, "ENV_DATABASE_CA_CERT")).toBe("none (system certificate roots)");
+    expect(defaultOf(config, "ENV_ALLOWED_EMAILS")).toBe("none (allowlist off: everyone may sign in)");
+    expect(defaultOf(config, "ENV_EMAIL_ASSET_ORIGIN")).toBe("none (each link's own origin)");
+    expect(defaultOf(config, "ENV_PROTOTYPES")).toBe("none (no prototypes served)");
+    expect(defaultOf(config, "ENV_STAY_SIGNED_IN")).toBe("0 (the Stay signed in box starts clear)");
+    expect(defaultOf(config, "ENV_SMTP_USER")).toBe("none (emails logged to the console, not sent)");
+    expect(defaultOf(config, "ENV_SMTP_PASS")).toBe("none (emails logged to the console, not sent)");
+    expect(config.defaultsUsed.some((entry) => entry.name === "ENV_SPACES_BUCKET")).toBe(false);
+  });
+
+  it("lists an empty optional setting and drops one given a value", () => {
+    expect(defaultOf(loadConfig(baseEnv({ ENV_VALKEY_URL: "" })), "ENV_VALKEY_URL")).toBeDefined();
+    expect(defaultOf(loadConfig(baseEnv({ ENV_VALKEY_URL: "redis://localhost:6379" })), "ENV_VALKEY_URL")).toBeUndefined();
+    expect(defaultOf(loadConfig(baseEnv({ ENV_SMTP_USER: "" })), "ENV_SMTP_USER")).toBeDefined();
+    expect(defaultOf(loadConfig(baseEnv({ ENV_PROTOTYPES: " , " })), "ENV_PROTOTYPES")).toBeDefined();
+    expect(defaultOf(loadConfig(baseEnv({ ENV_PROTOTYPES: "SINGLE-COLUMN-RENDERING" })), "ENV_PROTOTYPES")).toBeUndefined();
+  });
+
+  it("drops the Spaces line once all five Spaces settings are given", () => {
+    const spaces = {
+      ENV_SPACES_BUCKET: "b",
+      ENV_SPACES_REGION: "r",
+      ENV_SPACES_KEY: "k",
+      ENV_SPACES_SECRET: "s",
+      ENV_SPACES_CDN_URL: "https://cdn.example"
+    };
+    expect(defaultOf(loadConfig(baseEnv(spaces)), "ENV_SPACES_*")).toBeUndefined();
+  });
+
+  it("lists each sign-in provider left out, as one line per provider", () => {
+    const config = loadConfig(
+      baseEnv({ ENV_SIGNIN_METHOD: "both", ENV_OAUTH_GOOGLE_CLIENT_ID: "id", ENV_OAUTH_GOOGLE_CLIENT_SECRET: "secret" })
+    );
+    expect(defaultOf(config, "ENV_OAUTH_APPLE_*")).toBe("none (Apple sign-in off)");
+    expect(defaultOf(config, "ENV_OAUTH_MICROSOFT_*")).toBe("none (Microsoft sign-in off)");
+    expect(defaultOf(config, "ENV_OAUTH_AMAZON_*")).toBe("none (Amazon sign-in off)");
+    expect(defaultOf(config, "ENV_OAUTH_GOOGLE_*")).toBeUndefined();
+  });
+
+  it("lists the SMTP settings only while email goes through SMTP", () => {
+    const ses = loadConfig(
+      baseEnv({
+        ENV_EMAIL_TRANSPORT: "ses",
+        ENV_SES_REGION: "us-east-1",
+        ENV_SES_ACCESS_KEY_ID: "key",
+        ENV_SES_SECRET_ACCESS_KEY: "secret"
+      })
+    );
+    expect(ses.defaultsUsed.filter((entry) => entry.name.startsWith("ENV_SMTP_"))).toEqual([]);
+    const smtp = loadConfig(baseEnv());
+    expect(defaultOf(smtp, "ENV_SMTP_HOST")).toBe("sandbox.smtp.mailtrap.io");
+    expect(defaultOf(smtp, "ENV_SMTP_PORT")).toBe("2525");
+  });
+
+  it("lists no sign-in provider in native mode", () => {
+    expect(loadConfig(baseEnv()).defaultsUsed.filter((entry) => entry.name.startsWith("ENV_OAUTH_"))).toEqual([]);
+  });
+
+  it("prints nothing while loading, valid or not", () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    loadConfig(baseEnv());
+    expect(() => loadConfig(baseEnv({ ENV_PORT: "abc" }))).toThrow(ConfigError);
+    expect(log).not.toHaveBeenCalled();
+  });
+});
+
+describe("defaultsUsedLines", () => {
+  it("writes one line per default in the start-up wording", () => {
+    const config = { ...loadConfig(baseEnv()), defaultsUsed: [{ name: "ENV_PORT", value: "8080" }] };
+    expect(defaultsUsedLines(config)).toEqual(["[config] ENV_PORT was not found, using default value: 8080."]);
+  });
+
+  it("masks the default administrator address", () => {
+    const config = { ...loadConfig(baseEnv()), defaultsUsed: [{ name: "ENV_ADMINS", value: "roadraceresults@gmail.com" }] };
+    expect(defaultsUsedLines(config)).toEqual(["[config] ENV_ADMINS was not found, using default value: r•••@gmail.com."]);
+  });
+
+  it("prints the service's own sender in full", () => {
+    const from = "CrowdPoll <no-reply@mail.crowdpoll.vote>";
+    const config = { ...loadConfig(baseEnv()), defaultsUsed: [{ name: "ENV_EMAIL_FROM", value: from }] };
+    expect(defaultsUsedLines(config)).toEqual([`[config] ENV_EMAIL_FROM was not found, using default value: ${from}.`]);
+  });
+
+  it("never prints the full default administrator address", () => {
+    for (const line of defaultsUsedLines(loadConfig(baseEnv()))) {
+      expect(line).not.toContain("roadraceresults@gmail.com");
+    }
+  });
+
+  it("writes nothing when every setting was given", () => {
+    expect(defaultsUsedLines({ ...loadConfig(baseEnv()), defaultsUsed: [] })).toEqual([]);
   });
 });

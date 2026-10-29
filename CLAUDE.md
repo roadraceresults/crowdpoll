@@ -24,6 +24,22 @@ Decisions that are easy to get wrong:
 - **`migrateToLatest` says `Migration check failed:`** when no migration ran, plus a line naming the script (R8).
 No migration, no new dependency, no setting.
 The preceding feature is
+`specs/20261029-150117-LOG-ENV-DEFAULTS/plan.md` (research R1–R6, `data-model.md` — in memory only, no migration — the
+log contract `contracts/log-lines.md` L1–L3, and the quickstart live alongside it in
+`specs/20261029-150117-LOG-ENV-DEFAULTS/`). The requirements report is
+`requirements/20261029-150117-log-env-defaults/requirements-report.md`: 4 diagrams and 10 findings, all resolved.
+Decisions that are easy to get wrong:
+- **`loadConfig` records, `startServer` prints**: `AppConfig.defaultsUsed` (`{ name, value }`, sorted by name), built by
+  `settingsReader(env)` (`int`, `nonNegativeInt`, `text`); the scripts and tests print nothing new (R1).
+- **The line is `[config] <NAME> was not found, using default value: <VALUE>.`**, `console.log`, before
+  `[server] Starting in …`; none when the configuration is invalid; `ENV_ADMINS` masked with `maskAddress` (R4).
+- **"Not found" is exactly when the code uses its default**: `""` counts for numbers and optional settings, not for the
+  six `??` text settings; no behaviour changes (R5).
+- **Settings with no value print `none (<behaviour>)`** (`ENV_STAY_SIGNED_IN`: `0 (…)`); `ENV_SPACES_*` and each
+  `ENV_OAUTH_<PROVIDER>_*` are one line; `ENV_SMTP_*` only with `smtp`, `ENV_OAUTH_*` only with `oauth`/`both` (R2, R3).
+- **Existing `[mailer]` and `[db]` lines stay** (clarification 2026-10-29).
+No setting, route, data, migration or dependency.
+The preceding feature is
 `specs/20261028-151716-REFRESH-MECHANISMS/plan.md` (research R1–R10, `data-model.md` — cache keys only, no migration —
 the HTTP and operator contracts `contracts/api.md` A1–A7, the UI contracts `contracts/ui-contracts.md` C1–C3, and the
 quickstart live alongside it in `specs/20261028-151716-REFRESH-MECHANISMS/`). The requirements report is

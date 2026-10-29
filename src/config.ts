@@ -137,6 +137,12 @@ export interface AppConfig {
   maxBookmarksPerUser: number;
   bookmarkExpiryMonths: number;
   pageLoadsPerMinute: number;
+  defaultsUsed: readonly DefaultUsed[];
+}
+
+export interface DefaultUsed {
+  name: string;
+  value: string;
 }
 
 export type EmailTransport = "smtp" | "ses";
@@ -175,16 +181,56 @@ export class ConfigError extends Error {}
 
 type Env = Record<string, string | undefined>;
 
-function intVar(env: Env, name: string, fallback: number): number {
-  const raw = env[name];
-  if (raw === undefined || raw === "") return fallback;
-  const value = Number(raw);
-  if (!Number.isInteger(value) || value <= 0) {
-    throw new ConfigError(
-      `Invalid ${name}: "${raw}" — expected a positive integer.`
-    );
-  }
-  return value;
+interface SettingsReader {
+  int(name: string, fallback: number): number;
+  nonNegativeInt(name: string, fallback: number): number;
+  text(name: string, fallback: string): string;
+  none(name: string, behaviour: string): void;
+  readonly defaultsUsed: DefaultUsed[];
+}
+
+function settingsReader(env: Env): SettingsReader {
+  const defaultsUsed: DefaultUsed[] = [];
+  const useDefault = <T extends string | number>(name: string, fallback: T): T => {
+    defaultsUsed.push({ name, value: String(fallback) });
+    return fallback;
+  };
+  return {
+    int(name, fallback) {
+      const raw = env[name];
+      if (raw === undefined || raw === "") return useDefault(name, fallback);
+      const value = Number(raw);
+      if (!Number.isInteger(value) || value <= 0) {
+        throw new ConfigError(
+          `Invalid ${name}: "${raw}" — expected a positive integer.`
+        );
+      }
+      return value;
+    },
+    nonNegativeInt(name, fallback) {
+      const raw = env[name];
+      if (raw === undefined || raw === "") return useDefault(name, fallback);
+      const value = Number(raw);
+      if (!Number.isInteger(value) || value < 0) {
+        throw new ConfigError(
+          `Invalid ${name}: "${raw}" — expected a non-negative integer.`
+        );
+      }
+      return value;
+    },
+    text(name, fallback) {
+      const raw = env[name];
+      return raw === undefined ? useDefault(name, fallback) : raw;
+    },
+    none(name, behaviour) {
+      defaultsUsed.push({ name, value: behaviour });
+    },
+    defaultsUsed
+  };
+}
+
+function byName(a: DefaultUsed, b: DefaultUsed): number {
+  return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
 }
 
 const RENAMED_VARS: Record<string, string> = {
@@ -210,23 +256,12 @@ const RENAMED_VARS: Record<string, string> = {
   ENV_SERVER_MAX_SEARCH_PER_SECOND_FALLBACK: "ENV_SERVER_MAX_SEARCH_FALLBACK_PER_SECOND"
 };
 
-function nonNegativeIntVar(env: Env, name: string, fallback: number): number {
-  const raw = env[name];
-  if (raw === undefined || raw === "") return fallback;
-  const value = Number(raw);
-  if (!Number.isInteger(value) || value < 0) {
-    throw new ConfigError(
-      `Invalid ${name}: "${raw}" — expected a non-negative integer.`
-    );
-  }
-  return value;
-}
-
 export function loadConfig(env: Env = process.env): AppConfig {
   for (const [old, current] of Object.entries(RENAMED_VARS)) {
     if (env[old] !== undefined) throw new ConfigError(`${old} was renamed to ${current}.`);
   }
-  const signinMethod = env.ENV_SIGNIN_METHOD ?? "native";
+  const read = settingsReader(env);
+  const signinMethod = read.text("ENV_SIGNIN_METHOD", "native");
   if (signinMethod !== "native" && signinMethod !== "oauth" && signinMethod !== "both") {
     throw new ConfigError(
       `Invalid ENV_SIGNIN_METHOD: "${signinMethod}" — expected "native", "oauth" or "both".`
@@ -234,14 +269,14 @@ export function loadConfig(env: Env = process.env): AppConfig {
   }
   const nativeSignin = signinMethod !== "oauth";
   const oauthSignin = signinMethod !== "native";
-  const oauthProviders = oauthSignin ? oauthProvidersOf(env) : {};
+  const oauthProviders = oauthSignin ? oauthProvidersOf(env, read) : {};
   if (oauthSignin && Object.keys(oauthProviders).length === 0) {
     throw new ConfigError(
       `Invalid ENV_SIGNIN_METHOD: "${signinMethod}" needs at least one sign-in provider, and no sign-in provider is configured.`
     );
   }
 
-  const databaseUrl = env.ENV_DATABASE_URL ?? "postgres://localhost:5432/app01";
+  const databaseUrl = read.text("ENV_DATABASE_URL", "postgres://localhost:5432/app01");
   if (!databaseUrl.startsWith("postgres://") && !databaseUrl.startsWith("postgresql://")) {
     throw new ConfigError(
       `Invalid ENV_DATABASE_URL: "${databaseUrl}" — expected a postgres:// or postgresql:// connection string.`
@@ -253,12 +288,14 @@ export function loadConfig(env: Env = process.env): AppConfig {
   if (databaseCaCert !== undefined && !databaseCaCert.includes("-----BEGIN CERTIFICATE-----")) {
     throw new ConfigError("Invalid ENV_DATABASE_CA_CERT: expected a PEM certificate (-----BEGIN CERTIFICATE-----).");
   }
+  if (databaseCaCert === undefined) read.none("ENV_DATABASE_CA_CERT", "none (system certificate roots)");
 
   // A local database with a shared Valkey would trade votes and counter flushes with
   // the instances that use that Valkey, each dropping what its own database lacks.
   // The default database URL is not checked: the build (publish-assets) loads the
   // configuration without the run-time-only ENV_DATABASE_URL and never connects.
   const valkeyUrl = optionalVar(env, "ENV_VALKEY_URL");
+  if (valkeyUrl === undefined) read.none("ENV_VALKEY_URL", "none (in-process cache, queue and registry)");
   const databaseHost = env.ENV_DATABASE_URL === undefined ? undefined : hostOf(databaseUrl);
   const valkeyHost = valkeyUrl === undefined ? undefined : hostOf(valkeyUrl);
   if (databaseHost !== undefined && isLocalHost(databaseHost) && valkeyHost !== undefined && !isLocalHost(valkeyHost)) {
@@ -281,13 +318,13 @@ export function loadConfig(env: Env = process.env): AppConfig {
     throw new ConfigError("Invalid ENV_PUBLIC_ORIGIN: this required variable must be set to the site's origin, such as https://crowdpoll.vote.");
   }
 
-  const emailTransport = env.ENV_EMAIL_TRANSPORT ?? "smtp";
+  const emailTransport = read.text("ENV_EMAIL_TRANSPORT", "smtp");
   if (emailTransport !== "smtp" && emailTransport !== "ses") {
     throw new ConfigError(`Invalid ENV_EMAIL_TRANSPORT: "${emailTransport}" — expected "smtp" or "ses".`);
   }
 
-  const minChoices = intVar(env, "ENV_MIN_CHOICES", 2);
-  const maxChoices = intVar(env, "ENV_MAX_CHOICES", 50);
+  const minChoices = read.int("ENV_MIN_CHOICES", 2);
+  const maxChoices = read.int("ENV_MAX_CHOICES", 50);
   if (maxChoices < minChoices) {
     throw new ConfigError(
       `Invalid ENV_MAX_CHOICES: ${maxChoices} — must be at least ENV_MIN_CHOICES (${minChoices}).`
@@ -295,18 +332,18 @@ export function loadConfig(env: Env = process.env): AppConfig {
   }
 
   const floors: RefreshFloors = {
-    live: intVar(env, "ENV_MIN_LIVE_REFRESH_INTERVAL", 2_000),
-    refresh: intVar(env, "ENV_MIN_MANUAL_REFRESH_INTERVAL", 5_000),
-    search: intVar(env, "ENV_MIN_SEARCH_REFRESH_INTERVAL", 2_000),
-    vote: intVar(env, "ENV_MIN_VOTE_REFRESH_INTERVAL", 2_000)
+    live: read.int("ENV_MIN_LIVE_REFRESH_INTERVAL", 2_000),
+    refresh: read.int("ENV_MIN_MANUAL_REFRESH_INTERVAL", 5_000),
+    search: read.int("ENV_MIN_SEARCH_REFRESH_INTERVAL", 2_000),
+    vote: read.int("ENV_MIN_VOTE_REFRESH_INTERVAL", 2_000)
   };
   const bursts: RefreshBursts = {
     live: 1,
-    refresh: intVar(env, "ENV_MANUAL_REFRESH_BURST", 5),
-    search: intVar(env, "ENV_SEARCH_BURST", 3),
+    refresh: read.int("ENV_MANUAL_REFRESH_BURST", 5),
+    search: read.int("ENV_SEARCH_BURST", 3),
     vote: 1
   };
-  const budgetControllerSweepIntervalMs = intVar(env, "ENV_BUDGET_CONTROLLER_SWEEP_INTERVAL", 1_000);
+  const budgetControllerSweepIntervalMs = read.int("ENV_BUDGET_CONTROLLER_SWEEP_INTERVAL", 1_000);
   const smallestFloor = Math.min(...Object.values(floors));
   if (budgetControllerSweepIntervalMs > smallestFloor) {
     throw new ConfigError(
@@ -314,33 +351,29 @@ export function loadConfig(env: Env = process.env): AppConfig {
     );
   }
 
-  const maxPollsSearchResults = intVar(env, "ENV_MAX_POLLS_SEARCH_RESULTS", 200);
-  const maxNewestPolls = intVar(env, "ENV_MAX_NEWEST_POLLS", 50);
+  const maxPollsSearchResults = read.int("ENV_MAX_POLLS_SEARCH_RESULTS", 200);
+  const maxNewestPolls = read.int("ENV_MAX_NEWEST_POLLS", 50);
   if (maxNewestPolls > maxPollsSearchResults) {
     throw new ConfigError(
       `Invalid ENV_MAX_NEWEST_POLLS: ${maxNewestPolls} — must not exceed ENV_MAX_POLLS_SEARCH_RESULTS (${maxPollsSearchResults}).`
     );
   }
-  const newestPollsRecomputeSweepIntervalMs = intVar(env, "ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL", 60_000);
+  const newestPollsRecomputeSweepIntervalMs = read.int("ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL", 60_000);
   if (newestPollsRecomputeSweepIntervalMs < 1000) {
     throw new ConfigError(
       `Invalid ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL: ${newestPollsRecomputeSweepIntervalMs} — must be at least 1000.`
     );
   }
 
-  const serverMaxRequestsPerInstancePerSecond = intVar(
-    env,
-    "ENV_SERVER_MAX_REQUESTS_PER_INSTANCE_PER_SECOND",
-    1_250
-  );
-  const serverMaxRequestsPerSecond = intVar(env, "ENV_SERVER_MAX_REQUESTS_PER_SECOND", 15_000);
+  const serverMaxRequestsPerInstancePerSecond = read.int("ENV_SERVER_MAX_REQUESTS_PER_INSTANCE_PER_SECOND", 1_250);
+  const serverMaxRequestsPerSecond = read.int("ENV_SERVER_MAX_REQUESTS_PER_SECOND", 15_000);
   if (serverMaxRequestsPerSecond < serverMaxRequestsPerInstancePerSecond) {
     throw new ConfigError(
       `Invalid ENV_SERVER_MAX_REQUESTS_PER_SECOND: ${serverMaxRequestsPerSecond} — must be at least ENV_SERVER_MAX_REQUESTS_PER_INSTANCE_PER_SECOND (${serverMaxRequestsPerInstancePerSecond}).`
     );
   }
 
-  const admins = (env.ENV_ADMINS ?? "roadraceresults@gmail.com")
+  const admins = read.text("ENV_ADMINS", "roadraceresults@gmail.com")
     .split(",")
     .map((a) => a.trim().toLowerCase())
     .filter((a) => a.length > 0);
@@ -354,21 +387,30 @@ export function loadConfig(env: Env = process.env): AppConfig {
       throw new ConfigError(`Invalid ENV_PROTOTYPES: "${name}" — folder names may hold only letters, digits, "_" and "-".`);
     }
   }
+  if (prototypes.length === 0) read.none("ENV_PROTOTYPES", "none (no prototypes served)");
+
+  const openSearchUrl = optionalVar(env, "ENV_OPENSEARCH_URL");
+  if (openSearchUrl === undefined) read.none("ENV_OPENSEARCH_URL", "none (PostgreSQL full-text search)");
+  const emailAssetOrigin = originVar(env, "ENV_EMAIL_ASSET_ORIGIN");
+  if (emailAssetOrigin === undefined) read.none("ENV_EMAIL_ASSET_ORIGIN", "none (each link's own origin)");
+  const allowedKeys = allowedEmailKeys(env);
+  if (allowedKeys === undefined) read.none("ENV_ALLOWED_EMAILS", "none (allowlist off: everyone may sign in)");
+  if (!env.ENV_STAY_SIGNED_IN?.trim()) read.none("ENV_STAY_SIGNED_IN", "0 (the Stay signed in box starts clear)");
+  for (const name of ["ENV_SMTP_USER", "ENV_SMTP_PASS"]) {
+    if (!env[name]) read.none(name, "none (emails logged to the console, not sent)");
+  }
+  const spaces = spacesConfig(env, read);
 
   return {
-    port: intVar(env, "ENV_PORT", 8080),
+    port: read.int("ENV_PORT", 8080),
     databaseUrl,
     databaseCaCert,
     valkeyUrl,
-    openSearchUrl: optionalVar(env, "ENV_OPENSEARCH_URL"),
-    spaces: spacesConfig(env),
+    openSearchUrl,
+    spaces,
     admins,
     prototypes,
-    maxSigninCookieDurationMs: intVar(
-      env,
-      "ENV_MAX_SIGNIN_COOKIE_DURATION",
-      2_592_000_000
-    ),
+    maxSigninCookieDurationMs: read.int("ENV_MAX_SIGNIN_COOKIE_DURATION", 2_592_000_000),
     staySignedInDefault: env.ENV_STAY_SIGNED_IN?.trim() === "1",
     signinMethod,
     nativeSignin,
@@ -377,72 +419,71 @@ export function loadConfig(env: Env = process.env): AppConfig {
     publicOrigin,
     betterAuthSecret,
     // 011 new settings — see specs/011-SIMPLIFY-POLL-STATES/data-model.md
-    screeningCallTimeoutMs: intVar(env, "ENV_SCREENING_CALL_TIMEOUT", 10_000),
-    pollApprovalSweepIntervalMs: intVar(env, "ENV_POLL_APPROVAL_SWEEP_INTERVAL", 5_000),
-    pollDateCheckSweepIntervalMs: intVar(env, "ENV_POLL_DATE_CHECK_SWEEP_INTERVAL", 60_000),
-    pollEditHeartbeatIntervalMs: intVar(env, "ENV_POLL_EDIT_HEARTBEAT_INTERVAL", 10_000),
-    maxAcceptabilityScreeningAttempts: intVar(env, "ENV_MAX_ACCEPTABILITY_SCREENING_ATTEMPTS", 10),
-    pollAdminPageRefreshIntervalMs: intVar(env, "ENV_POLL_ADMIN_PAGE_REFRESH_INTERVAL", 5_000),
-    participantsViewportSize: intVar(env, "ENV_PARTICIPANTS_VIEWPORT_SIZE", 10),
+    screeningCallTimeoutMs: read.int("ENV_SCREENING_CALL_TIMEOUT", 10_000),
+    pollApprovalSweepIntervalMs: read.int("ENV_POLL_APPROVAL_SWEEP_INTERVAL", 5_000),
+    pollDateCheckSweepIntervalMs: read.int("ENV_POLL_DATE_CHECK_SWEEP_INTERVAL", 60_000),
+    pollEditHeartbeatIntervalMs: read.int("ENV_POLL_EDIT_HEARTBEAT_INTERVAL", 10_000),
+    maxAcceptabilityScreeningAttempts: read.int("ENV_MAX_ACCEPTABILITY_SCREENING_ATTEMPTS", 10),
+    pollAdminPageRefreshIntervalMs: read.int("ENV_POLL_ADMIN_PAGE_REFRESH_INTERVAL", 5_000),
+    participantsViewportSize: read.int("ENV_PARTICIPANTS_VIEWPORT_SIZE", 10),
     // 012: was a hard-coded 15 minutes / 2 requests. The window is expressed in
     // minutes here; auth.ts converts to the seconds the limiter takes.
-    emailRateLimitWindowMinutes: intVar(env, "ENV_EMAIL_RATE_LIMIT_WINDOW_MINUTES", 15),
-    emailRateLimitMaxRequestsPerWindow: intVar(
-      env,
-      "ENV_EMAIL_RATE_LIMIT_MAX_REQUESTS_PER_WINDOW",
-      2
-    ),
-    maxPrivatePollVoters: intVar(env, "ENV_MAX_PRIVATE_POLL_VOTERS", 100),
+    emailRateLimitWindowMinutes: read.int("ENV_EMAIL_RATE_LIMIT_WINDOW_MINUTES", 15),
+    emailRateLimitMaxRequestsPerWindow: read.int("ENV_EMAIL_RATE_LIMIT_MAX_REQUESTS_PER_WINDOW", 2),
+    maxPrivatePollVoters: read.int("ENV_MAX_PRIVATE_POLL_VOTERS", 100),
     minChoices,
     maxChoices,
     smtp: {
-      host: env.ENV_SMTP_HOST ?? "sandbox.smtp.mailtrap.io",
-      port: intVar(env, "ENV_SMTP_PORT", 2525),
+      host: read.text("ENV_SMTP_HOST", "sandbox.smtp.mailtrap.io"),
+      port: read.int("ENV_SMTP_PORT", 2525),
       user: env.ENV_SMTP_USER,
       pass: env.ENV_SMTP_PASS
     },
     emailTransport,
     ses: emailTransport === "ses" ? sesConfig(env) : undefined,
-    emailFrom: env.ENV_EMAIL_FROM ?? "CrowdPoll <no-reply@mail.crowdpoll.vote>",
-    emailAssetOrigin: originVar(env, "ENV_EMAIL_ASSET_ORIGIN"),
-    allowedEmailKeys: allowedEmailKeys(env),
-    emailSendTimeoutMs: intVar(env, "ENV_EMAIL_SEND_TIMEOUT", 10_000),
-    sessionCacheTtlMs: intVar(env, "ENV_SESSION_CACHE_TTL", 300_000),
+    emailFrom: read.text("ENV_EMAIL_FROM", "CrowdPoll <no-reply@mail.crowdpoll.vote>"),
+    emailAssetOrigin,
+    allowedEmailKeys: allowedKeys,
+    emailSendTimeoutMs: read.int("ENV_EMAIL_SEND_TIMEOUT", 10_000),
+    sessionCacheTtlMs: read.int("ENV_SESSION_CACHE_TTL", 300_000),
     maxPollsSearchResults,
-    maxPollsAdminSearchResults: intVar(env, "ENV_MAX_POLLS_ADMIN_SEARCH_RESULTS", 200),
-    maxTrendingPolls: intVar(env, "ENV_MAX_TRENDING_POLLS", 200),
-    trendingPollsRecomputeSweepIntervalMs: intVar(env, "ENV_TRENDING_POLLS_RECOMPUTE_SWEEP_INTERVAL", 60_000),
+    maxPollsAdminSearchResults: read.int("ENV_MAX_POLLS_ADMIN_SEARCH_RESULTS", 200),
+    maxTrendingPolls: read.int("ENV_MAX_TRENDING_POLLS", 200),
+    trendingPollsRecomputeSweepIntervalMs: read.int("ENV_TRENDING_POLLS_RECOMPUTE_SWEEP_INTERVAL", 60_000),
     maxNewestPolls,
     newestPollsRecomputeSweepIntervalMs,
     floors,
     bursts,
-    lineGraphMinVotePercentage: nonNegativeIntVar(env, "ENV_LINE_GRAPH_MIN_VOTE_PERCENTAGE", 1),
+    lineGraphMinVotePercentage: read.nonNegativeInt("ENV_LINE_GRAPH_MIN_VOTE_PERCENTAGE", 1),
     // Clamped up to the live floor so a misconfigured interval cannot undercut
     // the tightest per-user refresh the service defends.
-    lineGraphRefreshIntervalMs: Math.max(intVar(env, "ENV_LINE_GRAPH_REFRESH_INTERVAL", 60_000), floors.live),
-    maxVotesPerIpPerMinute: intVar(env, "ENV_MAX_VOTES_PER_IP_PER_MINUTE", 600),
-    maxLiveResultsPerUser: intVar(env, "ENV_MAX_LIVE_RESULTS_PER_USER", 5),
-    maxInvitationsPerDay: intVar(env, "ENV_MAX_INVITATIONS_PER_DAY", 200),
-    liveResultsMaxIdleTimeMs: intVar(env, "ENV_LIVE_RESULTS_MAX_IDLE_TIME", 1_800_000),
+    lineGraphRefreshIntervalMs: Math.max(read.int("ENV_LINE_GRAPH_REFRESH_INTERVAL", 60_000), floors.live),
+    maxVotesPerIpPerMinute: read.int("ENV_MAX_VOTES_PER_IP_PER_MINUTE", 600),
+    maxLiveResultsPerUser: read.int("ENV_MAX_LIVE_RESULTS_PER_USER", 5),
+    maxInvitationsPerDay: read.int("ENV_MAX_INVITATIONS_PER_DAY", 200),
+    liveResultsMaxIdleTimeMs: read.int("ENV_LIVE_RESULTS_MAX_IDLE_TIME", 1_800_000),
     serverMaxRequestsPerInstancePerSecond,
     serverMaxRequestsPerSecond,
-    serverMaxSearchPerSecond: intVar(env, "ENV_SERVER_MAX_SEARCH_PER_SECOND", 2_000),
-    serverMaxSearchFallbackPerSecond: intVar(env, "ENV_SERVER_MAX_SEARCH_FALLBACK_PER_SECOND", 200),
+    serverMaxSearchPerSecond: read.int("ENV_SERVER_MAX_SEARCH_PER_SECOND", 2_000),
+    serverMaxSearchFallbackPerSecond: read.int("ENV_SERVER_MAX_SEARCH_FALLBACK_PER_SECOND", 200),
     budgetControllerSweepIntervalMs,
-    maxRefreshAndSearchStretch: intVar(env, "ENV_MAX_REFRESH_AND_SEARCH_STRETCH", 8),
-    budgetLowerThresholdPercent: intVar(env, "ENV_BUDGET_LOWER_THRESHOLD_PERCENT", 80),
-    instanceMaxInflight: intVar(env, "ENV_INSTANCE_MAX_INFLIGHT", 200),
-    instanceMaxEventLoopLagMs: intVar(env, "ENV_INSTANCE_MAX_EVENT_LOOP_LAG", 100),
-    shedRetryAfterMs: intVar(env, "ENV_SHED_RETRY_AFTER", 2_000),
-    counterFlushSweepIntervalMs: intVar(env, "ENV_COUNTER_FLUSH_SWEEP_INTERVAL", 10_000),
-    voteBatchSize: intVar(env, "ENV_VOTE_BATCH_SIZE", 500),
-    voteQueueLagNoticeMs: intVar(env, "ENV_VOTE_QUEUE_LAG_NOTICE", 2_000),
-    searchCacheTtlMs: intVar(env, "ENV_SEARCH_CACHE_TTL", 10_000),
-    outboxDrainSweepIntervalMs: intVar(env, "ENV_OUTBOX_DRAIN_SWEEP_INTERVAL", 15_000),
-    invitationSweepIntervalMs: intVar(env, "ENV_INVITATION_SWEEP_INTERVAL", 30_000),
-    maxBookmarksPerUser: intVar(env, "ENV_MAX_BOOKMARKS_PER_USER", 200),
-    bookmarkExpiryMonths: intVar(env, "ENV_BOOKMARK_EXPIRY_MONTHS", 6),
-    pageLoadsPerMinute: intVar(env, "ENV_PAGE_LOADS_PER_MINUTE", 120)
+    maxRefreshAndSearchStretch: read.int("ENV_MAX_REFRESH_AND_SEARCH_STRETCH", 8),
+    budgetLowerThresholdPercent: read.int("ENV_BUDGET_LOWER_THRESHOLD_PERCENT", 80),
+    instanceMaxInflight: read.int("ENV_INSTANCE_MAX_INFLIGHT", 200),
+    instanceMaxEventLoopLagMs: read.int("ENV_INSTANCE_MAX_EVENT_LOOP_LAG", 100),
+    shedRetryAfterMs: read.int("ENV_SHED_RETRY_AFTER", 2_000),
+    counterFlushSweepIntervalMs: read.int("ENV_COUNTER_FLUSH_SWEEP_INTERVAL", 10_000),
+    voteBatchSize: read.int("ENV_VOTE_BATCH_SIZE", 500),
+    voteQueueLagNoticeMs: read.int("ENV_VOTE_QUEUE_LAG_NOTICE", 2_000),
+    searchCacheTtlMs: read.int("ENV_SEARCH_CACHE_TTL", 10_000),
+    outboxDrainSweepIntervalMs: read.int("ENV_OUTBOX_DRAIN_SWEEP_INTERVAL", 15_000),
+    invitationSweepIntervalMs: read.int("ENV_INVITATION_SWEEP_INTERVAL", 30_000),
+    maxBookmarksPerUser: read.int("ENV_MAX_BOOKMARKS_PER_USER", 200),
+    bookmarkExpiryMonths: read.int("ENV_BOOKMARK_EXPIRY_MONTHS", 6),
+    pageLoadsPerMinute: read.int("ENV_PAGE_LOADS_PER_MINUTE", 120),
+    defaultsUsed: read.defaultsUsed
+      .filter((entry) => emailTransport === "smtp" || !entry.name.startsWith("ENV_SMTP_"))
+      .sort(byName)
   };
 }
 
@@ -497,11 +538,14 @@ const PROVIDER_SETTINGS = {
 
 export const PROVIDER_NAMES = { google: "Google", apple: "Apple", microsoft: "Microsoft", amazon: "Amazon" } as const;
 
-function oauthProvidersOf(env: Env): OAuthProviders {
+function oauthProvidersOf(env: Env, read: SettingsReader): OAuthProviders {
   const providers: OAuthProviders = {};
   for (const [provider, names] of Object.entries(PROVIDER_SETTINGS) as [keyof OAuthProviders, readonly string[]][]) {
     const values = names.map((name) => optionalVar(env, name));
-    if (values.every((value) => value === undefined)) continue;
+    if (values.every((value) => value === undefined)) {
+      read.none(`ENV_OAUTH_${provider.toUpperCase()}_*`, `none (${PROVIDER_NAMES[provider]} sign-in off)`);
+      continue;
+    }
     const missing = names.find((_name, index) => values[index] === undefined);
     if (missing) {
       throw new ConfigError(`Incomplete ${PROVIDER_NAMES[provider]} sign-in settings: ${missing} is not set.`);
@@ -545,9 +589,12 @@ function sesConfig(env: Env): SesConfig {
   };
 }
 
-function spacesConfig(env: Env): SpacesConfig | undefined {
+function spacesConfig(env: Env, read: SettingsReader): SpacesConfig | undefined {
   const values = SPACES_VARIABLES.map((name) => optionalVar(env, name));
-  if (values.every((value) => value === undefined)) return undefined;
+  if (values.every((value) => value === undefined)) {
+    read.none("ENV_SPACES_*", "none (TRENDING objects and assets served from the instance)");
+    return undefined;
+  }
   const missing = SPACES_VARIABLES.filter((_name, index) => values[index] === undefined);
   if (missing.length > 0) {
     throw new ConfigError(
