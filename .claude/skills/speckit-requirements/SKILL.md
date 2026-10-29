@@ -44,15 +44,16 @@ This skill will also document **Breaking Changes** and **Technical Debt**, and p
 document asks for, reporting each result as a finding with recommendation(s) in a **Research Results** section (see
 *Research Results*).
 
-This skill **Answers three commands** about the findings list, for as long as findings remain open:
-   - **"Next"** — a a first step, resolves every open finding whose recommendation the developer has checked the `➡️ [ ] **Accepted**` box in the file,
+This skill **Answers four commands** about the findings list, for as long as findings remain open:
+   - **"Next"** — as a first step, resolves every open finding whose `[ ] ➡️ **Accept**` box the developer has ticked in the file,
      then it shows the first finding still open.
    - **"Accept"** — accepts the recommended recommendation of the next open finding, updates the requirements if necessary, and marks the finding resolved.
+   - **"Accept <ID>, <LETTER>"** — does the same for the option named, of any open finding, e.g. `Accept AM2, B`.
    - **"Accept all"** — does the same for every open finding that offers just one recommendation, in one pass, and reports the ones
      skipped because they have more than one recommendation.
 
 Only this skill marks a finding resolved, because resolving it may require an update to the current requirements document. The developer accepts a
-recommendation, by Typing or Saying "Accept", or by checking the `➡️ [ ] **Accepted**` box; the skill does the rest.
+recommendation, by Typing or Saying "Accept" or `Accept <ID>, <LETTER>`, or by ticking the `[ ] ➡️ **Accept**` box; the skill does the rest.
 
 The findings this skill resolves are the ones `/speckit-requirements` reports. Such as **Inconsistencies**, **Ambiguities**, **Unspecified Aspects**, and **"Needs Clarifications" items**.
 
@@ -163,6 +164,7 @@ This could include:
 ⚪ **/speckit-tasks**  
 ⚪ **/speckit-analyze**  
 ⚪ **/speckit-analyze-findings** (optional)  
+⚪ (or **/speckit-plan-thru-analyze**, which runs /speckit-plan through /speckit-analyze-findings in one go)  
 ⚪ **/speckit-implement**  
 ⚪ **/speckit-tweaks**  (optional)  
 ⚪  
@@ -277,10 +279,11 @@ beside `requirements.md`, where `REQUIREMENTS_DIRECTORY` is
     including anything a resolution left unsettled; and for research requests the **Research Results** section does
     not already answer, which are researched and appended there (see *Research Results*);
   - **append** each new finding in its initial form, as described in *Finding layout* (its bold title, its
-    description, then its recommendation(s), each with its own `➡️ [ ] **Accepted**` line), at
+    explanation, then its recommendation(s), each with its own Accept line), in the report's own form (the
+    *Old form* for a report created before 2026-10-29, see *Reading a report*), at
     the end of its existing subsection in the findings section (adding the subsection at the end of that
     section if it is absent), numbered after the last finding already there;
-  - append no report: an APPEND run leaves new findings open, so the document is not complete (see *Architecture Complete Report*);
+  - append no report: an APPEND run leaves new findings open, so the document is not complete (see *Requirements Report Complete Report*);
   - if no new finding is found, append nothing and say so in the CC CLI terminal;
   - leave `.specify/requirements.json` unchanged, except to update `last_written` (see *File lock while executing a
     command*).
@@ -366,7 +369,8 @@ input**. "Next" applies it before anything else (see "Next" in *Resolution of Fi
 2. **Additional requirements** are added to `requirements.md`, at the end of the document under a heading
    `## Additional Requirements (<date and time>)`, worded as the developer wrote them. Then the report is checked
    against them exactly as an APPEND run checks the requirements (see *Generation Mode*): new Inconsistencies,
-   Ambiguities, Unspecified Aspects, "Needs Clarifications" items and Breaking Changes are appended as findings.
+   Ambiguities, Unspecified Aspects, "Needs Clarifications" items and Breaking Changes are appended as findings,
+   in the report's own form (see *Reading a report*).
    Existing sections and diagrams are not rewritten; when a diagram no longer fits, that is reported as a finding.
 3. **Research requests** are added to `requirements.md` the same way, under the same heading, then researched and
    appended to **Research Results** as new `RS` findings (see *Research Results*).
@@ -388,17 +392,14 @@ and "Next" carries on as usual.
 7. **Make informed guesses**: Use context, industry standards, and common patterns to fill gaps.  
 
 8. **Document Inconsistencies** of the requirements.  
-   - lay out each Inconsistency in its initial form, as described in *Finding layout* below — its bold title, its description, then its recommendation(s), each with its own line   
-   ➡️ [ ] **Accepted**    
+   - lay out each Inconsistency as described in *Finding layout* below.
 
 9. **Document Ambiguities** of the requirements.  
-   - lay out each Ambiguity in its initial form, as described in *Finding layout* below — its bold title, its description, then its recommendation(s), each with its own line   
-   ➡️ [ ] **Accepted**
+   - lay out each Ambiguity as described in *Finding layout* below.
 
 10. **Document Unspecified Aspects** of the requirements.  
 
-      - lay out each Unspecified Aspect in its initial form, as described in *Finding layout* below — its bold title, its description, then its recommendation(s), each with its own line  
-      ➡️ [ ] **Accepted**  
+      - lay out each Unspecified Aspect as described in *Finding layout* below.
 
 11. **Document "Needs Clarifications" items** of the requirements.
       - **Prioritize clarifications**: scope > security/privacy > user experience > technical details
@@ -406,116 +407,168 @@ and "Next" carries on as usual.
          - Significantly impact feature scope or user experience
          - Have multiple reasonable interpretations with different implications
          - Lack any reasonable default
-      - lay out each "Needs Clarification" item in its initial form, as described in *Finding layout* below — its bold title, its description, then its recommendation(s), each with its own line   
-      ➡️ [ ] **Accepted**  
+      - lay out each "Needs Clarification" item as described in *Finding layout* below.
 
-    **Finding layout.** Every finding — Inconsistency, Ambiguity, Unspecified Aspect or "Needs
-    Clarification" item — goes through three *forms*. Every line ends with two spaces, the Markdown line break.
+    **Finding layout.** Every finding — Inconsistency, Ambiguity, Unspecified Aspect, "Needs Clarification" item or
+    Research Result — goes through three *forms*: initial, accepted and resolved.
+    This section is the only full description of them; every other section refers to it.
+    A report created before 2026-10-29 keeps the *Old form* described at the end of this section; every other report
+    uses the forms below.
+    In the examples, `␣␣` stands for the two trailing spaces of a Markdown line break and is not written literally;
+    everything else is written exactly as shown, and every blank line is empty.
 
-    *Initial form* — as the finding is first written here is an example of how it should look:
+    *Initial form* — as the finding is first written:
 
-    **NC1. Should the favicon include the speech bubble?**  
+    ```markdown
+    **NC1. Should the favicon include the speech bubble?**␣␣
 
-    The mockup shows only the two figures.  
-    The header's brand logo draws the same figures inside a white speech bubble with a black outline.  
+    > The mockup shows only the two figures.␣␣
+    > The header's brand logo draws the same figures inside a white speech bubble with a black outline.␣␣
+
+    ❌ NOT Resolved
+
+      - **Recommendation A** _(recommended)_: **figures only, as in the mockup.**␣␣
+
+        [ ] ➡️ **Accept** (To Accept, you may: mark <b>[X]</b> on this line, save the file, then Type/Say "<b>next</b>" in the CC CLI terminal, OR Type/Say "<b>Accept NC1, A</b>" in CC CLI)
+
+        - <u>Pros</u>: it matches the mockup, and it is legible at 16 px, where the bubble's outline and tail would take a third of the pixels.␣␣
+        - <u>Cons</u>: it is a slightly different mark from the header logo.␣␣
 
 
-      - **Recommendation A** _(recommended)_: **figures only, as in the mockup.**  
+      - **Recommendation B**: **the full brand logo, bubble included.**␣␣
 
-        ➡️ [ ] **Accepted** <span style="font-size:smaller ;padding-left:50px"><i>(you may mark <b>[X] Accepted</b> here, or Type/Say "<b>Accept</b>" in the CC CLI terminal)</i></span>  
-        - <u>Pros</u>: it matches the mockup, and it is legible at 16 px, where the bubble's outline and tail would take a third of the pixels.  
-        - <u>Cons</u>: it is a slightly different mark from the header logo.  
+        [ ] ➡️ **Accept** (To Accept, you may: mark <b>[X]</b> on this line, save the file, then Type/Say "<b>next</b>" in the CC CLI terminal, OR Type/Say "<b>Accept NC1, B</b>" in CC CLI)
 
-      - **Recommendation B**: **the full brand logo, bubble included.**  
+        - <u>Pros</u>: it is the same mark everywhere.␣␣
+        - <u>Cons</u>: the figures shrink to about 8 px at 16 px and blur, and it does not match the mockup.␣␣
 
-        ➡️ [ ] **Accepted** <span style="font-size:smaller ;padding-left:50px"><i>(you may mark <b>[X] Accepted</b> here, or Type/Say "<b>Accept</b>" in the CC CLI terminal)</i></span>  
-        - <u>Pros</u>: it is the same mark everywhere.  
-        - <u>Cons</u>: the figures shrink to about 8 px at 16 px and blur, the white bubble disappears on a light tab strip, and it does not match the mockup.  
-          
-      - **Developer Resolution C**:  
 
-        ➡️ [ ] **Accepted**  
-        - you may enter your own resolution here and check the box above when done  
-        - then Type or Say "Next" in the CC CLI terminal to have it applied  
+      - **Developer Resolution C**:␣␣
 
-    - The title is bold:the finding's id (category letters and number, e.g. `IN1`, `AM2`, `UA3`, `NC1`), a
+        [ ] ➡️ **Accept** (To Accept, you may: mark <b>[X]</b> on this line, save the file, then Type/Say "<b>next</b>" in the CC CLI terminal, OR Type/Say "<b>Accept NC1, C</b>" in CC CLI)
+
+        - you may enter your own resolution here␣␣
+    ```
+
+    - The title is bold: the finding's id (category letters and number, e.g. `IN1`, `AM2`, `UA3`, `NC1`, `RS1`), a
       period, and the title.
-    - The description follows after a blank line, broken after each sentence as in *Writing text into the
-      files*.
-    - With **one** recommendation, its label is `**Recommendation**`. With **several**, each is an option
-      labelled `**Recommendation A**`, `**Recommendation B**`, …, and the one you recommend carries
+    - The explanation follows after a blank line, as a block quote: every line starts with `> `, broken after each
+      sentence as in *Writing text into the files*.
+      Never indent it by four spaces instead: after a blank line that is a code block, which shows links, `code` and
+      **bold** as raw characters.
+    - After the explanation, a blank line, the line `❌ NOT Resolved`, and a blank line.
+    - With **one** recommendation, its label is `**Recommendation**`, without a letter. With **several**, each is an
+      option labelled `**Recommendation A**`, `**Recommendation B**`, …, and the one you recommend carries
       `_(recommended)_` after its label. Each label is followed by `: ` and a bold one-line summary.
-    - Each recommendation is followed by a blank line and its own line  
-     ➡️ [ ] **Accepted**  
-     carrying the
-      hint `<span>` exactly as shown, then its detail indented under it: `<u>Pros</u>` and `<u>Cons</u>`
-      sub-items for options, or the recommendation's explanation, broken after each sentence.
+    - Each label is followed by a blank line, its **Accept line**, a blank line, then its detail indented under it:
+      `<u>Pros</u>` and `<u>Cons</u>` sub-items for options, or the recommendation's explanation, broken after each
+      sentence. Two blank lines separate one option from the next.
+    - The Accept line is exactly
+      `[ ] ➡️ **Accept** (To Accept, you may: mark <b>[X]</b> on this line, save the file, then Type/Say "<b>next</b>" in the CC CLI terminal, OR Type/Say "<b>Accept <ID>, <LETTER></b>" in CC CLI)`
+      with the finding's id and the option's letter in place of `<ID>` and `<LETTER>`.
+      Under a single, unlettered **Recommendation** the command it names is `Accept <ID>` (e.g. `"<b>Accept UA3</b>"`).
     - **Every finding ends with a blank Developer Resolution**, research results included: a last item labelled
       `**Developer Resolution <letter>**`, where the letter follows the last recommendation's (`B` after a single
-      **Recommendation**, `C` after Recommendations A and B), with its own `➡️ [ ] **Accepted**` line (no hint
-      `<span>`) and the two instruction lines exactly as shown. The developer writes their own resolution under
-      it (beside or in place of the two instruction lines), ticks its box, saves the file and says "Next". It is
-      not an option: it never counts toward "more than one option", and it is never chosen by a plain "Accept" or
-      by "Accept all".
-    - There is **no** "Resolved" line or checkbox in the initial form. A finding is resolved only by this
-      skill, because resolving it updates the requirements document, which the developer must not do by hand.
+      **Recommendation**, `C` after Recommendations A and B), with its own Accept line naming that letter and the
+      one instruction line `- you may enter your own resolution here`. The developer writes their own resolution
+      under it (beside or in place of the instruction line), ticks its box, saves the file and says "Next", or types
+      `Accept <ID>, <letter>`. It is not an option: it never counts toward "more than one option", and it is never
+      chosen by a plain "Accept", by `Accept <ID>` without a letter, or by "Accept all", unless the developer has
+      ticked it.
+    - There is **no** "Resolved" line in the initial form. A finding is resolved only by this skill, because
+      resolving it updates the requirements document, which the developer must not do by hand.
 
-    *Accepted form* — a recommendation has been accepted, by the developer in the file or by "Accept", but
-    the finding is not yet resolved: that recommendation's  
-    ➡️ [ ] **Accepted**  
-    becomes  
-    ➡️ [X] **Accepted**  
-    and nothing else changes. The developer marks a recommendation this way in the
-    file, saves the file, and then says "Next".
+    *Accepted form* — the developer has ticked the box at the start of one Accept line in the file,
+    `[X] ➡️ **Accept** (To Accept, …)`, and saved it, but the finding is not yet resolved; nothing else changes until
+    the developer says "Next" (or names the finding with `Accept <ID>`), and the skill resolves it.
 
     *Resolved form* — written by this skill, and only by it, once the accepted recommendation has been carried
-    into the requirements document:  
+    into the requirements document:
 
-    **NC1. Should the favicon include the speech bubble?**  
-    <span style="font-size:large">✅ Resolved</span>  
-    ✅ Requirements File Updated: 2026-10-16 9:50 PM  
-    **Notes**: Recommendation accepted in file 2026-10-16: Recommendation A, figures only, with no speech bubble;  
-    the requirements now say so beneath the mockup.  
+    ```markdown
+    **NC1. Should the favicon include the speech bubble?**␣␣
+    <span style="font-size:large" ><b>
+    ✅ Resolved</b></span>␣␣
+    ✅ Requirements File Updated: 2026-10-16 9:50 PM␣␣
+    **Notes**: Recommendation accepted in file 2026-10-16: Recommendation A, figures only, with no speech bubble;␣␣
+    the requirements now say so beneath the mockup.␣␣
 
-    The mockup shows only the two figures.  
+    > The mockup shows only the two figures.␣␣
+    > The header's brand logo draws the same figures inside a white speech bubble with a black outline.␣␣
 
+      - **Recommendation A** _(recommended)_: **figures only, as in the mockup.**␣␣
 
-      - **Recommendation A** _(recommended)_: **figures only, as in the mockup.**  
+        [X] ➡️ **Accepted**
 
-        ➡️ [X] **Accepted**  
-        - <u>Pros</u>: ...  
-      - **Recommendation B**: **the full brand logo, bubble included.**  
-
-        ➡️ [ ] **Accepted**  
-        - <u>Pros</u>: ...  
-      - **Developer Resolution C**:  
-
-        ➡️ [ ] **Accepted**  
+        - <u>Pros</u>: ...␣␣
+        - <u>Cons</u>: ...␣␣
 
 
-    - Insert the two `✅` lines directly under the title: `<span style="font-size:large">✅ Resolved</span>`,
-      then `✅ Requirements File Updated: <date and time>`, the local time from the shell
+      - **Recommendation B**: **the full brand logo, bubble included.**␣␣
+
+        [ ] ➡️ **Not Accepted**
+
+        - <u>Pros</u>: ...␣␣
+        - <u>Cons</u>: ...␣␣
+
+
+      - **Developer Resolution C**:␣␣
+
+        [ ] ➡️ **Not Accepted**
+    ```
+
+    - Remove the `❌ NOT Resolved` line and the blank line after it.
+    - Insert directly under the title the two lines `<span style="font-size:large" ><b>` and
+      `✅ Resolved</b></span>`, then `✅ Requirements File Updated: <date and time>`, the local time from the shell
       (`date '+%Y-%m-%d %-I:%M %p'`, e.g. `2026-10-16 9:50 PM`), never guessed. When the accepted
-      recommendation needed no change to the requirements document, the second line reads
+      recommendation needed no change to the requirements document, that line reads
       `✅ Requirements File Unchanged (no edit needed): <date and time>` instead.
-    - Directly under those two lines, add a `**Notes**:` line: how and when the recommendation was accepted
-      (`Recommendation accepted in file <date>`, or `Recommendation accepted by "Accept" <date>`, or
-      `… by "Accept all" <date>`), which recommendation (its label and bold summary), and what changed in the
-      requirements document, or that nothing needed to change; broken after each semicolon and sentence as in
-      *Writing text into the files*.
-    - Remove the hint `<span>` from **every** `➡️ … **Accepted**` line of that finding, and the two instruction lines
-      from its Developer Resolution (keeping any text the developer wrote there); the checkboxes stay as they are.
-    - A finding is resolved only when it has all three: the lines    
-    ✅ Resolved   
-    ✅ Requirements File Updated  (or `✅ Requirements File Unchanged`)  
-    **Notes**:  
-    A finding without the line  
-      ✅ Resolved  
-      is open.  
-      The `Accepted` checkboxes never decide whether a finding is open.
+    - Directly under those lines, add a `**Notes**:` line: how and when the recommendation was accepted
+      (`Recommendation accepted in file <date>`, `Recommendation accepted by "Accept" <date>`,
+      `Recommendation accepted by "Accept <ID>, <LETTER>" <date>` with the id and letter the command named, or
+      `Recommendation accepted by "Accept all" <date>`), which recommendation (its label and bold summary), and what
+      changed in the requirements document, or that nothing needed to change; broken after each semicolon and
+      sentence as in *Writing text into the files*. A blank line follows it.
+    - The chosen option's Accept line becomes exactly `[X] ➡️ **Accepted**`; every other Accept line of the finding,
+      the Developer Resolution's included, becomes exactly `[ ] ➡️ **Not Accepted**`. No instruction text stays on
+      any of them.
+    - Remove the Developer Resolution's instruction line, keeping any text the developer wrote there.
+    - **Open or resolved.** A finding is resolved when it has all three: the `✅ Resolved` line, the
+      `✅ Requirements File …` line and the `**Notes**:` line. The `✅ Resolved` line alone decides whether a finding is
+      open: a finding without it is open. Neither the `❌ NOT Resolved` line nor the boxes ever decide it; the
+      `❌ NOT Resolved` line is for reading, and "Next" keeps it in step (see "Next").
     - **A finding marked resolved by hand** has the `✅ Resolved` line but is missing the `✅ Requirements File...` and/or
       the `**Notes**:` line: the developer marked it resolved without the requirements document being
       updated. It is treated as open, and "Next" repairs it (see "Next").
+
+    *Reading a report* — rules for every command that reads the findings:
+
+    - **A box is ticked** when it matches `\[\s*[xX]\s*\]` — `[X]`, `[x]`, `[ x]`, `[X   ]` and the like — and
+      unticked when it matches `\[\s*\]`. The skill itself writes only `[X]` and `[ ]`.
+    - **A line holding only spaces** in a report the developer edited is read as a blank line.
+    - **The report's form** is read from its Accept lines each time, never stored: the report is in the *Old form*
+      when any Accept line has the arrow before the box (`➡️ [ ] **Accepted**`, `➡️ [X] **Accepted**`, with any tick
+      spelling), and in the new form otherwise, including a report with no findings at all.
+      Every finding written into a report — appended, resolved or repaired — is written in the report's own form,
+      so a report never mixes the two.
+
+    *Old form* — the layout of reports created before 2026-10-29, used only for such a report:
+
+    - **Initial**: the bold title; a blank line; the explanation as plain lines (no `> `), each ending with two
+      spaces; no `❌` line. Each option's label is followed by a blank line and
+      `➡️ [ ] **Accepted** <span style="font-size:smaller ;padding-left:50px"><i>(you may mark <b>[X] Accepted</b> here, or Type/Say "<b>Accept</b>" in the CC CLI terminal)</i></span>␣␣`
+      with its detail directly under it. The Developer Resolution's line is `➡️ [ ] **Accepted**␣␣` (no `<span>`),
+      followed by the two instruction lines
+      `- you may enter your own resolution here and check the box above when done␣␣` and
+      `- then Type or Say "Next" in the CC CLI terminal to have it applied␣␣`.
+    - **Accepted**: the developer's tick turns `➡️ [ ] **Accepted**` into `➡️ [X] **Accepted**`.
+    - **Resolved**: under the title, `<span style="font-size:large">✅ Resolved</span>␣␣` on one line, then the
+      requirements line and the `**Notes**:` line, as in the new form; the chosen line becomes `➡️ [X] **Accepted**`
+      and every other keeps `➡️ [ ] **Accepted**`; the hint `<span>` is removed from every Accept line of the
+      finding, and the Developer Resolution's two instruction lines are removed, keeping any text the developer
+      wrote there.
+    - The open-or-resolved rule, the hand-marked rule, *Reading a report* and every command are the same as for
+      the new form.
 
 12. **Document assumptions**: Record reasonable defaults in the Assumptions section
 13. **Think like a tester**: Every vague requirement should fail the "testable and unambiguous" checklist item
@@ -539,32 +592,42 @@ perform that research and report it in the architecture document.
   sequence with the sections around it. It holds one `###` section per research request, in the order the
   requirements document asks them. When the requirements document asks for no research, there is no such section.
 - **Each research result is a finding.** It uses the *Finding layout* — the same initial, accepted and resolved
-  forms, the same `➡️ [ ] **Accepted**` lines and hint, the same `✅` and `**Notes**:` lines — with the id prefix
-  `RS` (`RS1`, `RS2`, …) and the research question as its title:
+  forms, the same Accept lines, the same `❌`, `✅` and `**Notes**:` lines — with the id prefix
+  `RS` (`RS1`, `RS2`, …) and the research question as its title.
+  Its explanation, the block quote, states the question, the sources as Markdown links, and what was found:
 
-  **RS1. Which favicon formats do current browsers need?**  
+  ```markdown
+  **RS1. Which favicon formats do current browsers need?**␣␣
 
-  The requirements ask which icon files a 2026 site must ship.  
-  Sources: [MDN — link rel=icon](https://developer.mozilla.org/…), [caniuse — SVG favicons](https://caniuse.com/…).  
-  All current desktop browsers accept an SVG icon; Safari still needs a PNG or ICO fallback.  
+  > The requirements ask which icon files a 2026 site must ship.␣␣
+  > Sources: [MDN — link rel=icon](https://developer.mozilla.org/…), [caniuse — SVG favicons](https://caniuse.com/…).␣␣
+  > All current desktop browsers accept an SVG icon;␣␣
+  > Safari still needs a PNG or ICO fallback.␣␣
 
-    - **Recommendation A** _(recommended)_: **ship `favicon.svg` and a multi-size `favicon.ico`.**  
+  ❌ NOT Resolved
 
-      ➡️ [ ] **Accepted** <span style="font-size:smaller ;padding-left:50px"><i>(you may mark <b>[X] Accepted</b> here, or Type/Say "<b>Accept</b>" in the console)</i></span>  
-      - <u>Pros</u>: covers every browser listed in the sources.  
-      - <u>Cons</u>: two files to keep in step.  
-    - **Developer Resolution B**:  
+    - **Recommendation**: **ship `favicon.svg` and a multi-size `favicon.ico`.**␣␣
 
-      ➡️ [ ] **Accepted**  
-      - you may enter your own resolution here and check the box above when done  
-      - then Type or Say "Next" in the CC CLI terminal to have it applied  
+      [ ] ➡️ **Accept** (To Accept, you may: mark <b>[X]</b> on this line, save the file, then Type/Say "<b>next</b>" in the CC CLI terminal, OR Type/Say "<b>Accept RS1</b>" in CC CLI)
 
-  - The description states the question, the sources (with links) and what the research found, broken after each
+      - It covers every browser listed in the sources, at the cost of two files to keep in step.␣␣
+
+
+    - **Developer Resolution B**:␣␣
+
+      [ ] ➡️ **Accept** (To Accept, you may: mark <b>[X]</b> on this line, save the file, then Type/Say "<b>next</b>" in the CC CLI terminal, OR Type/Say "<b>Accept RS1, B</b>" in CC CLI)
+
+      - you may enter your own resolution here␣␣
+  ```
+
+  - The explanation states the question, the sources (with links) and what the research found, broken after each
     sentence as in *Writing text into the files*.
   - **When possible, offer recommendations** based on the results: one `**Recommendation**`, or lettered options
-    with `<u>Pros</u>` / `<u>Cons</u>` and one marked `_(recommended)_`, each with its own `➡️ [ ] **Accepted**`
-    line. A result that only informs, with nothing to decide, gets a single **Recommendation** to record it in the
-    requirements as found.
+    with `<u>Pros</u>` / `<u>Cons</u>` and one marked `_(recommended)_`, each with its own Accept line. A result
+    that only informs, with nothing to decide, gets a single **Recommendation** to record it in the requirements as
+    found.
+- **Breaking Changes and Technical Debt items are not findings**: they are listed in their own sections, with no
+  `❌` line and no Accept lines.
 - **Resolving a research result** works exactly as for any other finding (see *Resolution of Findings*): accepting
   a recommendation carries the decision into the requirements document (for example beneath the research request),
   and the result takes its `✅ Resolved`, `✅ Requirements File …` and `**Notes**:` lines.
@@ -584,6 +647,12 @@ for reading in the raw file as well as rendered:
   several sentences, each broken as above.
 - **Never break inside** a code span, a fenced code block (Mermaid diagrams included) or a table row, and
   leave a blank line between paragraphs, lists and sections.
+- **A finding's explanation is a block quote**: every line of it starts with `> ` and still ends with two spaces
+  (except in an *Old form* report, see *Finding layout*).
+- **A blank line is empty**, never a line of spaces. In a finding, one blank line follows the title block (the title,
+  or the title and its resolved lines), the explanation, the `❌ NOT Resolved` line, each option's label and each
+  Accept line, and two blank lines separate one option from the next. The Accept line and the `❌ NOT Resolved` line
+  need no trailing spaces, since a blank line follows each.
 - These rules apply only to the text this skill writes; the developer's own text is never reflowed.
 
 ### File lock while executing a command
@@ -617,7 +686,7 @@ document, CREATE or APPEND), "Next", "Accept" (with or without an option letter)
   - The lock outlives a Claude Code session that ends before the findings are resolved; the next
     `/speckit-requirements` run picks it up as its own. To edit the file without the skill, say "Unlock", or clear
     its read-only attribute (`attrib -R <file>`) and delete its `.lock` file.
-  - `requirements-report.md` is **not** held: the developer marks `[X] Accepted` and writes Developer Resolutions in
+  - `requirements-report.md` is **not** held: the developer ticks Accept lines and writes Developer Resolutions in
     it between commands, so its lock lasts only while a command runs.
 - **Make the locked file read-only.** Editors do not know about the `.lock` file, so the lock is also
   enforced: right after creating the `.lock` file, make the file read-only (`chmod a-w <file>`; in Git Bash
@@ -653,7 +722,7 @@ document, CREATE or APPEND), "Next", "Accept" (with or without an option letter)
 - **At the start of every command**, before anything else, compare each file it may change with its
   `last_written` hash (skip the check when there is none):
   - a change the developer is expected to make — writing in the **Additional Requirements and Research Requests**
-    section, ticking or unticking `[ ] Accepted`, or writing their own
+    section, ticking or unticking the box of an Accept line, deleting a `❌ NOT Resolved` line, or writing their own
     resolution under a **Developer Resolution** — is accepted as usual;
   - a change that removes or alters the skill's own text — a `✅ Resolved`, `✅ Requirements File …` or
     `**Notes**:` line, a finding, or a report section — is reported, with what was lost, before
@@ -668,60 +737,65 @@ document, CREATE or APPEND), "Next", "Accept" (with or without an option letter)
 
 ## Resolution of Findings
 After generating the requirements report document, and using Claude Code,  
-respond to the following three commands in the CC CLI terminal: `Accept`, `Next`, `Accept all`. All of them are matched **case-insensitively**, ignoring
-surrounding punctuation and trailing periods.
+respond to the following four commands in the CC CLI terminal: `Next`, `Accept` (or `Accept X`), `Accept <ID>, <LETTER>`
+and `Accept all`. All of them are matched **case-insensitively**, ignoring surrounding punctuation and trailing periods.
 
 Research results (`RS` ids, see *Research Results*) are findings for every command below: they are open, accepted
 and resolved in exactly the same way, and are counted with the other findings in the prompts.
 
-**Resolving a finding** (used by all three commands) means,for the open finding and its one accepted
+**Resolving a finding** (used by every command) means, for the open finding and its one accepted
 recommendation: revise `REQUIREMENTS_PATH_AND_FILENAME` if necessary to reflect it; then turn the finding
-into its *Resolved form* (see *Finding layout*): mark that recommendation  
-➡️ [X] **Accepted**  
-if it is not already, insert the two `✅` lines and the `**Notes**:` line under the title (completing any of them a
-hand-marked finding is missing, and never duplicating one already there), and remove the hint `<span>` from
-every `Accepted` line of the finding; then log the finding's id and title and a one-line summary of the change made to the
-requirements document (or that none was needed). Only this skill ever resolves a finding.
+into its *Resolved form* (see *Finding layout*): remove its `❌ NOT Resolved` line; insert the `✅ Resolved` lines,
+the `✅ Requirements File …` line and the `**Notes**:` line under the title (completing any of them a hand-marked
+finding is missing, and never duplicating one already there); write the accepted option's Accept line as
+`[X] ➡️ **Accepted**` and every other Accept line of the finding as `[ ] ➡️ **Not Accepted**`, with no instruction
+text left on any of them; and remove the Developer Resolution's instruction line, keeping any text the developer
+wrote there. In an *Old form* report, resolve it in the *Old form* instead (see *Finding layout*). Then log the
+finding's id and title and a one-line summary of the change made to the requirements document (or that none was
+needed). Only this skill ever resolves a finding.
 
 **Moving on automatically.** Two events run "Next" on their own, exactly as if the developer had typed it,
 so the developer always sees the next open finding without asking:
 - **Findings added** — when a CREATE run writes the document, or an APPEND run appends at least one new
   finding, finish the run and then run "Next";
-- **A finding resolved** — when "Accept" resolves a finding, run "Next". "Accept all" runs "Next" once,
-  after its report.
+- **A finding resolved** — when "Accept" or `Accept <ID>, <LETTER>` resolves a finding, run "Next". "Accept all"
+  runs "Next" once, after its report.
 
-"Next" never chooses a recommendation itself; it resolves only what the developer has marked
-`[X] Accepted`. When nothing was resolved ("Accept all" accepted nothing), do not move on.
+"Next" never chooses a recommendation itself; it resolves only what the developer has ticked in the file.
+When nothing was resolved ("Accept all" accepted nothing), do not move on.
 
    1. "Next", "Whats next" or "What's next" (when a new feature's template is waiting, "Next" handles it instead;
       see *Starting a new feature (NEW)*):
       - **First, apply any pending input** in the **Additional Requirements and Research Requests** section (see
         *Additional Requirements and Research Requests*); the new findings it adds take part in the sweep below.
       - **Then sweep every open finding in the document**, in document order (an open finding is one not
-        fully resolved, see *Finding layout*; this includes one marked resolved by hand). For each:
-        - **Exactly one recommendation marked `[X] Accepted`** (by the developer in the file, then saved) →
+        fully resolved, see *Finding layout*; this includes one marked resolved by hand). A box counts as ticked
+        as *Reading a report* says. For each:
+        - **Exactly one Accept line ticked** (by the developer in the file, then saved) →
           resolve the finding with it (see *Resolving a finding*): this updates the requirements document,
           adds the `✅ Resolved` line, the `✅ Requirements File Updated` line (or `✅ Requirements File
-          Unchanged` when no edit was needed) and the `**Notes**:` line, and removes the hint text.
-        - **More than one recommendation marked** → resolve nothing for it; remember it for the report below.
-        - **No recommendation marked** → leave it as it is.
+          Unchanged` when no edit was needed) and the `**Notes**:` line, and removes the instructions.
+        - **More than one Accept line ticked** → resolve nothing for it; remember it for the report below.
+        - **No Accept line ticked** → leave it as it is.
         - **Marked resolved by hand** (`✅ Resolved` present, but the requirements line or `**Notes**:`
           missing) → log: `Finding <id> was marked ✅ Resolved by hand, but the requirements document was not
-          updated. Please do not mark findings resolved yourself: mark a recommendation [X] Accepted, save
-          the file, and Type or Say "Next".` Then, if exactly one of its recommendations is marked, resolve
+          updated. Please do not mark findings resolved yourself: tick one Accept line [X], save
+          the file, and Type or Say "Next".` Then, if exactly one of its Accept lines is ticked, resolve
           it as above, which completes the missing lines; otherwise remove the hand-written `✅ Resolved`
           line, so the finding is plainly open again.
-      - **A marked Developer Resolution** is resolved like any other recommendation, using the text the developer
-        wrote under it. If it is marked but holds only the two instruction lines, resolve nothing for it: report
+      - **A ticked Developer Resolution** is resolved like any other recommendation, using the text the developer
+        wrote under it. If it is ticked but holds only its instruction line(s), resolve nothing for it: report
         it and ask the developer to write their resolution under it.
+      - **Keep the `❌ NOT Resolved` lines in step** (new-form reports only): add the line, after the explanation, to
+        every open finding that lacks it, and remove it from every resolved finding that still has it.
       - **Then report the sweep**: one line per finding resolved (its id, its title, and the accepted
-        recommendation), one line per finding with more than one recommendation marked (asking the
-        developer to leave exactly one marked), and the updated counts (open and resolved). When the sweep
-        resolved the last open finding, append the Architecture Complete Report (see *Architecture Complete Report*).
+        recommendation), one line per finding with more than one Accept line ticked (asking the
+        developer to leave exactly one ticked), and the updated counts (open and resolved). When the sweep
+        resolved the last open finding, append the Requirements Report Complete Report (see *Requirements Report Complete Report*).
       - **Then proceed as if the developer had typed "Next" again**: take the first finding still open and
         show it and its recommendation(s), with a brief explanation of the pros and cons of each option
         when there are several, and let the developer choose (see *Prompting The Developer*). The second
-        pass finds nothing marked to resolve, so it only shows.
+        pass finds nothing ticked to resolve, so it only shows.
 
       - If there are no open findings, respond with:
  ```
@@ -739,7 +813,7 @@ so the developer always sees the next open finding without asking:
    2. "Accept", or "Accept X" where X is an option letter:
       - Accept, for the first open finding, the recommendation named: `Accept X` takes option X; a plain
         `Accept` takes the single **Recommendation**, or the option marked `_(recommended)_` when there are
-        several. If the developer has already marked exactly one recommendation `[X] Accepted`, a plain
+        several. If the developer has already ticked exactly one Accept line, a plain
         `Accept` takes that one. `Accept X` naming the **Developer Resolution** takes it only when the developer
         has written a resolution under it; otherwise say so and change nothing.
       - Resolve the finding with it (see *Resolving a finding*), give a brief explanation of the
@@ -750,8 +824,8 @@ so the developer always sees the next open finding without asking:
       through **every** open finding, in document order, and resolve each one exactly as "Accept" would,
       with one exception:
 
-         - **A finding that offers more than one option is skipped**, unless the developer has marked
-         exactly one of its options `[X] Accepted` (then that option is used). Leave a skipped finding as it
+         - **A finding that offers more than one option is skipped**, unless the developer has ticked
+         exactly one of its Accept lines (then that option is used). Leave a skipped finding as it
          is, change nothing in the requirements document for it, and carry on with the next finding.
          - A finding with a single recommendation (no alternatives to choose between) is resolved with it.
 
@@ -761,18 +835,37 @@ so the developer always sees the next open finding without asking:
          recommendation;
          2. the counts: resolved, and how many findings remain open.
 
-      - If every open finding offers options with none marked, accept nothing and say so plainly; if none
+      - If every open finding offers options with none ticked, accept nothing and say so plainly; if none
       do, the pass resolves them all and the document is ready for the next phase.
       - When at least one finding was resolved, run "Next" after the report; it shows the first finding
       still open (one that offers options) or the all-resolved message.
       - The rules of "Accept" hold throughout: surgical edits to the requirements report document and to
       `REQUIREMENTS_PATH_AND_FILENAME`, and no edit to any other artifact.
 
+   4. `Accept <ID>[,] [<LETTER>]`, e.g. `Accept AM2, B`, `accept am2 b`, `Accept UA3`:
+      - **Reading it**: "Accept all" is checked first; then `Accept` followed by an id — category letters and a
+        number, `(IN|AM|UA|NC|RS)\d+` — then an optional `,`, then an optional option letter. A single letter after
+        `Accept` (`Accept B`) is always command 2's `Accept X`, never an id.
+      - **Any open finding** may be named, in any order; the findings before it stay as they are.
+      - **With a letter**, accept that option. The command wins over the file: if another Accept line of the
+        finding is ticked, clear that tick, so the finding resolves with the option the command named. On a single,
+        unlettered **Recommendation**, the letter `A` names it.
+      - **Without a letter**, accept the one Accept line ticked in the file, if exactly one is; otherwise the single
+        **Recommendation**, or the option marked `_(recommended)_`.
+      - **Refusals** — say why and change nothing when: the id is not in the report; the finding is already
+        resolved; the letter names no option of the finding; or the letter names a **Developer Resolution** that
+        holds only its instruction line(s) (ask the developer to write their resolution under it first).
+      - Resolve the finding with it (see *Resolving a finding*), with `accepted by "Accept <ID>, <LETTER>"` in its
+        `**Notes**:` line, give a brief explanation of the recommendation, then run "Next" (see *Moving on
+        automatically*).
+
 
 ## Prompting The Developer
 
-After creating or appending to the requirements report document — and at the end of every command (Next, Accept, Accept X, Accept all)  
+After creating or appending to the requirements report document — and at the end of every command (Next, Accept,
+Accept X, Accept <ID>, <LETTER>, Accept all)  
 the user will be prompted as described below.  
+`<FINDING_ID>` is the current finding's id, in every line that names it.
 
 When none of the open findings have options:
 ⚪  
@@ -785,9 +878,9 @@ When none of the open findings have options:
 🟩 Current finding: <FINDING_ID> <FINDING_TITLE>   
 🟩 Recommendation: <RECOMMENDATION_SUMMARY>
 ⚪  
-⚪ Type/Say 👉 "Next" - after marking one or more Recommendations "[X] Accepted" in the file (and saving it)  
+⚪ Type/Say 👉 "Next" - after ticking one or more Accept lines "[X]" in the file (and saving it)  
 ⚪ Type/Say 👉 "Accept All" - to accept all Recommendations  
-⚪ Type/Say 👉 "Accept" - accept the Recommendation for the current finding  
+⚪ Type/Say 👉 "Accept <FINDING_ID>" - accept the Recommendation for the current finding  
 ⚪  
   
 and when there is at least one open finding with options, and just one option for the current finding:  
@@ -801,9 +894,9 @@ and when there is at least one open finding with options, and just one option fo
 🟩 Current finding: <FINDING_ID> <FINDING_TITLE>   
 🟩 Recommendation: <RECOMMENDATION_SUMMARY>
 ⚪  
-⚪ Type/Say 👉 "Next" - after marking one or more Recommendations "[X] Accepted" in the file (and saving it)  
+⚪ Type/Say 👉 "Next" - after ticking one or more Accept lines "[X]" in the file (and saving it)  
 ⚪ Type/Say 👉 "Accept All" - to accept all Recommendations with one option  
-⚪ Type/Say 👉 "Accept" - to accept the Recommendation for the current finding  
+⚪ Type/Say 👉 "Accept <FINDING_ID>" - to accept the Recommendation for the current finding  
 ⚪  
   
 and when there are multiple options for the current finding:  
@@ -817,10 +910,10 @@ and when there are multiple options for the current finding:
 🟩 Current finding: <FINDING_ID> <FINDING_TITLE>   
 🟩 Suggested Recommendation <SUGGESTED_RECOMMENDATION_LETTER>:  <RECOMMENDATION_SUMMARY>
 ⚪  
-⚪ Type/Say 👉 "Next" - after marking one or more Recommendations "[X] Accepted" in the file (and saving it)  
+⚪ Type/Say 👉 "Next" - after ticking one or more Accept lines "[X]" in the file (and saving it)  
 ⚪ Type/Say 👉 "Accept All" - to accept all Recommendations with one option  
-⚪ Type/Say 👉 "Accept X" - to accept Recommendation X where X is the option letter for the current finding  
-⚪ Type/Say 👉 "Accept" - to accept the Recommendation (recommended) for the current finding  
+⚪ Type/Say 👉 "Accept <FINDING_ID>, X" - to accept Recommendation X where X is the option letter for the current finding  
+⚪ Type/Say 👉 "Accept <FINDING_ID>" - to accept Recommendation <SUGGESTED_RECOMMENDATION_LETTER> (recommended) for the current finding  
 ⚪  
 
 
@@ -863,4 +956,4 @@ At the prompt, Type:
 - The finding counts are the totals in the whole document; 
 
   
-Note: Breaking Changes and Technical Debt items are not considered a failure, but they should be documented in the architecture document and the Architecture Complete Report.
+Note: Breaking Changes and Technical Debt items are not considered a failure, but they should be documented in the architecture document and the Requirements Report Complete Report.
