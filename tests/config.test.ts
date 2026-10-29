@@ -597,3 +597,34 @@ describe("ENV_MAX_INVITATIONS_PER_DAY", () => {
     expect(() => loadConfig(baseEnv({ ENV_MAX_INVITATIONS_PER_DAY: value }))).toThrow(/ENV_MAX_INVITATIONS_PER_DAY/);
   });
 });
+
+describe("line-graph settings", () => {
+  it("defaults the threshold to 1 and the interval to 60000", () => {
+    const config = loadConfig(baseEnv());
+    expect(config.lineGraphMinVotePercentage).toBe(1);
+    expect(config.lineGraphRefreshIntervalMs).toBe(60_000);
+  });
+
+  it("accepts 0 as the threshold — the filter is disabled, not invalid", () => {
+    expect(loadConfig(baseEnv({ ENV_LINE_GRAPH_MIN_VOTE_PERCENTAGE: "0" })).lineGraphMinVotePercentage).toBe(0);
+  });
+
+  it.each(["-1", "abc", "1.5"])("refuses a threshold of %j, naming the variable", (value) => {
+    expect(() => loadConfig(baseEnv({ ENV_LINE_GRAPH_MIN_VOTE_PERCENTAGE: value }))).toThrow(
+      /ENV_LINE_GRAPH_MIN_VOTE_PERCENTAGE/
+    );
+  });
+
+  it("clamps the interval up to the live-refresh floor instead of undercutting it", () => {
+    const clamped = loadConfig(baseEnv({ ENV_LINE_GRAPH_REFRESH_INTERVAL: "500", ENV_MIN_LIVE_REFRESH_INTERVAL: "2000" }));
+    expect(clamped.lineGraphRefreshIntervalMs).toBe(2000);
+    const above = loadConfig(baseEnv({ ENV_LINE_GRAPH_REFRESH_INTERVAL: "5000", ENV_MIN_LIVE_REFRESH_INTERVAL: "2000" }));
+    expect(above.lineGraphRefreshIntervalMs).toBe(5000);
+  });
+
+  it.each(["0", "-1", "abc"])("refuses an interval of %j, naming the variable", (value) => {
+    expect(() => loadConfig(baseEnv({ ENV_LINE_GRAPH_REFRESH_INTERVAL: value }))).toThrow(
+      /ENV_LINE_GRAPH_REFRESH_INTERVAL/
+    );
+  });
+});

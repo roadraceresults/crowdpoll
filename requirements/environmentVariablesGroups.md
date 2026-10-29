@@ -186,6 +186,8 @@ shows.
 | `ENV_POLL_ADMIN_PAGE_REFRESH_INTERVAL` | Admin list refresh interval |
 | `ENV_POLL_EDIT_HEARTBEAT_INTERVAL` | How often an open editing card signals it is present |
 | `ENV_PARTICIPANTS_VIEWPORT_SIZE` | Rows per page in the card's Participants and Banned Voter List sections |
+| `ENV_LINE_GRAPH_MIN_VOTE_PERCENTAGE` | Current share (whole percent) a choice needs to be drawn on the vote history graph; `0` draws every choice |
+| `ENV_LINE_GRAPH_REFRESH_INTERVAL` | How often an open vote history graph refreshes, and how long the server keeps one poll's graph; never below `ENV_MIN_LIVE_REFRESH_INTERVAL` |
 
 ## Where each group is set
 

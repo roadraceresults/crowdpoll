@@ -162,6 +162,10 @@ export function createApiRouter({ auth, db, cache, config, sessions, pageLoads }
       // same reason as the voter limit above.
       minChoices: config.minChoices,
       maxChoices: config.maxChoices,
+      // The maximized view's line graph reads its share threshold and refresh
+      // timer here; the interval is served post-clamp, usable verbatim.
+      lineGraphMinVotePercentage: config.lineGraphMinVotePercentage,
+      lineGraphRefreshIntervalMs: config.lineGraphRefreshIntervalMs,
       barPalette: BAR_PALETTE,
       termsVersion: TERMS_VERSION
     });

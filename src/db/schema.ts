@@ -136,6 +136,22 @@ export interface VoteHistoryTable {
   voted_at: Timestamp;
 }
 
+/** Per poll, hour and choice, how much the count changed; TALLY_VOTERS ("") counts addresses. */
+export interface LineGraphTallyTable {
+  poll_id: string;
+  hour: Timestamp;
+  choice_id: string;
+  delta: number;
+}
+
+/** Each address's latest vote_history selection on a poll. */
+export interface LineGraphSelectionTable {
+  poll_id: string;
+  email: string;
+  choice_ids: string[];
+  voted_at: Timestamp;
+}
+
 export interface PollInvitationTable {
   poll_id: string;
   email: string;
@@ -199,6 +215,8 @@ export interface Database {
   polls: PollTable;
   votes: VoteTable;
   vote_history: VoteHistoryTable;
+  line_graph_tally: LineGraphTallyTable;
+  line_graph_selection: LineGraphSelectionTable;
   poll_invitations: PollInvitationTable;
   invitation_emails: InvitationEmailTable;
   invitation_history: InvitationHistoryTable;

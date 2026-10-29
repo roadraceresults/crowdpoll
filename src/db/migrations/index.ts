@@ -10,6 +10,7 @@ import * as emailKey from "./008-email-key.js";
 import * as termsAndPrivacy from "./009-terms-and-privacy.js";
 import * as invitations from "./010-invitations.js";
 import * as invitationTokens from "./011-invitation-tokens.js";
+import * as lineGraphTally from "./012-line-graph-tally.js";
 
 /** Applied in key order; add a new migration by appending the next number. */
 export const migrations: Record<string, Migration> = {
@@ -23,5 +24,6 @@ export const migrations: Record<string, Migration> = {
   "008-email-key": emailKey,
   "009-terms-and-privacy": termsAndPrivacy,
   "010-invitations": invitations,
-  "011-invitation-tokens": invitationTokens
+  "011-invitation-tokens": invitationTokens,
+  "012-line-graph-tally": lineGraphTally
 };

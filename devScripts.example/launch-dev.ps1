@@ -135,6 +135,8 @@ $env:ENV_LIVE_RESULTS_MAX_IDLE_TIME = "1800000"
 $env:ENV_POLL_ADMIN_PAGE_REFRESH_INTERVAL = "5000"
 $env:ENV_POLL_EDIT_HEARTBEAT_INTERVAL = "10000"
 $env:ENV_PARTICIPANTS_VIEWPORT_SIZE = "10"
+$env:ENV_LINE_GRAPH_MIN_VOTE_PERCENTAGE = "1"
+$env:ENV_LINE_GRAPH_REFRESH_INTERVAL = "60000"
 
 # --- Start the PostgreSQL Windows service if it is not running (a local database only) ---
 # A database URL whose host is not this machine (a managed database) needs no local service.

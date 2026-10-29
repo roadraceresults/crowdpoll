@@ -50,7 +50,7 @@ export function polls(deps: StoreDeps) {
       await updatePoll(deps, filter._id, update.$set);
     },
     deleteMany: async (_filter: Record<string, never>) => {
-      await sql`truncate table vote_history, votes, poll_invitations, invitation_history, invitation_emails, poll_bans, bookmarks, user_polls, search_outbox, polls`.execute(
+      await sql`truncate table line_graph_tally, line_graph_selection, vote_history, votes, poll_invitations, invitation_history, invitation_emails, poll_bans, bookmarks, user_polls, search_outbox, polls`.execute(
         deps.db
       );
       for (const key of [...(await deps.cache.scan("tabs:*")), ...(await deps.cache.scan("poll:*"))]) await deps.cache.del(key);
@@ -71,6 +71,8 @@ export function voteHistory(deps: StoreDeps) {
     },
     deleteMany: async (_filter: Record<string, never>) => {
       await deps.db.deleteFrom("vote_history").execute();
+      await deps.db.deleteFrom("line_graph_tally").execute();
+      await deps.db.deleteFrom("line_graph_selection").execute();
     },
     countDocuments: async (filter: { pid: string }) => {
       const row = await deps.db

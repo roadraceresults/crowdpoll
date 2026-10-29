@@ -262,11 +262,19 @@
       const fixedChromeHeight = window.FixedChrome ? window.FixedChrome.height() : 0;
       if (top < fixedChromeHeight) window.scrollTo(0, window.scrollY + top - fixedChromeHeight);
       maximized = { grid: api, pid: pid };
+      const detail = card.detail();
+      window.PollLineGraph?.mount(view.querySelector(".maximized-space-right"), {
+        pid: pid,
+        title: detail ? detail.title : "",
+        subtitle: detail ? detail.subtitle : "",
+        card: card
+      });
       shownMaximizeButton(card.element).focus();
     }
 
     function restore(options = {}) {
       if (!maximizedPid) return;
+      window.PollLineGraph?.unmount();
       const pid = maximizedPid;
       const card = mounted.get(pid);
       const leftTheTab = Boolean(options.left || retainedDetail);

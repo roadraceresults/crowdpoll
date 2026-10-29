@@ -438,6 +438,21 @@ function lightShadeFor(hex){
   return ink;
 }
 
+const LINE_TARGET_CONTRAST = 3;
+
+function lineColorOn(hex, surfaceHex){
+  if (!surfaceHex || contrastRatio(hex, surfaceHex) >= LINE_TARGET_CONTRAST) return hex;
+  const [h, s, start] = hexToHsl(hex);
+  const step = hexToHsl(surfaceHex)[2] < 0.5 ? 0.01 : -0.01;
+  let l = start;
+  let shade = hslToHex(h, s, l);
+  while (contrastRatio(shade, surfaceHex) < LINE_TARGET_CONTRAST && (step > 0 ? l < 1 : l > 0)){
+    l = Math.min(1, Math.max(0, Math.round((l + step) * 100) / 100));
+    shade = hslToHex(h, s, l);
+  }
+  return shade.toUpperCase();
+}
+
 function darkBarColorsFor(fill, trackTint){
   const track = mixWith(fill, RESULTS_DARK_SURFACE, trackTint);
   return { track, inkOnTrack: lightShadeFor(track) };
@@ -1420,6 +1435,15 @@ function initPollCard(viewport, opts){
     updateSubmitState();
   });
 
+  /* The colours this card assigned its choices, in display order, for the
+     maximized view's line graph — read from the one assignment the bars use,
+     so the two can never disagree. */
+  function resultColors(){
+    if (!data) return [];
+    const colors = assignResultColors(data, paletteOffset, palette);
+    return data.map((item, i) => ({ id: item.id, label: item.label, hex: colors[i] }));
+  }
+
   /* The owning tab tears the card down when a poll leaves its listing. */
   function unmount(){
     viewport.remove();
@@ -1432,6 +1456,7 @@ function initPollCard(viewport, opts){
     applyPoll,
     unmount,
     setMaximized,
+    resultColors,
     detail: () => poll,
     get isMaximized(){ return isMaximized; },
     element: viewport,
@@ -1602,7 +1627,8 @@ window.PollCard = {
     const instance = initPollCard(viewport, Object.assign({ pid: pid }, opts));
     if (instance) pollCardInstances.push(instance);
     return instance;
-  }
+  },
+  lineColorOn: lineColorOn
 };
 
 let cardResizeTimer;

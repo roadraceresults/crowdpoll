@@ -216,11 +216,6 @@
     flex:1 1 420px;
     min-width:min(375px, 100%);
     align-self:flex-start;
-    padding:10px;
-    background:#E6E6E6;
-    font-family:'Inter', system-ui, sans-serif;
-    font-size:13px;
-    color:var(--muted);
   }
 
   /* ---------- Responsive rules ---------- */

@@ -4,6 +4,7 @@ import type { Database, NewPollRow, PollRow, PollRowUpdate, VoteRow } from "../d
 import { ensureVoteHistoryPartition } from "../db/partitions.js";
 import { emailKeyOf } from "../auth/emailKey.js";
 import { bumpContentVersion, POLL_PROJECTION_KEY, refreshProjection } from "./versions.js";
+import { recordLineGraphTally } from "./lineGraphTally.js";
 import { forgetTabs } from "../refresh/tabVersions.js";
 
 export type Db = Kysely<Database>;
@@ -760,6 +761,7 @@ export async function recordVote(
         voted_at: entry.votedAt
       })
       .execute();
+    await recordLineGraphTally(trx, [{ pid, email: entry.emailAddress, choiceIds: entry.choiceIds, votedAt: entry.votedAt }]);
     await markEverVoted(trx, [pid]);
     await upsertUserPolls(trx, [{ email: entry.emailAddress, pid, relation: "voted" }], entry.votedAt);
   });
@@ -779,6 +781,7 @@ export async function insertVoteHistory(db: Db, entry: VoteHistoryEntry): Promis
         voted_at: entry.votedAt
       })
       .execute();
+    await recordLineGraphTally(trx, [{ pid: entry.pid, email: entry.emailAddress, choiceIds: entry.choiceIds, votedAt: entry.votedAt }]);
     await markEverVoted(trx, [entry.pid]);
   });
 }

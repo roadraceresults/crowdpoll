@@ -29,7 +29,8 @@ const LAYER_ORDER = [
   "single-column-m3.css",
   "tab-bar-scroll-arrows-m3.css",
   "legal-m3.css",
-  "footer-m3.css"
+  "footer-m3.css",
+  "line-graph-m3.css"
 ];
 
 interface PageAssets {
@@ -41,8 +42,8 @@ interface PageAssets {
 const PAGES: Record<string, PageAssets> = {
   "index.html": {
     sheets: ["tabs.css", "pollCard.css", "site.css"],
-    scripts: ["app.js", "headerFit.js", "fixedChrome.js", "pollCard.js", "voteClient.js", "deltaClient.js", "tabs.js", "trending.js", "newest.js", "searchTab.js", "liveResults.js", "tabBarScroll.js", "tabBarScrollArrows.js", "floatingActions.js", "backToTopFab.js"],
-    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "tabs-modal-m3.css", "live-idle-prompt-m3.css", "empty-tab-line-m3.css", "pollCard-m3.css", "single-column-m3.css", "tab-bar-scroll-arrows-m3.css", "footer-m3.css"]
+    scripts: ["app.js", "headerFit.js", "fixedChrome.js", "pollCard.js", "voteClient.js", "deltaClient.js", "lineGraph.js", "tabs.js", "trending.js", "newest.js", "searchTab.js", "liveResults.js", "tabBarScroll.js", "tabBarScrollArrows.js", "floatingActions.js", "backToTopFab.js"],
+    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "tabs-modal-m3.css", "live-idle-prompt-m3.css", "empty-tab-line-m3.css", "pollCard-m3.css", "single-column-m3.css", "tab-bar-scroll-arrows-m3.css", "footer-m3.css", "line-graph-m3.css"]
   },
   "profile.html": {
     sheets: ["tabs.css", "pollCard.css", "site.css"],
@@ -217,6 +218,17 @@ describe("Material 3 page assets", () => {
   it("scales the card title between 18px and Title Large's 20px", () => {
     expect(read("pollCard-m3.css")).toContain("font-size:clamp(18px, 1.8vw, var(--md-sys-typescale-title-large-size));");
     expect(read("m3-tokens.css")).toContain("--md-sys-typescale-title-large-size:20px;");
+  });
+
+  it("holds only M3 tokens in the line graph sheet", () => {
+    const css = read("line-graph-m3.css").replace(/\/\*[\s\S]*?\*\//g, "");
+    expect(css).not.toMatch(/#[0-9A-Fa-f]{3,8}\b/);
+    expect(css).not.toMatch(/\b(rgba?|hsla?)\(/);
+    for (const [, value] of css.matchAll(/font-size:\s*([^;}]+)/g)) expect(value!.trim()).toMatch(/^var\(--md-sys-typescale-/);
+    expect(css).not.toMatch(/\b(transition|animation)\s*:/);
+    const line = css.match(/\.line-graph-line\{[^}]*\}/)![0].replace(/\s+/g, "");
+    expect(line).toContain("stroke-linejoin:round;");
+    expect(line).toContain("stroke-linecap:round;");
   });
 
   it("lets a maximized card be only as tall as its bars need", () => {

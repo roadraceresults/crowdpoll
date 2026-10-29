@@ -149,7 +149,7 @@ export async function startTestContext(
 
 /** Removes every poll-related row so a suite can start each case from nothing. */
 export async function clearPolls(ctx: TestContext): Promise<void> {
-  await sql`truncate table vote_history, votes, poll_invitations, invitation_history, invitation_emails, poll_bans, bookmarks, user_polls, search_outbox, polls`.execute(
+  await sql`truncate table line_graph_tally, line_graph_selection, vote_history, votes, poll_invitations, invitation_history, invitation_emails, poll_bans, bookmarks, user_polls, search_outbox, polls`.execute(
     ctx.db
   );
 }
