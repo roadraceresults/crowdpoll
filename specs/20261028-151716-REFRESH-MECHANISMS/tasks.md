@@ -199,7 +199,7 @@ nothing new.
 
 - [X] T041 Run `npx tsc --noEmit` and `npm test`; fix only failures caused by this feature
 - [X] T042 Run tests/openapi-contract.test.ts and confirm `/api/config`'s new fields are described
-- [ ] T043 Walk through quickstart.md steps 1–7 on a development server and note the results under "Notes"
+- [X] T043 Walk through quickstart.md steps 1–7 on a development server and note the results under "Notes"
 - [X] T044 Measure SC-001 with `memoryCache`: time 100 shortcut refreshes of a 200-poll tab in a test (in production it is checked through the `[controller]` line's `tabs=` counts); record the median and the 95th percentile under "Notes"
 - [X] T045 Rename the eleven sweep and refresh settings and add `ENV_INVITATION_SWEEP_INTERVAL` (30000) in src/config.ts (old names refused at start-up), src/polls/sweeps.ts, .do/app.yaml, launch.json.example, devScripts.example/launch-dev.ps1, the docs and tests/config.test.ts, tests/invitations-send.test.ts (TWEAK03)
 - [X] T046 Regroup devScripts.example/launch-dev.ps1 (and the local devScripts/launch-dev.ps1) into the eleven groups of requirements/environmentVariablesGroups.md, add `ENV_PROTOTYPES`, `ENV_DATABASE_CA_CERT` and `ENV_EMAIL_SEND_TIMEOUT`, fix `ENV_PUBLIC_ORIGIN` (8081) and the duplicate `ENV_MAX_INVITATIONS_PER_DAY`, and bring the groups document up to date (TWEAK04)
@@ -278,5 +278,6 @@ Phases 1–3: the largest load saving and the most visible speed-up. Stop at the
 - T041 (2026-10-28): `npx tsc --noEmit` passes. Full `npm test`: 131 files passed, 3 failed with 9 tests, all pressing Refresh on Trending or Newest about 1.2 s after load; they now wait for the 10 s max-age (FR-012). The three suites (`client-home`, `client-maximized`, `client-bar-colours`) now use a 1 s recompute interval (`LISTING_MAX_AGE_1S` in `tests/helpers/browser.ts`) and pass (113/113).
 - T042 (2026-10-28): `tests/openapi-contract.test.ts` passes; `/api/config` describes `trendingMaxAgeMs` and `newestMaxAgeMs` (required).
 - T043 (2026-10-28), partly done: step 1, the sweep intervals, is checked by `buildSweepSchedules` in `tests/invitations-send.test.ts` (the log line prints them as `[sweeps] <name> every <ms>ms (lock <n>)`); steps 4.1–4.2 by `tests/trending.test.ts`; step 6 by `tests/load-floors.test.ts` and `tests/load-controller.test.ts`; step 7 by a search of the three documents (feature 017's note in CLAUDE.md amended). Steps 2, 3 and 5 need two signed-in browsers and are still to be walked through by hand.
+- T043 (2026-10-29): done; the developer walked through the remaining quickstart steps on a development server and all passed.
 - T044 (2026-10-28): 100 shortcut refreshes of a 200-poll Your Polls tab with `memoryCache`, timed through supertest: median 1.6 ms, 95th percentile 2.3 ms, no table queries (`tests/tabs-refresh-shortcut.test.ts`, "SC-001").
 - Implementation (2026-10-28): `liveResults.js`'s `restore()` (opening the tab with nothing held) did not record `nextRefreshMs`, so a back-off after it started from the floor; `tests/client-live-backoff.test.ts` caught it.
