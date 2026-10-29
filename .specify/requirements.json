@@ -1,5 +1,5 @@
 {
-    "requirements_directory": "requirements/20261029-150703-branch-migration-merge",
+    "requirements_directory": "requirements/20261029-171759-plan-analyze-chain",
     "last_written": {
         "requirements/20261019-153514-production-email/requirements.md": "e0bd2b0bf28c2fbd6699c99cdf364c1398d3b7aed8eb456198295f78d108ee08",
         "requirements/20261019-153514-production-email/requirements-report.md": "4f75f5e263fa092fc0fcedc4a7cdaa32128382e287f2ac0394e4957e8d8bd413",
@@ -28,6 +28,10 @@
         "requirements/20261029-150703-branch-migration-merge/requirements.md": "93e5f40fdaaeeee0b22ed34670f8f9849493a676dbc0cdcf9fa7b6f8dca89f21",
         "requirements/20261029-150703-branch-migration-merge/requirements-report.md": "bed3d02655ab5c5c7c99f93f1805af6fee3e61bd4f0a8d776e45c7b1e189dd3f",
         "requirements/20261029-150117-log-env-defaults/requirements.md": "d9f462979cb1f1f2b6d5faf147e70ae49828f9cf4075540a0aa839ceb17c6ffe",
-        "requirements/20261029-150117-log-env-defaults/requirements-report.md": "38b0fca4c75579c59e80318e70842f0481d4ba8a72b832e4c6d1f44e0f1e15bf"
+        "requirements/20261029-150117-log-env-defaults/requirements-report.md": "38b0fca4c75579c59e80318e70842f0481d4ba8a72b832e4c6d1f44e0f1e15bf",
+        "requirements/20261029-154817-readable-finding-layout/requirements.md": "bf7f1c3f378a24a319a0adb0bb72a251ee7afd833222ebf4574accedb133dfe3",
+        "requirements/20261029-154817-readable-finding-layout/requirements-report.md": "d3fe5bea5e2d868b19006dddee64ea4bb9be3946780257168c08b626ff4904cc",
+        "requirements/20261029-171759-plan-analyze-chain/requirements.md": "f99312c11e62afe63f4cd5ad50823ddc67540a37c5c79222fd1f45f8da18d3da",
+        "requirements/20261029-171759-plan-analyze-chain/requirements-report.md": "03d75462ae0712c41398214b87cda7753a4035214ae1392a62a3612156a69fa5"
     }
 }

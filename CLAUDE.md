@@ -5,6 +5,38 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261029-171759-PLAN-ANALYZE-CHAIN/plan.md` (research R1–R9, `data-model.md` — the feature, the gate result and
+the steps of one run, nothing stored — the command contract `contracts/command.md` K1–K7, and the quickstart live alongside
+it in `specs/20261029-171759-PLAN-ANALYZE-CHAIN/`). The requirements report is
+`requirements/20261029-171759-plan-analyze-chain/requirements-report.md`: 4 diagrams and 9 findings, all resolved.
+Decisions that are easy to get wrong:
+- **One new skill, `/speckit-plan-thru-analyze`**, that invokes `/speckit-plan`, `/speckit-tasks`, `/speckit-analyze` and
+  `/speckit-analyze-findings` with the `Skill` tool, one after another; none of them is copied or edited (R1, FR-015).
+- **The gate reads files only**: no `plan.md`, no `[NEEDS CLARIFICATION` marker in `spec.md`, no open finding in
+  `clarify-findings.md`; a clarification session is **not** required (clarification Q2, R3).
+- **No stops for questions**: optional hooks are listed, mandatory ones run, the remediation offer of `/speckit-analyze` is
+  skipped, and the run ends at the findings prompt; a failed step stops the rest (R5, R6).
+- **The argument goes to `/speckit-plan` only** (R4); the command is listed in the `NEW` journey message and the workflow
+  block below (R8).
+No CrowdPoll code, configuration, data or migration change; no new dependency.
+The preceding feature is
+`specs/20261029-154817-READABLE-FINDING-LAYOUT/plan.md` (research R1–R11, `data-model.md` — the report, finding and
+option read from Markdown, nothing stored — the contracts `contracts/finding-layout.md` L1–L4 and `contracts/commands.md`
+C1–C5, and the quickstart live alongside it in `specs/20261029-154817-READABLE-FINDING-LAYOUT/`). The requirements report is
+`requirements/20261029-154817-readable-finding-layout/requirements-report.md`: 4 diagrams and 14 findings, all resolved.
+Decisions that are easy to get wrong:
+- **One file changes**: `.claude/skills/speckit-requirements/SKILL.md`; `speckit-analyze-findings` and
+  `speckit-clarify-findings` keep the old layout (a follow-up); the layout is described once, in *Finding layout* (R1, R2).
+- **The explanation is a block quote** (`> `), never a four-space indent, which would be a code block (R3).
+- **`✅ Resolved` alone decides a finding's state**; `❌ NOT Resolved` is a reading aid that "Next" keeps in step (R8).
+- **A box is ticked by `\[\s*[xX]\s*\]`**; the skill writes `[X]`, and resolved lines read `[X] ➡️ **Accepted**` /
+  `[ ] ➡️ **Not Accepted**` (R4, R7).
+- **`Accept <ID>[,] [<LETTER>]`** accepts any open finding; its letter beats a tick in the file; `Accept`, `Accept X`, `Next`
+  and `Accept all` are unchanged (R6).
+- **Old reports stay old**: a report is old-form when any Accept line has the arrow before the box, and is written in its own
+  form (R5, R9).
+No CrowdPoll code, configuration, data or migration change; no new dependency.
+The preceding feature is
 `specs/20261029-150703-BRANCH-MIGRATION-MERGE/plan.md` (research R1–R10, `data-model.md` — the in-memory plan of a run,
 no stored-data change — the CLI and start-up message contracts `contracts/cli.md` C1–C6, and the quickstart live
 alongside it in `specs/20261029-150703-BRANCH-MIGRATION-MERGE/`). The requirements report is
@@ -707,6 +739,7 @@ Features flow through these skills in order:
 /speckit-tasks     → generates tasks.md
 /speckit-analyze   → cross-artifact consistency check
 /speckit-analyze-findings → resolves spec gaps and inconsistencies
+/speckit-plan-thru-analyze → runs /speckit-plan, /speckit-tasks, /speckit-analyze and /speckit-analyze-findings in turn
 /speckit-implement → executes the tasks
 /speckit-tweak      → implements tweaks to the codebase, with optional automated tests (frequently used)
 ```
