@@ -47,7 +47,8 @@ sequenceDiagram
   participant PG as PostgreSQL
   participant VK as Valkey
   participant OS as OpenSearch
-  S->>S: loadConfig (fails fast, names the variable; a partial sign-in provider stops it)
+  S->>S: loadConfig (fails fast, names the variable; a partial sign-in provider stops it; records each default used)
+  S->>S: log each setting left at its default ([config] … was not found, using default value: …)
   S->>S: log sign-in mode and providers; sign Apple's client secret (renewed every 30 days)
   S->>PG: migrateToLatest (abort on failure)
   S->>VK: connect, XGROUP CREATE votes writers

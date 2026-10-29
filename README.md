@@ -392,6 +392,9 @@ Operational notes:
 ## Configuration
 
 All settings are `ENV_*` environment variables. Intervals are in milliseconds unless noted.
+At start-up the server prints `[config] <NAME> was not found, using default value: <VALUE>.` for each setting it left at
+its default, `none (…)` naming the fallback for one with no value; the SMTP settings appear only with `smtp`, the
+provider settings only with `oauth` or `both`, and administrator addresses are masked.
 
 | Variable | Default | Description |
 |---|---|---|

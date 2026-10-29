@@ -1,5 +1,5 @@
 {
-    "requirements_directory": "requirements/20261028-183546-line-graph-m3",
+    "requirements_directory": "requirements/20261029-150117-log-env-defaults",
     "last_written": {
         "requirements/20261019-153514-production-email/requirements.md": "e0bd2b0bf28c2fbd6699c99cdf364c1398d3b7aed8eb456198295f78d108ee08",
         "requirements/20261019-153514-production-email/requirements-report.md": "4f75f5e263fa092fc0fcedc4a7cdaa32128382e287f2ac0394e4957e8d8bd413",
@@ -24,6 +24,8 @@
         "requirements/20261028-151716-refresh-mechanisms/requirements.md": "7b691b8a59f411b8aeb512d42c7b5286750001b9ee003919bfc3f4ed92b30707",
         "requirements/20261028-151716-refresh-mechanisms/requirements-report.md": "63f108ab5dbb83846088886ff86f380117172041e40767e9eb327dd9a4f0135c",
         "requirements/20261028-183546-line-graph-m3/requirements.md": "77c35899e88a188b2f2b6f33d056814e14d6a8402c908baafbe6c9e3cad9557c",
-        "requirements/20261028-183546-line-graph-m3/requirements-report.md": "3838028e20366654d9f65e7ced6069e75abb248c1f838e682a48e784606c2a2d"
+        "requirements/20261028-183546-line-graph-m3/requirements-report.md": "3838028e20366654d9f65e7ced6069e75abb248c1f838e682a48e784606c2a2d",
+        "requirements/20261029-150117-log-env-defaults/requirements.md": "d9f462979cb1f1f2b6d5faf147e70ae49828f9cf4075540a0aa839ceb17c6ffe",
+        "requirements/20261029-150117-log-env-defaults/requirements-report.md": "38b0fca4c75579c59e80318e70842f0481d4ba8a72b832e4c6d1f44e0f1e15bf"
     }
 }

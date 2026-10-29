@@ -63,6 +63,10 @@
         "specs/20261028-183546-LINE-GRAPH-M3/spec.md": "485a5b294e974b2eef7d3a2892819ae731800192bcf27dd998af7bf470449716",
         "specs/20261028-183546-LINE-GRAPH-M3/data-model.md": "261106056ba97f3fa53ffd138247bef1d68f4aae5aef4d7269dfa3f5af09634e",
         "specs/20261028-183546-LINE-GRAPH-M3/research.md": "192aa00b70b128aa577f29bd5d07b1038f692ee5e9923a0864742d8fc2446a19",
-        "specs/20261028-183546-LINE-GRAPH-M3/contracts/ui-contracts.md": "6df2c3576805143e7bf48357bef64092dbefb208c5af2947ba2119e1815cf729"
+        "specs/20261028-183546-LINE-GRAPH-M3/contracts/ui-contracts.md": "6df2c3576805143e7bf48357bef64092dbefb208c5af2947ba2119e1815cf729",
+        "specs/20261029-150117-LOG-ENV-DEFAULTS/analyze-findings.md": "6db67581cca1ff9b3ea0f70cff89f1eff5623d2490cedc74d239a464d682595c",
+        "specs/20261029-150117-LOG-ENV-DEFAULTS/tasks.md": "bc5df76b691752295f499a3ebfc9a91ac6a78e5594c807e25f53da1e48a47cca",
+        "specs/20261029-150117-LOG-ENV-DEFAULTS/research.md": "7e9d5f128720ac9b17bcf4fb942688b838c7790d60fccbd15c377b10c54eddb7",
+        "specs/20261029-150117-LOG-ENV-DEFAULTS/quickstart.md": "05099050a7709103582f95c3291ef5d0fbcd0640fc0616d96e28c4e0058d275f"
     }
 }
