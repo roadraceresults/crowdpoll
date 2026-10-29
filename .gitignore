@@ -26,6 +26,7 @@ devScripts/populate/*
 !devScripts/populate/seed-polls.ts
 !devScripts/populate/README.md
 !devScripts/populate/populate-poll.ts
+!devScripts/populate/populate-poll-data/
 [dD][oO][nN][tT][tT][rR][aA][cC][kK]/
 .claude/settings.local.json
 *.min.js
