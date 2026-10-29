@@ -1,6 +1,6 @@
 import { sql } from "kysely";
-import type { Db } from "../db/client.js";
-import { upsertUserPolls } from "./store.js";
+import { upsertUserPolls, type StoreDeps } from "./store.js";
+import { forgetTabs } from "../refresh/tabVersions.js";
 
 const REMOVAL_BATCH = 10_000;
 
@@ -10,7 +10,7 @@ export class BookmarkCapError extends Error {
   }
 }
 
-export async function addBookmark(db: Db, email: string, pid: string, cap: number, now: Date = new Date()): Promise<void> {
+export async function addBookmark({ db, cache }: StoreDeps, email: string, pid: string, cap: number, now: Date = new Date()): Promise<void> {
   await db.transaction().execute(async (trx) => {
     const existing = await trx
       .selectFrom("bookmarks")
@@ -28,20 +28,22 @@ export async function addBookmark(db: Db, email: string, pid: string, cap: numbe
     await trx.insertInto("bookmarks").values({ email, poll_id: pid, created_at: now }).execute();
     await upsertUserPolls(trx, [{ email, pid, relation: "bookmarked" }], now);
   });
+  await forgetTabs(cache, [email]);
 }
 
-export async function removeBookmark(db: Db, email: string, pid: string): Promise<void> {
+export async function removeBookmark({ db, cache }: StoreDeps, email: string, pid: string): Promise<void> {
   await db.transaction().execute(async (trx) => {
     await trx.deleteFrom("bookmarks").where("email", "=", email).where("poll_id", "=", pid).execute();
     await trx.deleteFrom("user_polls").where("email", "=", email).where("poll_id", "=", pid).where("relation", "=", "bookmarked").execute();
   });
+  await forgetTabs(cache, [email]);
 }
 
 /**
  * The daily removal: bookmarks of archived polls, of polls closed longer than the
  * expiry, and of open polls with no activity for longer than the expiry, in batches.
  */
-export async function removeExpiredBookmarks(db: Db, expiryMonths: number, now: Date = new Date()): Promise<number> {
+export async function removeExpiredBookmarks({ db, cache }: StoreDeps, expiryMonths: number, now: Date = new Date()): Promise<number> {
   const cutoff = new Date(now);
   cutoff.setUTCMonth(cutoff.getUTCMonth() - expiryMonths);
   let removed = 0;
@@ -69,6 +71,7 @@ export async function removeExpiredBookmarks(db: Db, expiryMonths: number, now: 
         await trx.deleteFrom("user_polls").where("email", "=", email).where("poll_id", "=", poll_id).where("relation", "=", "bookmarked").execute();
       }
     });
+    await forgetTabs(cache, batch.map((b) => b.email));
     removed += batch.length;
     if (batch.length < REMOVAL_BATCH) return removed;
   }

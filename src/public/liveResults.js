@@ -21,6 +21,10 @@
   let grid = null;
   let panel = null;
   let timer = null;
+  let timerDueAt = 0;
+  let floorMs = 2000;
+  let serverNextMs = 0;
+  let backoffMs = 0;
   let idleTimer = null;
   let lastInteractionAt = Date.now();
   let prompting = false;
@@ -60,6 +64,27 @@
   }
 
   /*
+    Each answer with nothing new doubles the wait, from twice the server's
+    interval up to 10 s, and never below that interval; a change, a vote, an add
+    or remove, the page becoming visible or a refusal starts again from it.
+  */
+  const BACKOFF_CAP_MS = 10000;
+
+  function serverInterval() {
+    return serverNextMs || floorMs;
+  }
+
+  function backOff() {
+    backoffMs = Math.min(Math.max(backoffMs * 2, serverInterval() * 2), BACKOFF_CAP_MS);
+    return Math.max(serverInterval(), backoffMs);
+  }
+
+  function resetBackoff() {
+    backoffMs = 0;
+    if (timer && timerDueAt - Date.now() > serverInterval()) void schedule(serverInterval());
+  }
+
+  /*
     The next tick. After a served response `ms` is the interval the server handed
     back, never shorter than the live floor. After a refusal — another window of
     the session took the floor — the tick lands when the floor next allows,
@@ -71,8 +96,10 @@
     clearTimer();
     const cfg = await config();
     const floor = cfg.floors.live || 2000;
+    floorMs = floor;
     const jitter = Math.floor(Math.random() * 150);
     const wait = afterRefusal ? Math.max(ms, 50) + jitter : Math.max(ms || floor, floor) + jitter;
+    timerDueAt = Date.now() + wait;
     timer = setTimeout(tick, wait);
   }
 
@@ -116,7 +143,9 @@
     open = true;
     lastInteractionAt = Date.now();
     window.Tabs.emptyState(TAB, "");
-    await schedule(nextMs || (window.Tabs.nextAllowedIn ? window.Tabs.nextAllowedIn(TAB) : 0));
+    backoffMs = 0;
+    if (nextMs) serverNextMs = nextMs;
+    await schedule(nextMs ||(window.Tabs.nextAllowedIn ? window.Tabs.nextAllowedIn(TAB) : 0));
   }
 
   async function refresh() {
@@ -127,6 +156,7 @@
     let nextMs = 0;
     let expired = false;
     let served = false;
+    let unchanged = false;
     await window.Tabs.dynamicRequest(
       TAB,
       "/api/live/refresh",
@@ -140,6 +170,7 @@
           nextMs = body.nextRefreshMs || 0;
         } else if (res && res.status === 304) {
           served = true;
+          unchanged = true;
         } else if (res && res.status === 403) {
           expired = true;
         }
@@ -150,8 +181,17 @@
       return;
     }
     if (!open) return;
-    if (served) await schedule(nextMs);
-    else await schedule(window.Tabs.nextAllowedIn(TAB), true);
+    if (unchanged) {
+      await schedule(backOff());
+      return;
+    }
+    backoffMs = 0;
+    if (served) {
+      if (nextMs) serverNextMs = nextMs;
+      await schedule(nextMs);
+    } else {
+      await schedule(window.Tabs.nextAllowedIn(TAB), true);
+    }
   }
 
   // ---- The idle prompt ----
@@ -221,6 +261,7 @@
     if (!added) return;
     open = true;
     lastInteractionAt = Date.now();
+    resetBackoff();
     await window.Tabs.select(TAB);
   }
 
@@ -250,6 +291,7 @@
     );
     if (!removed) return;
     lastInteractionAt = Date.now();
+    resetBackoff();
     ensureGrid().render(state);
     if (state.order.length === 0) {
       open = false;
@@ -305,6 +347,7 @@
       return;
     }
     if (window.Tabs.active() !== TAB) return;
+    resetBackoff();
     if (open) refresh();
     else if (state.order.length === 0) restore();
   });
@@ -325,6 +368,10 @@
       await refresh();
     },
     refresh: null,
+    onVoted() {
+      lastInteractionAt = Date.now();
+      resetBackoff();
+    },
     reset() {
       overlay.reset();
       closeTab(false);

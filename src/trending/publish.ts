@@ -45,9 +45,16 @@ export interface Publisher {
   publish(listing: TrendingListing): Promise<{ counts: boolean; cards: boolean }>;
 }
 
+/** The longest a published listing is kept by the CDN and the browser, however rarely it is recomputed. */
+export const LISTING_MAX_AGE_CAP_MS = 10_000;
+
+export function listingMaxAgeMs(intervalMs: number): number {
+  return Math.min(intervalMs, LISTING_MAX_AGE_CAP_MS);
+}
+
 export function createListingPublisher(store: ObjectStore | null, intervalMs: number, objects: ListingObjects): Publisher {
   let lastCardsVersion: string | null = null;
-  const cacheControl = `public, max-age=${Math.floor(intervalMs / 1000)}`;
+  const cacheControl = `public, max-age=${Math.floor(listingMaxAgeMs(intervalMs) / 1000)}`;
   const headers = { contentType: "application/json; charset=utf-8", cacheControl, contentEncoding: "gzip" };
   return {
     async publish(listing) {

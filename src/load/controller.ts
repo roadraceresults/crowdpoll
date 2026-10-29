@@ -3,6 +3,8 @@ import type { AppConfig } from "../config.js";
 import type { Search } from "../search/search.js";
 import { LIVE_ACTIVE_KEY } from "../live/registry.js";
 import { MULTIPLIER_KEY, secondOf, type Budget, type StretchableKind } from "./budget.js";
+import { STRETCHED_KEY } from "./floors.js";
+import { TABS_FAST_KEY, TABS_FULL_KEY } from "../refresh/tabVersions.js";
 
 const ACTIVITY_MIN = 0.1;
 const ACTIVITY_MAX = 1;
@@ -38,6 +40,15 @@ async function readMultipliers(cache: Cache): Promise<Record<StretchableKind, nu
     (["search", "refresh", "live"] as const).map((k) => cache.get(MULTIPLIER_KEY(k)))
   );
   return { search: Math.max(1, Number(search ?? 1)), refresh: Math.max(1, Number(refresh ?? 1)), live: Math.max(1, Number(live ?? 1)) };
+}
+
+/** A count since the last line, cleared so the next line starts from zero; an increment landing meanwhile goes to the new key. */
+async function takeStat(cache: Cache, key: string): Promise<number> {
+  const read = `${key}:read`;
+  if (!(await cache.rename(key, read))) return 0;
+  const value = Number((await cache.get(read)) ?? 0);
+  await cache.del(read);
+  return value;
 }
 
 /**
@@ -103,8 +114,9 @@ export async function controllerTick(deps: ControllerDeps, now: Date = new Date(
   const changed = (["search", "refresh", "live"] as const).some((kind) => next[kind] !== k[kind]);
   if (changed || overBudget || overSearch || now.getTime() - lastQuietLogAt >= QUIET_LOG_EVERY_MS) {
     lastQuietLogAt = now.getTime();
+    const [fast, full, stretched] = [await takeStat(cache, TABS_FAST_KEY), await takeStat(cache, TABS_FULL_KEY), await takeStat(cache, STRETCHED_KEY)];
     console.log(
-      `[controller] R=${requests} B=${budgetNow} S=${engineQueries}/${searchBudget} V=${liveTabs} a=${activity.toFixed(2)} k=${next.search}/${next.refresh}/${next.live}`
+      `[controller] R=${requests} B=${budgetNow} S=${engineQueries}/${searchBudget} V=${liveTabs} a=${activity.toFixed(2)} k=${next.search}/${next.refresh}/${next.live} tabs=${fast}/${full} stretched=${stretched}`
     );
   }
   return { requests, liveRequests, engineQueries, budget: budgetNow, searchBudget, liveTabs, activity, predictedLive, multipliers: next };

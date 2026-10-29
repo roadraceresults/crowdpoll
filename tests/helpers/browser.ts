@@ -147,3 +147,10 @@ export async function openPage(
     }
   };
 }
+
+/**
+ * Feature 20261028 R7: Refresh on Trending and Newest waits until the copy is as old as the
+ * published max-age, min(recompute interval, 10 s). Suites that press it after a short settle
+ * take a 1 s interval, so the max-age is 1 s.
+ */
+export const LISTING_MAX_AGE_1S = { ENV_TRENDING_POLLS_RECOMPUTE_INTERVAL: "1000", ENV_NEWEST_POLLS_RECOMPUTE_INTERVAL: "1000" };

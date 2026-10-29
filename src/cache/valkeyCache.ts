@@ -110,6 +110,21 @@ export class ValkeyCache implements Cache {
     else await this.client.set(key, value);
   }
 
+  async getMany(keys: string[]): Promise<(string | null)[]> {
+    if (keys.length === 0) return [];
+    return this.client.mget(...keys);
+  }
+
+  async setMany(entries: { key: string; value: string; ttlMs?: number }[]): Promise<void> {
+    if (entries.length === 0) return;
+    const pipeline = this.client.pipeline();
+    for (const { key, value, ttlMs } of entries) {
+      if (ttlMs) pipeline.set(key, value, "PX", ttlMs);
+      else pipeline.set(key, value);
+    }
+    for (const [err] of (await pipeline.exec()) ?? []) if (err) throw err;
+  }
+
   async setNx(key: string, value: string, ttlMs: number): Promise<boolean> {
     return (await this.client.set(key, value, "PX", ttlMs, "NX")) === "OK";
   }

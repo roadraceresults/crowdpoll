@@ -2,7 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import request from "supertest";
 import { startTestContext, type TestContext } from "./helpers/setup.js";
 import { makePoll, polls } from "./helpers/poll-fixtures.js";
-import { openPage, type BrowserPage } from "./helpers/browser.js";
+import { LISTING_MAX_AGE_1S, openPage, type BrowserPage } from "./helpers/browser.js";
 import { trendingSweep } from "../src/polls/sweeps.js";
 import { countVote } from "../src/polls/counters.js";
 import { BAR_PALETTE } from "../src/polls/barPalette.js";
@@ -16,7 +16,7 @@ const YES = "#006120";
 const NO = "#F91010";
 
 beforeAll(async () => {
-  ctx = await startTestContext({ ENV_MIN_MANUAL_REFRESH_INTERVAL: "1200" });
+  ctx = await startTestContext({ ENV_MIN_MANUAL_REFRESH_INTERVAL: "1200", ...LISTING_MAX_AGE_1S });
   const script = (await request(ctx.app).get("/pollCard.js")).text;
   const block = script.slice(script.indexOf("RESULTS_PALETTE_ENTRIES = ["));
   base = (block.slice(0, block.indexOf("];")).match(/#[0-9A-Fa-f]{6}/g) ?? []).map((hex) => hex.toUpperCase());

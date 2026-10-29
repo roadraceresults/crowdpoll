@@ -2,7 +2,7 @@ import express, { type Express } from "express";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { forgeSession, startTestContext, type TestContext } from "./helpers/setup.js";
-import { FLOOR_KEY } from "../src/load/floors.js";
+import { FLOOR_KEY, STRETCHED_KEY } from "../src/load/floors.js";
 
 let ctx: TestContext;
 let app: Express;
@@ -120,5 +120,45 @@ describe("per-kind floors", () => {
     await ctx.cache.del("k:search");
     await ctx.cache.del("k:live");
     ctx.budget.forgetMultipliers();
+  });
+
+  it("refills searches and manual refreshes at the stretched interval and counts the refusals only the stretch caused (R9)", async () => {
+    const statuses = async (kind: string, ip: string, n: number) => {
+      const out: number[] = [];
+      for (let j = 0; j < n; j++) out.push((await request(app).post(`/${kind}`).set("X-Forwarded-For", ip)).status);
+      return out;
+    };
+    await ctx.cache.del(STRETCHED_KEY);
+    await ctx.cache.set("k:refresh", "3");
+    await ctx.cache.set("k:live", "3");
+    ctx.budget.forgetMultipliers();
+    try {
+      // floor 500 ms × k 3 (this suite's burst is 1): the next request waits 1.5 s, not 0.5 s.
+      expect(await statuses("refresh", "203.0.113.40", 1)).toEqual([200]);
+      await sleep(600);
+      const refused = await request(app).post("/refresh").set("X-Forwarded-For", "203.0.113.40");
+      expect(refused.status).toBe(429);
+      expect(refused.body.nextRefreshMs).toBe(1500);
+      expect(Number(await ctx.cache.get(STRETCHED_KEY))).toBe(1);
+      expect(await ctx.cache.pttl(STRETCHED_KEY)).toBeGreaterThan(9 * 60 * 1000);
+      await sleep(1000);
+      expect(await statuses("refresh", "203.0.113.40", 1)).toEqual([200]);
+
+      // Live Results and votes keep their plain floors whatever k says.
+      expect(await statuses("live", "203.0.113.41", 1)).toEqual([200]);
+      await sleep(250);
+      expect(await statuses("live", "203.0.113.41", 1)).toEqual([200]);
+
+      await ctx.cache.set("k:refresh", "1");
+      ctx.budget.forgetMultipliers();
+      expect(await statuses("refresh", "203.0.113.42", 1)).toEqual([200]);
+      await sleep(600);
+      expect(await statuses("refresh", "203.0.113.42", 1)).toEqual([200]);
+      expect(Number(await ctx.cache.get(STRETCHED_KEY))).toBe(1);
+    } finally {
+      await ctx.cache.del("k:refresh");
+      await ctx.cache.del("k:live");
+      ctx.budget.forgetMultipliers();
+    }
   });
 });

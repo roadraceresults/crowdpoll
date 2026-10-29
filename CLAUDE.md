@@ -5,6 +5,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261028-151716-REFRESH-MECHANISMS/plan.md` (research R1–R10, `data-model.md` — cache keys only, no migration —
+the HTTP and operator contracts `contracts/api.md` A1–A7, the UI contracts `contracts/ui-contracts.md` C1–C3, and the
+quickstart live alongside it in `specs/20261028-151716-REFRESH-MECHANISMS/`). The requirements report is
+`requirements/20261028-151716-refresh-mechanisms/requirements-report.md`: 7 diagrams, 9 research results and 23 findings,
+all resolved. Decisions that are easy to get wrong:
+- **Sweeps produce, refreshes read**: no refresh runs a sweep and no sweep pushes to a browser (RS1–RS3).
+- **A personal-tab refresh skips the database** when `tabs:v:<emailKey>` equals the `tabs:seen:<emailKey>:<tab>` record
+  (5 min) and every loaded row's cached projection has the recorded `content_version`; it then answers from the live
+  counts only. A change is signalled by **deleting** `tabs:v` (`forgetTabs`) **after commit**, at every write to
+  `user_polls`, `poll_invitations` or `poll_bans`; a deleted poll deletes its `poll:<pid>` projection (R1–R4).
+- **Projections are written in one batch, only when missing or stale** (`getMany`/`setMany`) (R5).
+- **Live Results backs off** after each `304` (2 → 4 → 8 → 10 s, never below `nextRefreshMs`); a `200`, a vote, an add
+  or remove, the page becoming visible, or a `429`/`503` resets it (R6).
+- **Trending and Newest are published with `max-age` = min(interval, 10 s)** (`listingMaxAgeMs`, sent as
+  `trendingMaxAgeMs`/`newestMaxAgeMs`); Refresh there waits until the copy is that old (R7).
+- **`#refreshBtn` uses `aria-disabled`, never `disabled`**, so its `Refresh available in N s` tooltip can show (R8).
+- **Search and refresh buckets refill at `floor × k`**; the `[controller]` line adds `tabs=<fast>/<full>` and
+  `stretched=<n>` (R9).
+- **Counter flush 10 s (`ENV_COUNTER_FLUSH_INTERVAL`), invitation sweep 30 s (constant)**; the manual floor is no
+  longer tied to the flush (R10).
+No migration, no new dependency, no new setting.
+The preceding feature is
 `specs/20261027-133129-SINGLE-EMAIL-INVITE/plan.md` (research R1–R11, `data-model.md` — three `poll_invitations`
 token columns, one migration — the HTTP contracts `contracts/api.md` A1–A3, the UI contracts `contracts/ui-contracts.md`
 C1–C2 and the email sentence M1, and the quickstart live alongside it in `specs/20261027-133129-SINGLE-EMAIL-INVITE/`).
@@ -509,9 +531,9 @@ Valkey counters and queue, OpenSearch, the two-object TRENDING publication, the 
 bounds; its 29 follow-up fixes are in `fix.md` there), with its architecture at
 `architecture/017-search-scalability-database/architecture.md`. 017's decisions still govern
 everything under the tab bar: counters are never written to a poll row per vote — `HINCRBY
-cnt:<pid>` and a 2 s flush sweep, every reader uses the live `seq` (R7, R8); every vote takes
-one path and is never refused for load (R4); per-instance shedding, the budget controller and
-CPU autoscaling interlock at three speeds (R11, R12); the membership version hashes the set of
+cnt:<pid>` and a flush sweep (2 s then, 10 s since feature 20261028), every reader uses the live
+`seq` (R7, R8); every vote takes one path and is never refused for load (R4); per-instance
+shedding, the budget controller and CPU autoscaling interlock at three speeds (R11, R12); the membership version hashes the set of
 ids (R10); a full Live Results tab refuses a further poll with `409 live-cap` (FIX028);
 Bookmark is "Favorites" in the UI only — routes, tables and identifiers keep the old word
 (FIX026). Before 017: `specs/016-POLL-SETTINGS-CHANGE/` (three-field visibility;
@@ -646,11 +668,11 @@ All runtime configuration comes from `ENV_*` environment variables:
 | `ENV_MAX_POLLS_SEARCH_RESULTS` | `200` | Cap on home search results, personal-tab rows and overlay ids per request |
 | `ENV_MAX_POLLS_ADMIN_SEARCH_RESULTS` | `200` | Cap on admin search results and on the unfiltered admin list (newest first, with a cut-off notice) |
 | `ENV_MAX_TRENDING_POLLS` | `200` | Polls in the TRENDING tab |
-| `ENV_TRENDING_POLLS_RECOMPUTE_INTERVAL` | `60000` | How often TRENDING is recomputed and published (ms); also the CDN `max-age` and the browser copy's lifetime |
+| `ENV_TRENDING_POLLS_RECOMPUTE_INTERVAL` | `60000` | How often TRENDING is recomputed and published (ms); also the browser copy's lifetime. The CDN `max-age`, and the wait before Refresh is offered, is the smaller of it and 10 s |
 | `ENV_MAX_NEWEST_POLLS` | `50` | Polls in the Newest tab; must not exceed `ENV_MAX_POLLS_SEARCH_RESULTS` |
-| `ENV_NEWEST_POLLS_RECOMPUTE_INTERVAL` | `60000` | How often Newest is recomputed and published (ms; at least 1000); also the CDN `max-age` and the browser copy's lifetime |
+| `ENV_NEWEST_POLLS_RECOMPUTE_INTERVAL` | `60000` | How often Newest is recomputed and published (ms; at least 1000); also the browser copy's lifetime. The CDN `max-age`, and the wait before Refresh is offered, is the smaller of it and 10 s |
 | `ENV_MIN_LIVE_REFRESH_INTERVAL` | `2000` | Floor between two Live Results refreshes from one user (ms) |
-| `ENV_MIN_MANUAL_REFRESH_INTERVAL` | `5000` | Floor between two manual tab refreshes from one user (ms). Must not be below `ENV_COUNTER_FLUSH_INTERVAL` |
+| `ENV_MIN_MANUAL_REFRESH_INTERVAL` | `5000` | Floor between two manual tab refreshes from one user (ms) |
 | `ENV_MIN_SEARCH_INTERVAL` | `2000` | Floor between two searches from one user (ms) |
 | `ENV_MIN_VOTE_INTERVAL` | `2000` | Floor between two votes from one session, across all polls (ms) |
 | `ENV_MANUAL_REFRESH_BURST` | `5` | Manual-kind requests (tab clicks, Refresh, bookmarks, the overlay call) one user may make back to back before the manual floor applies; one comes back per floor interval. `1` is the plain floor |
@@ -668,7 +690,7 @@ All runtime configuration comes from `ENV_*` environment variables:
 | `ENV_INSTANCE_MAX_INFLIGHT` | `200` | Requests in flight on one instance before it sheds |
 | `ENV_INSTANCE_MAX_EVENT_LOOP_LAG` | `100` | Event-loop lag (ms) before an instance sheds |
 | `ENV_SHED_RETRY_AFTER` | `2000` | `Retry-After` handed out with a `503` (ms) |
-| `ENV_COUNTER_FLUSH_INTERVAL` | `2000` | How often live vote counters are written to poll rows (ms) |
+| `ENV_COUNTER_FLUSH_INTERVAL` | `10000` | How often live vote counters are written to poll rows (ms); nothing a visitor sees reads them, the tabs read the live counters |
 | `ENV_VOTE_BATCH_SIZE` | `500` | Votes the consumer inserts per batch |
 | `ENV_VOTE_QUEUE_LAG_NOTICE` | `2000` | Consumer lag (ms) above which a vote response says `queued` |
 | `ENV_SEARCH_CACHE_TTL` | `10000` | How long an identical search is answered from the cache (ms) |

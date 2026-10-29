@@ -137,6 +137,19 @@ export class MemoryCache implements Cache {
     this.entries.set(key, { kind: "string", value, expiresAt: ttlMs ? Date.now() + ttlMs : null });
   }
 
+  async getMany(keys: string[]): Promise<(string | null)[]> {
+    if (!this.connected) throw new DisconnectedError();
+    return keys.map((key) => this.live<StringEntry>(key, "string")?.value ?? null);
+  }
+
+  async setMany(entries: { key: string; value: string; ttlMs?: number }[]): Promise<void> {
+    if (!this.connected) throw new DisconnectedError();
+    const now = Date.now();
+    for (const { key, value, ttlMs } of entries) {
+      this.entries.set(key, { kind: "string", value, expiresAt: ttlMs ? now + ttlMs : null });
+    }
+  }
+
   async setNx(key: string, value: string, ttlMs: number): Promise<boolean> {
     if (this.live<StringEntry>(key, "string")) return false;
     this.entries.set(key, { kind: "string", value, expiresAt: Date.now() + ttlMs });

@@ -6,7 +6,7 @@ import { sessionKey } from "../auth/sessionCache.js";
 import type { Cache } from "../cache/cache.js";
 import type { Db } from "../db/client.js";
 import { COUNTS_KEY } from "../polls/counters.js";
-import { bumpContentVersion } from "../polls/versions.js";
+import { bumpContentVersion, POLL_PROJECTION_KEY } from "../polls/versions.js";
 import { BAN_KEY, INVITE_KEY } from "../votes/rosterCache.js";
 import { markDeleted, unmarkDeleted } from "./deletedAccounts.js";
 
@@ -35,7 +35,7 @@ export async function deleteAccount(
   const staleKeys = [
     ...outcome.tokens.map(sessionKey),
     ...outcome.invitedPids.map(INVITE_KEY),
-    ...outcome.ownIds.flatMap((pid) => [INVITE_KEY(pid), BAN_KEY(pid), COUNTS_KEY(pid)])
+    ...outcome.ownIds.flatMap((pid) => [INVITE_KEY(pid), BAN_KEY(pid), COUNTS_KEY(pid), POLL_PROJECTION_KEY(pid)])
   ];
   for (const key of staleKeys) await cache.del(key).catch(() => undefined);
   return { pollsDeleted: outcome.pollsDeleted, votesAnonymized: outcome.votesAnonymized };

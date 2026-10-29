@@ -5,6 +5,7 @@ import type { Db } from "./store.js";
 import { isPublished } from "./store.js";
 import { holdsPermission, type Caller } from "./service.js";
 import { upsertRelation } from "./userPolls.js";
+import { forgetTabs } from "../refresh/tabVersions.js";
 
 const POLL_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const VIEW_REFRESH_AFTER_MS = 60_000;
@@ -93,7 +94,10 @@ export async function resolveSharedLink(deps: SharedLinkDeps & { cache: Cache },
       .where("relation", "=", "linked")
       .executeTakeFirst();
     const recent = held !== undefined && Date.now() - new Date(held.updated_at as Date).getTime() < VIEW_REFRESH_AFTER_MS;
-    if (!recent) await upsertRelation(deps.db, email, pid, "linked");
+    if (!recent) {
+      await upsertRelation(deps.db, email, pid, "linked");
+      await forgetTabs(deps.cache, [email]);
+    }
   }
   return decision.landing;
 }

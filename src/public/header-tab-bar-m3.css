@@ -120,7 +120,8 @@
   color:var(--md-sys-color-on-secondary-container);
 }
 .tab-refresh--icon svg{ width:26px; height:26px; }
-.tab-bar-wrap .tab-refresh--icon:disabled{
+.tab-bar-wrap .tab-refresh--icon:disabled,
+.tab-bar-wrap .tab-refresh--icon[aria-disabled="true"]{
   opacity:1;
   background:color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent);
   color:color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
@@ -446,7 +447,8 @@
 
 .tab-bar .tab:disabled::before,
 .tab-bar .tab[aria-disabled="true"]::before,
-.tab-refresh--icon:disabled::before{ opacity:0; }
+.tab-refresh--icon:disabled::before,
+.tab-refresh--icon[aria-disabled="true"]::before{ opacity:0; }
 
 .tab-refresh--icon:focus-visible,
 .search-icon-btn:focus-visible,

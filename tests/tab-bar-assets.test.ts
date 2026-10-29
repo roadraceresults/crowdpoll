@@ -155,3 +155,17 @@ describe("the Material 3 tab bar", () => {
     expect(tabsCss).toMatch(/\.tab-empty\{/);
   });
 });
+
+describe("the Refresh button's waiting look (feature 20261028 R8)", () => {
+  it("gives every :disabled rule for .tab-refresh an [aria-disabled=\"true\"] twin in the same rule", () => {
+    for (const [name, css] of [
+      ["tabs.css", tabsCss],
+      ["header-tab-bar-m3.css", headerM3Css]
+    ] as const) {
+      const lists = [...css.matchAll(/([^{}]+)\{/g)].map((m) => m[1]!.split(",").map((sel) => sel.trim().replace(/\s+/g, " ")));
+      const disabled = lists.flatMap((list) => list.filter((sel) => sel.includes(".tab-refresh") && sel.includes(":disabled")).map((sel) => ({ list, sel })));
+      expect(disabled.length, name).toBeGreaterThan(0);
+      for (const { list, sel } of disabled) expect(list, `${name}: ${sel}`).toContain(sel.replace(":disabled", '[aria-disabled="true"]'));
+    }
+  });
+});

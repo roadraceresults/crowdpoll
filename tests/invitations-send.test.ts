@@ -6,6 +6,7 @@ import { makePoll, polls } from "./helpers/poll-fixtures.js";
 import { insertPoll, type Poll, type PollState } from "../src/polls/store.js";
 import { setTransport } from "../src/email/mailer.js";
 import { sendPendingInvitations } from "../src/invitations/sender.js";
+import { buildSweepSchedules } from "../src/polls/sweeps.js";
 
 const CREATOR = "creator-send@example.com";
 let ctx: TestContext;
@@ -80,6 +81,16 @@ describe("sending invitations", () => {
     await tick();
     expect(ctx.sent).toHaveLength(2);
     expect(await sends()).toBe(2);
+  });
+
+  it("the invitation sweep runs every 30 s, and the counter flush at ENV_COUNTER_FLUSH_INTERVAL (feature 20261028 R10)", () => {
+    const intervals = Object.fromEntries(buildSweepSchedules(ctx.config, ctx).map((s) => [s.name, s.intervalMs]));
+    expect(intervals.invitationSweep).toBe(30_000);
+    expect(intervals.counterFlushSweep).toBe(ctx.config.counterFlushIntervalMs);
+    expect(intervals.scheduleSweep).toBe(ctx.config.pollDateCheckPollingIntervalMs);
+    expect(intervals.outboxDrainSweep).toBe(ctx.config.outboxDrainIntervalMs);
+    expect(intervals.trendingSweep).toBe(ctx.config.trendingRecomputeIntervalMs);
+    expect(intervals.newestSweep).toBe(ctx.config.newestRecomputeIntervalMs);
   });
 
   it("sends nothing before the poll opens, then one tick sends every pending invitation", async () => {

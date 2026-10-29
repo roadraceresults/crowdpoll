@@ -231,7 +231,7 @@ describe("Your Polls cards", () => {
     const me = "tabs026-archiver@example.com";
     const forged = await forgeSession(fast, me);
     const poll = await ownPoll(forged, me, { title: "Archived one", pollState: "ARCHIVED" });
-    await recordVote(fast.db, poll._id, { emailAddress: me, userName: "", choiceIds: ["c1"], votedAt: new Date() });
+    await recordVote(fast, poll._id, { emailAddress: me, userName: "", choiceIds: ["c1"], votedAt: new Date() });
     page = await openPage(fast, "index.html", { cookie: forged.cookie });
     await page.settle(100);
     await page.click('.tab[data-tab="your-polls"]');
@@ -274,7 +274,7 @@ describe("the Watch control", () => {
     const earlier = makePoll({ _id: randomUUID(), title: "Watched earlier" });
     const shared = makePoll({ _id: randomUUID(), title: "Sent to me", pollVisibility: "Private Poll", pollSharingMode: "Invitation Only", invitedVoterList: [me] });
     await polls(fast).insertMany([earlier, shared]);
-    await addBookmark(fast.db, me, earlier._id, 200);
+    await addBookmark(fast, me, earlier._id, 200);
     page = await open(fast, me);
     await page.click('.tab[data-tab="watching"]');
     await page.settle(200);

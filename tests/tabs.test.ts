@@ -103,7 +103,7 @@ describe("personal tabs", () => {
   it("a new relation moves the membership version and sends the order", async () => {
     const seeded = await seed((offset) => new Date(Date.now() - 60_000 + offset));
     const first = await refresh("your-votes");
-    await recordVote(ctx.db, seeded.strangerPublic._id, { emailAddress: me, userName: "", choiceIds: ["c1"], votedAt: new Date() });
+    await recordVote(ctx, seeded.strangerPublic._id, { emailAddress: me, userName: "", choiceIds: ["c1"], votedAt: new Date() });
     for (const key of await ctx.cache.scan("floor:*")) await ctx.cache.del(key);
     const versions: Record<string, [number, number]> = {};
     for (const pid of first.body.order) versions[pid] = [first.body.cards[pid].contentVersion, first.body.counters[pid].countsVersion];

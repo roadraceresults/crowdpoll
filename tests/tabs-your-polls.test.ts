@@ -61,8 +61,8 @@ describe("Your Polls", () => {
     const invited = makePoll({ _id: randomUUID(), pollVisibility: "Private Poll", pollSharingMode: "Invitation Only", invitedVoterList: [meEmail] });
     const linked = makePoll({ _id: randomUUID(), pollVisibility: "Private Poll" });
     await polls(ctx).insertMany([voted, watched, invited, linked]);
-    await recordVote(ctx.db, voted._id, { emailAddress: meEmail, userName: "", choiceIds: ["c1"], votedAt: new Date() });
-    await addBookmark(ctx.db, meEmail, watched._id, 200);
+    await recordVote(ctx, voted._id, { emailAddress: meEmail, userName: "", choiceIds: ["c1"], votedAt: new Date() });
+    await addBookmark(ctx, meEmail, watched._id, 200);
     await upsertRelation(ctx.db, meEmail, linked._id, "linked");
     expect((await tab("your-polls")).status).toBe(304);
   });

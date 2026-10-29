@@ -129,7 +129,7 @@ describe("Invited private polls on the personal tabs", () => {
     const invited = makePoll({ pollVisibility: "Private Poll", pollSharingMode: "Invitation Only", invitedVoterList: [email] });
     const pub = makePoll({ title: "Public favourite" });
     await polls(ctx).insertMany([invited, pub]);
-    await addBookmark(ctx.db, email, pub._id, 200);
+    await addBookmark(ctx, email, pub._id, 200);
 
     expect((await privateTab(forged.cookie)).status).toBe(304);
     for (const key of await ctx.cache.scan("floor:*")) await ctx.cache.del(key);

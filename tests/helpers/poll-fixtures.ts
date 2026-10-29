@@ -53,6 +53,7 @@ export function polls(deps: StoreDeps) {
       await sql`truncate table vote_history, votes, poll_invitations, invitation_history, invitation_emails, poll_bans, bookmarks, user_polls, search_outbox, polls`.execute(
         deps.db
       );
+      for (const key of [...(await deps.cache.scan("tabs:*")), ...(await deps.cache.scan("poll:*"))]) await deps.cache.del(key);
     },
     countDocuments: async (filter: { pollState?: PollState } = {}) => {
       let query = deps.db.selectFrom("polls").select((eb) => eb.fn.countAll<string>().as("n"));

@@ -4,6 +4,7 @@ import type { AppConfig } from "../config.js";
 import type { Db } from "../db/client.js";
 import { ensureVoteHistoryPartition } from "../db/partitions.js";
 import { markEverVoted, upsertUserPolls } from "../polls/store.js";
+import { forgetTabs } from "../refresh/tabVersions.js";
 import { reconcile } from "../polls/counters.js";
 import { withoutDeletedAccounts } from "../legal/deletedAccounts.js";
 import { VOTE_GROUP, VOTE_STREAM } from "./queue.js";
@@ -157,6 +158,7 @@ export function createConsumer({ db, cache, config, consumerName }: ConsumerDeps
     const parsed = entries.map(parseEntry).filter((v): v is QueuedVote => v !== null);
     const { kept: votes, droppedPids } = await withoutDeletedAccounts(cache, parsed);
     await writeBatch(db, votes);
+    await forgetTabs(cache, votes.map((v) => v.email));
     if (droppedPids.length > 0) {
       console.log(`[votes] Skipped ${parsed.length - votes.length} queued vote(s) from deleted accounts`);
       await reconcile({ db, cache }, droppedPids);

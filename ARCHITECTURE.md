@@ -211,14 +211,16 @@ boot from `src/db/migrations/`; a failing migration stops the process.
 | Key | Holds | Written by |
 |---|---|---|
 | `sess:<sha256(token)>` | a session, bounded by its own expiry | session cache-aside; deleted on logout, rename, sign-in elsewhere |
-| `floor:<kind>:<session\|ip>` | `SET NX PX` for that kind's floor | the winning request |
+| `floor:<kind>:<session\|ip>` | that kind's token bucket, refilled once per floor (× k for search and refresh) | every dynamic request |
+| `tabs:v:<emailKey>`, `tabs:seen:<emailKey>:<tab>` | the user's list version (24 h); a personal tab's last full answer (5 min) | a full personal-tab answer; the version is deleted after commit by every write to the user's relations, invitations or bans |
+| `stats:tabs:fast`, `stats:tabs:full`, `stats:floor:stretched` | counts since the last `[controller]` line (10 min) | the personal-tab routes and the floors; read and cleared by the controller |
 | `budget:<sec>`, `budget:live:<sec>`, `search-budget:<sec>` | requests, live requests and engine queries per second | every dynamic request |
 | `instance:<id>` | a heartbeat (30 s) | each instance every 10 s |
 | `k:search`, `k:refresh`, `k:live` | the current multipliers | the controller |
 | `cnt:<pid>` | `{ choiceId: n, total, seq }` | the vote path; seeded from the row on a miss |
 | `dirty`, `dirty:day:<date>` | polls to flush / to reconcile | the vote path |
 | `trend:<bucket>` | votes per poll per five minutes | the vote path |
-| `poll:<pid>` | the card projection with `contentVersion` | every content write |
+| `poll:<pid>` | the card projection with `contentVersion` | every content write; a listing or search that finds it missing or stale; deleted with the poll |
 | `invite:<pid>`, `ban:<pid>`, `voted:<session>`, `lastvote:<pid>:<email>` | roster sets, the session's voted polls, a voter's last choices | loaded on first use; rosters deleted on a roster change |
 | `live:<session>`, `live:active` | a session's Live Results polls; every live session scored by its expiry | the Live Results routes |
 | `listing:trending:*`, `listing:newest:*`, `search:<hash>` | the published TRENDING and Newest objects; a search's ids for ten seconds | the trending and newest sweeps; a search miss |
@@ -246,7 +248,7 @@ sequenceDiagram
     W->>PG: one transaction: votes upsert (last wins on Dynamic-Vote, first on Final-Vote), vote_history, user_polls
     W->>C: XACK; queue:lag sampled once a second
   end
-  Note over C,PG: flush sweep every 2 s: UPDATE polls … FROM (VALUES …) for the dirty set
+  Note over C,PG: flush sweep every 10 s (ENV_COUNTER_FLUSH_INTERVAL): UPDATE polls … FROM (VALUES …) for the dirty set
 ```
 
 A vote is never refused for load: the route touches the cache only, answers from the
@@ -256,28 +258,171 @@ written at enqueue time.
 
 ## Refresh model and the three load bounds
 
+Five mechanisms keep a page current, and they meet only through the cache and PostgreSQL:
+**sweeps produce, refreshes read**. No refresh runs a sweep, and no sweep pushes anything to a
+browser.
+
+- **Sweeps** (one instance per tick, see *Sweeps*): flush the counters to poll rows, publish
+  Trending and Newest, drain the search outbox, set `k:*`, apply schedules, send invitations.
+- **The vote path and the consumer**: a vote moves `cnt:<pid>` at once; the consumer writes its
+  rows in batches.
+- **The Refresh button** in the tab bar.
+- **Implicit refreshes**: a tab click or a return to the window with a copy older than the manual
+  floor, a due bookmark confirmation, the overlay call.
+- **The Live Results timer**, the only refresh that repeats without a user action.
+
 ```mermaid
-flowchart TB
-  subgraph perVisitor["Per visitor — floors (ms)"]
-    F["floor:<kind>:<session|ip> — live 2 s, refresh 5 s, search 2 s, vote 2 s → 429 too-soon"]
+flowchart LR
+  subgraph Browser["Browser (one per visitor)"]
+    Btn["Refresh button<br/>(tab bar)"]
+    Click["Tab click / return to window<br/>(copy older than 5 s)"]
+    LiveT["Live Results timer<br/>(nextRefreshMs, backing off to 10 s)"]
+    VoteB["Vote"]
   end
-  subgraph perInstance["Per instance — shedding (ms)"]
-    S["in-flight > 200 or event-loop lag > 100 ms → 503 busy<br/>order: search → refresh → live → other → vote<br/>cache unreachable → every dynamic kind 503; /healthz always 200"]
+
+  subgraph Instance["Any web instance"]
+    Pipe["load pipeline<br/>shedding → floor → budget count"]
+    TabsApi["tabsApi.ts<br/>delta routes"]
+    VoteR["vote route"]
   end
-  subgraph fleet["Fleet — budget controller (s)"]
-    Ctl["budget = 1,250 × live instances, cap 15,000<br/>over budget: raise k:search → k:refresh (cap 8) → k:live<br/>search sub-budget 2,000 engine queries/s (200 on the fallback) raises k:search alone<br/>k:live ≥ ceil(live tabs × activity ÷ floor ÷ budget left)"]
+
+  subgraph Leader["One instance per tick (advisory lock)"]
+    Sweeps["sweeps.ts<br/>12 timers"]
   end
-  subgraph platform["Platform — autoscaling (min)"]
-    A["4–12 dedicated instances at 70 % CPU"]
-  end
-  F --> S --> Ctl --> A
-  Ctl -- "nextRefreshMs = floor × k on every response" --> F
+
+  Cache[("Valkey<br/>cnt:&lt;pid&gt;, poll:&lt;pid&gt;, tabs:*, k:*, floor:*")]
+  PG[("PostgreSQL")]
+  CDN["Spaces + CDN<br/>trending / newest objects"]
+  OS[("OpenSearch")]
+
+  Btn & Click --> Pipe
+  LiveT --> Pipe
+  Pipe --> TabsApi
+  VoteB --> VoteR
+  VoteR -- "HINCRBY (instant)" --> Cache
+  TabsApi -- "read" --> Cache & PG
+  Btn -- "Trending / Newest:<br/>conditional GET" --> CDN
+
+  Sweeps -- "flush counters (10 s)" --> PG
+  Sweeps -- "publish (60 s, max-age 10 s)" --> CDN
+  Sweeps -- "outbox drain (15 s)" --> OS
+  Sweeps -- "k:* (1 s)" --> Cache
 ```
 
-Nothing refreshes on its own except the Live Results tab. A tab click renders the copy the
-browser holds and sends a request only when that copy is older than the manual floor;
-`Refresh` is disabled for the floor after any refresh. Every dynamic response carries
-`nextRefreshMs`; `429` and `503` carry `retryAfterMs`, and the browser retries once after it.
+### Load at the default settings
+
+The fleet's budget is 1,250 dynamic requests per second per live instance, capped at 15,000
+(5,000/s at 4 instances).
+
+| Mechanism | Who pays | Rate, at most | Cost of one |
+|---|---|---|---|
+| Sweeps (all twelve) | one instance per tick | fixed by their intervals | small bounded queries; grows with polls changed, never with visitors |
+| Live Results timer | each open, visible, non-idle Live tab | 1 per 2 s × `k:live`, backing off to 1 per 10 s while unchanged | cache reads only (≤ 5 polls) |
+| Refresh on a personal tab | one visitor | burst 5, then 1 per 5 s × `k:refresh` | unchanged list: cache reads only (the shortcut below); otherwise one indexed query (≤ 200 rows) |
+| Refresh on Search | one visitor | burst 3, then 1 per 2 s × `k:search` | the 10 s search cache, or one engine query |
+| Refresh on Trending / Newest | the CDN | once the copy is 10 s old, within the refresh bucket | 1–2 conditional GETs, no instance cost in production |
+| Votes (for comparison) | one visitor | 1 per 2 s, never stretched | cache only; rows written later in batches |
+
+Refreshes are the variable cost, and Live Results is the largest. That is why the controller sizes
+`k:live` from the open Live tabs (`live:active`) and their measured activity.
+
+### The three load bounds
+
+```mermaid
+flowchart TB
+  Req["dynamic request<br/>(refresh, live, search, vote)"]
+  Shed{"instance overloaded?<br/>in-flight > 200 or lag > 100 ms"}
+  Floor{"visitor's bucket<br/>has a token?<br/>(search, refresh refill at floor × k)"}
+  Count["count in budget:&lt;second&gt;"]
+  Serve["serve; stamp nextRefreshMs = floor × k"]
+  R503["503 busy + retryAfterMs<br/>shed order: search → refresh → live → other → vote"]
+  R429["429 too-soon + retryAfterMs"]
+  Ctl["budgetController, every 1 s:<br/>over budget → k:search, then k:refresh (≤ 8), then k:live<br/>under 80 % → relax in reverse"]
+  Auto["App Platform autoscaling<br/>4–12 instances at 70 % CPU (minutes)"]
+
+  Req --> Shed
+  Shed -- yes --> R503
+  Shed -- no --> Floor
+  Floor -- no --> R429
+  Floor -- yes --> Count --> Serve
+  Count -. "requests per second" .-> Ctl
+  Ctl -. "k:*" .-> Serve
+  Ctl -. "sustained CPU" .-> Auto
+```
+
+- **Per visitor, floors**: `floor:<kind>:<session|ip>` is a token bucket per kind (live 2 s,
+  refresh 5 s with a burst of 5, search 2 s with a burst of 3, vote 2 s). Search and refresh
+  buckets refill at the stretched interval `floor × k`, so a client that ignores `nextRefreshMs`
+  is held to it too; a refusal that only the stretch caused counts `stats:floor:stretched`.
+  Live Results and votes keep their plain floors.
+- **Per instance, shedding**: `503 busy` past 200 requests in flight or 100 ms of event-loop lag.
+- **Fleet, the budget controller**: raises `k:search`, then `k:refresh` (up to 8, a 40 s
+  interval), then `k:live` while over budget, and relaxes them in reverse below 80 %. When it
+  writes its line it appends, and clears, three counts since the previous line:
+  `[controller] R=… B=… S=… V=… a=… k=s/r/l tabs=<fast>/<full> stretched=<n>`, where `fast` and
+  `full` are personal-tab answers given by the shortcut and in full.
+
+Every dynamic response carries `nextRefreshMs`; `429` and `503` carry `retryAfterMs`, and the
+browser empties its bucket for that long.
+
+### What the browser does
+
+- **Refresh button**: `#refreshBtn` is never `disabled`; while a refresh is not allowed it has
+  `aria-disabled="true"`, a click does nothing, and its title (the tooltip) reads
+  `Refresh available in N s`, counted down every second. The wait is the larger of the tab's
+  bucket wait and, on Trending and Newest, `refreshAvailableIn()`.
+- **Tab clicks** render the copy the browser holds and send a request only when it is older than
+  the manual floor.
+- **Trending and Newest** are published with `max-age` = min(recompute interval, 10 s)
+  (`listingMaxAgeMs`, sent as `trendingMaxAgeMs` / `newestMaxAgeMs` in `/api/config`); Refresh
+  there is offered once the copy is that old. The session-storage copy keeps the recompute
+  interval as its lifetime for a page load. Without a CDN the instance serves the objects with
+  the same `max-age`. The 10 s wait on these two tabs is enforced in the browser only, by design:
+  the objects cost no instance work in production.
+- **Live Results** asks every `nextRefreshMs`, and after each `304` doubles its wait from twice
+  that interval up to 10 s (2 → 4 → 8 → 10 s at the defaults), never below `nextRefreshMs`. A
+  `200`, a vote in the tab, adding or removing a poll, or the page becoming visible
+  (`visibilitychange`, not window `focus`) starts again from the interval; a `429` or `503` keeps
+  the refusal's wait and resets the back-off. The registration (`live:active`) lasts
+  `nextRefreshMs` plus the idle allowance, so a backed-off tab stays registered.
+
+### The personal-tab shortcut
+
+An unchanged personal tab (Your Polls, Shared With You, Your Votes, Watching) is answered from
+the cache without touching PostgreSQL:
+
+- `tabs:v:<emailKey>` is the user's list version (an opaque value, 24 h), created on a full
+  answer and **deleted** (`forgetTabs`) after commit by every write to that user's `user_polls`,
+  `poll_invitations` or `poll_bans` rows: votes written by the consumer, bookmarks (and their
+  expiry), poll creation and edits (invitees, bans, removed votes), invitation rosters and
+  adoption, and the shared-link view. Sending, reminding or accepting an invitation does not
+  signal, since none of them changes what a tab lists.
+- `tabs:seen:<emailKey>:<tab>` (5 min) records the last full answer: the version read before its
+  queries, the membership version and order sent, and for every row loaded before narrowing its
+  row `content_version` and the content version sent (0 for a "not published" placeholder).
+  Your Votes, Watching and Shared With You narrow by access after loading, so a poll hidden by
+  narrowing that regains access through its own content change is still checked.
+- A refresh takes the shortcut when the version still equals the record, the request holds the
+  recorded membership and ids, every recorded row's cached `poll:<pid>` projection has the
+  recorded `content_version`, and every held card has the version sent. It then answers with the
+  live counts only (`304` or the moved counters) and runs no adoption or acceptance. Anything
+  else, or any cache error, builds the full answer.
+- A deleted poll (`deletePoll`, or with its creator's account) deletes its `poll:<pid>`, so a
+  tab that lists it fails the projection check and is rebuilt.
+- Projections are read with one `getMany` and written with one `setMany`, only those missing or
+  older than their row, for personal tabs and searches alike.
+- The 5-minute record bounds the staleness should a write site ever forget to signal;
+  `tests/tabs-refresh-signals.test.ts` checks each signal.
+
+### How fresh a refresh can be
+
+- Counts are always live on every tab: they are read from `cnt:<pid>`.
+- Trending and Newest are at most a recompute (60 s) plus 10 s of `max-age` old.
+- Search returns identical results for 10 s, and a new or edited public poll is searchable after
+  the outbox drain (up to 15 s).
+- Poll rows' `vote_count` (admin pages, rankings, exports) trail the live counts by up to the
+  flush interval (10 s).
+- Scheduled starts and ends show after the next schedule sweep (up to 60 s).
 
 ## TRENDING, Newest and the personal tabs
 
@@ -287,7 +432,7 @@ flowchart LR
   Sweep -- "sum trend:<bucket> × 12, top 200 by recent votes then vote_count" --> Rank
   Rank -- "membershipVersion = sha256(sorted ids)" --> Counts["trending-counts.json<br/>published every run"]
   Rank -- "cardsVersion = sha256(pid:contentVersion lines); cards only when it changed" --> Cards["trending.json"]
-  Counts & Cards --> CDN["Spaces + CDN, max-age 60, ETag"]
+  Counts & Cards --> CDN["Spaces + CDN, max-age min(interval, 10 s), ETag"]
   Browser -- "conditional GET; cards only when cardsVersion or membershipVersion differs" --> CDN
   Browser -- "GET /api/me/polls?pids= (signed in)" --> Overlay["overlay: voted, choiceIds, bookmarked"]
 ```
@@ -532,7 +677,33 @@ as `Created By: <username> (<email>)` above its dates.
 | stale editing session release | 2 × heartbeat | 9 |
 | newest recompute + publish (also once at start) | `ENV_NEWEST_POLLS_RECOMPUTE_INTERVAL` | 10 |
 | retention: expired sessions, links, email changes and rate-limit rows; `invitation_emails` older than 24 hours; `vote_history` partitions older than 12 months | daily | 11 |
-| invitations: claim and send the pending invitations of every open Invitation Only poll | 5 s | 12 |
+| invitations: claim and send the pending invitations of every open Invitation Only poll | 30 s | 12 |
+
+```mermaid
+gantt
+  title One minute of sweep ticks (defaults), fleet-wide
+  dateFormat  ss
+  axisFormat  %S s
+  section every second
+  budgetController        :a1, 00, 60s
+  section 5 s
+  approval                :a2, 00, 60s
+  section 10 s
+  counterFlushSweep       :a3, 00, 60s
+  section 15 s
+  outboxDrainSweep        :a4, 00, 60s
+  section 20 s
+  staleEditUpdateSweep    :a5, 00, 60s
+  section 30 s
+  invitationSweep         :a6, 00, 60s
+  section 60 s
+  schedule, trending, newest :milestone, a7, 59, 0s
+```
+
+Sweeps are a fixed background cost that does not grow with visitors. The counter flush runs every
+10 s because nothing a visitor sees reads the poll rows' counts (the tabs read `cnt:<pid>`); the
+invitation sweep runs every 30 s because saving an open poll sends its new invitations at once,
+and the sweep only picks up the rest (a poll opening on schedule, the daily allowance freeing up).
 
 Every tick runs under `pg_try_advisory_xact_lock`; a losing instance logs the skip and
 returns. All sweeps and the consumer pause while the cache is unreachable and resume when it
@@ -612,7 +783,7 @@ The daily allowance refuses no add: on an open poll an address past it is marked
 Removing a voter needs `confirmVoted` and reconciles the counters.
 
 Emails are claimed, then sent. `sendPendingInvitations` (`src/invitations/sender.ts`), run by the route after an add on an
-open poll and by `invitationSweep` (5 s, lock 12), takes a per-creator advisory lock, counts the creator's
+open poll and by `invitationSweep` (30 s, lock 12), takes a per-creator advisory lock, counts the creator's
 `invitation_emails` rows of the last 24 hours against `ENV_MAX_INVITATIONS_PER_DAY`, and claims the oldest pending rows with
 `update … set sent_at … where email in (select … for update skip locked)`, so the route and the sweep never send one row
 twice. Only OPEN polls send; a resend is refused while the poll is not open. A failed send sets `send_failed_at`.

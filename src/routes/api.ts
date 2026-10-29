@@ -34,6 +34,7 @@ import { recordAgreement } from "../legal/recordAgreement.js";
 import { hasAcceptedTerms, safeNext } from "../legal/termsGate.js";
 import { deleteAccount } from "../legal/deleteAccount.js";
 import { maskIp } from "../auth/maskIp.js";
+import { listingMaxAgeMs } from "../trending/publish.js";
 
 export interface ApiDeps {
   auth: Auth;
@@ -142,6 +143,8 @@ export function createApiRouter({ auth, db, cache, config, sessions, pageLoads }
       assetsBaseUrl: config.spaces ? `${config.spaces.cdnUrl.replace(/\/$/, "")}/assets` : "/assets",
       trendingRecomputeIntervalMs: config.trendingRecomputeIntervalMs,
       newestRecomputeIntervalMs: config.newestRecomputeIntervalMs,
+      trendingMaxAgeMs: listingMaxAgeMs(config.trendingRecomputeIntervalMs),
+      newestMaxAgeMs: listingMaxAgeMs(config.newestRecomputeIntervalMs),
       floors: config.floors,
       bursts: config.bursts,
       maxLiveResultsPerUser: config.maxLiveResultsPerUser,

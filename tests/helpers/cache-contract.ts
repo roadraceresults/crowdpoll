@@ -58,6 +58,29 @@ export function cacheContract(name: string, getCache: () => Cache): void {
       expect(await cache.pttl(key)).toBeGreaterThan(0);
     });
 
+    it("getMany reads values in key order with null for missing or expired keys", async () => {
+      const cache = getCache();
+      await cache.set(`${p}m1`, "one");
+      await cache.set(`${p}m3`, "three", 80);
+      expect(await cache.getMany([`${p}m1`, `${p}m2`, `${p}m3`])).toEqual(["one", null, "three"]);
+      await sleep(110);
+      expect(await cache.getMany([`${p}m3`, `${p}m1`])).toEqual([null, "one"]);
+      expect(await cache.getMany([])).toEqual([]);
+    });
+
+    it("setMany writes every entry, each with its own ttl", async () => {
+      const cache = getCache();
+      await cache.setMany([
+        { key: `${p}s1`, value: "a" },
+        { key: `${p}s2`, value: "b", ttlMs: 80 }
+      ]);
+      expect(await cache.getMany([`${p}s1`, `${p}s2`])).toEqual(["a", "b"]);
+      expect(await cache.pttl(`${p}s1`)).toBe(-1);
+      await sleep(110);
+      expect(await cache.getMany([`${p}s1`, `${p}s2`])).toEqual(["a", null]);
+      await cache.setMany([]);
+    });
+
     it("incr counts from zero and expire bounds the counter", async () => {
       const cache = getCache();
       expect(await cache.incr(`${p}c`)).toBe(1);

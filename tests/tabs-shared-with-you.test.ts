@@ -68,8 +68,8 @@ describe("Shared With You", () => {
     const poll = privatePoll();
     await polls(ctx).insertOne(poll);
     await upsertRelation(ctx.db, me, poll._id, "linked");
-    await recordVote(ctx.db, poll._id, { emailAddress: me, userName: "", choiceIds: ["c1"], votedAt: new Date() });
-    await addBookmark(ctx.db, me, poll._id, 200);
+    await recordVote(ctx, poll._id, { emailAddress: me, userName: "", choiceIds: ["c1"], votedAt: new Date() });
+    await addBookmark(ctx, me, poll._id, 200);
     expect(await shared()).toEqual([poll._id]);
     expect((await tab("your-votes")).body.order).toEqual([poll._id]);
     expect((await tab("watching")).body.order).toEqual([poll._id]);

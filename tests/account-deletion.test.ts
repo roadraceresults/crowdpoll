@@ -44,13 +44,13 @@ describe("DELETE /api/me (A8, R8)", () => {
 
     const own = makePoll({ title: "Mine" });
     await insertPoll(ctx, own, { id: userId, name: "leaver", email: leaver });
-    await recordVote(ctx.db, own._id, { emailAddress: "owner@example.org", userName: "owner", choiceIds: ["c1"], votedAt: new Date() });
+    await recordVote(ctx, own._id, { emailAddress: "owner@example.org", userName: "owner", choiceIds: ["c1"], votedAt: new Date() });
 
     const theirs = makePoll({ title: "Theirs", invitedVoterList: [leaver], bannedVoterList: [] });
     const barred = makePoll({ title: "Barred", bannedVoterList: [leaver] });
     await insertPoll(ctx, theirs, { id: owner.userId, name: "owner", email: "owner@example.org" });
     await insertPoll(ctx, barred, { id: owner.userId, name: "owner", email: "owner@example.org" });
-    await recordVote(ctx.db, theirs._id, { emailAddress: leaver, userName: "leaver", choiceIds: ["c2"], votedAt: new Date() });
+    await recordVote(ctx, theirs._id, { emailAddress: leaver, userName: "leaver", choiceIds: ["c2"], votedAt: new Date() });
     await ctx.db.insertInto("bookmarks").values({ email: leaver, poll_id: theirs._id }).execute();
     await ctx.db.insertInto("verification").values({
       id: "link-1", identifier: "hash-1", value: JSON.stringify({ email: leaver }), expiresAt: new Date(Date.now() + 60_000), createdAt: new Date(), updatedAt: new Date()

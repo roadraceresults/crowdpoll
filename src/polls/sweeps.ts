@@ -62,7 +62,7 @@ export const SWEEP_LOCKS = {
   invitations: 12
 } as const;
 
-const INVITATION_SWEEP_INTERVAL_MS = 5_000;
+const INVITATION_SWEEP_INTERVAL_MS = 30_000;
 
 /**
  * Runs `fn` while holding the advisory lock, or returns null at once when another
@@ -426,7 +426,7 @@ export function buildSweepSchedules(config: AppConfig, services: SweepServices):
       name: "bookmarkRemovalSweep",
       intervalMs: DAY_MS,
       lockId: SWEEP_LOCKS.bookmarks,
-      tick: (deps, now) => removeExpiredBookmarks(deps.db, config.bookmarkExpiryMonths, now)
+      tick: (deps, now) => removeExpiredBookmarks(deps, config.bookmarkExpiryMonths, now)
     },
     {
       name: "invitationSweep",

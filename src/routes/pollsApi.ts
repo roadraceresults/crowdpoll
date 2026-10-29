@@ -133,8 +133,8 @@ export function createVoteRouter(context: AppContext): Router {
           res.status(404).json({ error: "Not found" });
           return;
         }
-        if (bookmarked) await addBookmark(db, caller.email, pidOf(req), config.maxBookmarksPerUser);
-        else await removeBookmark(db, caller.email, pidOf(req));
+        if (bookmarked) await addBookmark({ db, cache }, caller.email, pidOf(req), config.maxBookmarksPerUser);
+        else await removeBookmark({ db, cache }, caller.email, pidOf(req));
       } catch (err) {
         if (err instanceof BookmarkCapError) {
           // FIX027: the limit rides with the refusal so the dialog can name it.
@@ -424,7 +424,7 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
       }
       // The append-only history goes with the poll it belonged to — there is no
       // poll left for it to be the audit trail of.
-      await deletePoll(db, poll._id);
+      await deletePoll({ db, cache }, poll._id);
       res.status(204).send();
     })
   );

@@ -4,7 +4,7 @@ import { startTestContext, type TestContext } from "./helpers/setup.js";
 import { makePoll, polls } from "./helpers/poll-fixtures.js";
 import { countVote } from "../src/polls/counters.js";
 import { membershipVersionOf, recomputeTrending } from "../src/trending/recompute.js";
-import { createListingPublisher, TRENDING_OBJECTS, type ObjectStore } from "../src/trending/publish.js";
+import { createListingPublisher, listingMaxAgeMs, TRENDING_OBJECTS, type ObjectStore } from "../src/trending/publish.js";
 import { trendingSweep } from "../src/polls/sweeps.js";
 
 let ctx: TestContext;
@@ -94,7 +94,24 @@ describe("TRENDING recompute", () => {
       TRENDING_OBJECTS.counts,
       TRENDING_OBJECTS.counts, TRENDING_OBJECTS.cards
     ]);
-    expect(puts.every((p) => p.cacheControl === "public, max-age=60" && p.contentEncoding === "gzip")).toBe(true);
+    expect(puts.every((p) => p.cacheControl === "public, max-age=10" && p.contentEncoding === "gzip")).toBe(true);
+  });
+
+  it("publishes with the smaller of the recompute interval and 10 s as max-age, and sends both lifetimes in /api/config", async () => {
+    const puts: string[] = [];
+    const store: ObjectStore = {
+      put: async (_key, _body, headers) => {
+        puts.push(headers.cacheControl);
+      }
+    };
+    await createListingPublisher(store, 5000, TRENDING_OBJECTS).publish(await recomputeTrending(ctx));
+    expect(puts.length).toBeGreaterThan(0);
+    expect(puts.every((c) => c === "public, max-age=5")).toBe(true);
+    expect(listingMaxAgeMs(60_000)).toBe(10_000);
+    expect(listingMaxAgeMs(5000)).toBe(5000);
+    const config = (await request(ctx.app).get("/api/config")).body;
+    expect(config.trendingMaxAgeMs).toBe(10_000);
+    expect(config.newestMaxAgeMs).toBe(10_000);
   });
 
   it("republishes the cards object when a listed poll's content changed, though the set of polls did not", async () => {
@@ -127,7 +144,7 @@ describe("TRENDING recompute", () => {
 
     const counts = await request(ctx.app).get("/api/trending/counts");
     expect(counts.status).toBe(200);
-    expect(counts.headers["cache-control"]).toBe("public, max-age=60");
+    expect(counts.headers["cache-control"]).toBe("public, max-age=10");
     expect(counts.headers.etag).toBeTruthy();
     expect(counts.body.polls[0].pid).toBe(a._id);
     const again = await request(ctx.app).get("/api/trending/trending-counts.json").set("If-None-Match", counts.headers.etag!);

@@ -91,7 +91,7 @@ describe("anonymized voters on the results page (C9)", () => {
     const admin = await forgeSession(ctx, "admin@example.org");
     const poll = makePoll();
     await insertPoll(ctx, poll, { id: admin.userId, name: "admin", email: "admin@example.org" });
-    await recordVote(ctx.db, poll._id, { emailAddress: "deleted-0f0f@deleted.invalid", userName: "Deleted user", choiceIds: ["c1"], votedAt: new Date() });
+    await recordVote(ctx, poll._id, { emailAddress: "deleted-0f0f@deleted.invalid", userName: "Deleted user", choiceIds: ["c1"], votedAt: new Date() });
     page = await openPage(ctx, "admin-results.html", {
       cookie: admin.cookie,
       url: `http://localhost/admin/poll/results?PID=${poll._id}`,

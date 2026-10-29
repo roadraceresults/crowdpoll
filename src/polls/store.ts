@@ -3,7 +3,8 @@ import type { Cache } from "../cache/cache.js";
 import type { Database, NewPollRow, PollRow, PollRowUpdate, VoteRow } from "../db/schema.js";
 import { ensureVoteHistoryPartition } from "../db/partitions.js";
 import { emailKeyOf } from "../auth/emailKey.js";
-import { bumpContentVersion, refreshProjection } from "./versions.js";
+import { bumpContentVersion, POLL_PROJECTION_KEY, refreshProjection } from "./versions.js";
+import { forgetTabs } from "../refresh/tabVersions.js";
 
 export type Db = Kysely<Database>;
 type Executor = Kysely<Database> | Transaction<Database>;
@@ -521,7 +522,7 @@ export async function restoreInvitations(trx: Executor, pid: string, emails: str
   }
 }
 
-async function writeInvitations(trx: Transaction<Database>, pid: string, emails: string[]): Promise<void> {
+async function writeInvitations(trx: Transaction<Database>, pid: string, emails: string[]): Promise<string[]> {
   const current = await trx
     .selectFrom("poll_invitations")
     .select(["email", "sent_at", "reminded_at"])
@@ -536,7 +537,8 @@ async function writeInvitations(trx: Transaction<Database>, pid: string, emails:
       .where("email", "in", removed.map((r) => r.email))
       .execute();
   }
-  if (emails.length === 0) return;
+  const touched = [...current.map((r) => r.email), ...emails];
+  if (emails.length === 0) return touched;
   const added = emails.filter((email) => !current.some((r) => r.email === email));
   await trx
     .insertInto("poll_invitations")
@@ -544,25 +546,25 @@ async function writeInvitations(trx: Transaction<Database>, pid: string, emails:
     .onConflict((oc) => oc.columns(["poll_id", "email"]).doUpdateSet((eb) => ({ position: eb.ref("excluded.position") })))
     .execute();
   await restoreInvitations(trx, pid, added);
+  return touched;
 }
 
+/** Replaces one roster; returns every address on it before or after, whose tabs must be told. */
 async function writeRoster(
   trx: Transaction<Database>,
   pid: string,
   table: "poll_invitations" | "poll_bans",
   emails: string[]
-): Promise<void> {
-  if (table === "poll_invitations") {
-    await writeInvitations(trx, pid, emails);
-    return;
-  }
-  await trx.deleteFrom(table).where("poll_id", "=", pid).execute();
+): Promise<string[]> {
+  if (table === "poll_invitations") return writeInvitations(trx, pid, emails);
+  const removed = await trx.deleteFrom(table).where("poll_id", "=", pid).returning("email").execute();
   if (emails.length > 0) {
     await trx
       .insertInto(table)
       .values(emails.map((email, position) => ({ poll_id: pid, email, position })))
       .execute();
   }
+  return [...removed.map((r) => r.email), ...emails];
 }
 
 export async function upsertUserPolls(
@@ -578,7 +580,7 @@ export async function upsertUserPolls(
     .execute();
 }
 
-async function replaceVotes(trx: Transaction<Database>, pid: string, votes: VoteEntry[]): Promise<void> {
+async function replaceVotes(trx: Transaction<Database>, pid: string, votes: VoteEntry[]): Promise<string[]> {
   const keep = votes.map((v) => v.emailAddress);
   let removal = trx.deleteFrom("votes").where("poll_id", "=", pid);
   if (keep.length > 0) removal = removal.where("email", "not in", keep);
@@ -588,7 +590,7 @@ async function replaceVotes(trx: Transaction<Database>, pid: string, votes: Vote
   const voted = votes.filter((v) => v.choiceIds.length > 0).map((v) => v.emailAddress);
   let relationRemoval = trx.deleteFrom("user_polls").where("poll_id", "=", pid).where("relation", "=", "voted");
   if (voted.length > 0) relationRemoval = relationRemoval.where("email", "not in", voted);
-  await relationRemoval.execute();
+  const unvoted = await relationRemoval.returning("email").execute();
   if (votes.length > 0) {
     await trx
       .insertInto("votes")
@@ -610,6 +612,7 @@ async function replaceVotes(trx: Transaction<Database>, pid: string, votes: Vote
       )
       .execute();
   }
+  return unvoted.map((r) => r.email);
 }
 
 /** The whole aggregate, in one transaction; counters seeded from the vote list. */
@@ -629,6 +632,7 @@ export async function insertPoll({ db, cache }: StoreDeps, poll: Poll, creator?:
     const row = await trx.selectFrom("polls").selectAll().where("id", "=", poll._id).executeTakeFirstOrThrow();
     await refreshProjection(cache, row);
   });
+  await forgetTabs(cache, [...poll.invitedVoterList, ...poll.bannedVoterList, ...poll.currentVotes.map((v) => v.emailAddress), ...(creator ? [creator.email] : [])]);
 }
 
 export interface UpdateFilter {
@@ -648,7 +652,8 @@ export async function updatePoll(
   $set: Partial<Poll>,
   filter: UpdateFilter = {}
 ): Promise<Poll | null> {
-  return db.transaction().execute(async (trx) => {
+  const touched: string[] = [];
+  const result = await db.transaction().execute(async (trx) => {
     let query = trx.selectFrom("polls").selectAll().where("id", "=", pid).forUpdate();
     if (filter.pollState !== undefined) query = query.where("poll_state", "=", filter.pollState);
     if (filter.pollEditUpdateClientGUID !== undefined) {
@@ -674,7 +679,7 @@ export async function updatePoll(
       await trx.updateTable("polls").set(columns).where("id", "=", pid).execute();
     }
     if ($set.invitedVoterList !== undefined) {
-      await writeRoster(trx, pid, "poll_invitations", $set.invitedVoterList);
+      touched.push(...(await writeRoster(trx, pid, "poll_invitations", $set.invitedVoterList)));
       let withdrawn = trx.deleteFrom("user_polls").where("poll_id", "=", pid).where("relation", "=", "invited");
       if ($set.invitedVoterList.length > 0) withdrawn = withdrawn.where("email", "not in", $set.invitedVoterList);
       await withdrawn.execute();
@@ -683,8 +688,8 @@ export async function updatePoll(
         $set.invitedVoterList.map((email) => ({ email, pid, relation: "invited" as const }))
       );
     }
-    if ($set.bannedVoterList !== undefined) await writeRoster(trx, pid, "poll_bans", $set.bannedVoterList);
-    if ($set.currentVotes !== undefined) await replaceVotes(trx, pid, $set.currentVotes);
+    if ($set.bannedVoterList !== undefined) touched.push(...(await writeRoster(trx, pid, "poll_bans", $set.bannedVoterList)));
+    if ($set.currentVotes !== undefined) touched.push(...(await replaceVotes(trx, pid, $set.currentVotes)));
     if (isContentChange($set)) {
       await bumpContentVersion(trx, cache, pid);
     } else {
@@ -697,18 +702,32 @@ export async function updatePoll(
     }
     return findPoll(trx, pid);
   });
+  await forgetTabs(cache, touched);
+  return result;
 }
 
-export async function deletePoll(db: Db, pid: string): Promise<void> {
+export async function deletePoll({ db, cache }: StoreDeps, pid: string): Promise<void> {
   await db.transaction().execute(async (trx) => {
     await trx.deleteFrom("vote_history").where("poll_id", "=", pid).execute();
     await trx.deleteFrom("polls").where("id", "=", pid).execute();
   });
+  await forgetProjections(cache, [pid]);
+}
+
+/** A deleted poll's projection goes, so every tab still listing it builds a full answer without it. */
+export async function forgetProjections(cache: Cache, pids: string[]): Promise<void> {
+  for (const pid of pids) {
+    try {
+      await cache.del(POLL_PROJECTION_KEY(pid));
+    } catch (err) {
+      console.error(`[store] Could not forget the projection of poll ${pid}:`, err);
+    }
+  }
 }
 
 /** One participant's current vote, plus the history row, in one transaction. */
 export async function recordVote(
-  db: Db,
+  { db, cache }: StoreDeps,
   pid: string,
   entry: VoteEntry & { votedAt: Date }
 ): Promise<void> {
@@ -744,6 +763,7 @@ export async function recordVote(
     await markEverVoted(trx, [pid]);
     await upsertUserPolls(trx, [{ email: entry.emailAddress, pid, relation: "voted" }], entry.votedAt);
   });
+  await forgetTabs(cache, [entry.emailAddress]);
 }
 
 export async function insertVoteHistory(db: Db, entry: VoteHistoryEntry): Promise<void> {

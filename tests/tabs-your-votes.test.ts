@@ -32,7 +32,7 @@ const seed = async (overrides: Parameters<typeof makePoll>[0] = {}) => {
   await polls(ctx).insertOne(poll);
   return poll;
 };
-const vote = (pid: string, ageMinutes = 0) => recordVote(ctx.db, pid, { emailAddress: me, userName: "", choiceIds: ["c1"], votedAt: minutesAgo(ageMinutes) });
+const vote = (pid: string, ageMinutes = 0) => recordVote(ctx, pid, { emailAddress: me, userName: "", choiceIds: ["c1"], votedAt: minutesAgo(ageMinutes) });
 const invitationOnly = (overrides: Parameters<typeof makePoll>[0] = {}) =>
   seed({ pollVisibility: "Private Poll", pollSharingMode: "Invitation Only", invitedVoterList: [me], ...overrides });
 
@@ -70,13 +70,13 @@ describe("Watching", () => {
   it("lists only deliberate watches, never a poll the user only voted in", async () => {
     const [watched, voted] = [await seed(), await seed()];
     await vote(voted._id);
-    await addBookmark(ctx.db, me, watched._id, 200);
+    await addBookmark(ctx, me, watched._id, 200);
     expect((await tab("watching")).body.order).toEqual([watched._id]);
   });
 
   it("drops a watched private poll the user can no longer reach, sends no card for it, and brings it back on re-invitation", async () => {
     const poll = await invitationOnly({ title: "Private watch" });
-    await addBookmark(ctx.db, me, poll._id, 200);
+    await addBookmark(ctx, me, poll._id, 200);
     expect((await tab("watching")).body.order).toEqual([poll._id]);
 
     await updatePoll(ctx, poll._id, { invitedVoterList: ["someone@example.com"] });
@@ -90,7 +90,7 @@ describe("Watching", () => {
 
   it("drops a watched poll when the user is banned from it", async () => {
     const poll = await seed();
-    await addBookmark(ctx.db, me, poll._id, 200);
+    await addBookmark(ctx, me, poll._id, 200);
     await updatePoll(ctx, poll._id, { bannedVoterList: [me] });
     expect((await tab("watching")).body.order ?? []).toEqual([]);
   });

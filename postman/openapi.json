@@ -1442,7 +1442,9 @@
                     "trendingBaseUrl",
                     "assetsBaseUrl",
                     "floors",
-                    "newestRecomputeIntervalMs"
+                    "newestRecomputeIntervalMs",
+                    "trendingMaxAgeMs",
+                    "newestMaxAgeMs"
                   ],
                   "properties": {
                     "signinMethod": {
@@ -1493,6 +1495,14 @@
                     "newestRecomputeIntervalMs": {
                       "type": "integer",
                       "description": "ENV_NEWEST_POLLS_RECOMPUTE_INTERVAL; also the browser copy's lifetime for the Newest tab"
+                    },
+                    "trendingMaxAgeMs": {
+                      "type": "integer",
+                      "description": "The published Trending objects' max-age (ms): the smaller of the recompute interval and 10000; Refresh on the tab is offered once the copy is this old"
+                    },
+                    "newestMaxAgeMs": {
+                      "type": "integer",
+                      "description": "The published Newest objects' max-age (ms): the smaller of the recompute interval and 10000; Refresh on the tab is offered once the copy is this old"
                     },
                     "floors": {
                       "type": "object",

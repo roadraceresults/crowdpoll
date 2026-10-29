@@ -10,6 +10,8 @@ export interface StreamEntry {
 export interface Cache {
   get(key: string): Promise<string | null>;
   set(key: string, value: string, ttlMs?: number): Promise<void>;
+  getMany(keys: string[]): Promise<(string | null)[]>;
+  setMany(entries: { key: string; value: string; ttlMs?: number }[]): Promise<void>;
   setNx(key: string, value: string, ttlMs: number): Promise<boolean>;
   /**
    * FIX008: one atomic step of a token bucket held at `key` — `capacity` tokens,

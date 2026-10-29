@@ -79,7 +79,7 @@ describe("POST /api/polls/:pid/vote", () => {
     const poll = makePoll({ title: "Bookmarked, cannot vote" });
     await polls(ctx).insertOne(poll);
     const { cookie, email } = await voterWithPermissions(["View Polls"]);
-    await addBookmark(ctx.db, email, poll._id, 200);
+    await addBookmark(ctx, email, poll._id, 200);
     const res = await request(ctx.app).post("/api/tabs/watching/refresh").set("Cookie", cookie).send({});
     expect(res.status).toBe(200);
     expect(res.body.cards[poll._id].overlay.voteBlockedReason).toBe("You do not have permission to vote.");

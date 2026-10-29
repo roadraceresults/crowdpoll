@@ -10,6 +10,7 @@ import { reconcile } from "../polls/counters.js";
 import { effectiveVoterLimit } from "../polls/service.js";
 import { rememberInvitations, restoreInvitations, upsertUserPolls, type Poll } from "../polls/store.js";
 import { INVITE_KEY } from "../votes/rosterCache.js";
+import { forgetTabs } from "../refresh/tabVersions.js";
 import { allowance, countSends, lockCreator } from "./sender.js";
 
 export type InviteeStatus = "Not sent yet" | "Not delivered" | "Invited" | "Accepted" | "Voted";
@@ -226,6 +227,7 @@ export async function addInvitees(
     return out;
   });
   await cache.del(INVITE_KEY(poll._id));
+  await forgetTabs(cache, results.filter((r) => r.outcome === "added").map((r) => r.email));
   const refused = results.filter((r) => r.outcome !== "added").length;
   console.log(`[invitations] Added ${results.length - refused}, refused ${refused} on poll ${poll._id}`);
   return results;
@@ -275,6 +277,7 @@ export async function removeInvitees(
   });
   if (outcome.refused) return { voted: outcome.voted };
   await cache.del(INVITE_KEY(poll._id));
+  await forgetTabs(cache, outcome.removed);
   if (outcome.voted.length > 0) await reconcile({ db, cache }, [poll._id]);
   if (outcome.removed.length > 0) {
     console.log(`[invitations] Removed ${outcome.removed.map(maskAddress).join(", ")} from poll ${poll._id}`);
@@ -387,6 +390,7 @@ export async function adoptInvitations({ db, cache }: { db: Db; cache?: Cache },
     }
   });
   for (const pid of new Set(matches.map((m) => m.poll_id))) await cache?.del(INVITE_KEY(pid));
+  if (cache) await forgetTabs(cache, [account, ...matches.map((m) => m.email)]);
   console.log(`[invitations] Adopted ${matches.length} invitation(s) for ${maskAddress(account)}`);
   return matches.length;
 }

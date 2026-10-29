@@ -173,7 +173,7 @@ services:
       - key: ENV_SHED_RETRY_AFTER
         value: "2000"
       - key: ENV_COUNTER_FLUSH_INTERVAL
-        value: "2000"
+        value: "10000"
       - key: ENV_VOTE_BATCH_SIZE
         value: "500"
       - key: ENV_VOTE_QUEUE_LAG_NOTICE

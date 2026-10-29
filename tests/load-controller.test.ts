@@ -1,8 +1,10 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { startTestContext, type TestContext } from "./helpers/setup.js";
 import { ACTIVITY_KEY, controllerTick, type ControllerDeps } from "../src/load/controller.js";
 import { BUDGET_KEY, INSTANCE_KEY, LIVE_BUDGET_KEY, MULTIPLIER_KEY, SEARCH_BUDGET_KEY, secondOf } from "../src/load/budget.js";
 import { LIVE_ACTIVE_KEY } from "../src/live/registry.js";
+import { STRETCHED_KEY } from "../src/load/floors.js";
+import { TABS_FAST_KEY, TABS_FULL_KEY } from "../src/refresh/tabVersions.js";
 
 let ctx: TestContext;
 let engine: "opensearch" | "postgres" = "opensearch";
@@ -133,5 +135,42 @@ describe("the budget controller", () => {
     await load(100, { engine: 250 });
     await controllerTick(deps, now());
     expect(await multipliers()).toEqual({ search: 2, refresh: 1, live: 1 });
+  });
+
+  it("ends its line with the shortcut and full tab answers and the stretched refusals since the last line, then clears them (R9)", async () => {
+    const lines: string[] = [];
+    const log = vi.spyOn(console, "log").mockImplementation((line: string) => {
+      lines.push(line);
+    });
+    try {
+      await ctx.cache.set(TABS_FAST_KEY, "7");
+      await ctx.cache.set(TABS_FULL_KEY, "2");
+      await ctx.cache.set(STRETCHED_KEY, "1");
+      await load(20000);
+      await controllerTick(deps, now());
+      expect(lines.at(-1)).toMatch(/^\[controller\] .* tabs=7\/2 stretched=1$/);
+      for (const key of [TABS_FAST_KEY, TABS_FULL_KEY, STRETCHED_KEY]) {
+        expect(await ctx.cache.get(key)).toBeNull();
+        expect(await ctx.cache.get(`${key}:read`)).toBeNull();
+      }
+
+      // An answer counted while the line is being written lands in the next line.
+      await ctx.cache.set(TABS_FAST_KEY, "4");
+      const rename = ctx.cache.rename.bind(ctx.cache);
+      vi.spyOn(ctx.cache, "rename").mockImplementation(async (key, newKey) => {
+        const moved = await rename(key, newKey);
+        if (key === TABS_FAST_KEY) await ctx.cache.incr(TABS_FAST_KEY);
+        return moved;
+      });
+      await load(20000);
+      await controllerTick(deps, now());
+      expect(lines.at(-1)).toMatch(/ tabs=4\/0 stretched=0$/);
+      vi.mocked(ctx.cache.rename).mockRestore();
+      await load(20000);
+      await controllerTick(deps, now());
+      expect(lines.at(-1)).toMatch(/ tabs=1\/0 stretched=0$/);
+    } finally {
+      log.mockRestore();
+    }
   });
 });

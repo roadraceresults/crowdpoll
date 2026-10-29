@@ -3,7 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { forgeSession, startTestContext, type TestContext } from "./helpers/setup.js";
 import { makePoll, polls } from "./helpers/poll-fixtures.js";
 import { countVote } from "../src/polls/counters.js";
-import { LIVE_ACTIVE_KEY } from "../src/live/registry.js";
+import { createLiveRegistry, LIVE_ACTIVE_KEY } from "../src/live/registry.js";
 
 let ctx: TestContext;
 let cookie: string;
@@ -156,6 +156,18 @@ describe("the Live Results tab", () => {
     const lapsed = await refresh();
     expect(lapsed.status).toBe(403);
     expect(lapsed.body.error).toBe("live-expired");
+  });
+
+  it("keeps a session registered, never live-expired, while its backed-off tab refreshes every 10 s", async () => {
+    // ENV_MAX_IDLE_TIME's default; this suite lowers it to 1 s.
+    const live = createLiveRegistry({ db: ctx.db, cache: ctx.cache, config: { ...ctx.config, maxIdleTimeMs: 1_800_000 }, rosters: ctx.rosters });
+    const start = Date.now();
+    for (let step = 0; step <= 6; step++) {
+      const at = new Date(start + step * 10_000);
+      expect(step === 0 || (await live.isRegistered("backed-off", at))).toBe(true);
+      await live.touch("backed-off", ctx.config.floors.live, at);
+    }
+    expect(await live.isRegistered("backed-off", new Date(start + 70_000))).toBe(true);
   });
 
   it("applies the live floor to refreshes and the manual floor to adding", async () => {

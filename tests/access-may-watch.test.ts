@@ -54,7 +54,7 @@ describe("mayWatch", () => {
     await upsertRelation(ctx.db, meEmail, viewed._id, "linked");
     expect(await mayWatch({ db: ctx.db, config: ctx.config }, caller(), viewed._id)).toBe(true);
     const voted = await privateLink();
-    await recordVote(ctx.db, voted._id, { emailAddress: meEmail, userName: "", choiceIds: ["c1"], votedAt: new Date() });
+    await recordVote(ctx, voted._id, { emailAddress: meEmail, userName: "", choiceIds: ["c1"], votedAt: new Date() });
     expect(await mayWatch({ db: ctx.db, config: ctx.config }, caller(), voted._id)).toBe(true);
     const invited = await privateLink();
     await upsertRelation(ctx.db, meEmail, invited._id, "invited");

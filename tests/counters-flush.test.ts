@@ -102,8 +102,8 @@ describe("live counters", () => {
     const poll = makePoll();
     await polls(ctx).insertOne(poll);
     const at = new Date();
-    await recordVote(ctx.db, poll._id, { emailAddress: "a@example.com", userName: "a", choiceIds: ["c1"], votedAt: at });
-    await recordVote(ctx.db, poll._id, { emailAddress: "b@example.com", userName: "b", choiceIds: ["c2"], votedAt: at });
+    await recordVote(ctx, poll._id, { emailAddress: "a@example.com", userName: "a", choiceIds: ["c1"], votedAt: at });
+    await recordVote(ctx, poll._id, { emailAddress: "b@example.com", userName: "b", choiceIds: ["c2"], votedAt: at });
     await ctx.cache.hset(COUNTS_KEY(poll._id), { c1: "9", total: "9", seq: "9" });
     expect(await reconcile(ctx, [poll._id])).toBe(1);
     const live = (await readLiveCounts(ctx.cache, [poll._id])).get(poll._id);
@@ -133,7 +133,7 @@ describe("write ownership of the row counters", () => {
     await polls(ctx).insertOne(poll);
     await updatePoll(ctx, poll._id, { title: "A content write", pollState: "CLOSED" });
     await updatePoll(ctx, poll._id, { invitedVoterList: ["x@example.com"], bannedVoterList: ["y@example.com"] });
-    await recordVote(ctx.db, poll._id, { emailAddress: "a@example.com", userName: "a", choiceIds: ["c1"], votedAt: new Date() });
+    await recordVote(ctx, poll._id, { emailAddress: "a@example.com", userName: "a", choiceIds: ["c1"], votedAt: new Date() });
     await countVote(ctx.cache, poll._id, ["c1"], [], true);
     await flushDirty(ctx);
     await reconcile(ctx, [poll._id]);

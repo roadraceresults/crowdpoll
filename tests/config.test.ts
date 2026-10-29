@@ -376,7 +376,7 @@ describe("017 storage, cache and load settings", () => {
     ["ENV_INSTANCE_MAX_INFLIGHT", "instanceMaxInflight", 200],
     ["ENV_INSTANCE_MAX_EVENT_LOOP_LAG", "instanceMaxEventLoopLagMs", 100],
     ["ENV_SHED_RETRY_AFTER", "shedRetryAfterMs", 2_000],
-    ["ENV_COUNTER_FLUSH_INTERVAL", "counterFlushIntervalMs", 2_000],
+    ["ENV_COUNTER_FLUSH_INTERVAL", "counterFlushIntervalMs", 10_000],
     ["ENV_VOTE_BATCH_SIZE", "voteBatchSize", 500],
     ["ENV_VOTE_QUEUE_LAG_NOTICE", "voteQueueLagNoticeMs", 2_000],
     ["ENV_SEARCH_CACHE_TTL", "searchCacheTtlMs", 10_000],
@@ -401,6 +401,13 @@ describe("017 storage, cache and load settings", () => {
       if (name === "ENV_NEWEST_POLLS_RECOMPUTE_INTERVAL") env[name] = "7000";
       expect(loadConfig(env)[key], name).toBe(name === "ENV_NEWEST_POLLS_RECOMPUTE_INTERVAL" ? 7000 : 7);
     }
+  });
+
+  it("no longer ties the manual floor to the counter flush (feature 20261028 R10)", () => {
+    const config = loadConfig(baseEnv({ ENV_MIN_MANUAL_REFRESH_INTERVAL: "5000" }));
+    expect(config.counterFlushIntervalMs).toBe(10_000);
+    expect(config.floors.refresh).toBe(5000);
+    expect(loadConfig(baseEnv({ ENV_COUNTER_FLUSH_INTERVAL: "3000" })).counterFlushIntervalMs).toBe(3000);
   });
 
   it("bounds the Newest settings: at least one poll, at most the search cap, an interval of at least a second", () => {

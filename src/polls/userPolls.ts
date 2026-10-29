@@ -79,18 +79,30 @@ export function yourPollsTab(db: Executor, email: string, cap: number): Promise<
 }
 
 /**
- * Private polls someone else created that the user was invited to or opened by link.
- * An Invitation Only poll needs a current invitation, so an invitation withdrawn
- * earlier never lists it; an Anyone With The Link poll lists on either relation.
+ * Polls someone else created that the user was invited to or opened by link, before
+ * `sharedWithYouKept` narrows them: loaded unfiltered so a poll that turns private, or
+ * whose invitation rule changes, is still among the rows the refresh shortcut checks.
  */
 export function sharedWithYouTab(db: Executor, email: string, userId: string, cap: number): Promise<PersonalTab> {
-  return personalTab(db, email, cap, "Private Poll", ["invited", "linked"], (query) =>
-    query
-      .where("polls.created_by_id", "<>", userId)
-      .where(
-        sql<boolean>`(polls.poll_sharing_mode <> 'Invitation Only' or exists (select 1 from poll_invitations where poll_invitations.poll_id = polls.id and poll_invitations.email = ${email}))`
+  return personalTab(db, email, cap, undefined, ["invited", "linked"], (query) => query.where("polls.created_by_id", "<>", userId));
+}
+
+/**
+ * The private ones the tab lists. An Invitation Only poll needs a current invitation,
+ * so an invitation withdrawn earlier never lists it; an Anyone With The Link poll lists
+ * on either relation.
+ */
+export async function sharedWithYouKept(db: Executor, email: string, rows: PollRow[]): Promise<Set<string>> {
+  const priv = rows.filter((row) => row.poll_visibility === "Private Poll");
+  const invitationOnly = priv.filter((row) => row.poll_sharing_mode === "Invitation Only").map((row) => row.id);
+  const invited = invitationOnly.length
+    ? new Set(
+        (await db.selectFrom("poll_invitations").select("poll_id").where("email", "=", email).where("poll_id", "in", invitationOnly).execute()).map(
+          (r) => r.poll_id
+        )
       )
-  );
+    : new Set<string>();
+  return new Set(priv.filter((row) => row.poll_sharing_mode !== "Invitation Only" || invited.has(row.id)).map((row) => row.id));
 }
 
 export function yourVotesTab(db: Executor, email: string, cap: number): Promise<PersonalTab> {

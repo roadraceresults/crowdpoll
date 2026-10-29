@@ -458,12 +458,28 @@
     return nextAllowedIn(name, kind) === 0;
   }
 
+  /* How long the active tab's Refresh waits: its floor, and for Trending and
+     Newest until a newer copy can exist (`refreshAvailableIn`). */
+  function refreshWait() {
+    const controller = controllers[activeTab];
+    const listing = controller && controller.refreshAvailableIn ? controller.refreshAvailableIn() : 0;
+    return Math.max(nextAllowedIn(activeTab), listing);
+  }
+
+  /* aria-disabled, not disabled, so the button keeps its tooltip, which counts
+     the wait down a second at a time. */
+  let refreshButtonTimer = null;
   function updateRefreshButton() {
     const btn = refreshBtn();
     if (!btn) return;
-    const wait = nextAllowedIn(activeTab);
-    btn.disabled = wait > 0 || !controllers[activeTab] || !controllers[activeTab].refresh;
-    if (wait > 0) setTimeout(updateRefreshButton, wait + 10);
+    clearTimeout(refreshButtonTimer);
+    refreshButtonTimer = null;
+    const controller = controllers[activeTab];
+    const wait = controller && controller.refresh ? refreshWait() : 0;
+    if (!controller || !controller.refresh || wait > 0) btn.setAttribute("aria-disabled", "true");
+    else btn.removeAttribute("aria-disabled");
+    btn.title = wait > 0 ? "Refresh available in " + Math.ceil(wait / 1000) + " s" : "Refresh";
+    if (wait > 0) refreshButtonTimer = setTimeout(updateRefreshButton, Math.min(wait, 1000) + 10);
   }
 
   /*
@@ -861,7 +877,8 @@
       controller.grid.reapply(controller.state, pid);
     });
     if (maximized) maximized.grid.patchRetained(pid, { outcome: outcome });
-    void name;
+    const owner = controllers[name];
+    if (owner && owner.onVoted) owner.onVoted(pid);
   }
 
   // ---- Selection ----
@@ -1064,8 +1081,9 @@
     const btn = refreshBtn();
     if (btn) {
       btn.addEventListener("click", () => {
+        if (btn.getAttribute("aria-disabled") === "true") return;
         const controller = controllers[activeTab];
-        if (controller && controller.refresh && canRequest(activeTab)) controller.refresh();
+        if (controller && controller.refresh && refreshWait() === 0) controller.refresh();
       });
     }
 
@@ -1124,6 +1142,7 @@
     nextAllowedIn: nextAllowedIn,
     spend: spend,
     settle: settle,
+    updateRefreshButton: updateRefreshButton,
     notice: notice,
     modal: modal,
     emptyState: emptyState,

@@ -98,7 +98,7 @@ describe("bookmarks", () => {
     }
     const sentBefore = ctx.sent.length;
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
-    expect(await removeExpiredBookmarks(ctx.db, 6)).toBe(3);
+    expect(await removeExpiredBookmarks(ctx, 6)).toBe(3);
     log.mockRestore();
     const kept = (await bookmarks()).map((b) => b.poll_id).sort();
     expect(kept).toEqual([freshClosed._id, active._id].sort());
@@ -112,10 +112,10 @@ describe("bookmarks", () => {
     await polls(ctx).insertOne(poll);
     await ctx.db.updateTable("polls").set({ closed_at: new Date(Date.now() - 400 * 24 * 60 * 60 * 1000) }).where("id", "=", poll._id).execute();
     await upsertRelation(ctx.db, me, poll._id, "linked");
-    await addBookmark(ctx.db, me, poll._id, 200);
+    await addBookmark(ctx, me, poll._id, 200);
 
     const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
-    expect(await removeExpiredBookmarks(ctx.db, 6)).toBe(1);
+    expect(await removeExpiredBookmarks(ctx, 6)).toBe(1);
     log.mockRestore();
 
     expect(await bookmarks()).toEqual([]);

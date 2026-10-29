@@ -18,6 +18,16 @@
     return (config && config.trendingBaseUrl) || "/api/trending";
   }
 
+  /* How long a copy is the newest that can exist: the published max-age. */
+  let maxAgeMs = 10000;
+  function readMaxAge(config) {
+    maxAgeMs = (config && config.trendingMaxAgeMs) || 10000;
+  }
+
+  function refreshAvailableIn() {
+    return state.receivedAt ? Math.max(0, maxAgeMs - (Date.now() - state.receivedAt)) : 0;
+  }
+
   function recomputeIntervalMs(config) {
     return (config && config.trendingRecomputeIntervalMs) || 60000;
   }
@@ -75,6 +85,7 @@
     if (!window.Tabs.canRequest(TAB)) return;
     window.Tabs.spend(TAB);
     const config = await window.Tabs.config();
+    readMaxAge(config);
     const base = baseUrl(config);
     let counts;
     try {
@@ -93,6 +104,7 @@
       if (!cards) return;
     }
     applyObjects(counts, cards);
+    window.Tabs.updateRefreshButton();
     await fetchOverlay();
   }
 
@@ -118,6 +130,7 @@
 
   async function activate() {
     const config = await window.Tabs.config();
+    readMaxAge(config);
     if (!grid) {
       const panel = document.querySelector('.tab-panel[data-panel="trending"]');
       grid = window.Tabs.createGrid(panel.querySelector(".card-grid"), { showVote: true, showLive: true, retainMaximized: true, tab: TAB });
@@ -150,6 +163,7 @@
     get grid() { return grid; },
     activate: activate,
     refresh: refresh,
+    refreshAvailableIn: refreshAvailableIn,
     reset() {
       state.overlay.clear();
       overlay.reset();

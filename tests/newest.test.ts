@@ -171,7 +171,7 @@ describe("publication", () => {
       NEWEST_OBJECTS.counts,
       NEWEST_OBJECTS.counts, NEWEST_OBJECTS.cards
     ]);
-    expect(puts.every((p) => p.cacheControl === "public, max-age=60" && p.contentEncoding === "gzip")).toBe(true);
+    expect(puts.every((p) => p.cacheControl === "public, max-age=10" && p.contentEncoding === "gzip")).toBe(true);
   });
 });
 
@@ -257,7 +257,7 @@ describe("instance routes", () => {
 
     const counts = await request(ctx.app).get("/api/trending/newest-counts.json");
     expect(counts.status).toBe(200);
-    expect(counts.headers["cache-control"]).toBe("public, max-age=60");
+    expect(counts.headers["cache-control"]).toBe("public, max-age=10");
     expect(counts.headers.etag).toBeTruthy();
     expect(counts.body.polls[0].pid).toBe(a._id);
     expect((await request(ctx.app).get("/api/trending/newest-counts.json").set("If-None-Match", counts.headers.etag!)).status).toBe(304);

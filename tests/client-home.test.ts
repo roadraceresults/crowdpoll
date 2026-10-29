@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { forgeSession, startTestContext, type TestContext } from "./helpers/setup.js";
 import { makePoll, polls } from "./helpers/poll-fixtures.js";
-import { openPage, type BrowserPage } from "./helpers/browser.js";
+import { LISTING_MAX_AGE_1S, openPage, type BrowserPage } from "./helpers/browser.js";
 import { newestSweep, trendingSweep } from "../src/polls/sweeps.js";
 import { countVote } from "../src/polls/counters.js";
 import { addBookmark } from "../src/polls/bookmarks.js";
@@ -13,7 +13,7 @@ let ctx: TestContext;
 let page: BrowserPage | null = null;
 
 beforeAll(async () => {
-  ctx = await startTestContext({ ENV_MIN_MANUAL_REFRESH_INTERVAL: "1200", ENV_MIN_VOTE_INTERVAL: "2000" });
+  ctx = await startTestContext({ ENV_MIN_MANUAL_REFRESH_INTERVAL: "1200", ENV_MIN_VOTE_INTERVAL: "2000", ...LISTING_MAX_AGE_1S });
 });
 
 afterAll(async () => {
@@ -103,7 +103,7 @@ describe("the home page in a browser", () => {
     );
     const favourite = makePoll({ title: "Fav" });
     await polls(ctx).insertOne(favourite);
-    await addBookmark(ctx.db, me, favourite._id, 200);
+    await addBookmark(ctx, me, favourite._id, 200);
     await trendingSweep(ctx, ctx.config, ctx.trendingPublisher);
     return openPage(ctx, "index.html", { cookie });
   }
@@ -116,7 +116,7 @@ describe("the home page in a browser", () => {
     expect(page.cardTitles("watching")).toEqual(["Fav"]);
     expect(requestsTo(page, "/api/tabs/watching/refresh").length).toBe(1);
     const refresh = page.document.getElementById("refreshBtn") as HTMLButtonElement;
-    expect(refresh.disabled).toBe(true);
+    expect(refresh.getAttribute("aria-disabled")).toBe("true");
     await page.click("#refreshBtn");
     expect(requestsTo(page, "/api/tabs/watching/refresh").length).toBe(1);
 
@@ -345,9 +345,9 @@ describe("the Newest tab in a browser", () => {
     expect(newestPanel().querySelector(".tab-empty")!.hasAttribute("hidden")).toBe(true);
 
     const refresh = page.document.getElementById("refreshBtn") as HTMLButtonElement;
-    expect(refresh.disabled).toBe(true);
+    expect(refresh.getAttribute("aria-disabled")).toBe("true");
     await page.settle(1300);
-    expect(refresh.disabled).toBe(false);
+    expect(refresh.getAttribute("aria-disabled")).toBeNull();
   });
 
   it("fetches a member's overlay for the listed polls, once, and shows it on the cards", async () => {
@@ -408,15 +408,15 @@ describe("the Newest tab in a browser", () => {
 
     const refresh = page.document.getElementById("refreshBtn") as HTMLButtonElement;
     await page.settle(1300);
-    expect(refresh.disabled).toBe(false);
+    expect(refresh.getAttribute("aria-disabled")).toBeNull();
     await page.click("#refreshBtn");
     expect(requestsTo(page, "/api/trending/newest-counts.json").length).toBe(2);
-    expect(refresh.disabled).toBe(true);
+    expect(refresh.getAttribute("aria-disabled")).toBe("true");
     await page.click("#refreshBtn");
     expect(requestsTo(page, "/api/trending/newest-counts.json").length).toBe(2);
     expect(page.document.querySelector(".tab-notice")?.textContent ?? "").not.toContain("Please wait");
     await page.settle(1300);
-    expect(refresh.disabled).toBe(false);
+    expect(refresh.getAttribute("aria-disabled")).toBeNull();
   });
 
   it("a sign-in with Newest open refetches the overlay; a guest's visit reaches the application for nothing else", async () => {
@@ -1033,7 +1033,7 @@ describe("the watch cap in a browser (FIX027)", () => {
       const held = makePoll({ title: "Already kept" });
       const more = makePoll({ title: "One too many" });
       await polls(capped).insertMany([held, more]);
-      await addBookmark(capped.db, me, held._id, 1);
+      await addBookmark(capped, me, held._id, 1);
       await trendingSweep(capped, capped.config, capped.trendingPublisher);
       cappedPage = await openPage(capped, "index.html", { cookie });
       await cappedPage.settle(50);
@@ -1104,7 +1104,7 @@ describe("a bookmark and the personal tabs in a browser", () => {
     const { cookie } = await forgeSession(ctx, me);
     const poll = makePoll({ title: "Voted and marked", currentVotes: [{ emailAddress: me, userName: "", choiceIds: ["c1"], votedAt: new Date() }] });
     await polls(ctx).insertOne(poll);
-    await addBookmark(ctx.db, me, poll._id, 200);
+    await addBookmark(ctx, me, poll._id, 200);
     await trendingSweep(ctx, ctx.config, ctx.trendingPublisher);
     page = await openPage(ctx, "index.html", { cookie });
     await page.settle(1250);
@@ -1181,7 +1181,7 @@ describe("a bookmark seen from another window (FIX04)", () => {
     const voted = makePoll({ title: "Voted one", currentVotes: [{ emailAddress: me, userName: "", choiceIds: ["c1"], votedAt: new Date() }] });
     const target = makePoll({ title: "Dogs markets" });
     await polls(ctx).insertMany([voted, target]);
-    await addBookmark(ctx.db, me, voted._id, 200);
+    await addBookmark(ctx, me, voted._id, 200);
     await trendingSweep(ctx, ctx.config, ctx.trendingPublisher);
     const beforeScripts = fakeChannels();
     other = await openPage(ctx, "index.html", { cookie, beforeScripts });
@@ -1231,7 +1231,7 @@ describe("a bookmark seen from another window (FIX04)", () => {
     expect(favouritesRefreshes()).toBe(1);
 
     // Bookmarked on another device.
-    await addBookmark(ctx.db, me, target._id, 200);
+    await addBookmark(ctx, me, target._id, 200);
 
     // Focus within the floor: the copy is fresh, nothing is sent.
     page.window.dispatchEvent(new page.window.Event("focus"));
@@ -1252,7 +1252,7 @@ describe("the signed-in overlay on a page load (FIX06)", () => {
     const { cookie } = await forgeSession(ctx, me);
     const target = makePoll({ title: "Dogs markets" });
     await polls(ctx).insertMany([makePoll({ title: "Other" }), target]);
-    await addBookmark(ctx.db, me, target._id, 200);
+    await addBookmark(ctx, me, target._id, 200);
     await trendingSweep(ctx, ctx.config, ctx.trendingPublisher);
     const marked = (p: BrowserPage) =>
       Array.from(p.document.querySelectorAll('.tab-panel[data-panel="trending"] .card-front'))
@@ -1316,7 +1316,7 @@ describe("the burst allowance in a browser (FIX008)", () => {
     await bp.click('.tab[data-tab="watching"]');
     expect(bp.cardTitles("watching")).toEqual(["Quick mark"]);
     const refresh = bp.document.getElementById("refreshBtn") as HTMLButtonElement;
-    expect(refresh.disabled).toBe(true);
+    expect(refresh.getAttribute("aria-disabled")).toBe("true");
     await bp.click("#refreshBtn");
     expect(requestsTo(bp, "/api/tabs/watching/refresh").length).toBe(1);
     await bp.settle(1300);
@@ -1359,7 +1359,7 @@ describe("the Live Results tab's overlay (FIX011)", () => {
       const { cookie } = await forgeSession(live, me);
       const poll = makePoll({ title: "Watch and keep" });
       await polls(live).insertOne(poll);
-      await addBookmark(live.db, me, poll._id, 200);
+      await addBookmark(live, me, poll._id, 200);
       await trendingSweep(live, live.config, live.trendingPublisher);
       livePage = await openPage(live, "index.html", { cookie });
       const liveButton = () => livePage!.document.querySelector('.tab-panel[data-panel="live"] .bookmark-btn') as HTMLButtonElement;
@@ -1377,13 +1377,13 @@ describe("the Live Results tab's overlay (FIX011)", () => {
       await livePage.click('.tab-panel[data-panel="live"] .bookmark-btn');
       expect(livePage.requests.filter((r) => r.url === `/api/polls/${poll._id}/bookmark` && r.method === "DELETE").length).toBe(1);
       expect(liveButton().getAttribute("aria-pressed")).toBe("false");
-      await addBookmark(live.db, me, poll._id, 200);
+      await addBookmark(live, me, poll._id, 200);
 
       // A poll no other tab holds (private, so not in TRENDING): the tab asks
       // /api/me/polls for its overlay.
       const hidden = makePoll({ title: "Private and kept", pollVisibility: "Private Poll", pollSharingMode: "Anyone With The Link" });
       await polls(live).insertOne(hidden);
-      await addBookmark(live.db, me, hidden._id, 200);
+      await addBookmark(live, me, hidden._id, 200);
       (livePage.window as unknown as { LiveResults: { addPoll(pid: string): Promise<void> } }).LiveResults.addPoll(hidden._id);
       await livePage.settle(300);
       expect(livePage.cardTitles("live")).toEqual(["Private and kept", "Watch and keep"]);
@@ -1517,8 +1517,8 @@ describe("why a poll is listed in a personal tab (FIX020)", () => {
     const voted = makePoll({ title: "Voted one", currentVotes: [{ emailAddress: me, userName: "", choiceIds: ["c1"], votedAt: new Date() }] });
     const marked = makePoll({ title: "Marked one" });
     await polls(ctx).insertMany([voted, marked]);
-    await addBookmark(ctx.db, me, voted._id, 200);
-    await addBookmark(ctx.db, me, marked._id, 200);
+    await addBookmark(ctx, me, voted._id, 200);
+    await addBookmark(ctx, me, marked._id, 200);
     await trendingSweep(ctx, ctx.config, ctx.trendingPublisher);
     page = await openPage(ctx, "index.html", { cookie });
     await page.settle(1250);

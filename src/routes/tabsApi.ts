@@ -1,10 +1,22 @@
 import { Router, type Request, type RequestHandler, type Response } from "express";
 import type { AppContext } from "../server.js";
+import { listingMaxAgeMs } from "../trending/publish.js";
 import type { PollRow } from "../db/schema.js";
 import { readOrRebuildCounts } from "../polls/counters.js";
-import { overlay, sharedWithYouTab, watchingTab, yourPollsTab, yourVotesTab, type OverlayEntry } from "../polls/userPolls.js";
-import { projectPoll, refreshProjection } from "../polls/versions.js";
-import { computeDelta, parseClientVersions, type CurrentListing } from "../refresh/deltas.js";
+import { overlay, sharedWithYouKept, sharedWithYouTab, watchingTab, yourPollsTab, yourVotesTab, type OverlayEntry } from "../polls/userPolls.js";
+import { POLL_PROJECTION_KEY, projectPoll, refreshProjection, type PollProjection } from "../polls/versions.js";
+import { computeDelta, parseClientVersions, type ClientVersions, type CurrentListing, type Delta } from "../refresh/deltas.js";
+import {
+  countStat,
+  ensureVersion,
+  parseSeen,
+  recordSeen,
+  shortcutAnswerable,
+  TAB_SEEN_KEY,
+  TAB_VERSION_KEY,
+  TABS_FAST_KEY,
+  TABS_FULL_KEY
+} from "../refresh/tabVersions.js";
 import { etagOf, readNewestObjects, readTrendingObjects } from "../trending/recompute.js";
 import type { Cache } from "../cache/cache.js";
 import { liveTabDelta } from "../live/liveTab.js";
@@ -51,6 +63,25 @@ export function createTabsApiRouter(context: AppContext): Router {
   const userIdOf = (res: Response): string => String((res.locals.session as { user: { id: string } }).user.id);
   const callerOf = (res: Response): Caller => (res.locals.session as { user: Caller }).user;
 
+  async function count(key: string): Promise<void> {
+    await countStat(cache, key).catch((err: unknown) => console.error(`[tabs] Could not count ${key}:`, err));
+  }
+
+  /** One read of the cached projections; writes, in one call, those missing or older than their row. */
+  async function writeProjections(rows: PollRow[]): Promise<void> {
+    if (rows.length === 0) return;
+    try {
+      const cached = await cache.getMany(rows.map((row) => POLL_PROJECTION_KEY(row.id)));
+      const stale = rows.filter((row, i) => {
+        const raw = cached[i];
+        return !raw || (JSON.parse(raw) as PollProjection).contentVersion !== row.content_version;
+      });
+      await cache.setMany(stale.map((row) => ({ key: POLL_PROJECTION_KEY(row.id), value: JSON.stringify(projectPoll(row)) })));
+    } catch (err) {
+      console.error("[tabs] Could not refresh the cached projections:", err);
+    }
+  }
+
   function sendDelta(res: Response, delta: ReturnType<typeof computeDelta>): void {
     if (delta.status === 304) {
       res.status(304).end();
@@ -75,7 +106,7 @@ export function createTabsApiRouter(context: AppContext): Router {
       }
       const body = objects[which];
       const etag = etagOf(body);
-      res.setHeader("Cache-Control", `public, max-age=${Math.floor(intervalMs / 1000)}`);
+      res.setHeader("Cache-Control", `public, max-age=${Math.floor(listingMaxAgeMs(intervalMs) / 1000)}`);
       res.setHeader("ETag", etag);
       if (req.headers["if-none-match"] === etag) {
         res.status(304).end();
@@ -145,7 +176,6 @@ export function createTabsApiRouter(context: AppContext): Router {
         readableSet.has(r.id) ? projectWithReason(r, options.rejectionReasons === true && r.created_by_id === userId) : { pid: r.id, notPublished: true as const, createdByName: r.created_by_name, contentVersion: 0 }
       ])
     );
-    for (const row of readable) await refreshProjection(cache, row);
     const [counts, mine, blocks, watchable] = await Promise.all([
       readOrRebuildCounts({ db, cache }, readableIds),
       overlay(db, email, readableIds),
@@ -167,31 +197,89 @@ export function createTabsApiRouter(context: AppContext): Router {
 
   const narrowTo = (tab: PersonalTab, kept: Set<string>): PersonalTab => ({ ...tab, rows: tab.rows.filter((row) => kept.has(row.id)) });
 
+  /** The answer from the live counts alone, when nothing the tab shows can have changed since it was last sent. */
+  async function shortcut(email: string, name: string, request: ClientVersions): Promise<Delta | null> {
+    try {
+      const [version, raw] = await cache.getMany([TAB_VERSION_KEY(email), TAB_SEEN_KEY(email, name)]);
+      const seen = parseSeen(raw ?? null);
+      if (!seen || !version) return null;
+      const cached = await cache.getMany(seen.rows.map(([pid]) => POLL_PROJECTION_KEY(pid)));
+      const projections = new Map(seen.rows.map(([pid], i) => [pid, cached[i] ? (JSON.parse(cached[i]!) as PollProjection) : null]));
+      if (!shortcutAnswerable(seen, version, request, projections)) return null;
+      const sent = new Map(seen.rows.map(([pid, , sentVersion]) => [pid, sentVersion]));
+      const listed: CurrentListing["projections"] = new Map(
+        seen.order.map((pid) => [
+          pid,
+          sent.get(pid) === 0 ? { pid, notPublished: true as const, createdByName: "", contentVersion: 0 } : projections.get(pid)!
+        ])
+      );
+      const counts = await readOrRebuildCounts({ db, cache }, seen.order.filter((pid) => sent.get(pid) !== 0));
+      return computeDelta(request, { membershipVersion: seen.membershipVersion, order: seen.order, projections: listed, counts });
+    } catch (err) {
+      console.error(`[tabs] The ${name} shortcut failed; building the full answer:`, err);
+      return null;
+    }
+  }
+
   const personalTabRoute = (
     name: string,
     load: (db: typeof context.db, email: string, userId: string, cap: number) => ReturnType<typeof yourPollsTab>,
-    narrow: (tab: PersonalTab, caller: Caller) => Promise<PersonalTab> = async (tab) => tab
+    narrow: (tab: PersonalTab, caller: Caller, email: string) => Promise<PersonalTab> = async (tab) => tab
   ): void => {
     router.post(
       `/api/tabs/${name}/refresh`,
       requireSession,
       ...dynamic("refresh"),
       wrap(async (req, res) => {
-        const tab = holdsPermission(callerOf(res), "View Polls", config)
-          ? await narrow(await load(db, emailOf(res), userIdOf(res), config.maxPollsSearchResults), callerOf(res))
-          : { rows: [], membershipVersion: null, relations: new Map() };
-        sendDelta(res, computeDelta(parseClientVersions(req.body), await personalListing(res, tab, { rejectionReasons: name === "your-polls" })));
+        const request = parseClientVersions(req.body);
+        const options = { rejectionReasons: name === "your-polls" };
+        if (!holdsPermission(callerOf(res), "View Polls", config)) {
+          sendDelta(res, computeDelta(request, await personalListing(res, { rows: [], membershipVersion: null, relations: new Map() }, options)));
+          return;
+        }
+        const email = emailOf(res);
+        const fast = await shortcut(email, name, request);
+        if (fast) {
+          await count(TABS_FAST_KEY);
+          sendDelta(res, fast);
+          return;
+        }
+        const version = await ensureVersion(cache, email).catch(() => null);
+        const loaded = await load(db, email, userIdOf(res), config.maxPollsSearchResults);
+        await writeProjections(loaded.rows);
+        const listing = await personalListing(res, await narrow(loaded, callerOf(res), email), options);
+        if (version !== null) {
+          const ordered = new Set(listing.order);
+          await recordSeen(cache, email, name, {
+            v: version,
+            membershipVersion: listing.membershipVersion,
+            order: listing.order,
+            rows: loaded.rows.map((row) => [
+              row.id,
+              row.content_version,
+              ordered.has(row.id) ? (listing.projections.get(row.id)?.contentVersion ?? 0) : row.content_version
+            ])
+          }).catch((err: unknown) => console.error(`[tabs] Could not record the ${name} answer:`, err));
+        }
+        await count(TABS_FULL_KEY);
+        sendDelta(res, computeDelta(request, listing));
       })
     );
   };
   personalTabRoute("your-polls", (db, email, _userId, cap) => yourPollsTab(db, email, cap));
-  personalTabRoute("shared-with-you", async (db, email, userId, cap) => {
-    await adoptInvitations({ db, cache }, email);
-    const tab = await sharedWithYouTab(db, email, userId, cap);
-    const invited = tab.rows.filter((row) => row.poll_visibility === "Private Poll" && row.poll_sharing_mode === "Invitation Only");
-    await markAccepted(db, invited.map((row) => row.id), email);
-    return tab;
-  });
+  personalTabRoute(
+    "shared-with-you",
+    async (db, email, userId, cap) => {
+      await adoptInvitations({ db, cache }, email);
+      return sharedWithYouTab(db, email, userId, cap);
+    },
+    async (tab, _caller, email) => {
+      const narrowed = narrowTo(tab, await sharedWithYouKept(db, email, tab.rows));
+      const invited = narrowed.rows.filter((row) => row.poll_sharing_mode === "Invitation Only");
+      await markAccepted(db, invited.map((row) => row.id), email);
+      return narrowed;
+    }
+  );
   personalTabRoute(
     "your-votes",
     (db, email, _userId, cap) => yourVotesTab(db, email, cap),
@@ -213,7 +301,7 @@ export function createTabsApiRouter(context: AppContext): Router {
     }
     const q = typeof req.body?.q === "string" ? req.body.q : "";
     const result = await search.search("home", q, config.maxPollsSearchResults);
-    for (const row of result.rows) await refreshProjection(cache, row);
+    await writeProjections(result.rows);
     const counts = await readOrRebuildCounts({ db, cache }, result.rows.map((r) => r.id));
     res.json({
       results: result.rows.map((row) => ({

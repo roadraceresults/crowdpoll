@@ -142,7 +142,8 @@
     cursor:pointer;
   }
 
-  .tab-refresh:disabled{
+  .tab-refresh:disabled,
+  .tab-refresh[aria-disabled="true"]{
     opacity:.5;
     cursor:not-allowed;
   }

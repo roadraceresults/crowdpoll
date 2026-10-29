@@ -19,12 +19,14 @@ delivery network.
 ## For end users
 
 - **Trending** — the polls with the most recent votes, first on every visit. Nothing on it
-  changes until you press **Refresh** (once every 5 seconds at most).
+  changes until you press **Refresh**, which is offered once a newer list can exist (10 seconds
+  after the last one at most); while it waits, its tooltip says how long is left.
 - **Newest** — the public polls opened most recently, newest first (fifty at most); a poll an
   administrator re-opens counts as new, and a poll under edit keeps its place. **Refresh** works
   as on Trending.
 - **Your Polls**, **Shared With You**, **Your Votes** and **Watching** — the private tabs come
-  first. Sign in to see them; **Refresh** works as on Trending.
+  first. Sign in to see them; **Refresh** can be pressed a few times in a row, then once every 5
+  seconds, and its tooltip says how long is left while it waits.
   - **Your Polls** — every poll you created, public and private, in every state, newest first. A
     poll that has not launched shows its state (and why it was rejected) and cannot be voted on.
   - **Shared With You** — the private polls someone else created that you were invited to, or whose
@@ -42,10 +44,10 @@ delivery network.
   the new counts at once. On a very busy site the card may say your vote is *queued*; it has
   been counted and will be stored within moments.
 - **Live Results** — press **Live Results** on any card to watch it update every few seconds
-  in the Live Results tab (up to five polls; a sixth is refused until you remove one). On that
-  tab the same link reads **✕ Live Results** and takes the poll off it — for every poll there,
-  even one that has closed while you watched it. After 30 minutes without any interaction the
-  tab asks whether to continue.
+  in the Live Results tab (every 2 seconds, easing off to every 10 while nothing changes; up to
+  five polls; a sixth is refused until you remove one). On that tab the same link reads
+  **✕ Live Results** and takes the poll off it — for every poll there, even one that has closed
+  while you watched it. After 30 minutes without any interaction the tab asks whether to continue.
 - **Watch** — the eye on a card puts a poll in Watching until it is archived or has been closed or
   inactive for six months; press it again to stop. Up to 200 polls. You can watch a poll you may
   see (public, or private and invited to or opened by you); a poll you lose access to leaves
@@ -417,9 +419,9 @@ All settings are `ENV_*` environment variables. Intervals are in milliseconds un
 | `ENV_MAX_POLLS_SEARCH_RESULTS` | `200` | Cap on search results, personal-tab rows and overlay ids |
 | `ENV_MAX_POLLS_ADMIN_SEARCH_RESULTS` | `200` | Cap on admin search results and the unfiltered admin list |
 | `ENV_MAX_TRENDING_POLLS` | `200` | Polls on the TRENDING tab |
-| `ENV_TRENDING_POLLS_RECOMPUTE_INTERVAL` | `60000` | TRENDING recompute and publication interval |
+| `ENV_TRENDING_POLLS_RECOMPUTE_INTERVAL` | `60000` | TRENDING recompute and publication interval; the published lifetime (`max-age`) is the smaller of it and 10 s |
 | `ENV_MAX_NEWEST_POLLS` | `50` | Polls on the Newest tab; at most `ENV_MAX_POLLS_SEARCH_RESULTS` |
-| `ENV_NEWEST_POLLS_RECOMPUTE_INTERVAL` | `60000` | Newest recompute and publication interval (at least 1000) |
+| `ENV_NEWEST_POLLS_RECOMPUTE_INTERVAL` | `60000` | Newest recompute and publication interval (at least 1000); the published lifetime is the smaller of it and 10 s |
 | `ENV_MIN_LIVE_REFRESH_INTERVAL` | `2000` | Floor between two Live Results refreshes per visitor |
 | `ENV_MIN_MANUAL_REFRESH_INTERVAL` | `5000` | Floor between two manual refreshes per visitor |
 | `ENV_MIN_SEARCH_INTERVAL` | `2000` | Floor between two searches per visitor |
@@ -439,7 +441,7 @@ All settings are `ENV_*` environment variables. Intervals are in milliseconds un
 | `ENV_INSTANCE_MAX_INFLIGHT` | `200` | Requests in flight on one instance before it sheds |
 | `ENV_INSTANCE_MAX_EVENT_LOOP_LAG` | `100` | Event-loop lag (ms) before an instance sheds |
 | `ENV_SHED_RETRY_AFTER` | `2000` | `Retry-After` handed out with a `503` |
-| `ENV_COUNTER_FLUSH_INTERVAL` | `2000` | How often live vote counters are written to poll rows |
+| `ENV_COUNTER_FLUSH_INTERVAL` | `10000` | How often live vote counters are written to poll rows |
 | `ENV_VOTE_BATCH_SIZE` | `500` | Votes written per batch |
 | `ENV_VOTE_QUEUE_LAG_NOTICE` | `2000` | Writer lag above which a vote is reported as queued |
 | `ENV_SEARCH_CACHE_TTL` | `10000` | How long identical searches are answered from the cache |

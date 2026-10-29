@@ -387,7 +387,7 @@ export function loadConfig(env: Env = process.env): AppConfig {
     instanceMaxInflight: intVar(env, "ENV_INSTANCE_MAX_INFLIGHT", 200),
     instanceMaxEventLoopLagMs: intVar(env, "ENV_INSTANCE_MAX_EVENT_LOOP_LAG", 100),
     shedRetryAfterMs: intVar(env, "ENV_SHED_RETRY_AFTER", 2_000),
-    counterFlushIntervalMs: intVar(env, "ENV_COUNTER_FLUSH_INTERVAL", 2_000),
+    counterFlushIntervalMs: intVar(env, "ENV_COUNTER_FLUSH_INTERVAL", 10_000),
     voteBatchSize: intVar(env, "ENV_VOTE_BATCH_SIZE", 500),
     voteQueueLagNoticeMs: intVar(env, "ENV_VOTE_QUEUE_LAG_NOTICE", 2_000),
     searchCacheTtlMs: intVar(env, "ENV_SEARCH_CACHE_TTL", 10_000),

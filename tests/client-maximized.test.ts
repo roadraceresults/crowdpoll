@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { forgeSession, startTestContext, type TestContext } from "./helpers/setup.js";
 import { makePoll, polls } from "./helpers/poll-fixtures.js";
-import { openPage, type BrowserPage } from "./helpers/browser.js";
+import { LISTING_MAX_AGE_1S, openPage, type BrowserPage } from "./helpers/browser.js";
 import { newestSweep, trendingSweep } from "../src/polls/sweeps.js";
 import type { Poll } from "../src/polls/store.js";
 import { countVote } from "../src/polls/counters.js";
@@ -11,7 +11,7 @@ let ctx: TestContext;
 let page: BrowserPage | null = null;
 
 beforeAll(async () => {
-  ctx = await startTestContext({ ENV_MIN_MANUAL_REFRESH_INTERVAL: "1200", ENV_MIN_VOTE_INTERVAL: "2000", ENV_MAX_TRENDING_POLLS: "3" });
+  ctx = await startTestContext({ ENV_MIN_MANUAL_REFRESH_INTERVAL: "1200", ENV_MIN_VOTE_INTERVAL: "2000", ENV_MAX_TRENDING_POLLS: "3", ...LISTING_MAX_AGE_1S });
 });
 
 afterAll(async () => {
@@ -351,7 +351,7 @@ describe("the maximized card stays in step", () => {
   it("closes at once when the poll is un-watched on Watching", async () => {
     const email = "unfavourite@example.com";
     const poll = await seedPoll("Loved", 2);
-    await addBookmark(ctx.db, email, poll._id, 200);
+    await addBookmark(ctx, email, poll._id, 200);
     page = await open(await member(email));
     await page.settle(1250);
     await page.click('.tab[data-tab="watching"]');
