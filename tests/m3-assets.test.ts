@@ -220,6 +220,17 @@ describe("Material 3 page assets", () => {
     expect(read("m3-tokens.css")).toContain("--md-sys-typescale-title-large-size:20px;");
   });
 
+  it("holds only M3 tokens in the line graph sheet", () => {
+    const css = read("line-graph-m3.css").replace(/\/\*[\s\S]*?\*\//g, "");
+    expect(css).not.toMatch(/#[0-9A-Fa-f]{3,8}\b/);
+    expect(css).not.toMatch(/\b(rgba?|hsla?)\(/);
+    for (const [, value] of css.matchAll(/font-size:\s*([^;}]+)/g)) expect(value!.trim()).toMatch(/^var\(--md-sys-typescale-/);
+    expect(css).not.toMatch(/\b(transition|animation)\s*:/);
+    const line = css.match(/\.line-graph-line\{[^}]*\}/)![0].replace(/\s+/g, "");
+    expect(line).toContain("stroke-linejoin:round;");
+    expect(line).toContain("stroke-linecap:round;");
+  });
+
   it("lets a maximized card be only as tall as its bars need", () => {
     expect(read("pollCard-m3.css")).toContain(".maximized-card-flip{ min-height:0; }");
   });

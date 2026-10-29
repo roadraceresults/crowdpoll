@@ -69,12 +69,13 @@ const sweeps = async () => {
   await newestSweep(ctx, ctx.config, ctx.newestPublisher);
 };
 
-async function open(): Promise<BrowserPage> {
+async function open(beforeScripts?: (window: Window) => void): Promise<BrowserPage> {
   const opened = await openPage(ctx, "index.html", {
     scripts: SCRIPTS,
     beforeScripts: (window) => {
       Object.defineProperty(window, "scrollY", { value: 0, writable: true, configurable: true });
       window.scrollTo = (() => {}) as typeof window.scrollTo;
+      beforeScripts?.(window as unknown as Window);
     }
   });
   await opened.settle(50);
@@ -129,8 +130,12 @@ describe("mount (C1, C2, C4, C5, FR-018)", () => {
     expect(side.querySelector(".line-graph-subtitle")!.textContent).toBe("Graphed subtitle");
 
     const svg = side.querySelector("svg.line-graph-svg")!;
-    expect(svg.getAttribute("role")).toBe("img");
-    expect(svg.getAttribute("aria-label")).toContain("Graphed");
+    expect(svg.getAttribute("aria-hidden")).toBe("true");
+    expect(svg.hasAttribute("role")).toBe(false);
+    expect(svg.hasAttribute("aria-label")).toBe(false);
+    const plot = side.querySelector(".line-graph-plot")!;
+    expect(plot.getAttribute("role")).toBe("group");
+    expect(plot.getAttribute("aria-label")).toContain("Graphed");
 
     const entries = side.querySelectorAll(".line-graph-legend-entry");
     expect(entries.length).toBe(3);
@@ -169,6 +174,93 @@ describe("mount (C1, C2, C4, C5, FR-018)", () => {
     );
     // Yes/No take the card's fixed semantic colours; Maybe carries its manual hex.
     expect(strokes).toEqual({ c1: "#006120", c2: "#F91010", c3: "#0808FD" });
+  });
+});
+
+/** jsdom has no matchMedia: a stand-in that records the dark-scheme query's `change` listeners so a test can switch the scheme. */
+function fakeColorScheme(): { install: (window: Window) => void; listeners: (() => void)[] } {
+  const listeners: (() => void)[] = [];
+  return {
+    listeners,
+    install: (window) => {
+      window.matchMedia = ((query: string) => ({
+        matches: false,
+        media: query,
+        addListener: () => {},
+        removeListener: () => {},
+        addEventListener: (type: string, listener: () => void) => {
+          if (type === "change" && query === "(prefers-color-scheme: dark)") listeners.push(listener);
+        },
+        removeEventListener: (type: string, listener: () => void) => {
+          const at = listeners.indexOf(listener);
+          if (type === "change" && at >= 0) listeners.splice(at, 1);
+        }
+      })) as unknown as typeof window.matchMedia;
+    }
+  };
+}
+
+/** The maximized panel is cloned from its template at the first maximize, so its first-draw surface is set there. */
+function setPanelSurface(p: BrowserPage, color: string): void {
+  const template = p.document.getElementById("maximizedCardGrid") as HTMLTemplateElement;
+  (template.content.querySelector(".maximized-space-right") as HTMLElement).style.backgroundColor = color;
+}
+
+const lineStroke = (side: HTMLElement, choiceId: string) =>
+  side.querySelector(`polyline.line-graph-line[data-choice-id="${choiceId}"]`)!.getAttribute("stroke")!.toUpperCase();
+const legendDots = (side: HTMLElement) => Array.from(side.querySelectorAll(".line-graph-legend .line-graph-dot")) as HTMLElement[];
+
+describe("line colours per theme (C2)", () => {
+  it("draws a colour that already reaches 3:1 on the light surface unchanged", async () => {
+    const poll = await seedPoll("Light");
+    await seedHistory(poll._id);
+    await sweeps();
+    page = await open();
+    setPanelSurface(page, "rgb(255, 255, 255)");
+    const side = await maximize(page, "Light");
+
+    expect(lineStroke(side, "c3")).toBe("#0808FD");
+    expect(legendDots(side)[2]!.style.background).toBe("rgb(8, 8, 253)");
+  });
+
+  it("shades a colour under 3:1 on the dark surface, the same in the line, legend dot and tooltip dot", async () => {
+    const poll = await seedPoll("Dark");
+    await seedHistory(poll._id);
+    await sweeps();
+    const scheme = fakeColorScheme();
+    page = await open(scheme.install);
+    setPanelSurface(page, "rgb(15, 21, 17)");
+    const side = await maximize(page, "Dark");
+
+    expect(lineStroke(side, "c3")).toBe("#4444FD");
+    expect(lineStroke(side, "c1")).toBe("#007527");
+    expect(legendDots(side)[2]!.style.background).toBe("rgb(68, 68, 253)");
+    side.querySelector("svg.line-graph-svg")!.dispatchEvent(new page.window.MouseEvent("pointermove", { clientX: 320, bubbles: true }));
+    const tooltipDots = Array.from(side.querySelectorAll(".line-graph-tooltip .line-graph-dot")) as HTMLElement[];
+    expect(tooltipDots[2]!.style.background).toBe("rgb(68, 68, 253)");
+  });
+
+  it("redraws for the new theme when the device's colour scheme changes, and stops listening on close", async () => {
+    const poll = await seedPoll("Switch");
+    await seedHistory(poll._id);
+    await sweeps();
+    const scheme = fakeColorScheme();
+    page = await open(scheme.install);
+    setPanelSurface(page, "rgb(15, 21, 17)");
+    const side = await maximize(page, "Switch");
+    expect(lineStroke(side, "c3")).toBe("#4444FD");
+    const dotBefore = legendDots(side)[2];
+
+    side.style.backgroundColor = "rgb(255, 255, 255)";
+    for (const listener of [...scheme.listeners]) listener();
+    await page.settle(10);
+    expect(lineStroke(side, "c3")).toBe("#0808FD");
+    expect(legendDots(side)[2]).not.toBe(dotBefore);
+    expect(scheme.listeners.length).toBeGreaterThan(0);
+
+    (cardByTitle(page, "Switch").querySelector(".maximize-btn") as HTMLElement).click();
+    await page.settle(50);
+    expect(scheme.listeners.length).toBe(0);
   });
 });
 
@@ -218,7 +310,7 @@ describe("placeholders and unmount (C6, C9, C1)", () => {
 });
 
 describe("scale selector (C3, C5)", () => {
-  const scaleButtons = (side: HTMLElement) => Array.from(side.querySelectorAll(".line-graph-scales .line-graph-scale")) as HTMLButtonElement[];
+  const scaleButtons = (side: HTMLElement) => Array.from(side.querySelectorAll(".line-graph-scales .line-graph-segment")) as HTMLButtonElement[];
   const selected = (side: HTMLElement) => scaleButtons(side).filter((b) => b.getAttribute("aria-pressed") === "true");
   const xLabels = (side: HTMLElement) =>
     Array.from(side.querySelectorAll("svg.line-graph-svg text"))
@@ -243,6 +335,7 @@ describe("scale selector (C3, C5)", () => {
     const side = await maximize(page, "Young");
     expect(scaleButtons(side).map((b) => b.textContent)).toEqual(["1 Day"]);
     expect(selected(side).map((b) => b.textContent)).toEqual(["1 Day"]);
+    expect((side.querySelector(".line-graph-scales") as HTMLElement).hidden).toBe(false);
   });
 
   it("offers all four on an old poll, selects the served default, and redraws on a click without a request", async () => {
@@ -255,7 +348,12 @@ describe("scale selector (C3, C5)", () => {
 
     expect(scaleButtons(side).map((b) => b.textContent)).toEqual(["1 Day", "1 Week", "1 Month", "1 Year"]);
     expect(selected(side).map((b) => b.textContent)).toEqual(["1 Year"]);
-    expect(selected(side)[0]!.classList.contains("is-selected")).toBe(true);
+    expect(selected(side)[0]!.querySelector("svg.line-graph-segment-icon")!.getAttribute("aria-hidden")).toBe("true");
+    expect(scaleButtons(side).filter((b) => b.querySelector(".line-graph-segment-icon")).length).toBe(1);
+    expect(side.querySelector(".line-graph-scale, .is-selected")).toBeNull();
+    const group = side.querySelector(".line-graph-scales")!;
+    expect(group.getAttribute("role")).toBe("group");
+    expect(group.getAttribute("aria-label")).toBe("Time scale");
 
     const yearly = await servedScale(old._id, "1y");
     expect(xLabels(side)).toEqual(expectedLabels(yearly.buckets, false));
@@ -351,6 +449,232 @@ describe("crosshair (C7)", () => {
     expect(crosshair(side)).not.toBeNull();
     expect(tooltip(side)!.querySelector(".line-graph-tooltip-time")!.textContent).toBe(timeText(served.buckets[0]!, true));
   });
+
+  /** jsdom lays nothing out: the plot and the tooltip are given widths, every other element keeps jsdom's 0. */
+  function stubWidths(p: BrowserPage, plotWidth: number, tooltipWidth = 100): void {
+    Object.defineProperty(p.window.HTMLElement.prototype, "clientWidth", {
+      configurable: true,
+      get(this: HTMLElement) {
+        return this.classList.contains("line-graph-plot") ? plotWidth : 0;
+      }
+    });
+    Object.defineProperty(p.window.HTMLElement.prototype, "offsetWidth", {
+      configurable: true,
+      get(this: HTMLElement) {
+        return this.classList.contains("line-graph-tooltip") ? tooltipWidth : 0;
+      }
+    });
+  }
+
+  /** The crosshair's x in plot pixels: the SVG is 320 viewBox units wide while the panel reports no width. */
+  const crosshairPx = (side: HTMLElement, plotWidth: number) => (Number(crosshair(side)!.getAttribute("x1")) / 320) * plotWidth;
+
+  it("opens the tooltip right of the crosshair, flips it left near the right edge, and keeps it inside the plot", async () => {
+    const poll = await seedPoll("Placed");
+    await seedHistory(poll._id);
+    await sweeps();
+    page = await open();
+    const side = await maximize(page, "Placed");
+    stubWidths(page, 400);
+
+    pointer(page, side, "pointermove", 0);
+    let tip = tooltip(side) as HTMLElement;
+    expect(tip.style.left).toBe(`${crosshairPx(side, 400) + 12}px`);
+    expect(tip.style.top).toBe("8px");
+    expect(tip.style.transform).toBe("");
+
+    pointer(page, side, "pointermove", 320);
+    tip = tooltip(side) as HTMLElement;
+    expect(tip.style.left).toBe(`${crosshairPx(side, 400) - 12 - 100}px`);
+    expect(tip.style.transform).toBe("");
+
+    stubWidths(page, 110);
+    pointer(page, side, "pointermove", 0);
+    expect((tooltip(side) as HTMLElement).style.left).toBe("0px");
+    pointer(page, side, "pointermove", 320);
+    expect((tooltip(side) as HTMLElement).style.left).toBe("0px");
+  });
+
+  it("rings a marker on every line at the crosshair, after the lines, and strengthens the 0% grid line", async () => {
+    const poll = await seedPoll("Marked");
+    await seedHistory(poll._id);
+    await sweeps();
+    page = await open();
+    const side = await maximize(page, "Marked");
+    const svg = side.querySelector("svg.line-graph-svg")!;
+
+    const baselines = svg.querySelectorAll("line.line-graph-grid.line-graph-baseline");
+    expect(baselines.length).toBe(1);
+    const zeroLabel = Array.from(svg.querySelectorAll("text")).find((t) => t.textContent === "0%")!;
+    expect(baselines[0]!.getAttribute("y1")).toBe(zeroLabel.getAttribute("y"));
+
+    pointer(page, side, "pointermove", 160);
+    const lines = Array.from(svg.querySelectorAll("polyline.line-graph-line"));
+    const markers = Array.from(svg.querySelectorAll("circle.line-graph-marker"));
+    expect(markers.length).toBe(lines.length);
+    markers.forEach((marker, i) => {
+      expect(marker.getAttribute("r")).toBe("4");
+      expect(marker.getAttribute("fill")).toBe(lines[i]!.getAttribute("stroke"));
+      expect(lines[lines.length - 1]!.compareDocumentPosition(marker) & page!.window.Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    pointer(page, side, "pointerleave", 160);
+    expect(svg.querySelectorAll("circle.line-graph-marker").length).toBe(0);
+  });
+
+  /** A pointer event jsdom builds without a pointer type, given one. */
+  function touch(p: BrowserPage, target: Element, type: string, clientX: number): void {
+    const event = new p.window.MouseEvent(type, { clientX, bubbles: true });
+    Object.defineProperty(event, "pointerType", { value: "touch" });
+    target.dispatchEvent(event);
+  }
+
+  it("keeps a touch-placed crosshair after the finger lifts, until a press outside the plot", async () => {
+    const poll = await seedPoll("Kept");
+    await seedHistory(poll._id);
+    await sweeps();
+    page = await open();
+    const side = await maximize(page, "Kept");
+    const svg = side.querySelector("svg.line-graph-svg")!;
+
+    touch(page, svg, "pointerdown", 160);
+    touch(page, svg, "pointerleave", 160);
+    expect(crosshair(side)).not.toBeNull();
+    expect(tooltip(side)).not.toBeNull();
+
+    touch(page, tooltip(side)!, "pointerdown", 160);
+    expect(crosshair(side)).not.toBeNull();
+
+    touch(page, page.document.body, "pointerdown", 0);
+    expect(crosshair(side)).toBeNull();
+    expect(tooltip(side)).toBeNull();
+  });
+
+  it("hides the crosshair when the scale changes", async () => {
+    const old = await seedPoll("Rescaled");
+    await voteHistory(ctx).insertOne({ pid: old._id, emailAddress: "a@example.com", userName: "", choiceIds: ["c1"], votedAt: new Date(Date.now() - 32 * 24 * HOUR) });
+    await voteHistory(ctx).insertOne({ pid: old._id, emailAddress: "b@example.com", userName: "", choiceIds: ["c2"], votedAt: new Date(Date.now() - 2 * HOUR) });
+    await sweeps();
+    page = await open();
+    const side = await maximize(page, "Rescaled");
+
+    pointer(page, side, "pointermove", 160);
+    expect(crosshair(side)).not.toBeNull();
+    (Array.from(side.querySelectorAll(".line-graph-segment")).find((b) => b.textContent === "1 Day") as HTMLElement).click();
+    await page.settle(10);
+    expect(crosshair(side)).toBeNull();
+    expect(tooltip(side)).toBeNull();
+  });
+});
+
+describe("keyboard (C3, C4, FR-015–FR-018)", () => {
+  const segments = (side: HTMLElement) => Array.from(side.querySelectorAll(".line-graph-segment")) as HTMLButtonElement[];
+  const plotOf = (side: HTMLElement) => side.querySelector(".line-graph-plot") as HTMLElement;
+  const tooltipTime = (side: HTMLElement) => side.querySelector(".line-graph-tooltip .line-graph-tooltip-time")?.textContent ?? null;
+  const hourly = (bucketMs: number) => new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", hour: "numeric" }).format(new Date(bucketMs));
+
+  function press(p: BrowserPage, key: string): KeyboardEvent {
+    const event = new p.window.KeyboardEvent("keydown", { key, bubbles: true, cancelable: true });
+    (p.document.activeElement ?? p.document.body).dispatchEvent(event);
+    return event;
+  }
+
+  async function spanningPoll(title: string): Promise<void> {
+    const old = await seedPoll(title);
+    await voteHistory(ctx).insertOne({ pid: old._id, emailAddress: "a@example.com", userName: "", choiceIds: ["c1"], votedAt: new Date(Date.now() - 32 * 24 * HOUR) });
+    await voteHistory(ctx).insertOne({ pid: old._id, emailAddress: "b@example.com", userName: "", choiceIds: ["c2"], votedAt: new Date(Date.now() - 2 * HOUR) });
+    await sweeps();
+  }
+
+  it("moves focus between segments with Left and Right, wrapping, without selecting, as one Tab stop", async () => {
+    await spanningPoll("Roving");
+    page = await open();
+    const side = await maximize(page, "Roving");
+    const tabStops = () => segments(side).filter((b) => b.tabIndex === 0).map((b) => b.dataset.scale);
+    const pressed = () => segments(side).filter((b) => b.getAttribute("aria-pressed") === "true").map((b) => b.dataset.scale);
+    expect(tabStops()).toEqual(["1y"]);
+
+    segments(side).find((b) => b.dataset.scale === "1y")!.focus();
+    expect(press(page, "ArrowRight").defaultPrevented).toBe(true);
+    expect((page.document.activeElement as HTMLElement).dataset.scale).toBe("1d");
+    expect(tabStops()).toEqual(["1d"]);
+    press(page, "ArrowLeft");
+    expect((page.document.activeElement as HTMLElement).dataset.scale).toBe("1y");
+    press(page, "ArrowLeft");
+    expect((page.document.activeElement as HTMLElement).dataset.scale).toBe("1m");
+    expect(pressed()).toEqual(["1y"]);
+  });
+
+  it("makes the plot one labelled Tab stop and shows and announces the newest point on focus", async () => {
+    const poll = await seedPoll("Focused");
+    await seedHistory(poll._id);
+    await sweeps();
+    page = await open();
+    const side = await maximize(page, "Focused");
+    const served = await servedScale(poll._id);
+    const plot = plotOf(side);
+    const live = side.querySelector(".line-graph-live") as HTMLElement;
+
+    expect(plot.getAttribute("tabindex")).toBe("0");
+    expect(plot.getAttribute("role")).toBe("group");
+    expect(plot.getAttribute("aria-label")).toBe("Vote share over time for Focused. Use the Left and Right arrow keys to read the values.");
+    expect(live.getAttribute("aria-live")).toBe("polite");
+    expect(live.closest(".line-graph")).not.toBeNull();
+    expect(plot.contains(live)).toBe(false);
+
+    const last = served.buckets.length - 1;
+    plot.focus();
+    expect(tooltipTime(side)).toBe(hourly(served.buckets[last]!));
+    const spoken = (i: number) => [hourly(served.buckets[i]!), ...served.series.map((s) => `${s.label} ${s.points[i]}%`)].join(", ");
+    expect(live.textContent).toBe(spoken(last));
+
+    expect(press(page, "ArrowLeft").defaultPrevented).toBe(true);
+    expect(tooltipTime(side)).toBe(hourly(served.buckets[last - 1]!));
+    expect(live.textContent).toBe(spoken(last - 1));
+    expect(press(page, "Home").defaultPrevented).toBe(true);
+    expect(tooltipTime(side)).toBe(hourly(served.buckets[0]!));
+    press(page, "ArrowLeft");
+    expect(tooltipTime(side)).toBe(hourly(served.buckets[0]!));
+    expect(press(page, "End").defaultPrevented).toBe(true);
+    expect(tooltipTime(side)).toBe(hourly(served.buckets[last]!));
+    press(page, "ArrowRight");
+    expect(tooltipTime(side)).toBe(hourly(served.buckets[last]!));
+
+    expect(press(page, "Escape").defaultPrevented).toBe(true);
+    expect(tooltipTime(side)).toBeNull();
+    expect(page.document.querySelector(".maximized-card-grid:not([hidden]) .line-graph")).not.toBeNull();
+    plot.blur();
+    plot.focus();
+    expect(tooltipTime(side)).not.toBeNull();
+    plot.blur();
+    expect(tooltipTime(side)).toBeNull();
+    expect(side.querySelector(".line-graph-crosshair")).toBeNull();
+  });
+
+  it("keeps a pointer-pressed point on focus, and a later focus from the keyboard goes to the newest", async () => {
+    const poll = await seedPoll("Pressed");
+    await seedHistory(poll._id);
+    await sweeps();
+    page = await open();
+    const side = await maximize(page, "Pressed");
+    const served = await servedScale(poll._id);
+    const plot = plotOf(side);
+    const svg = side.querySelector("svg.line-graph-svg")!;
+    const last = served.buckets.length - 1;
+
+    svg.dispatchEvent(new page.window.MouseEvent("pointerdown", { clientX: 0, bubbles: true }));
+    plot.focus();
+    expect(tooltipTime(side)).toBe(hourly(served.buckets[0]!));
+    plot.blur();
+    plot.focus();
+    expect(tooltipTime(side)).toBe(hourly(served.buckets[last]!));
+
+    // A click on a plot that already has focus fires no focus event; the flag must not survive the blur.
+    svg.dispatchEvent(new page.window.MouseEvent("pointerdown", { clientX: 0, bubbles: true }));
+    plot.blur();
+    plot.focus();
+    expect(tooltipTime(side)).toBe(hourly(served.buckets[last]!));
+  });
 });
 
 describe("auto refresh (C8, C9)", () => {
@@ -385,11 +709,11 @@ describe("auto refresh (C8, C9)", () => {
     stubInterval(page);
     const side = await maximize(page, "Chosen");
     const pressed = () =>
-      Array.from(side.querySelectorAll(".line-graph-scales .line-graph-scale"))
+      Array.from(side.querySelectorAll(".line-graph-scales .line-graph-segment"))
         .filter((b) => b.getAttribute("aria-pressed") === "true")
         .map((b) => b.textContent);
 
-    (Array.from(side.querySelectorAll(".line-graph-scales .line-graph-scale")).find((b) => b.textContent === "1 Week") as HTMLElement).click();
+    (Array.from(side.querySelectorAll(".line-graph-scales .line-graph-segment")).find((b) => b.textContent === "1 Week") as HTMLElement).click();
     const before = page.requests.filter((r) => r.url.includes("/line-graph")).length;
     await page.settle(4 * INTERVAL);
     expect(page.requests.filter((r) => r.url.includes("/line-graph")).length).toBeGreaterThan(before);
@@ -456,6 +780,59 @@ describe("auto refresh (C8, C9)", () => {
     const after = counter.calls();
     await page.settle(4 * INTERVAL);
     expect(counter.calls()).toBe(after);
+  });
+
+  const tooltipTime = (side: HTMLElement) => side.querySelector(".line-graph-tooltip .line-graph-tooltip-time")?.textContent ?? null;
+  const hover = (p: BrowserPage, side: HTMLElement, clientX: number) =>
+    side.querySelector("svg.line-graph-svg")!.dispatchEvent(new p.window.MouseEvent("pointermove", { clientX, bubbles: true }));
+
+  it("keeps the crosshair at the same point in time across a refresh", async () => {
+    const poll = await seedPoll("Held");
+    await seedHistory(poll._id);
+    await sweeps();
+    page = await open();
+    stubInterval(page);
+    const side = await maximize(page, "Held");
+
+    hover(page, side, 0);
+    const placed = tooltipTime(side);
+    expect(placed).not.toBeNull();
+    const before = page.requests.filter((r) => r.url.includes("/line-graph")).length;
+    await page.settle(4 * INTERVAL);
+    expect(page.requests.filter((r) => r.url.includes("/line-graph")).length).toBeGreaterThan(before);
+    expect(tooltipTime(side)).toBe(placed);
+  });
+
+  it("moves the crosshair to the newest point when its time is gone after a refresh", async () => {
+    const poll = await seedPoll("Shifted");
+    await seedHistory(poll._id);
+    await sweeps();
+    page = await open();
+    stubInterval(page);
+    const side = await maximize(page, "Shifted");
+    hover(page, side, 0);
+    const placed = tooltipTime(side);
+
+    // The next responses start one bucket later, so the crosshair's time no longer exists.
+    const real = page.window.fetch;
+    let newest: number | null = null;
+    page.window.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      const res = await real(input, init);
+      if (!String(input).includes("/line-graph")) return res;
+      const body = await res.json();
+      for (const scale of Object.values(body.scales) as { buckets: number[]; series: { points: number[] }[] }[]) {
+        scale.buckets = scale.buckets.slice(1);
+        for (const series of scale.series) series.points = series.points.slice(1);
+        if (scale === body.scales[body.defaultScale]) newest = scale.buckets[scale.buckets.length - 1]!;
+      }
+      return { ok: true, status: 200, json: async () => body } as unknown as Response;
+    }) as typeof fetch;
+    await page.settle(4 * INTERVAL);
+
+    const format = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", hour: "numeric" });
+    expect(newest).not.toBeNull();
+    expect(tooltipTime(side)).not.toBe(placed);
+    expect(tooltipTime(side)).toBe(format.format(new Date(newest!)));
   });
 
   it("clears the timer on unmount", async () => {

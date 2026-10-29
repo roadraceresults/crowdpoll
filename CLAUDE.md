@@ -5,6 +5,30 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261028-183546-LINE-GRAPH-M3/plan.md` (research R1–R11, `data-model.md` — in-memory state only, no
+migration, no setting — the UI contracts `contracts/ui-contracts.md` C1–C6, and the quickstart live alongside it in
+`specs/20261028-183546-LINE-GRAPH-M3/`). The requirements report is
+`requirements/20261028-183546-line-graph-m3/requirements-report.md`: 4 diagrams and 10 findings, all resolved.
+Decisions that are easy to get wrong:
+- **A line keeps its bar's hue, shaded only to reach 3:1 on the surface**: `PollCard.lineColorOn(hex, surfaceHex)`
+  (new on `window.PollCard`, built from `pollCard.js`'s own `hexToHsl`/`hslToHex`/`contrastRatio`) walks HSL lightness
+  by 0.01 away from the surface; a colour already at 3:1 is unchanged. The same colour strokes the line and fills the
+  legend dot, tooltip dot and marker. This replaces POLL-LINE-GRAPH's "identical hexes in both themes" (R1, R2).
+- **The surface is read, not copied**: the container's computed `background-color`; none → no shading; a
+  `prefers-color-scheme` `change` redraws (index.html follows the device theme only) (R3).
+- **The scale selector is an M3 segmented button**: `button.line-graph-segment[aria-pressed]` in a `role=group`, check
+  icon on the selected one, roving `tabindex`, Left/Right wrap; `.line-graph-scale`/`is-selected` are gone; a click still
+  sends no request (R4).
+- **The tooltip is an M3 rich tooltip placed beside the crosshair** (+12 px, flipped left near the right edge, clamped),
+  no `translateX(-50%)` (R5); ringed `r=4` markers at the crosshair, round joins, `line-graph-baseline` at 0 %; no
+  animation (R6).
+- **The plot is one Tab stop**: focus (not after a pointer press) shows the newest point; Arrow keys, Home/End, Escape;
+  a polite `.line-graph-live` region reads the tooltip text. This reverses POLL-LINE-GRAPH's "no keyboard crosshair" (R7).
+- **Touch keeps the crosshair** after the finger lifts until a press outside the plot; `touch-action:pan-y` (R8); a
+  redraw keeps it at the same bucket time, a scale change hides it (R9).
+- **`line-graph-m3.css` holds only M3 tokens**, checked in `m3-assets.test.ts` (R10).
+No server, route, configuration, data or migration change; no new dependency.
+The preceding feature is
 `specs/20261027-151601-POLL-LINE-GRAPH/plan.md` (research R1–R13, `data-model.md` — no stored-data change, no
 migration, two new settings — the HTTP contracts `contracts/api.md` A1–A2, the UI contracts
 `contracts/ui-contracts.md` C1–C9, and the quickstart live alongside it in `specs/20261027-151601-POLL-LINE-GRAPH/`).

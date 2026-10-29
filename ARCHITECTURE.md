@@ -414,11 +414,16 @@ poll shares one computation per interval. A deleted account's anonymized votes c
 because deletion gives each poll one placeholder address, in `line_graph_selection` too.
 
 `lineGraph.js` draws hand-rolled SVG: title, subtitle, a legend with each line's current share and
-the vote total, the plot, and a selector of the available scales. A line's colour is the choice's
-manual hex from the response, else the colour the card itself assigned (`card.resultColors()`), so
-lines and bars never disagree. A pointer over the plot places a crosshair at the nearest bucket with
-every line's share and the time (with the hour on hourly scales), formatted in the viewer's locale
-and time zone. A scale click redraws from the held response; a timer refetches it every
+the vote total, the plot, and an M3 segmented button of the available scales. A line's colour is the
+choice's manual hex from the response, else the colour the card itself assigned (`card.resultColors()`),
+so lines and bars never disagree in hue; `PollCard.lineColorOn` shades a colour under 3:1 against the
+panel's computed background to the nearest same-hue shade that reaches it, and a
+`prefers-color-scheme` change redraws. A pointer over the plot places a crosshair, ringed markers and
+a rich tooltip at the nearest bucket with every line's share and the time (with the hour on hourly
+scales), formatted in the viewer's locale and time zone; a touch reading stays until a press outside
+the plot. The plot is one Tab stop: focus shows the newest point, the arrow keys, Home and End move
+it, and a polite live region reads each point. A refresh or resize keeps the crosshair at the same
+bucket time. A scale click redraws from the held response; a timer refetches it every
 `lineGraphRefreshIntervalMs` from `/api/config` and keeps the chosen scale. Fewer than two points shows "Not enough voting data to graph yet"; a `404` shows
 "Results are not available yet" and stops the timer; a failed first load shows "Graph unavailable
 right now", and a failed refresh keeps the last graph and tries again on the next tick. Its chrome

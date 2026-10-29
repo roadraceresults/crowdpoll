@@ -58,11 +58,15 @@ delivery network.
   left it. Switching tabs or searching closes it too. A poll that leaves Trending or Newest while
   you have it open stays open until you close it.
 - **Vote history graph** — beside a maximized poll, a line graph shows how each choice's share of
-  the vote has moved over time, in the same colours as its bars, with a legend giving each line's
-  current share and the total vote count. Choose **1 Day**, **1 Week**, **1 Month** or **1 Year**
-  (only the ranges the poll's history covers are offered; the longest is shown first). Point at the
-  graph, or touch it on a phone, to read every line's share at that moment; times are in your own
-  time zone. The graph updates itself about once a minute while it is open. Anyone who may see a
+  the vote has moved over time, in the same colours as its bars (a colour too faint for the light or
+  dark theme is drawn in a deeper or brighter shade of itself, so every line stays visible), with a
+  legend giving each line's current share and the total vote count. Choose **1 Day**, **1 Week**,
+  **1 Month** or **1 Year** (only the ranges the poll's history covers are offered; the longest is
+  shown first). Point at the graph, or touch it on a phone, to read every line's share at that
+  moment; on a phone the reading stays after you lift your finger, until you tap outside the graph.
+  From the keyboard, Tab to the graph and use the Left and Right arrow keys (Home and End for the
+  ends, Escape to hide the reading); a screen reader reads each point. Times are in your own time
+  zone. The graph updates itself about once a minute while it is open. Anyone who may see a
   poll's results may see its graph, guests included on public polls. Choices with less than 1% of
   the current vote are left off.
 - **Result colours** — each result bar has a vivid colour of its own, on a pale tint of the same
