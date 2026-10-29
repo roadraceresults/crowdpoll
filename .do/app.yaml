@@ -7,7 +7,7 @@ services:
   - name: web
     github:
       repo: roadraceresults/crowdpoll
-      branch: dev
+      branch: main
       deploy_on_push: false
     build_command: npm ci && npm run build && npm run publish-assets
     run_command: npm start
