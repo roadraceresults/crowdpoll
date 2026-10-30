@@ -168,6 +168,8 @@ export interface Poll {
   pollRejectionReason: string | null;
   /** The IANA zone the creator's browser reported on the admin card's last write; null → UTC in emails. */
   timeZone: string | null;
+  /** Whether the maximized view draws the line graph; off unless an Administrator switches it on. */
+  lineGraphEnabled: boolean;
 }
 
 export interface VoteHistoryEntry {
@@ -215,7 +217,8 @@ function rowToPoll(row: PollRow, invited: string[], banned: string[], votes: Vot
     pollApprovalTimestamp: row.poll_approval_timestamp ? new Date(row.poll_approval_timestamp) : null,
     pollAcceptabilityScreeningAttempts: row.poll_acceptability_screening_attempts,
     pollRejectionReason: row.poll_rejection_reason,
-    timeZone: row.time_zone
+    timeZone: row.time_zone,
+    lineGraphEnabled: row.line_graph_enabled
   };
 }
 
@@ -273,7 +276,8 @@ const FIELD_TO_COLUMN: Partial<Record<keyof Poll, keyof PollRowUpdate>> = {
   pollApprovalTimestamp: "poll_approval_timestamp",
   pollAcceptabilityScreeningAttempts: "poll_acceptability_screening_attempts",
   pollRejectionReason: "poll_rejection_reason",
-  timeZone: "time_zone"
+  timeZone: "time_zone",
+  lineGraphEnabled: "line_graph_enabled"
 };
 
 /** Fields whose change is invisible to a voter and so leaves `content_version` alone. */
@@ -477,7 +481,8 @@ function newRow(poll: Poll, creator?: PollCreator): NewPollRow {
     poll_approval_timestamp: poll.pollApprovalTimestamp,
     poll_acceptability_screening_attempts: poll.pollAcceptabilityScreeningAttempts,
     poll_rejection_reason: poll.pollRejectionReason,
-    time_zone: poll.timeZone
+    time_zone: poll.timeZone,
+    line_graph_enabled: poll.lineGraphEnabled
   };
 }
 

@@ -1,5 +1,5 @@
 {
-    "requirements_directory": "requirements/20261029-171759-plan-analyze-chain",
+    "requirements_directory": "requirements/20261028-114023-line-graph-toggle",
     "last_written": {
         "requirements/20261019-153514-production-email/requirements.md": "e0bd2b0bf28c2fbd6699c99cdf364c1398d3b7aed8eb456198295f78d108ee08",
         "requirements/20261019-153514-production-email/requirements-report.md": "4f75f5e263fa092fc0fcedc4a7cdaa32128382e287f2ac0394e4957e8d8bd413",
@@ -19,8 +19,8 @@
         "requirements/20261027-151601-poll-line-graph/requirements-report.md": "a7391972d2de29612edc54b55dfcb04ee6817ac954672ebf2dbb450d0bb12df7",
         "requirements/20261027-133129-single-email-invite/requirements.md": "6a18864130710fe65f99bd14123e5c3491ff19f1092ea757242a546a9894954a",
         "requirements/20261027-133129-single-email-invite/requirements-report.md": "b51680c40390959cb474153360810e2d9f4f470fa31ce13fd1b4897037ad29d5",
-        "requirements/20261028-114023-line-graph-toggle/requirements.md": "ffbb33c3c4a4055c258c29dcf8a5fc0fefe45896f59989b1ac17f30b328eceeb",
-        "requirements/20261028-114023-line-graph-toggle/requirements-report.md": "880df749e7a1b56ca7eb865186b14dec4a28a2b74d2a0c34b7bdd380caaab20f",
+        "requirements/20261028-114023-line-graph-toggle/requirements.md": "245ab788feab3121b56cbed9df118c8f71bc817bed75c6007efe2ea8faba18bb",
+        "requirements/20261028-114023-line-graph-toggle/requirements-report.md": "adbbbb3ce3a74ef8f71d5100176511217fcd43d0105f0e78eb839f64bed44cd9",
         "requirements/20261028-151716-refresh-mechanisms/requirements.md": "7b691b8a59f411b8aeb512d42c7b5286750001b9ee003919bfc3f4ed92b30707",
         "requirements/20261028-151716-refresh-mechanisms/requirements-report.md": "63f108ab5dbb83846088886ff86f380117172041e40767e9eb327dd9a4f0135c",
         "requirements/20261028-183546-line-graph-m3/requirements.md": "77c35899e88a188b2f2b6f33d056814e14d6a8402c908baafbe6c9e3cad9557c",

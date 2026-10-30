@@ -352,10 +352,24 @@
       { n: 1, name: "Who can vote", short: "Who" },
       { n: 2, name: "Title & Tags", short: "Title" },
       { n: 3, name: "Choices", short: "Choices" },
-      { n: 4, name: "Colors", short: "Colors" },
+      { n: 4, name: "View", short: "View" },
       { n: 5, name: "How to vote", short: "How" },
       { n: 6, name: "When to vote", short: "When" }
     ];
+
+    // Only an Administrator sees the line graph switch. Read once from GET /api/me, the
+    // same field adminList.js reads; null until the answer arrives, and false on failure.
+    let viewerIsAdmin = null;
+    let viewerLookup = null;
+    function lookupViewer() {
+      if (!viewerLookup) {
+        viewerLookup = fetch("/api/me")
+          .then((res) => (res.ok ? res.json() : {}))
+          .then((body) => { viewerIsAdmin = body.isAdmin === true; })
+          .catch(() => { viewerIsAdmin = false; });
+      }
+      return viewerLookup;
+    }
 
     // Step 1's three answers and the values they store, verbatim.
     const WHO_OPTIONS = [
@@ -424,7 +438,7 @@
       const state = wordedState();
       if (field === "startAt") return START_STATES.includes(state);
       if (field === "endAt") return state !== "CLOSED" && state !== "ARCHIVED";
-      if (field === "title" || field === "subtitle" || field === "colors") return true;
+      if (field === "title" || field === "subtitle" || field === "colors" || field === "lineGraphEnabled") return true;
       return mode === "EDIT";   // pollVisibility, keywords, labels, choiceMode, voteMutability
     }
 
@@ -490,6 +504,7 @@
         choicesText: [...(current.choices || [])].sort((a, b) => a.position - b.position)
           .map((c) => c.label).join("\n"),
         colors: storedColors(),
+        lineGraph: current.lineGraphEnabled === true,
         ...storedHow(),
         ...storedWhen(),
         showVoters: current.voteAnonymity === "No"
@@ -503,6 +518,7 @@
         title: current.title, subtitle: current.subtitle || "", keywords: keywordsFromPoll(current),
         choicesText: storedChoicesText(),
         colors: storedColors(),
+        lineGraph: current.lineGraphEnabled === true,
         ...storedHow(),
         ...storedWhen(),
         showVoters: current.voteAnonymity === "No"
@@ -521,6 +537,7 @@
         keywords: [...from.keywords],
         choicesText: from.choicesText,
         colors: { ...from.colors },
+        lineGraph: from.lineGraph,
         multi: from.multi,
         rangeKind: from.rangeKind,
         from: from.from,
@@ -544,7 +561,7 @@
         wizard.choicesText !== base.choicesText ||
         JSON.stringify(colorsOfLines(wizard)) !== JSON.stringify(colorsOfLines(base)) ||
         ["multi", "rangeKind", "from", "to", "exact", "mutable",
-          "startMode", "startLocal", "endMode", "endLocal", "showVoters"].some((k) => wizard[k] !== base[k]);
+          "startMode", "startLocal", "endMode", "endLocal", "showVoters", "lineGraph"].some((k) => wizard[k] !== base[k]);
     }
 
     // Step 3: the choices are the box's non-blank lines. These helpers read the open
@@ -793,6 +810,7 @@
       colorsLine.classList.add("wizard-summary-colors");
       if (!colored.length) {
         colorsLine.append(part("Bar colors are assigned automatically.", 4, "colors"));
+        appendLineGraphSentence(colorsLine, s, part);
         return colorsLine;
       }
       const count = colored.length;
@@ -806,7 +824,12 @@
         colorsLine.append(" ", swatch);
       }
       colorsLine.append(".");
+      appendLineGraphSentence(colorsLine, s, part);
       return colorsLine;
+    }
+
+    function appendLineGraphSentence(colorsLine, s, part) {
+      if (s.lineGraph) colorsLine.append(" ", part("The line graph is shown.", 4, "colors"));
     }
 
     // Typing in Step 2 updates the summary and the footer (Publish) in place, so the
@@ -1335,9 +1358,36 @@
       button.replaceChildren(colorDot(hex), el("span", "wizard-color-name", colorName(hex)), arrow);
     }
 
+    const LINE_GRAPH_SWITCH_LABEL = "Show the line graph";
+
+    function buildLineGraphSwitch() {
+      const row = el("label", "m3-switch-row");
+      const text = el("span", "m3-switch-text");
+      const support = el("span", "m3-switch-support",
+        wizard.lineGraph ? "On: the line graph is drawn beside the poll when it is maximized." : "Off: no line graph.");
+      support.id = "lineGraphSwitchSupport-" + current.pid;
+      text.append(el("span", "m3-switch-label", LINE_GRAPH_SWITCH_LABEL), support);
+      const input = el("input", "m3-switch");
+      input.type = "checkbox";
+      input.checked = wizard.lineGraph;
+      input.setAttribute("aria-describedby", support.id);
+      input.addEventListener("change", () => {
+        wizard.lineGraph = input.checked;
+        howChanged();
+      });
+      row.append(text, input);
+      return row;
+    }
+
     function buildColorsStep() {
       pruneColors();
       const body = el("div", "wizard-step-body wizard-colors");
+      if (viewerIsAdmin === null) {
+        lookupViewer().then(() => {
+          if (viewerIsAdmin && wizard && wizard.step === 4) renderWizard();
+        });
+      }
+      if (viewerIsAdmin) body.appendChild(buildLineGraphSwitch());
       const labels = choiceLines().map((line) => line.trim());
       if (!labels.length) {
         body.appendChild(el("p", "wizard-colors-empty",
@@ -1884,6 +1934,8 @@
       fields.endAt = end ? end.toISOString() : null;
       // "No" (not anonymous) only on a private poll with the switch on.
       fields.voteAnonymity = s.who !== "public" && s.showVoters ? "No" : "Yes";
+      // Only an Administrator may change the line graph; the server refuses the field from anyone else.
+      if (viewerIsAdmin) fields.lineGraphEnabled = s.lineGraph === true;
       return fields;
     }
 
@@ -1909,7 +1961,8 @@
         startLocal: wizard.startLocal,
         endMode: wizard.endMode,
         endLocal: wizard.endLocal,
-        showVoters: wizard.showVoters
+        showVoters: wizard.showVoters,
+        lineGraph: wizard.lineGraph
       };
     }
 
@@ -1962,9 +2015,10 @@
       await deps.refresh({ focusPid: current.pid, message: result.body.message || "" });
     }
 
+    // A colors save, or a line graph change alone, goes to /colors: it never sends the poll to review.
     function savesColorsOnly(body) {
-      return editMode() === "UPDATE" && body.colors !== undefined &&
-        Object.keys(body).every((name) => name === "clientGuid" || name === "colors");
+      return editMode() === "UPDATE" && (body.colors !== undefined || body.lineGraphEnabled !== undefined) &&
+        Object.keys(body).every((name) => name === "clientGuid" || name === "colors" || name === "lineGraphEnabled");
     }
 
     // Save changes sends only the fields that changed and may change, to /publish.

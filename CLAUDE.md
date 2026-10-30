@@ -5,6 +5,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261028-182852-line-graph-toggle/plan.md` (research R1–R13, `data-model.md` — one `polls` column,
+`line_graph_enabled`, added by migration `013-line-graph-enabled`; the HTTP contracts `contracts/api.md` A1–A5, the UI
+contracts `contracts/ui-contracts.md` C1–C6, and the quickstart live alongside it in
+`specs/20261028-182852-line-graph-toggle/`). The preceding feature is
 `specs/20261029-171759-PLAN-ANALYZE-CHAIN/plan.md` (research R1–R9, `data-model.md` — the feature, the gate result and
 the steps of one run, nothing stored — the command contract `contracts/command.md` K1–K7, and the quickstart live alongside
 it in `specs/20261029-171759-PLAN-ANALYZE-CHAIN/`). The requirements report is
