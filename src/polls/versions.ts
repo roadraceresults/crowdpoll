@@ -18,6 +18,7 @@ export interface PollProjection {
   endAt: string | null;
   choices: { id: string; label: string; position: number; color?: string }[];
   contentVersion: number;
+  lineGraphEnabled: boolean;
 }
 
 export function projectPoll(row: PollRow): PollProjection {
@@ -33,7 +34,8 @@ export function projectPoll(row: PollRow): PollProjection {
     startAt: row.start_at ? new Date(row.start_at).toISOString() : null,
     endAt: row.end_at ? new Date(row.end_at).toISOString() : null,
     choices: [...row.choices].sort((a, b) => a.position - b.position),
-    contentVersion: row.content_version
+    contentVersion: row.content_version,
+    lineGraphEnabled: row.line_graph_enabled
   };
 }
 

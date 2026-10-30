@@ -37,7 +37,7 @@ const graph = (pid: string, query = "", cookie?: string) => {
 };
 
 async function seed(overrides: Partial<Poll> = {}): Promise<Poll> {
-  const poll = makePoll({ _id: randomUUID(), ...overrides });
+  const poll = makePoll({ _id: randomUUID(), lineGraphEnabled: true, ...overrides });
   await polls(ctx).insertOne(poll);
   return poll;
 }

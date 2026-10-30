@@ -123,7 +123,8 @@ export function createDefaultPoll(now: Date = new Date()): Poll {
     pollApprovalTimestamp: null,
     pollAcceptabilityScreeningAttempts: 0,
     pollRejectionReason: null,
-    timeZone: null
+    timeZone: null,
+    lineGraphEnabled: false
   };
 }
 
@@ -587,6 +588,13 @@ export function validatePollFields(
     }
   }
 
+  if (body.lineGraphEnabled !== undefined) {
+    if (typeof body.lineGraphEnabled !== "boolean") {
+      throw new AdminError(400, "lineGraphEnabled must be true or false.");
+    }
+    $set.lineGraphEnabled = body.lineGraphEnabled;
+  }
+
   // 012 US10 (FR-059/FR-060): the participant lists arrive as the desired final
   // state, and currentVotes is derived from them rather than mutated in place by
   // three separate routes. Banning is what removes a vote, and it only takes effect
@@ -1044,7 +1052,8 @@ export function duplicatePoll(source: Poll, now: Date = new Date()): Poll {
     pollApprovalTimestamp: null,
     pollAcceptabilityScreeningAttempts: 0,
     pollRejectionReason: null,
-    timeZone: null
+    timeZone: null,
+    lineGraphEnabled: false
   };
 }
 

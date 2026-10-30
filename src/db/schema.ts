@@ -117,6 +117,7 @@ export interface PollTable {
   poll_rejection_reason: string | null;
   ever_voted: Generated<boolean>;
   time_zone: ColumnType<string | null, string | null | undefined, string | null>;
+  line_graph_enabled: Generated<boolean>;
 }
 
 export interface VoteTable {

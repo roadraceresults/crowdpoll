@@ -395,8 +395,11 @@ export function createTabsApiRouter(context: AppContext): Router {
       const pid = parsePid(req.params.pid);
       const session = await sessions.getSession(req);
       const caller = session ? (session.user as Caller) : undefined;
+      const graphSetting = pid
+        ? await db.selectFrom("polls").select("line_graph_enabled").where("id", "=", pid).executeTakeFirst()
+        : undefined;
       const body =
-        pid && (await mayViewResults({ db, config }, caller, pid))
+        pid && graphSetting?.line_graph_enabled && (await mayViewResults({ db, config }, caller, pid))
           ? await serveLineGraph({ db, cache, config }, pid)
           : null;
       if (body === null) {

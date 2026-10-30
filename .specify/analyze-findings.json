@@ -78,6 +78,18 @@
         "specs/20261029-171759-PLAN-ANALYZE-CHAIN/spec.md": "53fee0eb866a9fcf2b4bb6d7aa7fe1f2007da5a35a7a722b7cfc5a9b6d38a6f8",
         "specs/20261029-171759-PLAN-ANALYZE-CHAIN/tasks.md": "82ae718e27022cc5d9a7557202ef659c7e8a4d7d466f1df90b1e37dc0184654c",
         "specs/20261029-171759-PLAN-ANALYZE-CHAIN/quickstart.md": "cbc3e3c2b2599468da826102fb33e1b8524ea6e30561a0f08a899bf596e141b4",
-        "requirements/20261029-171759-plan-analyze-chain/requirements.md": "f99312c11e62afe63f4cd5ad50823ddc67540a37c5c79222fd1f45f8da18d3da"
+        "requirements/20261029-171759-plan-analyze-chain/requirements.md": "f99312c11e62afe63f4cd5ad50823ddc67540a37c5c79222fd1f45f8da18d3da",
+        "specs/20261028-182852-line-graph-toggle/analyze-findings.md": "b99144bb8e34c3a5736611c757fec67a59a2e129db8d7d07eff3cce2d3e047ca",
+        "README.md": "d0e9c54ade92daeabd198abaf18425afcf2edb4f9cfc90a7b606aef8e55193b6",
+        "requirements/20261028-114023-line-graph-toggle/requirements-report.md": "3ab864d0ee0cdb6a7b3ad5c7c624b88ab562c7a110f8dd6b35ddb0ada6c121bf",
+        "specs/20261028-182852-line-graph-toggle/tasks.md": "55ad2c22f64e7f8c2bb082adf2565209163405a0cf010e63707ab026af897e1d",
+        "specs/20261028-182852-line-graph-toggle/quickstart.md": "ff28ab786001f8f018fcc6746d559001f2e7f42fb742197a265e74fe68819937",
+        "specs/20261028-182852-line-graph-toggle/contracts/ui-contracts.md": "700deffea80ebe1379c6264cd23b8cbc47cfa0452091fb2b1d25711b390c4b44",
+        "specs/20261028-182852-line-graph-toggle/spec.md": "2eee8c1e8ea62554adac5296208adb378f89f81eaf63684a192e083461b0222a",
+        "specs/20261028-182852-line-graph-toggle/plan.md": "7bfa213520e30780ed78e9e7f9d56f5c4dd3e9781fe68642669dd9a3212f06f9",
+        "specs/20261028-182852-line-graph-toggle/research.md": "2b2e9bbdd58388846b22e67fdac816035cf1ed7d1d30c4f9d0001755b638664d",
+        "specs/20261028-182852-line-graph-toggle/contracts/api.md": "f595740df210b5348e59d3c4349b9e67861c2e99119aeddc60db6e3e1f71743b",
+        "requirements/20261028-114023-line-graph-toggle/requirements.md": "1e39b28459938b8e0f4f1a1f641a619a7f0af2d9f7d1c183351cd7955ee30526",
+        "specs/20261028-182852-line-graph-toggle/data-model.md": "d54fb34fc83540e83aaff62aebd53773e338f19bd9f2738b1cdea09b790b78ab"
     }
 }

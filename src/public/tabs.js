@@ -178,6 +178,7 @@
     let maximizedEl = null;
     let returnScrollY = 0;
     let retainedDetail = null;
+    let graphPid = null;
     let pinnedPid = null;
     const opts = Object.assign(
       {
@@ -210,6 +211,7 @@
         } else if (!changed || changed.has(pid)) {
           card.applyPoll(detail);
         }
+        syncLineGraph(pid, card, detail);
       });
       Array.from(mounted.keys()).forEach((pid) => {
         if (seen.has(pid)) return;
@@ -263,18 +265,32 @@
       if (top < fixedChromeHeight) window.scrollTo(0, window.scrollY + top - fixedChromeHeight);
       maximized = { grid: api, pid: pid };
       const detail = card.detail();
-      window.PollLineGraph?.mount(view.querySelector(".maximized-space-right"), {
+      if (detail && detail.lineGraphEnabled) mountLineGraph(pid, card, detail);
+      shownMaximizeButton(card.element).focus();
+    }
+
+    // The graph is drawn only while the poll's setting is on. A setting switched on while the
+    // card is maximized is picked up on the next content refresh; one switched off stays drawn
+    // until the view closes, and its own refresh then shows the results-unavailable note.
+    function mountLineGraph(pid, card, detail) {
+      graphPid = pid;
+      window.PollLineGraph?.mount(maximizedEl.querySelector(".maximized-space-right"), {
         pid: pid,
-        title: detail ? detail.title : "",
-        subtitle: detail ? detail.subtitle : "",
+        title: detail.title || "",
+        subtitle: detail.subtitle || "",
         card: card
       });
-      shownMaximizeButton(card.element).focus();
+    }
+
+    function syncLineGraph(pid, card, detail) {
+      if (pid !== maximizedPid || graphPid === pid || !detail.lineGraphEnabled) return;
+      mountLineGraph(pid, card, detail);
     }
 
     function restore(options = {}) {
       if (!maximizedPid) return;
       window.PollLineGraph?.unmount();
+      graphPid = null;
       const pid = maximizedPid;
       const card = mounted.get(pid);
       const leftTheTab = Boolean(options.left || retainedDetail);

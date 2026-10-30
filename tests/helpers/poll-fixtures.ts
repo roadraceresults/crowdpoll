@@ -34,6 +34,7 @@ export function makePoll(overrides: Partial<Poll> = {}): Poll {
     pollAcceptabilityScreeningAttempts: 0,
     pollRejectionReason: null,
     timeZone: null,
+    lineGraphEnabled: false,
     ...overrides
   };
 }

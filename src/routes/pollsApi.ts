@@ -345,6 +345,7 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
         res.status(404).json({ error: "Not found" });
         return;
       }
+      if (await refusesLineGraphSetting(req, res, poll._id)) return;
       const clientGuid = typeof req.body?.clientGuid === "string" ? req.body.clientGuid : "";
       if (poll.pollState !== "EDITING" || clientGuid === "" || poll.pollEditUpdateClientGUID !== clientGuid) {
         console.log(`[admin] Refused colors for poll ${poll._id}: no edit session held`);
@@ -357,8 +358,11 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
         return;
       }
       let choices: Choice[];
+      let lineGraph: Partial<Poll>;
       try {
-        choices = applyChoiceColors(poll, req.body?.colors);
+        const setsOnlyLineGraph = req.body?.colors === undefined && req.body?.lineGraphEnabled !== undefined;
+        choices = setsOnlyLineGraph ? poll.choices : applyChoiceColors(poll, req.body?.colors);
+        lineGraph = validatePollFields(poll, { lineGraphEnabled: req.body?.lineGraphEnabled }, true);
       } catch (err) {
         if (err instanceof AdminError) {
           res.status(err.status).json({ error: err.message });
@@ -370,7 +374,7 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
       const saved = await updatePoll(
         store,
         poll._id,
-        { choices, pollState: restored, ...CLEAR_SESSION },
+        { choices, pollState: restored, ...CLEAR_SESSION, ...lineGraph },
         { pollEditUpdateClientGUID: clientGuid }
       );
       if (!saved) {
@@ -390,6 +394,16 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
    * client that actually holds the lock, so a stale tab cannot write over a
    * session someone else now owns (FR-023).
    */
+  /** A line graph setting from anyone but an Administrator is refused before anything is written. */
+  async function refusesLineGraphSetting(req: Request, res: Response, pid: string): Promise<boolean> {
+    if (req.body?.lineGraphEnabled === undefined) return false;
+    const caller = await callerEmail(sessions, req);
+    if (caller && isAdminEmail(caller.email, config)) return false;
+    console.log(`[admin] Refused line graph setting for poll ${pid}: not an Administrator`);
+    res.status(403).json({ error: "Only an Administrator can change the line graph." });
+    return true;
+  }
+
   function resolveEditContext(poll: Poll, clientGuid: string, hasEverVoted: boolean) {
     const holdsLock =
       poll.pollState === "EDITING" && clientGuid !== "" && poll.pollEditUpdateClientGUID === clientGuid;
@@ -475,6 +489,7 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
         res.status(404).json({ error: "Not found" });
         return;
       }
+      if (await refusesLineGraphSetting(req, res, poll._id)) return;
       const hasEverVoted = await hasEverBeenVotedOn(db, poll._id);
       const clientGuid = typeof req.body?.clientGuid === "string" ? req.body.clientGuid : "";
       const decision = resolveEditContext(poll, clientGuid, hasEverVoted);
@@ -499,7 +514,7 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
       // administrator needs to raise it.
       const UPDATE_FIELDS = [
         "title", "subtitle", "startAt", "endAt",
-        "invitedVoterList", "bannedVoterList", "voterCountLimit", "colors"
+        "invitedVoterList", "bannedVoterList", "voterCountLimit", "colors", "lineGraphEnabled"
       ];
       if (decision.mode === "UPDATE") {
         const disallowed = Object.keys(body).filter((k) => !UPDATE_FIELDS.includes(k));
@@ -588,6 +603,7 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
         res.status(404).json({ error: "Not found" });
         return;
       }
+      if (await refusesLineGraphSetting(req, res, poll._id)) return;
       const hasEverVoted = await hasEverBeenVotedOn(db, poll._id);
       const clientGuid = typeof req.body?.clientGuid === "string" ? req.body.clientGuid : "";
       const decision = resolveEditContext(poll, clientGuid, hasEverVoted);
@@ -683,6 +699,7 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
       startAt: p.start_at,
       endAt: p.end_at,
       pollRejectionReason: p.poll_rejection_reason,
+      lineGraphEnabled: p.line_graph_enabled,
       pollApprovalTimestamp: p.poll_approval_timestamp,
       pollAcceptabilityScreeningAttempts: p.poll_acceptability_screening_attempts,
       hasEverBeenVotedOn,

@@ -530,6 +530,26 @@ The maximized view's right column shows how each choice's share moved over time.
 `window.PollLineGraph?.mount(column, { pid, title, subtitle, card })` after `setMaximized(true)`,
 and `restore()`, the one way out, calls `unmount()`, which also stops the refresh timer.
 
+The graph is drawn only while the poll's setting is on. The setting is `polls.line_graph_enabled`
+(migration `013-line-graph-enabled`, `boolean not null default false`, so existing polls read off). It
+reaches the browser in the card's projection (`projectPoll`, `lineGraphEnabled`), `deltaClient.js`
+copies it into the card's detail, and `tabs.js`' `maximize()` mounts the graph only when it is true.
+`syncLineGraph`, run on every Refresh of the tab, mounts a graph whose setting was switched on while the
+card was maximized; a switch off leaves the drawn graph in place until the view closes, and the
+graph's own refresh then answers `404` and shows the results-unavailable note. A change to the
+setting bumps `content_version` like any other content field, so open cards pick it up on their next
+refresh.
+
+Only an Administrator (`isAdminEmail`) may write it: `publish`, `save` and `colors` accept
+`lineGraphEnabled`, and any other caller who sends it is refused with `403` before anything is
+written. `colors` takes the field alone (no `colors` list) and leaves the choices as they are, so a
+setting change on a poll with votes never sends the poll to review. The admin list and admin search
+rows carry the field.
+
+`GET /api/polls/:pid/line-graph` answers `404` while the setting is off. That check reads the column
+by primary key before the cache is consulted, so a cached series is never served for a poll whose
+graph has been switched off.
+
 `GET /api/polls/:pid/line-graph` sits behind `...dynamic("refresh")` (shedding,
 the refresh floor and the budget) with no `requireSession`. Access is `mayViewResults` in
 `polls/access.ts`: a published public poll for anyone, guests included, or a private poll the
@@ -780,7 +800,7 @@ returns. The vote consumer is not a sweep: one runs on every instance in the `wr
 ## Poll administration and visibility
 
 The administration page is a single column of cards with two faces: a read-only face and a
-six-step wizard (Who can vote, Title & Tags, Choices, Colors, How to vote, When to vote). The
+six-step wizard (Who can vote, Title & Tags, Choices, View, How to vote, When to vote). The
 read-only face ends in a Settings Summary whose parts are links into the wizard, offered only
 where the poll's edit mode (`EDIT` with no votes, `UPDATE` with votes) and its state let that
 setting change. A poll takes the new-poll wizard (Cancel, Save, Publish) while its *worded*
@@ -793,7 +813,7 @@ published, so a published poll always goes to screening. The list keeps the card
 whose saved wizard progress it holds when that poll leaves the current view, so the progress
 survives a switch of admin views.
 
-The Settings Summary has a line for colors after the choices line (`buildColorsSummaryLine`): "Bar colors are assigned automatically.", or the number set by hand with one swatch per colored choice; its sentence opens Step 4. The Colors step (step 4) lists one row per line of the Choices box, each with a button that opens
+The Settings Summary has a line for colors after the choices line (`buildColorsSummaryLine`): "Bar colors are assigned automatically.", or the number set by hand with one swatch per colored choice; its sentence opens Step 4, and "The line graph is shown." follows it when the setting is on. The View step (step 4) shows an Administrator's **Show the line graph** switch first (`buildLineGraphSwitch`, from `GET /api/me`'s `isAdmin`), then lists one row per line of the Choices box, each with a button that opens
 one shared grid of swatches. The palette is a single ordered list of eighteen name and hex pairs in
 `src/polls/barPalette.ts`; `/api/config` sends it as `barPalette`, and it is the only list a colour
 is validated against. The card keeps its answers in a map keyed by label, because choice ids are

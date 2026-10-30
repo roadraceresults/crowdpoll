@@ -11,8 +11,11 @@ import { openPage, type BrowserPage } from "./helpers/browser.js";
 import type { Poll } from "../src/polls/store.js";
 
 const ADMIN = "admin-wizard-client@example.com";
+const CREATOR = "creator-wizard-client@example.com";
 let ctx: TestContext;
 let cookie = "";
+let creatorCookie = "";
+let creatorId = "";
 let page: BrowserPage | null = null;
 /** The JSON body of every request the page sent, in order. */
 let bodies: { method: string; url: string; body: Record<string, unknown> | null }[] = [];
@@ -21,6 +24,9 @@ let clipboardText = "";
 beforeAll(async () => {
   ctx = await startTestContext({ ENV_ADMINS: ADMIN, ENV_POLL_ADMIN_PAGE_REFRESH_INTERVAL: "60000" });
   cookie = (await forgeSession(ctx, ADMIN)).cookie;
+  const creator = await forgeSession(ctx, CREATOR);
+  creatorCookie = creator.cookie;
+  creatorId = creator.userId;
 });
 
 afterAll(async () => {
@@ -37,10 +43,10 @@ beforeEach(async () => {
   await voteHistory(ctx).deleteMany({});
 });
 
-async function open(): Promise<BrowserPage> {
+async function open(sessionCookie = cookie): Promise<BrowserPage> {
   page?.close();
   const p = await openPage(ctx, "admin.html", {
-    cookie,
+    cookie: sessionCookie,
     url: "http://localhost/admin",
     scripts: ["m3-ripple.js", "app.js", "adminCard.js", "adminList.js"],
     beforeScripts: (window) => {
@@ -408,7 +414,7 @@ describe("a new poll's wizard", () => {
   });
 });
 
-describe("the Colors step", () => {
+describe("the View step", () => {
   const rowsOf = (p: BrowserPage) => Array.from(wizardCard(p).querySelectorAll<HTMLElement>(".wizard-color-row"));
   const colorButton = (p: BrowserPage, choice: string) =>
     wizardCard(p).querySelector<HTMLButtonElement>(`button[aria-label="Color for ${choice}"]`)!;
@@ -430,11 +436,11 @@ describe("the Colors step", () => {
     await p.settle();
   }
 
-  it("reads Who, Title, Choices, Colors, How, When, and Next on Choices leads to Colors", async () => {
+  it("reads Who, Title, Choices, View, How, When, and Next on Choices leads to View", async () => {
     const p = await open();
     const card = await createPoll(p);
     expect(circles(card).map((c) => c.querySelector(".wizard-step-label")!.textContent)).toEqual([
-      "Who", "Title", "Choices", "Colors", "How", "When"
+      "Who", "Title", "Choices", "View", "How", "When"
     ]);
     await next(p);
     await next(p);
@@ -442,7 +448,7 @@ describe("the Colors step", () => {
     type(p, choicesBox(p), "Cakes\nCookies");
     blur(p, choicesBox(p));
     await next(p);
-    expect(heading(wizardCard(p))).toBe("Step 4 · Colors");
+    expect(heading(wizardCard(p))).toBe("Step 4 · View");
     await next(p);
     expect(heading(wizardCard(p))).toBe("Step 5 · How to vote");
     await next(p);
@@ -453,7 +459,7 @@ describe("the Colors step", () => {
     const p = await open();
     await openColors(p);
     const card = wizardCard(p);
-    expect(heading(card)).toBe("Step 4 · Colors");
+    expect(heading(card)).toBe("Step 4 · View");
     expect(card.querySelector(".wizard-colors-help")!.textContent).toBe("Optional. Leave a choice on Automatic to color it for you.");
     expect(rowsOf(p).map((r) => r.querySelector(".wizard-color-label")!.textContent)).toEqual(["Cakes", "Cookies"]);
     for (const choice of ["Cakes", "Cookies"]) {
@@ -527,7 +533,7 @@ describe("the Colors step", () => {
     await p.settle(50);
     (circles(wizardCard(p))[3]!.querySelector("button") as HTMLButtonElement).click();
     await p.settle();
-    expect(heading(wizardCard(p))).toBe("Step 4 · Colors");
+    expect(heading(wizardCard(p))).toBe("Step 4 · View");
     expect(nameOf(colorButton(p, "Cookies"))).toBe("teal");
     expect(nameOf(colorButton(p, "Cakes"))).toBe("Automatic");
     footerButton(wizardCard(p), "Cancel").click();
@@ -537,7 +543,7 @@ describe("the Colors step", () => {
     link(cardWith(p, "Bake sale"), "Public Poll").click();
     await p.settle(50);
     for (let i = 0; i < 3; i++) await next(p);
-    expect(heading(wizardCard(p))).toBe("Step 4 · Colors");
+    expect(heading(wizardCard(p))).toBe("Step 4 · View");
     expect(nameOf(colorButton(p, "Cookies"))).toBe("teal");
   });
 });
@@ -571,7 +577,7 @@ describe("colors on an existing poll", () => {
 
   it("keeps Colors open while Choices is locked on a poll that has votes, listing the stored choices", async () => {
     const { p } = await openExisting("Voted", true);
-    expect(heading(wizardCard(p))).toBe("Step 4 · Colors");
+    expect(heading(wizardCard(p))).toBe("Step 4 · View");
     expect(Array.from(wizardCard(p).querySelectorAll(".wizard-color-label")).map((l) => l.textContent)).toEqual(["Left", "Right"]);
     expect(colorButton(p, "Left").disabled).toBe(false);
     expect(wizardCard(p).querySelector(".wizard-locked")).toBeNull();
@@ -802,7 +808,7 @@ describe("the color picker's keyboard, roles and look", () => {
     await createPoll(p);
     for (let i = 0; i < 3; i++) await next(p);
     const card = wizardCard(p);
-    expect(heading(card)).toBe("Step 4 · Colors");
+    expect(heading(card)).toBe("Step 4 · View");
     expect(card.querySelector(".wizard-colors-empty")!.textContent).toBe("Add your choices first, then come back to choose their colors.");
     expect(card.querySelectorAll(".wizard-color-btn")).toHaveLength(0);
   });
@@ -883,7 +889,7 @@ describe("the Settings Summary's line for colors", () => {
     expect(line.previousElementSibling!.classList.contains("wizard-summary-choices")).toBe(true);
     link(card, "1 color has been set manually").click();
     await p.settle(50);
-    expect(heading(wizardCard(p))).toBe("Step 4 · Colors");
+    expect(heading(wizardCard(p))).toBe("Step 4 · View");
   });
 });
 
@@ -1177,4 +1183,130 @@ describe("an existing poll in the wizard", () => {
     expect(p.document.querySelector(".poll-admin-card--new")).toBeNull();
     expect(p.document.activeElement).toBe(links(cardWith(p, "Lost"))[0]);
   }, 20_000);
+});
+
+describe("the line graph switch on the View step", () => {
+  const CHOICES = [{ id: "c1", label: "Left", position: 0 }, { id: "c2", label: "Right", position: 1 }];
+  const LINE_GRAPH_LABEL = "Show the line graph";
+
+  const lineGraphSwitch = (p: BrowserPage) =>
+    Array.from(wizardCard(p).querySelectorAll<HTMLElement>(".m3-switch-row")).find((row) =>
+      (row.textContent ?? "").includes(LINE_GRAPH_LABEL)) ?? null;
+  const lineGraphInput = (p: BrowserPage) => lineGraphSwitch(p)!.querySelector<HTMLInputElement>("input")!;
+  const summaryColors = (p: BrowserPage) => wizardCard(p).querySelector(".wizard-summary-colors")?.textContent ?? "";
+
+  async function seedPoll(title: string, overrides: Partial<Poll> = {}, owner?: string, votes = false) {
+    const poll = makePoll({ title, subtitle: "Sub", pollState: "OPEN", choices: CHOICES, ...overrides });
+    await seed(poll);
+    if (owner) await ctx.db.updateTable("polls").set({ created_by_id: owner }).where("id", "=", poll._id).execute();
+    if (votes) {
+      await voteHistory(ctx).insertOne({ pid: poll._id, emailAddress: "v@example.com", userName: "v", choiceIds: ["c1"], votedAt: new Date() });
+    }
+    return poll;
+  }
+
+  async function openViewStep(p: BrowserPage, title: string) {
+    link(cardWith(p, title), title).click();
+    await p.settle(50);
+    (circles(wizardCard(p))[3]!.querySelector("button") as HTMLButtonElement).click();
+    await p.settle();
+  }
+
+  it("an Administrator's View step shows the switch first, unchecked when the graph is off", async () => {
+    await seedPoll("Graph off");
+    const p = await open();
+    await openViewStep(p, "Graph off");
+    expect(heading(wizardCard(p))).toBe("Step 4 · View");
+    expect(lineGraphSwitch(p)).not.toBeNull();
+    expect(wizardCard(p).querySelector(".wizard-colors")!.firstElementChild).toBe(lineGraphSwitch(p));
+    expect(lineGraphInput(p).checked).toBe(false);
+  });
+
+  it("shows the stored value: checked when the graph is on", async () => {
+    await seedPoll("Graph on", { lineGraphEnabled: true });
+    const p = await open();
+    await openViewStep(p, "Graph on");
+    expect(lineGraphInput(p).checked).toBe(true);
+  });
+
+  it("sends the setting alone to the colors route on a poll with votes, and the poll stays open", async () => {
+    const poll = await seedPoll("Voted graph", {}, undefined, true);
+    const p = await open();
+    await openViewStep(p, "Voted graph");
+    lineGraphInput(p).checked = true;
+    lineGraphInput(p).dispatchEvent(new p.window.Event("change", { bubbles: true }));
+    await p.settle();
+
+    footerButton(wizardCard(p), "Save changes").click();
+    await p.settle(100);
+    const posts = sent("/colors");
+    expect(posts).toHaveLength(1);
+    expect(Object.keys(posts[0]!.body!).sort()).toEqual(["clientGuid", "lineGraphEnabled", "timeZone"]);
+    expect(posts[0]!.body!.lineGraphEnabled).toBe(true);
+    expect(sent("/publish")).toHaveLength(0);
+    const stored = (await polls(ctx).findOne({ _id: poll._id }))!;
+    expect(stored.lineGraphEnabled).toBe(true);
+    expect(stored.pollState).toBe("OPEN");
+  });
+
+  it("an Administrator's Save on a new poll carries the setting; the switch is on the View step", async () => {
+    const p = await open();
+    await createPoll(p);
+    await answerFirstSteps(p, "Switch save");
+    lineGraphInput(p).checked = true;
+    lineGraphInput(p).dispatchEvent(new p.window.Event("change", { bubbles: true }));
+    await p.settle();
+    footerButton(wizardCard(p), "Save").click();
+    await p.settle(100);
+    expect(sent("/save")[0]!.body).toMatchObject({ lineGraphEnabled: true });
+  });
+
+  it("an Administrator's switch with no choices sits first, and the note replaces the color pickers", async () => {
+    await seedPoll("No choices", { choices: [] });
+    const p = await open();
+    await openViewStep(p, "No choices");
+    expect(lineGraphSwitch(p)).not.toBeNull();
+    expect(wizardCard(p).querySelector(".wizard-colors")!.firstElementChild).toBe(lineGraphSwitch(p));
+    expect(wizardCard(p).querySelector(".wizard-colors-empty")!.textContent)
+      .toBe("Add your choices first, then come back to choose their colors.");
+    expect(wizardCard(p).querySelector('button[aria-label^="Color for"]')).toBeNull();
+  });
+
+  it("a creator's View step shows no switch and still shows the color pickers", async () => {
+    await seedPoll("Creator's poll", {}, creatorId);
+    const p = await open(creatorCookie);
+    await openViewStep(p, "Creator's poll");
+    expect(heading(wizardCard(p))).toBe("Step 4 · View");
+    expect(lineGraphSwitch(p)).toBeNull();
+    expect(wizardCard(p).querySelector('button[aria-label="Color for Left"]')).not.toBeNull();
+  });
+
+  it("a creator's Save never carries the setting", async () => {
+    await seedPoll("Creator saves", { lineGraphEnabled: true }, creatorId);
+    const p = await open(creatorCookie);
+    await openViewStep(p, "Creator saves");
+    expect(lineGraphSwitch(p)).toBeNull();
+    const colorButton = wizardCard(p).querySelector<HTMLButtonElement>('button[aria-label="Color for Left"]')!;
+    colorButton.click();
+    await p.settle();
+    wizardCard(p).querySelector<HTMLButtonElement>(`.wizard-swatch[aria-label="red"]`)!.click();
+    await p.settle();
+    footerButton(wizardCard(p), "Save changes").click();
+    await p.settle(100);
+    const posts = bodies.filter((b) => b.method === "POST");
+    expect(posts.length).toBeGreaterThan(0);
+    for (const post of posts) expect(post.body && "lineGraphEnabled" in post.body).toBe(false);
+  });
+
+  it("the Settings Summary's View line says the graph is shown when it is on, for a creator", async () => {
+    await seedPoll("Shown", { lineGraphEnabled: true }, creatorId);
+    const shown = await open(creatorCookie);
+    await openViewStep(shown, "Shown");
+    expect(summaryColors(shown)).toContain("The line graph is shown.");
+
+    await seedPoll("Hidden", { lineGraphEnabled: false }, creatorId);
+    const hidden = await open(creatorCookie);
+    await openViewStep(hidden, "Hidden");
+    expect(summaryColors(hidden)).not.toMatch(/graph/i);
+  });
 });

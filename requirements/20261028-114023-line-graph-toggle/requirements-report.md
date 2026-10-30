@@ -28,7 +28,7 @@ You may leave these instructions here. They will be ignored when "Next" is execu
 
 The line graph is drawn in the maximized poll view, to the right of the card.  
 It plots each choice's share of the votes over time.  
-It was built on the branch `origin/poll-line-graph` (feature `specs/20261027-151601-POLL-LINE-GRAPH`), which is **not merged into `dev`**.  
+Its code is on this branch, brought over from `poll-line-graph` by commit `3f4b6de` (feature `specs/20261027-151601-POLL-LINE-GRAPH`), and it is **not merged into `dev`**.  
 On that branch every poll shows the graph.  
 This feature turns it into a per-poll setting that is off by default and that only an Administrator can switch on.  
 
@@ -52,9 +52,9 @@ This feature turns it into a per-poll setting that is off by default and that on
 | Colors-only save | `src/routes/pollsApi.ts:339` | `POST /api/admin/polls/:pid/colors` changes colors on a poll with votes, without review |
 | Fields after votes | `src/routes/pollsApi.ts:500` | `UPDATE_FIELDS` lists what may change once a poll has votes |
 | Administrator rule | `src/polls/service.ts:750` | `isAdminEmail` (`ENV_ADMINS`); the browser reads `isAdmin` from `GET /api/me` (`adminList.js:474`) |
-| Graph mount | `src/public/tabs.js` (branch) | `maximize()` always calls `window.PollLineGraph?.mount(...)` |
-| Graph route | `src/routes/tabsApi.ts` (branch) | `GET /api/polls/:pid/line-graph` serves any poll `mayViewResults` allows |
-| Migrations | `src/db/migrations/` | the last is `011-invitation-tokens.ts` |
+| Graph mount | `src/public/tabs.js` | `maximize()` always calls `window.PollLineGraph?.mount(...)` |
+| Graph route | `src/routes/tabsApi.ts` | `GET /api/polls/:pid/line-graph` serves any poll `mayViewResults` allows |
+| Migrations | `src/db/migrations/` | the last is `012-line-graph-tally.ts`, from the line graph |
 
 ## 2. Architecture Diagrams
 
@@ -65,7 +65,7 @@ flowchart LR
   subgraph Browser
     AC["adminCard.js<br/>step 4 'View'<br/>checkbox + color pickers"]
     TB["tabs.js maximize()"]
-    LG["lineGraph.js<br/>(poll-line-graph branch)"]
+    LG["lineGraph.js<br/>(line graph code, commit 3f4b6de)"]
   end
   subgraph Server
     ME["GET /api/me<br/>isAdmin"]
@@ -99,9 +99,9 @@ sequenceDiagram
   C->>C: isAdmin from /api/me → show the checkbox above the colors
   A->>C: tick "Show the line graph", Save
   alt the poll has votes and only colors / the setting changed
-    C->>S: POST /colors {colors, lineGraph: true}
+    C->>S: POST /colors {colors, lineGraphEnabled: true}
   else otherwise
-    C->>S: POST /publish or /save {…, lineGraph: true}
+    C->>S: POST /publish or /save {…, lineGraphEnabled: true}
   end
   S->>S: caller is an Administrator? else 403
   S->>D: set the column
@@ -142,8 +142,8 @@ erDiagram
 
 ## 4. Technical Debt
 
-- **TD1. The line graph lives on an unmerged branch.**  
-  `origin/poll-line-graph` last merged `dev` on 2026-10-27; every day apart adds merge work, in `tabs.js`, `tabsApi.ts`, `api.ts` and `CLAUDE.md` in particular.  
+- **TD1. The line graph is not yet in `dev`.**  
+  The graph is on this branch, not merged into `dev`; every day apart adds merge work, in `tabs.js`, `tabsApi.ts`, `api.ts` and `CLAUDE.md` in particular.  
 - **TD2. The `/colors` route's name.**  
   If it also carries the line graph setting, its name no longer says everything it does.  
   Renaming it would touch `adminCard.js`, the route, `postman/openapi.json` and its tests, for no change in behavior.  
@@ -152,7 +152,7 @@ erDiagram
 
 ## 5. Assumptions
 
-- The column is `polls.line_graph_enabled boolean NOT NULL DEFAULT false`, added by one additive migration, `012-line-graph`; existing rows take the default.  
+- The column is `polls.line_graph_enabled boolean NOT NULL DEFAULT false`, added by one additive migration, `013-line-graph-enabled`, after the graph's `012-line-graph-tally`; existing rows take the default.  
 - The checkbox's label is "Show the line graph", in the wizard's checkbox style; its wording can change in `/speckit-specify`.  
 - The setting does not change the poll's state, does not pause voting and does not send the poll back for Acceptability Screening.  
 - The graph itself is unchanged: data, scales, colors, threshold and refresh stay as the line graph feature specified them.  
@@ -161,7 +161,80 @@ erDiagram
 
 ### 6.1 Inconsistencies
 
-None found.
+**IN1. Diagram 2.2 names the setting differently from the resolved name.**  
+<span style="font-size:large">✅ Resolved</span>  
+✅ Requirements File Unchanged (no edit needed): 2026-10-28 4:09 PM  
+**Notes**: Recommendation accepted by "Accept" 2026-10-28: Recommendation A, diagram 2.2 corrected to `lineGraphEnabled` in both messages;  
+the requirements document has no diagram of the request, so it needed no change.  
+
+Diagram 2.2 sends `lineGraph: true` in both messages, but AM4 resolved that the setting is `lineGraphEnabled` in every JSON body.  
+The diagram is a picture of the request, so a reader who copies it sends a field the server would ignore.  
+
+  - **Recommendation A** _(recommended)_: **correct diagram 2.2 to `lineGraphEnabled` in both messages.**  
+
+    ➡️ [X] **Accepted**  
+    - <u>Pros</u>: the diagram then matches AM4 and the contract `/speckit-plan` will write from it.  
+    - <u>Cons</u>: a report edit only; no requirement changes.  
+
+  - **Recommendation B**: **keep diagram 2.2 as drawn; AM4's note already reads `lineGraph` as `lineGraphEnabled`.**  
+
+    ➡️ [ ] **Accepted**  
+    - <u>Pros</u>: no edit.  
+    - <u>Cons</u>: the diagram stays wrong for anyone who copies it into a contract.  
+
+  - **Developer Resolution C**:  
+
+    ➡️ [ ] **Accepted**  
+
+**IN2. The report still describes the branch-based plan.**  
+<span style="font-size:large">✅ Resolved</span>  
+✅ Requirements File Unchanged (no edit needed): 2026-10-28 5:47 PM  
+**Notes**: Recommendation accepted in file 2026-10-28: Recommendation A, the report's sections now describe the line graph as it is on this branch;  
+requirements.md needed no change for it.  
+
+The overview, diagram 2.1, the "Current code this touches" table, BC1, TD1 and UA9 still describe features on `origin/poll-line-graph`.  
+Resolution NC2 B replaced that plan: `requirements.md` now builds the graph in this repository.  
+
+  - **Recommendation A** _(recommended)_: **update those sections to the resolved plan: the graph is built here, the table lists the files this feature touches, and TD1 is removed.**  
+
+    ➡️ [X] **Accepted**  
+    - <u>Pros</u>: the report agrees with the requirements that `/speckit-specify` will read.  
+    - <u>Cons</u>: several report sections are rewritten.  
+
+  - **Recommendation B**: **leave the report as it is; the requirements document is the authority.**  
+
+    ➡️ [ ] **Accepted**  
+    - <u>Pros</u>: no edit.  
+    - <u>Cons</u>: the report misleads anyone who reads it instead of the requirements.  
+
+  - **Developer Resolution C**:  
+
+    ➡️ [ ] **Accepted**  
+
+**IN3. The requirements' order of work and migration number conflict with this branch.**  
+<span style="font-size:large">✅ Resolved</span>  
+✅ Requirements File Updated: 2026-10-28 6:26 PM  
+**Notes**: Recommendation accepted by "Accept" 2026-10-28: Recommendation A, the order of work restated and the column moved to migration `013-line-graph-enabled`;  
+requirements.md now says so under Resolved Decisions (NC1, NC2, IN3).  
+
+Order of work says this repository lacks the `poll-line-graph` work, but this branch now has it (commit `3f4b6de`), including migration `012-line-graph-tally` and the `line_graph_tally` and `line_graph_selection` tables.  
+Assumptions name the column's migration `012-line-graph`, a number the branch already uses for a different migration.  
+
+  - **Recommendation A** _(recommended)_: **restate the order of work: the line graph is already on this branch, so this feature builds on it and only adds the setting; the column goes in a new migration, `013-line-graph-enabled`.**  
+
+    ➡️ [X] **Accepted**  
+    - <u>Pros</u>: matches what the branch now holds, and each migration keeps its own number.  
+    - <u>Cons</u>: the order of work changes again, and requirements.md is edited.  
+
+  - **Recommendation B**: **keep the order-of-work wording, and add the column to the existing `012-line-graph-tally` migration, which has not reached `dev`.**  
+
+    ➡️ [ ] **Accepted**  
+    - <u>Pros</u>: one migration for the whole graph, and no requirement wording changes.  
+    - <u>Cons</u>: the column is added to a migration that other work has already named; a rebased deploy would need the table to be created fresh.  
+
+  - **Developer Resolution C**:  
+
+    ➡️ [ ] **Accepted**  
 
 ### 6.2 Ambiguities
 
@@ -364,7 +437,7 @@ the requirements now say so under Resolved Decisions.
 
 `tabs.js` decides at maximize time; it has the card's poll, from the poll projections and the delta updates.  
 
-  - **Recommendation**: **the poll projections carry `lineGraphEnabled`, `deltaClient.js` copies it, and `tabs.js` mounts the graph only when it is true; a change reaches open cards on their next content refresh.**  
+  - **Recommendation**: **the poll projections carry `lineGraphEnabled`, `deltaClient.js` copies it, and `tabs.js` mounts the graph only when it is true; a change reaches open cards on their next Refresh of the tab.**  
 
     ➡️ [x] **Accepted**  
     - No extra request on maximize, and the same path bar colors already take.  
@@ -417,10 +490,10 @@ the requirements now say so under Resolved Decisions.
 A maximized poll keeps its graph and refreshes it on a timer.  
 On the `poll-line-graph` branch a `404` from the graph route stops the timer and shows the note that results are unavailable (`lineGraph.js:239`), which misdescribes a graph that was switched off.  
 
-  - **Recommendation A** _(recommended)_: **when a content refresh brings `lineGraphEnabled: false` for the maximized poll, `tabs.js` unmounts the graph and the view takes the graph-less layout; switched on, it mounts on the next maximize, not mid-view.**  
+  - **Recommendation A** _(recommended)_: **when a Refresh of the tab brings `lineGraphEnabled: false` for the maximized poll, `tabs.js` unmounts the graph and the view takes the graph-less layout; switched on, it mounts on the next maximize, not mid-view.**  
 
     ➡️ [ ] **Accepted**  
-    - <u>Pros</u>: the viewer never sees a misleading note; the switch takes effect within one content refresh.  
+    - <u>Pros</u>: the viewer never sees a misleading note; the switch takes effect within one Refresh of the tab.  
     - <u>Cons</u>: the layout changes under a viewer who is looking at it.  
 
   - **Recommendation B**: **the graph stays until the view is closed; a `404` from its refresh shows its existing note.**  
@@ -460,15 +533,71 @@ The graph exists only on `origin/poll-line-graph` (39 files, about 3,900 lines, 
 
     ➡️ [ ] **Accepted**  
 
+**NC2. Where is the `poll-line-graph` branch?**  
+<span style="font-size:large">✅ Resolved</span>  
+✅ Requirements File Updated: 2026-10-28 4:15 PM  
+**Notes**: Recommendation accepted by "Accept B" 2026-10-28: Recommendation B, build the line graph in this repository as part of this feature and drop the merge-first order;  
+requirements.md now says so under Resolved Decisions (NC1, NC2).  
+
+The requirements build on `origin/poll-line-graph` (feature `specs/20261027-151601-POLL-LINE-GRAPH`), and NC1 depends on merging it.  
+This repository has no such branch: `git ls-remote --heads origin` lists only `line-graph-toggle`.  
+It has no line graph code either: `src/public/` holds no `lineGraph.js`, and no `specs/` folder names the line graph feature.  
+The "Current code this touches" table, TD1 and UA9 describe files on that branch, so they cannot be checked here.  
+
+  - **Recommendation A** _(recommended)_: **the branch lives in another repository or was never pushed; the developer names the repository and branch, or pushes it to `origin`, and the requirements keep NC1 as resolved.**  
+
+    ➡️ [ ] **Accepted**  
+    - <u>Pros</u>: keeps the merge-first order and the small feature NC1 chose.  
+    - <u>Cons</u>: nothing can be checked against the code until the branch is reachable.  
+
+  - **Recommendation B**: **build the line graph in this repository as part of this feature, and drop the merge-first order.**  
+
+    ➡️ [X] **Accepted**  
+    - <u>Pros</u>: the feature is self-contained; nothing depends on a branch that cannot be found.  
+    - <u>Cons</u>: a much larger feature (the branch is about 3,900 lines); NC1, BC1 and TD1 are rewritten.  
+
+  - **Developer Resolution C**:  
+
+    ➡️ [ ] **Accepted**  
+
+**NC3. Where is the line graph's design written down?**  
+<span style="font-size:large">✅ Resolved</span>  
+✅ Requirements File Updated: 2026-10-28 5:47 PM  
+**Notes**: Developer Resolution C, written by the developer and taken as written: "we merged the code into this branch";  
+checked: the code, tests and `specs/20261027-151601-POLL-LINE-GRAPH/spec.md` are on this branch (commit `3f4b6de`), and requirements.md now points to that spec under Resolved Decisions.  
+
+The Assumptions say the graph's data, scales, colors, threshold and refresh stay as the `poll-line-graph` feature specified them.  
+That feature's spec and code are not in this repository (NC2), so with NC2 B its rules must be written now.  
+Nothing in the requirements says how the graph is drawn.  
+
+  - **Recommendation A** _(recommended)_: **the developer supplies the earlier spec or design notes, and this feature copies its drawing rules into the requirements.**  
+
+    ➡️ [ ] **Accepted**  
+    - <u>Pros</u>: keeps the drawing rules the branch chose.  
+    - <u>Cons</u>: the earlier document must still exist and be shared.  
+
+  - **Recommendation B**: **the graph's rules are written as part of this feature, from the developer's description, in `/speckit-specify`.**  
+
+    ➡️ [ ] **Accepted**  
+    - <u>Pros</u>: no dependency on an old document.  
+    - <u>Cons</u>: the rules are new work and may differ from what the branch did.  
+
+  - **Developer Resolution C**:  
+
+    ➡️ [x] **Accepted**  
+    - we merged the code into this branch
+    
+  
+
 ## 7. Requirements Report Complete Report  
   
 - **Requirements Report Document:** requirements/20261028-114023-line-graph-toggle/requirements-report.md  
 - **Requirements Document:** requirements/20261028-114023-line-graph-toggle/requirements.md  
 - **Software Architecture Diagrams:** 4  
-- **Inconsistencies:** 0  
+- **Inconsistencies:** 3  
 - **Ambiguities:** 4  
 - **Unspecified Aspects:** 9  
-- **Needs Clarifications:** 1  
+- **Needs Clarifications:** 3  
 - **Research Results:** 0  
 - **Breaking Changes:** 2  
 - **Technical Debt items:** 3  
