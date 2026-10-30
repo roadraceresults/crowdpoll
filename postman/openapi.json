@@ -463,6 +463,10 @@
           "bannedVoterCount": {
             "type": "integer",
             "description": "Length of the banned list"
+          },
+          "lineGraphEnabled": {
+            "type": "boolean",
+            "description": "Whether the maximized view draws the line graph. Only an Administrator may change it; from anyone else the request is refused with 403."
           }
         }
       },
@@ -706,6 +710,10 @@
           },
           "overlay": {
             "$ref": "#/components/schemas/Overlay"
+          },
+          "lineGraphEnabled": {
+            "type": "boolean",
+            "description": "Whether the maximized view draws the line graph. Only an Administrator may change it; from anyone else the request is refused with 403."
           }
         }
       },
@@ -1083,6 +1091,10 @@
                 }
               }
             }
+          },
+          "lineGraphEnabled": {
+            "type": "boolean",
+            "description": "Whether the maximized view draws the line graph. Only an Administrator may change it; from anyone else the request is refused with 403."
           }
         }
       },
@@ -1724,9 +1736,6 @@
           "429": {
             "$ref": "#/components/responses/RateLimited"
           },
-          "502": {
-            "$ref": "#/components/responses/MailFailure"
-          },
           "500": {
             "description": "Token form only: the account exists but the sign-in could not be completed",
             "content": {
@@ -1736,6 +1745,9 @@
                 }
               }
             }
+          },
+          "502": {
+            "$ref": "#/components/responses/MailFailure"
           }
         }
       }
@@ -3444,6 +3456,10 @@
                   "timeZone": {
                     "type": "string",
                     "description": "The creator's IANA time zone (e.g. America/New_York), stored as the poll's time zone for the dates in its invitation emails. An invalid or missing zone is ignored, never refused; it changes no content version, state or review."
+                  },
+                  "lineGraphEnabled": {
+                    "type": "boolean",
+                    "description": "Whether the maximized view draws the line graph. Only an Administrator may change it; from anyone else the request is refused with 403."
                   }
                 }
               }
@@ -3476,6 +3492,16 @@
           },
           "400": {
             "description": "Field outside the four permitted in UPDATE mode, over-length text, or startAt not before endAt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Only an Administrator can change the line graph. Nothing is written when the request carries lineGraphEnabled.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3639,6 +3665,10 @@
                   "timeZone": {
                     "type": "string",
                     "description": "The creator's IANA time zone (e.g. America/New_York), stored as the poll's time zone for the dates in its invitation emails. An invalid or missing zone is ignored, never refused; it changes no content version, state or review."
+                  },
+                  "lineGraphEnabled": {
+                    "type": "boolean",
+                    "description": "Whether the maximized view draws the line graph. Only an Administrator may change it; from anyone else the request is refused with 403."
                   }
                 }
               }
@@ -3676,6 +3706,16 @@
           },
           "400": {
             "description": "A field is invalid: over-length text, startAt not before endAt, or malformed keywords",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Only an Administrator can change the line graph. Nothing is written when the request carries lineGraphEnabled.",
             "content": {
               "application/json": {
                 "schema": {
@@ -5174,8 +5214,7 @@
               "schema": {
                 "type": "object",
                 "required": [
-                  "clientGuid",
-                  "colors"
+                  "clientGuid"
                 ],
                 "properties": {
                   "clientGuid": {
@@ -5196,8 +5235,13 @@
                   "timeZone": {
                     "type": "string",
                     "description": "The creator's IANA time zone (e.g. America/New_York), stored as the poll's time zone for the dates in its invitation emails. An invalid or missing zone is ignored, never refused; it changes no content version, state or review."
+                  },
+                  "lineGraphEnabled": {
+                    "type": "boolean",
+                    "description": "Whether the maximized view draws the line graph. Only an Administrator may change it; from anyone else the request is refused with 403."
                   }
-                }
+                },
+                "description": "colors may be omitted when lineGraphEnabled is sent: the choices are then left as they are and only the setting is stored."
               }
             }
           }
@@ -5219,6 +5263,10 @@
                       "items": {
                         "$ref": "#/components/schemas/Choice"
                       }
+                    },
+                    "lineGraphEnabled": {
+                      "type": "boolean",
+                      "description": "Whether the maximized view draws the line graph. Only an Administrator may change it; from anyone else the request is refused with 403."
                     }
                   }
                 }
@@ -5227,6 +5275,16 @@
           },
           "400": {
             "description": "The list is not as long as the choice list, or an entry is not allowed. Nothing is changed and the session stays open.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Only an Administrator can change the line graph. Nothing is written when the request carries lineGraphEnabled.",
             "content": {
               "application/json": {
                 "schema": {
@@ -6608,7 +6666,7 @@
             }
           },
           "404": {
-            "description": "Not found — the one answer to every refusal",
+            "description": "Not found — the one answer to every refusal, and the answer while the poll's line graph setting is off",
             "content": {
               "application/json": {
                 "schema": {

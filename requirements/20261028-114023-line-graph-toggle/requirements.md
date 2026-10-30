@@ -32,7 +32,7 @@ Of course, a database field will be needed to be added to the polls table.
   When maximized, it shows no graph and makes no graph request, and the maximized card is laid out as it was before the line graph.  
   The graph route `GET /api/polls/:pid/line-graph` answers `404` for such a poll.  
 - **When it may change (UA2).**  
-  The setting may change in every poll state, with votes or without.  
+  The setting may change in every poll state except awaiting approval, with votes or without. While a poll is awaiting approval, a change is refused, as for any other field.  
   It joins `UPDATE_FIELDS`, and the colors-only path (`POST /api/admin/polls/:pid/colors`) accepts it too.  
   Changing it never sends the poll for review and never pauses voting beyond the open edit session.  
 - **Protecting the setting (UA3).**  
@@ -46,14 +46,18 @@ Of course, a database field will be needed to be added to the polls table.
   nothing is added when it is off.  
 - **How the home page learns it (UA6).**  
   The poll projections carry `lineGraphEnabled`, `deltaClient.js` copies it, and `tabs.js` mounts the graph only when it is true.  
-  A change reaches open cards on their next content refresh.  
+  A change reaches open cards on their next Refresh of the tab.  
 - **Before the poll has choices (UA7).**  
   For an Administrator the checkbox is shown first in every case;  
   the "Add your choices first" note takes the place of the color pickers below it.  
-- **Order of work (NC1).**  
-  The `poll-line-graph` branch is merged into `dev` first;  
-  this feature is built on top of it and only adds the setting.  
-  Both merges should reach `dev` in the same push, since pushing `dev` deploys, so `dev` never shows a graph on every poll.  
+- **Order of work (NC1, NC2, IN3).**  
+  The line graph is already on this branch (commit `3f4b6de`), so this feature builds on it and only adds the setting.  
+  This feature and the graph it builds on reach `dev` in one merge, so `dev` never shows a graph on every poll.  
+- **The column's migration (IN3).**  
+  The column is added by migration `013-line-graph-enabled`, which follows the graph's `012-line-graph-tally`.  
+- **The graph's design (NC3).**  
+  The line graph's drawing rules are those of `specs/20261027-151601-POLL-LINE-GRAPH/spec.md`, which came over with the line graph code on this branch (commit `3f4b6de`).  
+  This feature does not restate them.  
 - **One name (AM4).**  
   The setting is `lineGraphEnabled` everywhere in JSON (request bodies, poll projections, admin rows, `postman/openapi.json`) and `line_graph_enabled` for the column.  
 - **The admin card's source (UA8).**  

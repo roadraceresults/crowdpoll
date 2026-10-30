@@ -12,7 +12,7 @@ import { makePoll, polls, voteHistory } from "./helpers/poll-fixtures.js";
 import request from "supertest";
 import { openPage, type BrowserPage } from "./helpers/browser.js";
 import { newestSweep, trendingSweep } from "../src/polls/sweeps.js";
-import type { Poll } from "../src/polls/store.js";
+import { updatePoll, type Poll } from "../src/polls/store.js";
 
 const SCRIPTS = ["app.js", "pollCard.js", "voteClient.js", "deltaClient.js", "lineGraph.js", "tabs.js", "trending.js", "newest.js", "searchTab.js", "liveResults.js"];
 
@@ -41,6 +41,7 @@ async function seedPoll(title: string, overrides: Partial<Poll> = {}): Promise<P
     _id: randomUUID(),
     title,
     subtitle: `${title} subtitle`,
+    lineGraphEnabled: true,
     choices: [
       { id: "c1", label: "Yes", position: 0 },
       { id: "c2", label: "No", position: 1 },
@@ -475,3 +476,71 @@ describe("auto refresh (C8, C9)", () => {
   });
 });
 
+
+describe("the line graph setting (FR-010, FR-012, FR-014)", () => {
+  const INTERVAL = 40;
+  const lineGraphRequests = (p: BrowserPage) => p.requests.filter((r) => r.url.includes("/line-graph")).length;
+  const setSetting = (pid: string, lineGraphEnabled: boolean) =>
+    updatePoll({ db: ctx.db, cache: ctx.cache }, pid, { lineGraphEnabled });
+
+  it("draws no graph and makes no graph request while the setting is off", async () => {
+    const poll = await seedPoll("Plain", { lineGraphEnabled: false });
+    await seedHistory(poll._id);
+    await sweeps();
+    page = await open();
+    const before = lineGraphRequests(page);
+    const side = await maximize(page, "Plain");
+    await page.settle(100);
+    expect(side.querySelector(".line-graph")).toBeNull();
+    expect(lineGraphRequests(page)).toBe(before);
+  });
+
+  it("draws the graph when the setting is on", async () => {
+    const poll = await seedPoll("Shown", { lineGraphEnabled: true });
+    await seedHistory(poll._id);
+    await sweeps();
+    page = await open();
+    const before = lineGraphRequests(page);
+    const side = await maximize(page, "Shown");
+    expect(side.querySelector(".line-graph-title")!.textContent).toBe("Shown");
+    expect(lineGraphRequests(page)).toBeGreaterThan(before);
+  });
+
+  it("draws a graph switched on while the card is maximized, on the next content refresh", async () => {
+    const poll = await seedPoll("Turned on", { lineGraphEnabled: false });
+    await seedHistory(poll._id);
+    await sweeps();
+    page = await open();
+    const side = await maximize(page, "Turned on");
+    expect(side.querySelector(".line-graph")).toBeNull();
+
+    await setSetting(poll._id, true);
+    await sweeps();
+    await page.settle(1250);
+    await page.click("#refreshBtn");
+    await page.settle(50);
+    expect(side.querySelector(".line-graph-title")!.textContent).toBe("Turned on");
+  });
+
+  it("keeps a graph drawn when the setting is switched off, and its next refresh shows the unavailable note", async () => {
+    const poll = await seedPoll("Turned off", { lineGraphEnabled: true });
+    await seedHistory(poll._id);
+    await sweeps();
+    page = await open();
+    (page.window as unknown as { SiteConfig: Promise<{ lineGraphRefreshIntervalMs: number }> }).SiteConfig =
+      Promise.resolve({ lineGraphRefreshIntervalMs: INTERVAL });
+    const side = await maximize(page, "Turned off");
+    expect(side.querySelector(".line-graph-title")).not.toBeNull();
+
+    await setSetting(poll._id, false);
+    await sweeps();
+    await page.settle(1250);
+    await page.click("#refreshBtn");
+    await page.settle(50);
+    expect(side.querySelector(".line-graph-title")).not.toBeNull();
+
+    stubLineGraph(page, "404");
+    await page.settle(4 * INTERVAL);
+    expect(noteText(side)).toBe("Results are not available yet");
+  });
+});

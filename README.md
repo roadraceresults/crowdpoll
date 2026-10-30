@@ -64,7 +64,9 @@ delivery network.
   graph, or touch it on a phone, to read every line's share at that moment; times are in your own
   time zone. The graph updates itself about once a minute while it is open. Anyone who may see a
   poll's results may see its graph, guests included on public polls. Choices with less than 1% of
-  the current vote are left off.
+  the current vote are left off. The graph is drawn only on a poll whose administrator has turned on
+  **Show the line graph** (see the View step below); on every other poll the maximized view has no
+  graph.
 - **Result colours** — each result bar has a vivid colour of its own, on a pale tint of the same
   colour. Each poll takes its own run of colours from the palette, starting at a point set by the
   poll itself, so neighbouring cards look different, and a poll shows the same colours wherever
@@ -118,12 +120,17 @@ delivery network.
   panel, folds it away (the button then reads **Expand Search**); it folds itself after a search that shows results
   and stays open when nothing matched. Clicking the **Search** view tab opens a collapsed panel.
 - **Create New Poll** opens the new poll's card as a six-step wizard: Who can vote, Title &
-  Tags, Choices, Colors, How to vote, and When to vote. **Save** keeps your answers so you can
+  Tags, Choices, View, How to vote, and When to vote. **Save** keeps your answers so you can
   finish later; **Publish**, available once every step has been visited and the poll is complete,
   sends the poll to be reviewed. New polls are public and let voters change their vote unless
   you choose otherwise.
-- **Colors** — on the Colors step, the poll's creator or an administrator can choose a color for
-  each choice from a fixed palette of eighteen, shown as a grid of named swatches. A choice left
+- **View** — on the View step, the poll's creator or an administrator can choose a color for
+  each choice from a fixed palette of eighteen, shown as a grid of named swatches. An administrator
+  also sees **Show the line graph** at the top of this step; it is off by default, on every poll,
+  new or existing. Only an administrator can change it: for anyone else the step has no checkbox
+  and the poll's summary says whether the graph is shown. Changing it on a poll with votes does not
+  send the poll to be reviewed, and it can be changed on a closed poll, but not while the poll is
+  awaiting approval. A choice left
   on **Automatic** is colored as before, and choosing a color for one choice never changes the
   color of another that was left on Automatic. Colors can also be changed after voting has
   started, while the choices themselves stay locked; changing only colors does not send the poll
@@ -313,12 +320,10 @@ They share one branded layout (`src/email/templates.ts`), come from
 `CrowdPoll <no-reply@mail.crowdpoll.vote>`, and name `support@crowdpoll.vote` for questions.
 
 - **Production** sends through Amazon SES (`ca-central-1`) over HTTPS, since DigitalOcean blocks outbound SMTP. The SES,
-  DNS (SPF, DKIM, DMARC), inbound forwarding and alarm setup is done by hand; the procedure is in
-  `requirements/20261019-153514-production-email/requirements.md` (RS8, RS10, RS17).
+  DNS (SPF, DKIM, DMARC), inbound forwarding and alarm setup is a one-time task done by hand by the operator.
 - **Development** sends through SES too, from `us-east-1` as `no-reply@dev.mail.crowdpoll.vote`, with a separate key that can
   send nowhere else; that region stays in the SES sandbox, so it only mails inboxes you have verified. The setup is in
-  `specs/20261019-153514-PRODUCTION-EMAIL/quickstart.md` §6. The SMTP
-  (Mailtrap) path and the console fallback remain in the code for reference; the tests capture messages and send none.
+  The SMTP (Mailtrap) path and the console fallback remain in the code for reference; the tests capture messages and send none.
 - Each send logs its type, a masked recipient (`j•••@gmail.com`) and the provider's message id, never the link.
 - A sign-in link signs in at once only in the browser that asked for it (a short-lived `signin_binding` cookie);
   opened anywhere else, a page names the account and asks for one click to confirm.
@@ -346,8 +351,8 @@ They share one branded layout (`src/email/templates.ts`), come from
   to `src/public/.well-known/`.
 - A refused sign-in lands on `/login?error=<code>` with a message. A provider sign-in sets the `oauth_state` cookie
   for 5 minutes, listed in the Privacy Policy's Cookie Use table.
-- Registering the four apps, the secrets and the checks are in
-  `specs/20261022-131728-SOCIAL-OAUTH-PROVIDERS/contracts/provider-setup.md` (P0–P5) and `quickstart.md`.
+- Registering the four apps and their secrets is a one-time task for the operator; the redirect addresses above are what
+  each provider needs.
 
 ## Deploying to DigitalOcean App Platform
 

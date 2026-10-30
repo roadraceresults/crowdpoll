@@ -113,6 +113,7 @@
       voteMutability: card.voteMutability,
       pollVisibility: card.pollVisibility,
       pollState: card.pollState,
+      lineGraphEnabled: card.lineGraphEnabled === true,
       startAt: card.startAt,
       endAt: card.endAt,
       choices: choices,
