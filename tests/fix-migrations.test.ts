@@ -219,35 +219,35 @@ describe("applyRepair", () => {
   });
 
   it("F2: renames a record renumbered at merge, running no schema change", async () => {
-    await withFolderMigrations({ "013-fixture-renamed": { up: async () => {} } }, async () => {
+    await withFolderMigrations({ "090-fixture-renamed": { up: async () => {} } }, async () => {
       const { db, drop } = await migratedDatabase();
       created.push(drop);
-      await sql`update kysely_migration set name = '099-fixture-renamed' where name = '013-fixture-renamed'`.execute(db);
+      await sql`update kysely_migration set name = '099-fixture-renamed' where name = '090-fixture-renamed'`.execute(db);
       const before = (await snapshot(db)) as { columns: unknown };
       const recorded = await records(db);
       const plan = planRepair(recorded, Object.keys(migrations), await resolvedLookup(recorded));
-      expect(plan.actions).toEqual([{ kind: "rename", from: "099-fixture-renamed", to: "013-fixture-renamed" }]);
+      expect(plan.actions).toEqual([{ kind: "rename", from: "099-fixture-renamed", to: "090-fixture-renamed" }]);
       await applyRepair(db, plan, migrations);
-      expect((await records(db)).at(-1)?.name).toBe("013-fixture-renamed");
+      expect((await records(db)).at(-1)?.name).toBe("090-fixture-renamed");
       expect(((await snapshot(db)) as { columns: unknown }).columns).toEqual(before.columns);
       await expect(migrateToLatest(db)).resolves.toEqual([]);
     });
   });
 
   it("F3: applies a skipped migration and records it just before the one named after it", async () => {
-    await withFolderMigrations({ "014-fixture-late": { up: async () => {} } }, async () => {
+    await withFolderMigrations({ "091-fixture-late": { up: async () => {} } }, async () => {
       const { db, drop } = await migratedDatabase();
       created.push(drop);
-      const late = (await records(db)).find((r) => r.name === "014-fixture-late")!;
+      const late = (await records(db)).find((r) => r.name === "091-fixture-late")!;
       await withFolderMigrations(
-        { "013-fixture-early": { up: async (trx) => void (await sql`create table "fixture_early" (id integer)`.execute(trx)) } },
+        { "090-fixture-early": { up: async (trx) => void (await sql`create table "fixture_early" (id integer)`.execute(trx)) } },
         async () => {
           const recorded = await records(db);
           const plan = planRepair(recorded, Object.keys(migrations), await resolvedLookup(recorded));
-          expect(plan.actions).toEqual([{ kind: "apply", name: "013-fixture-early", timestamp: late.timestamp, before: "014-fixture-late" }]);
+          expect(plan.actions).toEqual([{ kind: "apply", name: "090-fixture-early", timestamp: late.timestamp, before: "091-fixture-late" }]);
           await applyRepair(db, plan, migrations);
           expect(await tableExists(db, "fixture_early")).toBe(true);
-          expect((await records(db)).find((r) => r.name === "013-fixture-early")?.timestamp).toBe(late.timestamp);
+          expect((await records(db)).find((r) => r.name === "090-fixture-early")?.timestamp).toBe(late.timestamp);
           await expect(migrateToLatest(db)).resolves.toEqual([]);
         }
       );

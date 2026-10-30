@@ -22,7 +22,12 @@ let ctx: TestContext;
 let page: BrowserPage | null = null;
 
 beforeAll(async () => {
-  ctx = await startTestContext({ ENV_MIN_MANUAL_REFRESH_INTERVAL: "1" });
+  // A 1 s recompute interval is also the published max-age, so a Refresh after
+  // the 1250 ms settle below is not made to wait.
+  ctx = await startTestContext({
+    ENV_MIN_MANUAL_REFRESH_INTERVAL: "1",
+    ENV_TRENDING_POLLS_RECOMPUTE_SWEEP_INTERVAL: "1000"
+  });
 });
 afterAll(async () => {
   page?.close();
