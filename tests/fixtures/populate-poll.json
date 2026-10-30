@@ -1,6 +1,7 @@
 {
   "poll creator email": "creator@example.com",
   "title": "Fixture Approval",
+  "graph_subtitle": "Fixture subtitle",
   "choice_a": "Approve",
   "choice_b": "Disapprove",
   "choice_c": "Unsure",

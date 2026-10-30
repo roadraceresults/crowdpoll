@@ -1,5 +1,5 @@
 {
-    "requirements_directory": "requirements/20261028-114023-line-graph-toggle",
+    "requirements_directory": "requirements/20261030-123029-populate-graph-subtitle",
     "last_written": {
         "requirements/20261019-153514-production-email/requirements.md": "e0bd2b0bf28c2fbd6699c99cdf364c1398d3b7aed8eb456198295f78d108ee08",
         "requirements/20261019-153514-production-email/requirements-report.md": "4f75f5e263fa092fc0fcedc4a7cdaa32128382e287f2ac0394e4957e8d8bd413",
@@ -32,6 +32,8 @@
         "requirements/20261029-154817-readable-finding-layout/requirements.md": "bf7f1c3f378a24a319a0adb0bb72a251ee7afd833222ebf4574accedb133dfe3",
         "requirements/20261029-154817-readable-finding-layout/requirements-report.md": "d3fe5bea5e2d868b19006dddee64ea4bb9be3946780257168c08b626ff4904cc",
         "requirements/20261029-171759-plan-analyze-chain/requirements.md": "f99312c11e62afe63f4cd5ad50823ddc67540a37c5c79222fd1f45f8da18d3da",
-        "requirements/20261029-171759-plan-analyze-chain/requirements-report.md": "03d75462ae0712c41398214b87cda7753a4035214ae1392a62a3612156a69fa5"
+        "requirements/20261029-171759-plan-analyze-chain/requirements-report.md": "03d75462ae0712c41398214b87cda7753a4035214ae1392a62a3612156a69fa5",
+        "requirements/20261030-123029-populate-graph-subtitle/requirements.md": "c7a2262561d88f448009a41f66ce04e76e860753625db27f54d762ba0cea3311",
+        "requirements/20261030-123029-populate-graph-subtitle/requirements-report.md": "c1713e82faee27c7a6421aa437eeb0855471b9c35a113fe9c506b7d483b0e8c6"
     }
 }

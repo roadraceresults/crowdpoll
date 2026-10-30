@@ -32,6 +32,7 @@ describe("parsePollData", () => {
     const data = parsePollData(fixture, bounds);
     expect(data.creatorEmail).toBe("creator@example.com");
     expect(data.title).toBe("Fixture Approval");
+    expect(data.subtitle).toBe("Fixture subtitle");
     expect(data.choices.map((c) => c.label)).toEqual(["Approve", "Disapprove", "Unsure"]);
     expect(data.voteCount).toBe(100);
     expect(data.dataPoints.map((p) => p.date)).toEqual([
@@ -40,6 +41,18 @@ describe("parsePollData", () => {
       new Date(2026, 9, 5)
     ]);
     expect(data.dataPoints[1]!.percentages).toEqual([40, 50, 0]);
+  });
+
+  it("parses a missing or empty graph_subtitle as an empty subtitle", () => {
+    const without = { ...fixture };
+    delete without.graph_subtitle;
+    expect(parsePollData(without, bounds).subtitle).toBe("");
+    expect(parsePollData({ ...without, graph_subtitle: "" }, bounds).subtitle).toBe("");
+  });
+
+  it("accepts a 30-character graph_subtitle unchanged", () => {
+    const value = "x".repeat(30);
+    expect(parsePollData({ ...fixture, graph_subtitle: value }, bounds).subtitle).toBe(value);
   });
 
   it("orders choice keys by length, then alphabetically", () => {
@@ -173,7 +186,7 @@ describe("populatePoll — create", () => {
       vote_mutability: "Dynamic-Vote Poll",
       voter_count_limit: null,
       keywords: "",
-      subtitle: "",
+      subtitle: "Fixture subtitle",
       end_at: null,
       created_by_id: "creator-1",
       created_by_name: "Creator One"
@@ -257,7 +270,7 @@ describe("populatePoll — rerun", () => {
     const lines: string[] = [];
     const second = await populatePoll(
       deps(),
-      parsePollData({ ...fixture, choice_b: "Against" }, ctx.config),
+      parsePollData({ ...fixture, choice_b: "Against", graph_subtitle: "Updated subtitle" }, ctx.config),
       runOptions(secondNow, lines, 7)
     );
     expect(second.pollId).toBe(first.pollId);
@@ -267,6 +280,7 @@ describe("populatePoll — rerun", () => {
 
     const polls = await ctx.db.selectFrom("polls").selectAll().execute();
     expect(polls).toHaveLength(1);
+    expect(polls[0]!.subtitle).toBe("Updated subtitle");
     expect(new Date(polls[0]!.created_at)).toEqual(new Date(2026, 9, 22));
     expect(new Date(polls[0]!.start_at as Date)).toEqual(new Date(2026, 9, 23));
     expect(new Date(polls[0]!.launched_at as Date)).toEqual(new Date(2026, 9, 23));
@@ -288,6 +302,15 @@ describe("populatePoll — rerun", () => {
     expect(votes.some((v) => v.choice_ids.includes(disapprove!.id))).toBe(false);
     const row = await ctx.db.selectFrom("polls").select("vote_count").where("id", "=", first.pollId).executeTakeFirstOrThrow();
     expect(row.vote_count).toBe(votes.length);
+  });
+
+  it("clears the subtitle when the data has no graph_subtitle", async () => {
+    const first = await populatePoll(deps(), parsePollData(fixture, ctx.config), runOptions(firstNow, []));
+    const without = { ...fixture };
+    delete without.graph_subtitle;
+    await populatePoll(deps(), parsePollData(without, ctx.config), runOptions(secondNow, []));
+    const row = await ctx.db.selectFrom("polls").select("subtitle").where("id", "=", first.pollId).executeTakeFirstOrThrow();
+    expect(row.subtitle).toBe("");
   });
 
   it("reopens a CLOSED poll with a warning", async () => {
@@ -341,6 +364,8 @@ describe("parsePollData — input errors", () => {
     ["missing title", { ...valid(), title: undefined }, /title/],
     ["empty title", { ...valid(), title: "" }, /title/],
     ["a 51-character title", { ...valid(), title: "x".repeat(51) }, /50/],
+    ["a numeric graph_subtitle", { ...valid(), graph_subtitle: 7 }, /"graph_subtitle" must be text/],
+    ["a 31-character graph_subtitle", { ...valid(), graph_subtitle: "x".repeat(31) }, /"graph_subtitle" is longer than 30 characters/],
     ["an empty label", { ...valid(), choice_b: "" }, /choice_b/],
     ["a 101-character label", { ...valid(), choice_b: "x".repeat(101) }, /choice_b/],
     ["two equal labels", { ...valid(), choice_c: "Approve" }, /choice_a.*choice_c/],

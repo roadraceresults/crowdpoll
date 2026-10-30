@@ -6,7 +6,7 @@ import { sql } from "kysely";
 import { loadConfig, type AppConfig } from "../../src/config.js";
 import { createCache, type Cache } from "../../src/cache/cache.js";
 import { createDb, closeDb, type Db } from "../../src/db/client.js";
-import { CHOICE_LABEL_MAX, createDefaultPoll, TITLE_MAX } from "../../src/polls/service.js";
+import { CHOICE_LABEL_MAX, createDefaultPoll, SUBTITLE_MAX, TITLE_MAX } from "../../src/polls/service.js";
 import { findPollRow, insertPoll, updatePoll, type Choice } from "../../src/polls/store.js";
 import { reconcile } from "../../src/polls/counters.js";
 import { rebuildLineGraphTally } from "../../src/polls/lineGraphTally.js";
@@ -18,6 +18,7 @@ export class InputError extends Error {}
 export interface PollData {
   creatorEmail: string;
   title: string;
+  subtitle: string;
   choices: { key: string; label: string }[];
   voteCount: number;
   dataPoints: { date: Date; percentages: number[] }[];
@@ -60,12 +61,21 @@ function requiredText(file: Record<string, unknown>, key: string): string {
   return value;
 }
 
+function optionalText(file: Record<string, unknown>, key: string, max: number): string {
+  const value = file[key];
+  if (value === undefined) return "";
+  if (typeof value !== "string") throw new InputError(`"${key}" must be text`);
+  if (value.length > max) throw new InputError(`"${key}" is longer than ${max} characters`);
+  return value;
+}
+
 export function parsePollData(json: unknown, bounds: Bounds): PollData {
   if (!isRecord(json)) throw new InputError("the file must hold one JSON object");
   const file = json;
   const creatorEmail = requiredText(file, "poll creator email");
   const title = requiredText(file, "title");
   if (title.length > TITLE_MAX) throw new InputError(`"title" is longer than ${TITLE_MAX} characters`);
+  const subtitle = optionalText(file, "graph_subtitle", SUBTITLE_MAX);
 
   const choices = Object.keys(file)
     .filter((key) => /^choice_[a-z]+$/.test(key))
@@ -115,7 +125,7 @@ export function parsePollData(json: unknown, bounds: Bounds): PollData {
     })
     .sort((a, b) => a.date.getTime() - b.date.getTime());
 
-  return { creatorEmail, title, choices: choices.map((c) => ({ key: c.key, label: c.label as string })), voteCount, dataPoints };
+  return { creatorEmail, title, subtitle, choices: choices.map((c) => ({ key: c.key, label: c.label as string })), voteCount, dataPoints };
 }
 
 export function readArguments(argv: string[]): string {
@@ -228,7 +238,7 @@ export async function populatePoll(deps: Deps, data: PollData, options: Options 
     }
     await updatePoll({ db, cache }, pid, {
       title: data.title,
-      subtitle: "",
+      subtitle: data.subtitle,
       keywords: "",
       choiceMode: "Single-Choice Poll",
       voteMutability: "Dynamic-Vote Poll",
@@ -250,7 +260,7 @@ export async function populatePoll(deps: Deps, data: PollData, options: Options 
   } else {
     const poll = createDefaultPoll(now);
     choices = data.choices.map((c, position) => ({ id: randomUUID(), label: c.label, position }));
-    Object.assign(poll, { title: data.title, subtitle: "", choices, pollState: "OPEN", startAt: firstDay, createdAt: firstDay, endAt: null });
+    Object.assign(poll, { title: data.title, subtitle: data.subtitle, choices, pollState: "OPEN", startAt: firstDay, createdAt: firstDay, endAt: null });
     await insertPoll({ db, cache }, poll, { id: creator.id, name: creator.userName ?? creator.name, email: data.creatorEmail });
     pid = poll._id;
   }

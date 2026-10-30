@@ -30,12 +30,14 @@ moved so that the latest data point falls on today.
 
 ```
 npx tsx devScripts/populate/populate-poll.ts polldata/trump_approval_rating_over_time.json
+npx tsx devScripts/populate/populate-poll.ts polldata/spain-national-parliament-voting-intention.json
 ```
 
 | Key | Meaning |
 |---|---|
 | `poll creator email` | an existing account's email; the poll is created in its name |
 | `title` | the poll title, at most 50 characters |
+| `graph_subtitle` | optional: the poll's subtitle, shown under the title and on the maximized view's line graph, at most 30 characters |
 | `choice_a`, `choice_b`, … | the choice labels, ordered by key (`choice_a` … `choice_z`, `choice_aa`, …) |
 | `vote_count` | the average number of votes per data point, a whole number of at least 1 |
 | `data_points` | `[{ "date": "MM/DD/YY", "choice_a": 41.2, "choice_b": 55.0 }, …]`; a missing choice counts as 0 |

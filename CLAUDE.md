@@ -5,6 +5,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261030-123029-POPULATE-GRAPH-SUBTITLE/plan.md` (research R1–R6, `data-model.md` — one optional input key
+parsed onto `PollData.subtitle` and written to the existing `polls.subtitle`, nothing stored anew — the CLI contract
+`contracts/cli.md` C1–C5, and the quickstart live alongside it in `specs/20261030-123029-POPULATE-GRAPH-SUBTITLE/`).
+The requirements report is `requirements/20261030-123029-populate-graph-subtitle/requirements-report.md`: 4 diagrams
+and 6 findings, all resolved. Decisions that are easy to get wrong:
+- **`graph_subtitle` is optional and goes to `polls.subtitle`** on create and on refresh; absent or `""` means empty,
+  and a rerun clears a subtitle the file no longer has — the file is the source of truth on every run (R2, R3).
+- **`SUBTITLE_MAX` (30) is imported from `src/polls/service.ts`**, never copied; a non-string or over-long value is one
+  `[populate] Error:` line and exit 1 before any write; the value is untrimmed, as `validateFieldLength` keeps it
+  (R2, R4).
+- **No display change**: the poll card and the maximized view's line graph already render `subtitle` (R1).
+- **One input format**: the script does not learn the files' `graph_title`/`label_a` shape; the git-ignored
+  `polldata/` files are corrected by hand, their 31-character subtitle shortened (NC1, NC2, R6).
+No server, route, configuration, data or migration change; no new dependency.
+The preceding feature is
 `specs/20261028-182852-line-graph-toggle/plan.md` (research R1–R13, `data-model.md` — one `polls` column,
 `line_graph_enabled`, added by migration `013-line-graph-enabled`; the HTTP contracts `contracts/api.md` A1–A5, the UI
 contracts `contracts/ui-contracts.md` C1–C6, and the quickstart live alongside it in
