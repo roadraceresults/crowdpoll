@@ -149,6 +149,16 @@ describe("Email transport, sender and timeout", () => {
     expect(entry("ENV_SES_SECRET_ACCESS_KEY")).toContain("type: SECRET");
   });
 
+  it("prunes devDependencies after the build in the deployment spec, keeping tsx", () => {
+    const appYaml = readFileSync(new URL("../.do/app.yaml", import.meta.url), "utf8");
+    const entry = (key: string) => new RegExp(`- key: ${key}\\r?\\n((?: {8}.*\\r?\\n)*)`).exec(appYaml)?.[1] ?? "";
+    expect(entry("NODE_ENV")).toMatch(/value: "?production"?/);
+    expect(entry("NODE_ENV")).toContain("scope: RUN_AND_BUILD_TIME");
+    expect(appYaml).toMatch(/build_command: npm ci --include=dev && /);
+    const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+    expect(pkg.dependencies.tsx).toBeDefined();
+  });
+
   it("reads ENV_EMAIL_ASSET_ORIGIN as an origin, unset by default", () => {
     expect(loadConfig(baseEnv()).emailAssetOrigin).toBeUndefined();
     expect(loadConfig(baseEnv({ ENV_EMAIL_ASSET_ORIGIN: "https://crowdpoll.vote" })).emailAssetOrigin).toBe(

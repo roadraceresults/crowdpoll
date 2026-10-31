@@ -6,13 +6,12 @@
 
 ## Summary
 
-`devScripts/populate/populate-poll.ts` gains one optional input key, `graph_subtitle`, read by `parsePollData`
+`devScripts/populate/populate-poll.ts` gains one required input key, `subtitle` (TWEAK01; first `graph_subtitle`, optional), read by `parsePollData`
 onto a new `PollData.subtitle` field and written as the poll's existing `subtitle` on both the create path
 (`insertPoll`) and the refresh path (`updatePoll`), replacing the hard-coded `""`. The value must be a string
 of at most `SUBTITLE_MAX` (30) characters; a bad value is one `[populate] Error:` line and exit 1 before any
-write, like every other input error. Absent or empty means an empty subtitle, so every existing data file and
-the test fixture keep working; a rerun always applies the file's current value, clearing the subtitle when
-the key is gone. No server, route, schema, configuration or browser change: the poll card and the maximized
+write, like every other input error. An absent key is an input error and `""` means an empty subtitle; a rerun
+always applies the file's current value, clearing the subtitle when it is `""`. No server, route, schema, configuration or browser change: the poll card and the maximized
 view's line graph already display `polls.subtitle` (research R1). The README key table, the test fixture and
 the populate tests gain the key (R5); the two local `polldata/` files are corrected by hand (R6).
 
@@ -82,12 +81,12 @@ specs/20261030-123029-POPULATE-GRAPH-SUBTITLE/
 
 ```text
 devScripts/populate/
-├── populate-poll.ts     # parsePollData reads graph_subtitle → PollData.subtitle; both write paths use it
-└── README.md            # key table gains the graph_subtitle row
+├── populate-poll.ts     # parsePollData reads subtitle → PollData.subtitle; both write paths use it
+└── README.md            # key table gains the subtitle row
 
 tests/
 ├── fixtures/
-│   └── populate-poll.json   # gains "graph_subtitle"
+│   └── populate-poll.json   # gains "subtitle"
 └── populate-poll.test.ts    # parse validation, stored on create, applied/cleared on rerun
 ```
 

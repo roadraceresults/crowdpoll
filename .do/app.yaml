@@ -9,7 +9,7 @@ services:
       repo: roadraceresults/crowdpoll
       branch: main
       deploy_on_push: false
-    build_command: npm ci && npm run build && npm run publish-assets
+    build_command: npm ci --include=dev && npm run build && npm run publish-assets
     run_command: npm start
     environment_slug: node-js
     http_port: 8080
@@ -39,6 +39,9 @@ services:
         window: FIVE_MINUTES
     log_destinations: []
     envs:
+      - key: NODE_ENV
+        scope: RUN_AND_BUILD_TIME
+        value: production
       - key: ENV_PORT
         value: "8080"
       - key: ENV_DATABASE_URL

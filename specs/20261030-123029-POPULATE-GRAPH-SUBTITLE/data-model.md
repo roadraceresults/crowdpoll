@@ -5,20 +5,20 @@ input and its in-memory parse result; the destination is the existing `polls.sub
 
 ## Poll data JSON file (input)
 
-One new optional top-level key beside the existing ones:
+One new required top-level key beside the existing ones:
 
 | Key | Required | Type | Rule |
 |---|---|---|---|
-| `graph_subtitle` | no | string | at most `SUBTITLE_MAX` (30) characters; absent or `""` means no subtitle; a non-string or an over-long string is an input error (contracts C1–C2) |
+| `subtitle` | yes | string | at most `SUBTITLE_MAX` (30) characters; `""` means no subtitle; absent, a non-string or an over-long string is an input error (contracts C1–C2; TWEAK01 renamed it from `graph_subtitle` and made it required) |
 
-The existing keys (`poll creator email`, `title`, `choice_a`…, `vote_count`, `data_points`) are unchanged
-(FR-009). Other unknown top-level keys remain ignored.
+The existing keys (`poll_creator_email`, `title`, `choice_a`…, `vote_count`, `data_points`) are unchanged
+(FR-009), except that TWEAK02 renamed `poll creator email` to `poll_creator_email` (FR-010). Other unknown top-level keys remain ignored.
 
 ## PollData (in memory, `devScripts/populate/populate-poll.ts`)
 
 | Field | Type | Source | Notes |
 |---|---|---|---|
-| `subtitle` *(new)* | `string` | `graph_subtitle`, validated per research R2 | `""` when the key is absent or empty; untrimmed |
+| `subtitle` *(new)* | `string` | `subtitle`, validated per research R2 | `""` when the value is empty; untrimmed |
 
 All other `PollData` fields are unchanged.
 

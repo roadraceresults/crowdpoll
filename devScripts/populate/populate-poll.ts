@@ -61,9 +61,9 @@ function requiredText(file: Record<string, unknown>, key: string): string {
   return value;
 }
 
-function optionalText(file: Record<string, unknown>, key: string, max: number): string {
+function boundedText(file: Record<string, unknown>, key: string, max: number): string {
   const value = file[key];
-  if (value === undefined) return "";
+  if (value === undefined) throw new InputError(`"${key}" is missing`);
   if (typeof value !== "string") throw new InputError(`"${key}" must be text`);
   if (value.length > max) throw new InputError(`"${key}" is longer than ${max} characters`);
   return value;
@@ -72,10 +72,10 @@ function optionalText(file: Record<string, unknown>, key: string, max: number): 
 export function parsePollData(json: unknown, bounds: Bounds): PollData {
   if (!isRecord(json)) throw new InputError("the file must hold one JSON object");
   const file = json;
-  const creatorEmail = requiredText(file, "poll creator email");
+  const creatorEmail = requiredText(file, "poll_creator_email");
   const title = requiredText(file, "title");
   if (title.length > TITLE_MAX) throw new InputError(`"title" is longer than ${TITLE_MAX} characters`);
-  const subtitle = optionalText(file, "graph_subtitle", SUBTITLE_MAX);
+  const subtitle = boundedText(file, "subtitle", SUBTITLE_MAX);
 
   const choices = Object.keys(file)
     .filter((key) => /^choice_[a-z]+$/.test(key))

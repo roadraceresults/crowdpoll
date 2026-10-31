@@ -25,7 +25,7 @@ Single project at the repository root: the script in `devScripts/populate/`, tes
 
 **Purpose**: the shared fixture change every story's tests read
 
-- [X] T001 Add `"graph_subtitle": "Fixture subtitle"` to `tests/fixtures/populate-poll.json` (research R5)
+- [X] T001 Add `"subtitle": "Fixture subtitle"` to `tests/fixtures/populate-poll.json` (research R5)
 
 ---
 
@@ -37,9 +37,9 @@ Single project at the repository root: the script in `devScripts/populate/`, tes
 
 - [X] T002 In `devScripts/populate/populate-poll.ts`: extend the `src/polls/service.js` import with
       `SUBTITLE_MAX`; add `subtitle: string` to the `PollData` interface; add an `optionalText`-style helper
-      beside `requiredText` and read `graph_subtitle` in `parsePollData` — absent or `""` → `""`, a
-      non-string → `InputError` `"graph_subtitle" must be text`, a string over `SUBTITLE_MAX` → `InputError`
-      `"graph_subtitle" is longer than 30 characters`, otherwise the untrimmed value (contracts C1–C2,
+      beside `requiredText` and read `subtitle` in `parsePollData` — absent or `""` → `""`, a
+      non-string → `InputError` `"subtitle" must be text`, a string over `SUBTITLE_MAX` → `InputError`
+      `"subtitle" is longer than 30 characters`, otherwise the untrimmed value (contracts C1–C2,
       research R2, R4)
 
 **Checkpoint**: `parsePollData` returns `subtitle`; both write paths still hard-code `""` (US1 changes that)
@@ -48,10 +48,10 @@ Single project at the repository root: the script in `devScripts/populate/`, tes
 
 ## Phase 3: User Story 1 - A populated demonstration poll carries a subtitle (Priority: P1) 🎯 MVP
 
-**Goal**: the file's `graph_subtitle` becomes the poll's subtitle on create and on refresh, visible on the
+**Goal**: the file's `subtitle` becomes the poll's subtitle on create and on refresh, visible on the
 poll card and the maximized line graph with no browser change
 
-**Independent Test**: run the script on a data file with a valid `graph_subtitle`; the poll row's `subtitle`
+**Independent Test**: run the script on a data file with a valid `subtitle`; the poll row's `subtitle`
 equals the value, and a rerun with a changed value updates it (quickstart §2–3)
 
 ### Tests for User Story 1
@@ -59,11 +59,11 @@ equals the value, and a rerun with a changed value updates it (quickstart §2–
 > **NOTE: T003 verifies T002's parse output (T002 is a strict prerequisite, so T003 cannot fail-first);
 > the fail-first discipline applies to T004, which must fail before T005/T006 land**
 
-- [X] T003 [US1] In `tests/populate-poll.test.ts`, `parsePollData` suite: the fixture's `graph_subtitle`
+- [X] T003 [US1] In `tests/populate-poll.test.ts`, `parsePollData` suite: the fixture's `subtitle`
       lands on `PollData.subtitle` (passes once T002 is in; fails before it)
 - [X] T004 [US1] In `tests/populate-poll.test.ts`: `populatePoll — create` asserts the created poll row's
       `subtitle` equals the fixture's value; `populatePoll — rerun` asserts a rerun with a changed
-      `graph_subtitle` updates `polls.subtitle` while keeping the poll id
+      `subtitle` updates `polls.subtitle` while keeping the poll id
 
 ### Implementation for User Story 1
 
@@ -82,15 +82,16 @@ graph (they already render `polls.subtitle`, research R1)
 **Goal**: a file without the key behaves exactly as today, and a rerun without the key clears an earlier
 subtitle (the file is the source of truth)
 
-**Independent Test**: run the script on a file with no `graph_subtitle`; the poll's subtitle is empty, and a
-rerun after removing the key clears a previously set subtitle (quickstart §3, §5)
+**Independent Test**: run the script on a file with `"subtitle": ""`; the poll's subtitle is empty, a rerun
+with `""` clears a previously set subtitle, and a file with no `subtitle` key is refused (quickstart §3, §5;
+amended by TWEAK01)
 
 ### Tests for User Story 2
 
-- [X] T007 [US2] In `tests/populate-poll.test.ts`, `parsePollData` suite: data without a
-      `graph_subtitle` key parses to `subtitle: ""`, and `"graph_subtitle": ""` parses the same
-- [X] T008 [US2] In `tests/populate-poll.test.ts`, `populatePoll — rerun` suite: a rerun whose data has no
-      `graph_subtitle` clears `polls.subtitle` to `""`
+- [X] T007 [US2] In `tests/populate-poll.test.ts`, `parsePollData` suite: `"subtitle": ""`
+      parses to `subtitle: ""`, and data without a `subtitle` key is refused with `"subtitle" is missing` (TWEAK01)
+- [X] T008 [US2] In `tests/populate-poll.test.ts`, `populatePoll — rerun` suite: a rerun whose data has
+      `"subtitle": ""` clears `polls.subtitle` to `""` (TWEAK01)
 
 ### Implementation for User Story 2
 
@@ -103,7 +104,7 @@ No implementation task: the behaviour falls out of T002 (absent → `""`) and T0
 
 ## Phase 5: User Story 3 - An invalid subtitle stops the run before any write (Priority: P3)
 
-**Goal**: a non-string or over-long `graph_subtitle` is one `[populate] Error:` line and exit 1, with nothing
+**Goal**: a non-string or over-long `subtitle` is one `[populate] Error:` line and exit 1, with nothing
 written
 
 **Independent Test**: run the script on a file with a 31-character value; one error line, exit code 1, zero
@@ -112,8 +113,8 @@ rows changed (quickstart §4)
 ### Tests for User Story 3
 
 - [X] T009 [US3] In `tests/populate-poll.test.ts`, `parsePollData — input errors` table: a non-string
-      `graph_subtitle` (e.g. `7`) is refused with `"graph_subtitle" must be text`; a 31-character string is
-      refused with `"graph_subtitle" is longer than 30 characters`; and in the `parsePollData` suite a
+      `subtitle` (e.g. `7`) is refused with `"subtitle" must be text`; a 31-character string is
+      refused with `"subtitle" is longer than 30 characters`; and in the `parsePollData` suite a
       30-character string is accepted unchanged (contract C2, boundary from the spec's edge cases)
 
 ### Implementation for User Story 3
@@ -128,12 +129,23 @@ no-write guarantee is structural — `parsePollData` runs before the database is
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-- [X] T010 [P] Add the `graph_subtitle` row to the key table in `devScripts/populate/README.md`: optional,
+- [X] T010 [P] Add the `subtitle` row to the key table in `devScripts/populate/README.md`: optional,
       the poll's subtitle shown under the title, at most 30 characters (contract C5)
 - [X] T011 Correct the two git-ignored files under `polldata/` by hand: documented keys
-      (`poll creator email`, `title`, `choice_a`/`choice_b`, choice-keyed `data_points`, `vote_count`),
-      keeping `graph_subtitle` with a value within the limit, e.g. `"For Demonstration Purposes"`
+      (`poll_creator_email`, `title`, `choice_a`/`choice_b`, choice-keyed `data_points`, `vote_count`),
+      keeping `subtitle` with a value within the limit, e.g. `"For Demonstration Purposes"`
       (research R6; local only, nothing committed)
+- [X] T015 TWEAK01: rename the input key `graph_subtitle` to `subtitle` and make it required —
+      `parsePollData` refuses an absent key with `"subtitle" is missing`; the fixture, the populate tests
+      (absent key refused, `""` clears) and the README key table follow; the `polldata/` files are renamed by
+      hand
+- [X] T016 TWEAK02: rename the input key `poll creator email` to `poll_creator_email` — `parsePollData` reads
+      it with `requiredText`, so an absent key is `"poll_creator_email" is missing or empty`; the fixture, the
+      populate tests (the old key alone is refused) and the README key table follow; the `polldata/` files are
+      renamed by hand
+- [X] T017 TWEAK03: `.do/app.yaml` sets `NODE_ENV=production` (`RUN_AND_BUILD_TIME`) and builds with
+      `npm ci --include=dev`, so the buildpack prunes devDependencies; `tsx` moves to `dependencies` for
+      `npm run reconcile`; `tests/config.test.ts` checks all three; root `README.md` deploy line updated
 - [X] T012 Run `npx tsc --noEmit` and `npx vitest run tests/populate-poll.test.ts`; fix anything they report
 - [X] T013 Run the quickstart validation end to end (`specs/20261030-123029-POPULATE-GRAPH-SUBTITLE/quickstart.md`):
       create run shows the subtitle on the card and the line graph, rerun applies and clears, error cases
@@ -178,7 +190,7 @@ no-write guarantee is structural — `parsePollData` runs before the database is
 
 ```bash
 # After T001 + T002, write US1's tests (same test file — one edit session):
-Task: "T003 parsePollData maps the fixture's graph_subtitle onto PollData.subtitle"
+Task: "T003 parsePollData maps the fixture's subtitle onto PollData.subtitle"
 Task: "T004 create stores the subtitle; rerun applies a changed value"
 
 # Then the two write-path edits in devScripts/populate/populate-poll.ts, in order:

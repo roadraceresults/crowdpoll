@@ -15,12 +15,14 @@ existing field and need UI work for no benefit (requirements AM1, Recommendation
 
 ## R2. How the key is parsed
 
-**Decision**: `parsePollData` reads `graph_subtitle` with a new small helper beside `requiredText`:
+**Decision**: `parsePollData` reads `subtitle` with a new small helper beside `requiredText`:
 
-- key absent or value `""` → `subtitle` is `""` (the field is optional, UA1);
+- key absent → `InputError`: `"subtitle" is missing` (TWEAK01: the key is `subtitle`, required; it was
+  the optional `graph_subtitle`, UA1);
+- value `""` → `subtitle` is `""`;
 - value a string of 1 to `SUBTITLE_MAX` characters → used as-is, untrimmed;
-- value a non-string (number, null, object, …) → `InputError`: `"graph_subtitle" must be text`;
-- value a string over `SUBTITLE_MAX` → `InputError`: `"graph_subtitle" is longer than 30 characters`
+- value a non-string (number, null, object, …) → `InputError`: `"subtitle" must be text`;
+- value a string over `SUBTITLE_MAX` → `InputError`: `"subtitle" is longer than 30 characters`
   (the title's existing wording, `"title" is longer than ${TITLE_MAX} characters`, with the field name and
   limit swapped in).
 
@@ -65,14 +67,14 @@ limit change needs no script edit.
 
 **Decision**:
 
-- `tests/fixtures/populate-poll.json` gains `"graph_subtitle": "Fixture subtitle"` (16 characters), so the
+- `tests/fixtures/populate-poll.json` gains `"subtitle": "Fixture subtitle"` (16 characters), so the
   main create/rerun suites exercise the stored value for free;
-- `parsePollData` unit tests: the fixture's value lands on `PollData.subtitle`; an absent key parses to `""`;
+- `parsePollData` unit tests: the fixture's value lands on `PollData.subtitle`; `""` parses to `""` and an absent key is refused (TWEAK01);
 - `parsePollData — input errors` table gains two rows: a non-string value and a 31-character value, each
   refused with the R2 message;
 - `populatePoll — create`: the created poll row's `subtitle` equals the fixture's value;
 - `populatePoll — rerun`: a rerun with a changed value updates `polls.subtitle`, and a rerun whose data has
-  no `graph_subtitle` clears it to `""`.
+  `"subtitle": ""` clears it to `""`.
 
 **Rationale**: `tests/populate-poll.test.ts` already has the exact suites to extend (`parsePollData`,
 `parsePollData — input errors`, `populatePoll — create`, `populatePoll — rerun`), so every FR gets a test
@@ -84,13 +86,13 @@ and the documentation telling one story (UA3).
 ## R6. The two local data files
 
 **Decision**: the git-ignored files under `polldata/` are corrected by hand, outside the commit: keys brought
-back to the documented format (`poll creator email`, `title`, `choice_a`/`choice_b`, choice-keyed
-`data_points`, `vote_count`), keeping `graph_subtitle` with a value within the limit
+back to the documented format (`poll_creator_email`, `title`, `choice_a`/`choice_b`, choice-keyed
+`data_points`, `vote_count`), keeping `subtitle` with a value within the limit
 (e.g. "For Demonstration Purposes", 26 characters). The quickstart documents the expected shape.
 
 **Rationale**: NC2 Recommendation A — the script accepts only the documented format; the files currently use
 `graph_title`, `label_a`/`label_b` and bare `a`/`b` point keys and lack the two required keys, so they fail
-today before `graph_subtitle` is reached. Their current value, "Poll for Demonstration Purposes", is 31
+today before the subtitle key is reached. Their current value, "Poll for Demonstration Purposes", is 31
 characters and must shrink (NC1).
 
 **Alternatives considered**: teaching the script the second shape — rejected by NC2 (two formats to document,

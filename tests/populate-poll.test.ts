@@ -43,22 +43,25 @@ describe("parsePollData", () => {
     expect(data.dataPoints[1]!.percentages).toEqual([40, 50, 0]);
   });
 
-  it("parses a missing or empty graph_subtitle as an empty subtitle", () => {
-    const without = { ...fixture };
-    delete without.graph_subtitle;
-    expect(parsePollData(without, bounds).subtitle).toBe("");
-    expect(parsePollData({ ...without, graph_subtitle: "" }, bounds).subtitle).toBe("");
+  it("parses an empty subtitle as an empty subtitle", () => {
+    expect(parsePollData({ ...fixture, subtitle: "" }, bounds).subtitle).toBe("");
   });
 
-  it("accepts a 30-character graph_subtitle unchanged", () => {
+  it("refuses a file with no subtitle, even with a graph_subtitle", () => {
+    const without: Record<string, unknown> = { ...fixture, graph_subtitle: "Old key" };
+    delete without.subtitle;
+    expect(() => parsePollData(without, bounds)).toThrow(/"subtitle" is missing/);
+  });
+
+  it("accepts a 30-character subtitle unchanged", () => {
     const value = "x".repeat(30);
-    expect(parsePollData({ ...fixture, graph_subtitle: value }, bounds).subtitle).toBe(value);
+    expect(parsePollData({ ...fixture, subtitle: value }, bounds).subtitle).toBe(value);
   });
 
   it("orders choice keys by length, then alphabetically", () => {
     const data = parsePollData(
       {
-        "poll creator email": "creator@example.com",
+        "poll_creator_email": "creator@example.com",
         title: "Order",
         choice_b: "B",
         choice_a: "A",
@@ -270,7 +273,7 @@ describe("populatePoll — rerun", () => {
     const lines: string[] = [];
     const second = await populatePoll(
       deps(),
-      parsePollData({ ...fixture, choice_b: "Against", graph_subtitle: "Updated subtitle" }, ctx.config),
+      parsePollData({ ...fixture, choice_b: "Against", subtitle: "Updated subtitle" }, ctx.config),
       runOptions(secondNow, lines, 7)
     );
     expect(second.pollId).toBe(first.pollId);
@@ -304,11 +307,9 @@ describe("populatePoll — rerun", () => {
     expect(row.vote_count).toBe(votes.length);
   });
 
-  it("clears the subtitle when the data has no graph_subtitle", async () => {
+  it("clears the subtitle when the data's subtitle is empty", async () => {
     const first = await populatePoll(deps(), parsePollData(fixture, ctx.config), runOptions(firstNow, []));
-    const without = { ...fixture };
-    delete without.graph_subtitle;
-    await populatePoll(deps(), parsePollData(without, ctx.config), runOptions(secondNow, []));
+    await populatePoll(deps(), parsePollData({ ...fixture, subtitle: "" }, ctx.config), runOptions(secondNow, []));
     const row = await ctx.db.selectFrom("polls").select("subtitle").where("id", "=", first.pollId).executeTakeFirstOrThrow();
     expect(row.subtitle).toBe("");
   });
@@ -359,13 +360,15 @@ describe("parsePollData — input errors", () => {
   const valid = () => JSON.parse(JSON.stringify(fixture)) as Record<string, unknown>;
   const withPoints = (points: unknown[]) => ({ ...valid(), data_points: points });
   const cases: [string, Record<string, unknown>, RegExp][] = [
-    ["missing creator email", { ...valid(), "poll creator email": undefined }, /poll creator email/],
-    ["empty creator email", { ...valid(), "poll creator email": "" }, /poll creator email/],
+    ["missing creator email", { ...valid(), "poll_creator_email": undefined }, /poll_creator_email/],
+    ["empty creator email", { ...valid(), "poll_creator_email": "" }, /poll_creator_email/],
+    ["the old poll creator email key", { ...valid(), "poll_creator_email": undefined, "poll creator email": "creator@example.com" }, /"poll_creator_email" is missing or empty/],
     ["missing title", { ...valid(), title: undefined }, /title/],
     ["empty title", { ...valid(), title: "" }, /title/],
     ["a 51-character title", { ...valid(), title: "x".repeat(51) }, /50/],
-    ["a numeric graph_subtitle", { ...valid(), graph_subtitle: 7 }, /"graph_subtitle" must be text/],
-    ["a 31-character graph_subtitle", { ...valid(), graph_subtitle: "x".repeat(31) }, /"graph_subtitle" is longer than 30 characters/],
+    ["missing subtitle", { ...valid(), subtitle: undefined }, /"subtitle" is missing/],
+    ["a numeric subtitle", { ...valid(), subtitle: 7 }, /"subtitle" must be text/],
+    ["a 31-character subtitle", { ...valid(), subtitle: "x".repeat(31) }, /"subtitle" is longer than 30 characters/],
     ["an empty label", { ...valid(), choice_b: "" }, /choice_b/],
     ["a 101-character label", { ...valid(), choice_b: "x".repeat(101) }, /choice_b/],
     ["two equal labels", { ...valid(), choice_c: "Approve" }, /choice_a.*choice_c/],
@@ -413,7 +416,7 @@ describe("populatePoll — errors and output", () => {
   beforeEach(async () => clearPolls(ctx));
 
   it("refuses an unknown creator without writing anything", async () => {
-    const data = parsePollData({ ...fixture, "poll creator email": "nobody@example.com" }, ctx.config);
+    const data = parsePollData({ ...fixture, "poll_creator_email": "nobody@example.com" }, ctx.config);
     const lines: string[] = [];
     await expect(
       populatePoll({ db: ctx.db, cache: ctx.cache, config: ctx.config }, data, runOptions(new Date(2026, 9, 26, 12), lines))

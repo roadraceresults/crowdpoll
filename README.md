@@ -384,7 +384,9 @@ termination grace period so a retiring instance finishes writing the votes it ho
 Set `ENV_BETTER_AUTH_SECRET`, `ENV_ADMINS`, `ENV_SES_ACCESS_KEY_ID` and `ENV_SES_SECRET_ACCESS_KEY` as secrets (and the
 `ENV_OAUTH_*` values of each sign-in provider, once `ENV_SIGNIN_METHOD` is `oauth` or `both`). The spec sets
 `ENV_PUBLIC_ORIGIN=https://crowdpoll.vote` and `ENV_EMAIL_TRANSPORT=ses`, so the app refuses to start without the SES values (see *Email* below).
-A deploy, started by hand from the console, builds the `main` branch with `npm ci && npm run build && npm run publish-assets` and runs `npm start`.
+A deploy, started by hand from the console, builds the `main` branch with `npm ci --include=dev && npm run build && npm run publish-assets` and runs `npm start`.
+The spec sets `NODE_ENV=production` at build and run time, so the buildpack prunes devDependencies after the build; `tsx` is a
+dependency, so `npm run reconcile` still works from the console.
 
 Operational notes:
 

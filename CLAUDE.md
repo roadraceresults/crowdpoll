@@ -5,13 +5,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-`specs/20261030-123029-POPULATE-GRAPH-SUBTITLE/plan.md` (research R1–R6, `data-model.md` — one optional input key
+`specs/20261030-123029-POPULATE-GRAPH-SUBTITLE/plan.md` (research R1–R6, `data-model.md` — one required input key
 parsed onto `PollData.subtitle` and written to the existing `polls.subtitle`, nothing stored anew — the CLI contract
 `contracts/cli.md` C1–C5, and the quickstart live alongside it in `specs/20261030-123029-POPULATE-GRAPH-SUBTITLE/`).
 The requirements report is `requirements/20261030-123029-populate-graph-subtitle/requirements-report.md`: 4 diagrams
 and 6 findings, all resolved. Decisions that are easy to get wrong:
-- **`graph_subtitle` is optional and goes to `polls.subtitle`** on create and on refresh; absent or `""` means empty,
-  and a rerun clears a subtitle the file no longer has — the file is the source of truth on every run (R2, R3).
+- **`subtitle` is required and goes to `polls.subtitle`** on create and on refresh (TWEAK01: renamed from
+  `graph_subtitle`, which is no longer read); absent is `"subtitle" is missing`, `""` means empty, and a rerun with
+  `""` clears it — the file is the source of truth on every run (R2, R3).
 - **`SUBTITLE_MAX` (30) is imported from `src/polls/service.ts`**, never copied; a non-string or over-long value is one
   `[populate] Error:` line and exit 1 before any write; the value is untrimmed, as `validateFieldLength` keeps it
   (R2, R4).
