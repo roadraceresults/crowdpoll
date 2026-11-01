@@ -178,7 +178,8 @@ Spec Kit uses the PowerShell scripts (`.specify/scripts/powershell/`).
   pointers to `README.md` and `ARCHITECTURE.md`.
 - **Layout**: the *Current State* layout bullets, condensed; leave out the sentence "Every feature in the Spec Kit
   block above is implemented…".
-- **Commands**: the commands block.
+- **Commands**: only the commands the AI runs to check its work (type-check, the tests, one file, one test); the
+  developer's and operator's commands stay in `CLAUDE_COMPLETE.md`.
 - **Configuration rules**: a few lines: every setting is an `ENV_*` variable validated once by `loadConfig`
   (`src/config.ts`); intervals are in ms except the one setting in minutes; the development templates are git-ignored;
   production secrets are console variables, never in `.do/app.yaml`; the full table is in
