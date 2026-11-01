@@ -5,6 +5,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261101-121236-POPULATE-ALL-POLLS/plan.md` (research R1–R11, `data-model.md` — one git-ignored local file,
+`devScripts/populate/populate-all-polls-history.json`, nothing in the database — the CLI contract `contracts/cli.md`
+C1–C5, and the quickstart live alongside it in `specs/20261101-121236-POPULATE-ALL-POLLS/`). The requirements report is
+`requirements/20261101-121236-populate-all-polls/requirements-report.md`: 4 diagrams and 13 findings, all resolved.
+Decisions that are easy to get wrong:
+- **`npm run populate-poll <file>`** runs the unchanged population; only `resolveDataPath` is new (relative to
+  `INIT_CWD`, and `<path>.json` tried when the path has no extension and does not exist) plus the npm usage line (R2, R3).
+- **Each file is a child process**, `process.execPath --import tsx populate-poll.ts <absolute file>`, no shell; its
+  output is piped through live and unchanged, and its `[populate] Done: poll <id> <outcome>` and `Votes written:` lines
+  are parsed; exit 0 without them is a failure, `populated, but its summary could not be read` (R4, R5).
+- **Skip = same database identity, file name and SHA-256**; the identity is `ENV_DATABASE_URL` with its password
+  removed, read from `process.env` (no `loadConfig` in the parent); a success replaces the (database, file) entry and
+  the file is written by temp-file-and-rename after each success (R6–R8).
+- **`.json` files directly in the folder, name order**; default `<project root>/polldata`; failures are logged, not
+  recorded, listed again after `[populate-all] Done: …`, and make the exit code 1 (R9, R10).
+- `populate-poll` never reads or writes the history; `.gitignore` needs `!devScripts/populate/populate-all-polls.ts`.
+No server, route, configuration, data or migration change; no new dependency.
+The preceding feature is
 `specs/20261029-225209-EDITING-POLL-AVAILABLE/plan.md` (research R1–R12, `data-model.md` — two `polls` columns,
 `pending_update` and `pending_rejection_reason`, added by migration `014-pending-update`, and the vote-rewrite
 semantics of a choice deletion; the HTTP contracts `contracts/api.md` A1–A7, the UI contracts
@@ -778,6 +796,8 @@ npm test        # vitest run — all suites under ./tests on an embedded Postgre
 npx vitest run tests/auth.test.ts      # one file
 npx vitest run -t "name of the test"   # tests matching a name
 npm run reconcile       # recompute vote counters from the votes table (operator use)
+npm run populate-poll <file>          # create or refresh one demonstration poll from a data file
+npm run populate-all-polls [<dir>]    # populate every new or changed data file of a folder (default polldata/)
 npm run fix-migrations  # repair the local database's migration record after a branch merge (-- --apply to write)
 npm run publish-assets  # push fingerprinted assets to Spaces
 npm run file-manifest   # file manifest reports (feature 028)

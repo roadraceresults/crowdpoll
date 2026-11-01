@@ -1,5 +1,5 @@
 {
-    "requirements_directory": "requirements/20261101-042151-concise-claude-md",
+    "requirements_directory": "requirements/20261101-121236-populate-all-polls",
     "last_written": {
         "requirements/20261019-153514-production-email/requirements.md": "e0bd2b0bf28c2fbd6699c99cdf364c1398d3b7aed8eb456198295f78d108ee08",
         "requirements/20261019-153514-production-email/requirements-report.md": "4f75f5e263fa092fc0fcedc4a7cdaa32128382e287f2ac0394e4957e8d8bd413",
@@ -38,6 +38,8 @@
         "requirements/20261030-123029-populate-graph-subtitle/requirements.md": "c7a2262561d88f448009a41f66ce04e76e860753625db27f54d762ba0cea3311",
         "requirements/20261030-123029-populate-graph-subtitle/requirements-report.md": "c1713e82faee27c7a6421aa437eeb0855471b9c35a113fe9c506b7d483b0e8c6",
         "requirements/20261101-042151-concise-claude-md/requirements.md": "14144d8b6179af602e77906ca7ac123ef95ae0a0188c2c349f726a2dfe8ca99c",
-        "requirements/20261101-042151-concise-claude-md/requirements-report.md": "392da3b281834f311734bde3bde8a0e55f7e354d78eaf55ce52658f60bf4e61e"
+        "requirements/20261101-042151-concise-claude-md/requirements-report.md": "392da3b281834f311734bde3bde8a0e55f7e354d78eaf55ce52658f60bf4e61e",
+        "requirements/20261101-121236-populate-all-polls/requirements.md": "2de07c870f2f0bb78c7788ba4628a02b1274f41d9339596a4be183d52ba999f5",
+        "requirements/20261101-121236-populate-all-polls/requirements-report.md": "04826a5c428c9423b25cd3773448f8e3d79400901ca27133aa5361f0efbdab4c"
     }
 }

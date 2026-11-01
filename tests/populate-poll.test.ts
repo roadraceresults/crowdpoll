@@ -10,6 +10,7 @@ import {
   parsePollData,
   populatePoll,
   readArguments,
+  resolveDataPath,
   shiftDates,
   splitByShares,
   voteCountFor,
@@ -63,6 +64,7 @@ describe("parsePollData", () => {
       {
         "poll_creator_email": "creator@example.com",
         title: "Order",
+        subtitle: "Order subtitle",
         choice_b: "B",
         choice_a: "A",
         choice_aa: "AA",
@@ -401,8 +403,38 @@ describe("parsePollData — input errors", () => {
 describe("readArguments", () => {
   it("takes exactly one path", () => {
     expect(readArguments(["a.json"])).toBe("a.json");
-    expect(() => readArguments([])).toThrow(/Usage: npx tsx devScripts\/populate\/populate-poll\.ts <poll-data\.json>/);
+    expect(() => readArguments([])).toThrow(/^Usage: npm run populate-poll <poll-data\.json>$/);
     expect(() => readArguments(["a.json", "b.json"])).toThrow(InputError);
+  });
+});
+
+describe("resolveDataPath", () => {
+  const base = path.resolve("/work/project");
+  const existing = (...files: string[]) => (file: string) => files.map((f) => path.resolve(base, f)).includes(file);
+
+  it("resolves a relative path against the base folder", () => {
+    expect(resolveDataPath("polldata/a.json", base, existing("polldata/a.json"))).toBe(path.resolve(base, "polldata/a.json"));
+  });
+
+  it("keeps an absolute path", () => {
+    const absolute = path.resolve(base, "elsewhere/a.json");
+    expect(resolveDataPath(absolute, base, existing("elsewhere/a.json"))).toBe(absolute);
+  });
+
+  it("adds .json to an extensionless path that does not exist", () => {
+    expect(resolveDataPath("polldata/a", base, existing("polldata/a.json"))).toBe(path.resolve(base, "polldata/a.json"));
+  });
+
+  it("prefers an existing extensionless file over its .json twin", () => {
+    expect(resolveDataPath("polldata/a", base, existing("polldata/a", "polldata/a.json"))).toBe(path.resolve(base, "polldata/a"));
+  });
+
+  it("never adds .json to a path that has an extension", () => {
+    expect(resolveDataPath("polldata/a.har", base, existing("polldata/a.har.json"))).toBe(path.resolve(base, "polldata/a.har"));
+  });
+
+  it("returns the path as typed when neither form exists", () => {
+    expect(resolveDataPath("polldata/missing", base, existing())).toBe(path.resolve(base, "polldata/missing"));
   });
 });
 

@@ -29,9 +29,13 @@ fills it with simulated votes that replay the file's time series. The dates are
 moved so that the latest data point falls on today.
 
 ```
+npm run populate-poll polldata/trump_approval_rating_over_time.json
+npm run populate-poll polldata/spain-national-parliament-voting-intention
 npx tsx devScripts/populate/populate-poll.ts polldata/trump_approval_rating_over_time.json
-npx tsx devScripts/populate/populate-poll.ts polldata/spain-national-parliament-voting-intention.json
 ```
+
+A relative path is read from the folder the command is typed in. When the path has no
+extension and does not exist, the same path with `.json` added is used.
 
 | Key | Meaning |
 |---|---|
@@ -58,3 +62,46 @@ The script uses the server's `ENV_*` variables and writes to whatever database
 already be migrated. Without `ENV_VALKEY_URL`, a running server keeps its counters in
 memory, so restart it to see the new counts. Every input error prints one
 `[populate] Error:` line and exits 1 before anything is written.
+
+# Populating every poll of a folder
+
+`populate-all-polls.ts` runs `populate-poll.ts` on every new or changed data file
+of a folder, one after another, and remembers what it has populated.
+
+```
+npm run populate-all-polls
+npm run populate-all-polls path/to/folder
+```
+
+With no folder it uses `polldata` at the project root; a relative folder is read
+from the folder the command is typed in. It takes the files directly in the folder
+whose names end in `.json` (any letter case), in name order; subfolders and other
+files are ignored. Each file's own `[populate]` lines are shown as it runs.
+
+Every file populated successfully is recorded in
+`devScripts/populate/populate-all-polls-history.json` (not committed), one entry
+per database and file name:
+
+| Field | Meaning |
+|---|---|
+| `database` | `ENV_DATABASE_URL` without its password |
+| `file` | the data file's name |
+| `sha256` | the fingerprint of the file's contents when it was populated |
+| `pollId`, `outcome` | the poll, and whether it was `created` or `refreshed` |
+| `votesWritten` | the simulated votes written |
+| `populatedAt` | when it was populated (ISO 8601, UTC) |
+
+A file is skipped, with a `Skipped` line, when the history holds it for the same
+database with the same contents. An edited file is populated again: its poll keeps
+its id and its entry is replaced. Another database gets every file.
+
+A file that fails is reported, not recorded, and the run goes on; the run ends with
+`[populate-all] Done: <n> populated, <n> skipped, <n> failed`, then lists every
+failed file again with its message, and exits 1 if any failed. A missing folder,
+an unreadable history file or an `ENV_DATABASE_URL` that is not a PostgreSQL URL
+stops the run before any file.
+
+To populate a recorded file again, remove its entry from the history file (or
+delete the file), or run `npm run populate-poll <file>`, which never reads or
+writes the history. The history knows nothing of a database that was emptied or
+restored: remove its entries then.

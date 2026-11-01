@@ -13,6 +13,8 @@
     "start": "node dist/server.js",
     "test": "vitest run",
     "reconcile": "tsx devScripts/reconcile.ts",
+    "populate-poll": "tsx devScripts/populate/populate-poll.ts",
+    "populate-all-polls": "tsx devScripts/populate/populate-all-polls.ts",
     "fix-migrations": "tsx devScripts/fix-migrations.ts",
     "publish-assets": "tsx devScripts/publish-assets.ts",
     "file-manifest": "tsx devScripts/file-manifest.ts",

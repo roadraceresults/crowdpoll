@@ -1,6 +1,7 @@
 // Creates or refreshes one poll from a JSON data file and replays its time series as votes; usage in devScripts/populate/README.md.
 import { randomUUID } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { sql } from "kysely";
 import { loadConfig, type AppConfig } from "../../src/config.js";
@@ -129,8 +130,14 @@ export function parsePollData(json: unknown, bounds: Bounds): PollData {
 }
 
 export function readArguments(argv: string[]): string {
-  if (argv.length !== 1) throw new InputError("Usage: npx tsx devScripts/populate/populate-poll.ts <poll-data.json>");
+  if (argv.length !== 1) throw new InputError("Usage: npm run populate-poll <poll-data.json>");
   return argv[0]!;
+}
+
+export function resolveDataPath(arg: string, baseDir: string, exists: (file: string) => boolean): string {
+  const candidate = path.resolve(baseDir, arg);
+  if (exists(candidate) || path.extname(arg) !== "") return candidate;
+  return exists(`${candidate}.json`) ? `${candidate}.json` : candidate;
 }
 
 const calendarDay = (d: Date): number => Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / DAY_MS;
@@ -324,7 +331,8 @@ function readJson(path: string): unknown {
 async function main(): Promise<void> {
   let close = async (): Promise<void> => {};
   try {
-    const json = readJson(readArguments(process.argv.slice(2)));
+    const dataPath = resolveDataPath(readArguments(process.argv.slice(2)), process.env.INIT_CWD ?? process.cwd(), existsSync);
+    const json = readJson(dataPath);
     const config = loadConfig();
     const data = parsePollData(json, config);
     const db = createDb(config.databaseUrl, { caCert: config.databaseCaCert });
