@@ -6,7 +6,7 @@
 |---|---|
 | Feature directory | `specs/20261030-123029-POPULATE-GRAPH-SUBTITLE` |
 | Tweak file created | 2026-10-30 15:05 |
-| Last updated | 2026-10-30 22:41 |
+| Last updated | 2026-10-31 12:58 |
 
 Legend: `[ ]` open · `[X]` Resolved · `[-]` Resolved (manually)  
 (or accepted as-is) by the developer.
@@ -235,7 +235,7 @@ Yes, `tsx` is in the right place: under `dependencies`, and no longer under `dev
 2026-10-30 22:31
 
 ## TWEAK05 Production Build Fails With tsc Not Found  
-[ ] Resolved  
+[-] Resolved (manually)  
 [ ] Run Tests  
 
 
@@ -266,6 +266,217 @@ Depending on the answers, the fix is one of:
 - if you want production working again right away, remove `NODE_ENV` in the console and rebuild, and come back to TWEAK03 later.
 
 2026-10-30 22:41
+
+Update: commit `114700e` ("buidl fix", pushed to `origin/main` at 2026-10-30 22:41) carries TWEAK03's `package.json`, `package-lock.json` and `.do/app.yaml`, so the repository side is done and needs no further change.  
+Still open: questions 1 and 3 above.  
+The console's build command decides what runs, and a rebuild from `114700e` has to show whether `tsc` is found.
+
+4. After setting the console build command to `npm ci --include=dev && npm run build && npm run publish-assets`, did a rebuild from `114700e` succeed?  
+   Answer "it builds" (then "I resolved it" records it) or paste the new failing log.
+
+2026-10-31 12:46
+
+### ACCEPTED RECOMMENDATION
+
+- Detected in the repository: commit `114700e` ("buidl fix"), on `origin/main`, carries TWEAK03's changes;
+  `.do/app.yaml` builds with `npm ci --include=dev && npm run build && npm run publish-assets` and sets `NODE_ENV=production`;
+  `tsx` is in `dependencies` in `package.json` and `package-lock.json`.  
+  Nothing has changed in the working tree since.
+- Not visible from here: the App Platform console's build command and the rebuild.  
+  The developer reports the tweak resolved, which means the console build command was brought in line with `.do/app.yaml` and the build now finds `tsc`.
+- Tests: none run (Run Tests not ticked);
+  the existing `tests/config.test.ts` test "prunes devDependencies after the build in the deployment spec, keeping tsx" covers the spec side;
+  no new test, since the console setting cannot be tested in the repository.
+- Artifacts: none needed;
+  `tasks.md` T017 and the root `README.md` deploy line already describe the build command.
+
+2026-10-31 12:47
+
+## TWEAK06 Build Still Fails After Push  
+[X] Resolved  
+[ ] Run Tests  
+
+We are still getting the build error on Digital Ocean.  
+The log below shows that the commit `114700e` is being checked out, but the build still fails on Digital Ocean.  
+
+
+```text
+Oct 31 02:41:58  [34m╭────────────[34m[30m[44m git repo clone [0m[0m[34m───────────╼[0m
+Oct 31 02:41:58  [34m│[0m [34m › fetching app source code[0m
+Oct 31 02:41:58  [34m│[0m => Selecting branch "main"
+Oct 31 02:41:59  [34m│[0m => Checking out commit "114700edc1e8d4f6ac0b7fd5f8a95603dd84b879"
+Oct 31 02:42:00  [34m│[0m 
+Oct 31 02:42:00  [34m│[0m [32m ✔ cloned repo to [35m/workspace[0m[0m
+Oct 31 02:42:00  [34m╰────────────────────────────────────────╼[0m
+Oct 31 02:42:00  
+Oct 31 02:42:00  [34m › configuring build-time app environment variables:[0m
+Oct 31 02:42:00       ENV_MIN_MANUAL_REFRESH_INTERVAL ENV_OUTBOX_DRAIN_SWEEP_INTERVAL ENV_MANUAL_REFRESH_BURST ENV_BUDGET_LOWER_THRESHOLD_PERCENT ENV_MAX_NEWEST_POLLS ENV_POLL_EDIT_HEARTBEAT_INTERVAL ENV_MIN_SEARCH_REFRESH_INTERVAL ENV_PRIVATE_VOTER_LIMIT_DEFAULT ENV_EMAIL_RATE_LIMIT_MAX_REQUESTS_PER_WINDOW ENV_SESSION_CACHE_TTL ENV_INSTANCE_MAX_EVENT_LOOP_LAG ENV_VOTE_BATCH_SIZE ENV_PAGE_LOADS_PER_MINUTE ENV_SERVER_MAX_REFRESH_PER_SECOND ENV_SIGNIN_COOKIE_DURATION_MAX ENV_MAX_POLLS_ADMIN_SEARCH_RESULTS ENV_BOOKMARK_EXPIRY_MONTHS ENV_SEARCH_CACHE_TTL ENV_SIGNIN_METHOD ENV_POLL_DATE_CHECK_SWEEP_INTERVAL ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL ENV_SES_REGION ENV_ADMINS ENV_TRE0NDING_POLLS_RECOMPUTE_SWEEP_INTERVAL ENV_SERVER_MAX_SEARCH_PER_SECOND_FALLBACK ENV_SEARCH_BURST ENV_VOTE_QUEUE_LAG_NOTICE ENV_PROTOTYPES NODE_ENV ENV_COUNTER_FLUSH_SWEEP_INTERVAL ENV_SPACES_CDN_URL ENV_MAX_BOOKMARKS_PER_USER ENV_MIN_LIVE_REFRESH_INTERVAL ENV_SPACES_SECRET ENV_BETTER_AUTH_SECRET ENV_BUDGET_CONTROLLER_SWEEP_INTERVAL ENV_MAX_POLLS_SEARCH_RESULTS ENV_MAX_ACCEPTABILITY_SCREENING_ATTEMPTS ENV_SERVER_MAX_REFRESH_PER_INSTANCE_PER_SECOND ENV_EMAIL_RATE_LIMIT_MINUTES_WINDOW ENV_EMAIL_FROM ENV_PUBLIC_ORIGIN ENV_MAX_INVITATIONS_PER_DAY ENV_SPACES_REGION ENV_MAX_CHOICES ENV_MAX_IDLE_TIME ENV_MAX_REFRESH_AND_SEARCH_STRETCH ENV_MIN_VOTE_REFRESH_INTERVAL ENV_INSTANCE_MAX_INFLIGHT ENV_MAX_TRENDING_POLLS ENV_POLL_ADMIN_PAGE_REFRESH_INTERVAL ENV_SPACES_BUCKET ENV_MAX_LIVE_RESULTS_PER_USER ENV_SHED_RETRY_AFTER ENV_API_CALL_TIMEOUT ENV_MIN_CHOICES ENV_SERVER_MAX_SEARCH_PER_SECOND ENV_POLL_APPROVAL_SWEEP_INTERVAL ENV_SPACES_KEY ENV_PARTICIPANTS_VIEWPORT_SIZE ENV_MAX_VOTES_PER_IP_PER_MINUTE ENV_PORT
+Oct 31 02:42:00  
+Oct 31 02:42:00  [34m › configuring custom build command to be run at the end of the build:[0m
+Oct 31 02:42:00     [34m│[0m npm ci && npm run build && npm run publish-assets
+Oct 31 02:42:00  
+Oct 31 02:42:00  [34m╭────────────[34m[30m[44m buildpack detection [0m[0m[34m───────────╼[0m
+Oct 31 02:42:00  [34m│[0m [34m › using Ubuntu 22.04 stack[0m
+Oct 31 02:42:02  [34m│[0m Detected the following buildpacks suitable to build your app:
+Oct 31 02:42:02  [34m│[0m 
+Oct 31 02:42:02  [34m│[0m    digitalocean/nodejs-appdetect  v0.1.2    
+Oct 31 02:42:02  [34m│[0m    heroku/nodejs                  v0.375.5  (Node.js)
+Oct 31 02:42:02  [34m│[0m    digitalocean/procfile          v0.1.0    (Procfile)
+Oct 31 02:42:02  [34m│[0m    digitalocean/custom            v0.2.0    (Custom Build Command)
+Oct 31 02:42:02  [34m╰─────────────────────────────────────────────╼[0m
+Oct 31 02:42:02  
+Oct 31 02:42:02  [34m╭────────────[34m[30m[44m build caching [0m[0m[34m───────────╼[0m
+Oct 31 02:42:02  [34m│[0m [34m › checking for cache from a previous build[0m
+Oct 31 02:42:02  [34m│[0m Timer: Analyzer started at 2026-10-31T02:42:02Z
+Oct 31 02:42:04  [34m│[0m Restoring metadata for "heroku/nodejs:shim" from cache
+Oct 31 02:42:04  [34m│[0m Timer: Analyzer ran for 1.31463489s and ended at 2026-10-31T02:42:03Z
+Oct 31 02:42:04  [34m│[0m Timer: Restorer started at 2026-10-31T02:42:04Z
+Oct 31 02:42:04  [34m│[0m Restoring data for "heroku/nodejs:shim" from cache
+Oct 31 02:42:05  [34m│[0m Timer: Restorer ran for 1.119913637s and ended at 2026-10-31T02:42:05Z
+Oct 31 02:42:05  [34m╰───────────────────────────────────────╼[0m
+Oct 31 02:42:05  
+Oct 31 02:42:05  [34m╭────────────[34m[30m[44m app build [0m[0m[34m───────────╼[0m
+Oct 31 02:42:05  [34m│[0m Timer: Builder started at 2026-10-31T02:42:05Z
+Oct 31 02:42:05  [34m│[0m 
+Oct 31 02:42:05  [34m│[0m -----> Creating runtime environment
+Oct 31 02:42:06  [34m│[0m        
+Oct 31 02:42:06  [34m│[0m        NPM_CONFIG_LOGLEVEL=error
+Oct 31 02:42:06  [34m│[0m        NODE_VERBOSE=false
+Oct 31 02:42:06  [34m│[0m        NODE_ENV=production
+Oct 31 02:42:06  [34m│[0m        NODE_MODULES_CACHE=true
+Oct 31 02:42:06  [34m│[0m 
+Oct 31 02:42:06  [34m│[0m -----> Installing binaries
+Oct 31 02:42:06  [34m│[0m        engines.node (package.json):   >=22
+Oct 31 02:42:06  [34m│[0m        engines.npm (package.json):    unspecified (use default)
+Oct 31 02:42:06  [34m│[0m 
+Oct 31 02:42:06  [34m│[0m        Resolving node version >=22...
+Oct 31 02:42:06  [34m│[0m 
+Oct 31 02:42:06  [34m│[0m [1;33m !     The requested Node.js version is using a wide range (>=22) that can resolve to a Node.js major version[0m
+Oct 31 02:42:06  [34m│[0m [1;33m !     higher than you intended. Limiting the requested range to a major LTS range like `24.x` is recommended.[0m
+Oct 31 02:42:06  [34m│[0m [1;33m !     https://devcenter.heroku.com/articles/nodejs-support#specifying-a-node-js-version[0m
+Oct 31 02:42:06  [34m│[0m 
+Oct 31 02:42:06  [34m│[0m 
+Oct 31 02:42:06  [34m│[0m [1;33m !     The resolved Node.js version has been limited to the Active LTS (24.22.1) for the requested range of `>=22`.[0m
+Oct 31 02:42:06  [34m│[0m [1;33m !     To opt-out of this behavior, set the following config var: `NODEJS_ALLOW_WIDE_RANGE=true`[0m
+Oct 31 02:42:06  [34m│[0m [1;33m !     https://devcenter.heroku.com/articles/nodejs-support#supported-node-js-versions[0m
+Oct 31 02:42:06  [34m│[0m 
+Oct 31 02:42:06  [34m│[0m        Downloading and installing node 24.22.1...
+Oct 31 02:42:07  [34m│[0m        Validating checksum
+Oct 31 02:42:09  [34m│[0m        Using default npm version: 11.19.1
+Oct 31 02:42:10  [34m│[0m 
+Oct 31 02:42:10  [34m│[0m -----> Restoring cache
+Oct 31 02:42:10  [34m│[0m        - npm cache
+Oct 31 02:42:10  [34m│[0m 
+Oct 31 02:42:10  [34m│[0m -----> Installing dependencies
+Oct 31 02:42:11  [34m│[0m        Installing node modules
+Oct 31 02:42:20  [34m│[0m        
+Oct 31 02:42:20  [34m│[0m        added 284 packages in 9s
+Oct 31 02:42:20  [34m│[0m 
+Oct 31 02:42:20  [34m│[0m -----> Build
+Oct 31 02:42:20  [34m│[0m 
+Oct 31 02:42:20  [34m│[0m -----> Caching build
+Oct 31 02:42:20  [34m│[0m        - npm cache
+Oct 31 02:42:20  [34m│[0m 
+Oct 31 02:42:20  [34m│[0m -----> Pruning devDependencies
+Oct 31 02:42:21  [34m│[0m        
+Oct 31 02:42:21  [34m│[0m        removed 40 packages in 672ms
+Oct 31 02:42:21  [34m│[0m        npm notice
+Oct 31 02:42:21  [34m│[0m        npm notice New major version of npm available! 11.19.1 -> 12.2.1
+Oct 31 02:42:21  [34m│[0m        npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+Oct 31 02:42:21  [34m│[0m        npm notice To update run: npm install -g npm@12.2.1
+Oct 31 02:42:21  [34m│[0m        npm notice
+Oct 31 02:42:21  [34m│[0m Running custom build command: npm ci && npm run build && npm run publish-assets
+Oct 31 02:42:28  [34m│[0m 
+Oct 31 02:42:28  [34m│[0m added 244 packages in 7s
+Oct 31 02:42:28  [34m│[0m npm warn install-scripts 1 package has install scripts not yet covered by allowScripts:
+Oct 31 02:42:28  [34m│[0m npm warn install-scripts   esbuild@0.28.2 (postinstall: node install.js)
+Oct 31 02:42:28  [34m│[0m npm warn install-scripts
+Oct 31 02:42:28  [34m│[0m npm warn install-scripts Run `npm install-scripts ls` to review, or `npm install-scripts approve <pkg>` to allow.
+Oct 31 02:42:28  [34m│[0m npm notice
+Oct 31 02:42:28  [34m│[0m npm notice New major version of npm available! 11.19.1 -> 12.2.1
+Oct 31 02:42:28  [34m│[0m npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+Oct 31 02:42:28  [34m│[0m npm notice To update run: npm install -g npm@12.2.1
+Oct 31 02:42:28  [34m│[0m npm notice
+Oct 31 02:42:28  [34m│[0m 
+Oct 31 02:42:28  [34m│[0m > native-auth-oauth@0.1.0 build
+Oct 31 02:42:28  [34m│[0m > tsc && tsx devScripts/build-assets.ts
+Oct 31 02:42:28  [34m│[0m 
+Oct 31 02:42:28  [34m│[0m sh: 1: tsc: not found
+Oct 31 02:42:28  [34m│[0m building: exit status 127
+Oct 31 02:42:28  [34m│[0m Timer: Builder ran for 23.488116507s and ended at 2026-10-31T02:42:28Z
+Oct 31 02:42:28  [34m│[0m [31;1mERROR: [0mfailed to build: exit status 1
+Oct 31 02:42:29  [34m│[0m 
+Oct 31 02:42:29  [34m│[0m 
+Oct 31 02:42:29  [34m│[0m [31m ✘ build failed[0m
+
+```
+
+### RECOMMENDATION
+
+What the log shows:
+
+- The console's build command is still `npm ci && npm run build && npm run publish-assets`;
+  App Platform uses the app spec saved in the console, never `.do/app.yaml` from the repository, so pushing `114700e` changed nothing there.  
+  With `NODE_ENV=production`, that `npm ci` installs 244 packages without devDependencies, so `tsc` is missing.
+- The custom build command runs **after** the buildpack's own install (284 packages) and its `Pruning devDependencies` step.  
+  So even `npm ci --include=dev` alone would reinstall devDependencies after the prune and ship them, defeating TWEAK03.
+- Second problem, waiting behind the first: the console's build-time variable list holds eight retired names that `src/config.ts:249-256` refuses at start-up (the app stops naming the replacement):
+  `ENV_MAX_IDLE_TIME`, `ENV_API_CALL_TIMEOUT`, `ENV_SIGNIN_COOKIE_DURATION_MAX`, `ENV_PRIVATE_VOTER_LIMIT_DEFAULT`, `ENV_EMAIL_RATE_LIMIT_MINUTES_WINDOW`, `ENV_SERVER_MAX_REFRESH_PER_SECOND`, `ENV_SERVER_MAX_REFRESH_PER_INSTANCE_PER_SECOND`, `ENV_SERVER_MAX_SEARCH_PER_SECOND_FALLBACK`;
+  also `ENV_TRE0NDING_POLLS_RECOMPUTE_SWEEP_INTERVAL` (a zero for the O) is a typo that is silently ignored.  
+  Once the build passes, the deploy will fail at start-up until these are renamed in the console (a separate tweak, TWEAK07, is suggested).
+
+Option A — prune at the end of the custom command (recommended):
+
+- Console build command: `npm ci --include=dev && npm run build && npm run publish-assets && npm prune --omit=dev`.
+- The same line in `.do/app.yaml`;
+  `tests/config.test.ts`'s TWEAK03 test also asserts the trailing `npm prune --omit=dev`.
+- Pros: works with the build flow the log shows; devDependencies are really gone from the image; `tsx` (a dependency) survives for `npm run reconcile`.
+- Cons: dependencies are installed twice per build (about 10 s);
+  the console must be edited by hand.
+
+Option B — drop the custom build command and let the buildpack build:
+
+- Clear the console build command;
+  `package.json` gains `"heroku-postbuild": "npm run build && npm run publish-assets"`, which the `heroku/nodejs` buildpack runs in its Build step, after its full install and before its prune;
+  `.do/app.yaml` drops `build_command`.
+- Pros: one install, the buildpack's intended flow.
+- Cons: relies on App Platform running the buildpack's Build step when no custom command is set, which the logs so far have not shown;
+  the console must still be edited.
+
+Option C — back out TWEAK03:
+
+- Remove `NODE_ENV` in the console (and from `.do/app.yaml`), keep `npm ci && …`.
+- Pros: the next build passes with no other change.
+- Cons: devDependencies ship again.
+
+Recommended: **A**.
+It is the smallest change that matches what the log shows the platform doing.
+Either way, the eight retired variable names must be renamed in the console before the app can start.
+
+2026-10-31 12:49
+
+### ACCEPTED RECOMMENDATION
+
+Option A, chosen by the developer.
+
+- `.do/app.yaml`: `build_command` is `npm ci --include=dev && npm run build && npm run publish-assets && npm prune --omit=dev`.
+- `tests/config.test.ts`: the TWEAK03 test "prunes devDependencies after the build in the deployment spec, keeping tsx" now also requires the build command to end with `npm prune --omit=dev`.
+- `README.md` (root): the deploy line names the new build command, explains why it prunes itself, and says the console's spec, not `.do/app.yaml`, is what App Platform builds with.
+- Tests postponed (Run Tests not ticked);
+  the updated test is written but not run, so the tweak is unverified by a run.  
+  `npx tsc --noEmit` passes.
+- Artifacts: `tasks.md` (T018 added).
+- Developer action, not doable from the repository:
+  - set the console's build command (Settings → the web component → Commands → Build Command) to the line above, then rebuild;
+  - the log should show `Running custom build command: npm ci --include=dev && … && npm prune --omit=dev` and end with the prune removing about 40 packages;
+  - rename the eight retired variables in the console (suggested as TWEAK07), or the deploy will stop at start-up.
+
+2026-10-31 12:58
+
+## TWEAK07 <short title here>  
+[ ] Resolved  
+[ ] Run Tests  
+tweak requirements...  
 
 
 

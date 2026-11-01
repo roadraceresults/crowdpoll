@@ -146,6 +146,9 @@ no-write guarantee is structural — `parsePollData` runs before the database is
 - [X] T017 TWEAK03: `.do/app.yaml` sets `NODE_ENV=production` (`RUN_AND_BUILD_TIME`) and builds with
       `npm ci --include=dev`, so the buildpack prunes devDependencies; `tsx` moves to `dependencies` for
       `npm run reconcile`; `tests/config.test.ts` checks all three; root `README.md` deploy line updated
+- [X] T018 TWEAK06: the build command ends with `&& npm prune --omit=dev`, because App Platform runs the custom
+      command after the buildpack's prune; `.do/app.yaml`, the `tests/config.test.ts` check and the root
+      `README.md` follow; the console's build command is changed by hand to match
 - [X] T012 Run `npx tsc --noEmit` and `npx vitest run tests/populate-poll.test.ts`; fix anything they report
 - [X] T013 Run the quickstart validation end to end (`specs/20261030-123029-POPULATE-GRAPH-SUBTITLE/quickstart.md`):
       create run shows the subtitle on the card and the line graph, rerun applies and clears, error cases

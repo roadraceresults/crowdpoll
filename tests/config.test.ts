@@ -154,7 +154,7 @@ describe("Email transport, sender and timeout", () => {
     const entry = (key: string) => new RegExp(`- key: ${key}\\r?\\n((?: {8}.*\\r?\\n)*)`).exec(appYaml)?.[1] ?? "";
     expect(entry("NODE_ENV")).toMatch(/value: "?production"?/);
     expect(entry("NODE_ENV")).toContain("scope: RUN_AND_BUILD_TIME");
-    expect(appYaml).toMatch(/build_command: npm ci --include=dev && /);
+    expect(appYaml).toMatch(/build_command: npm ci --include=dev && .* && npm prune --omit=dev$/m);
     const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
     expect(pkg.dependencies.tsx).toBeDefined();
   });
