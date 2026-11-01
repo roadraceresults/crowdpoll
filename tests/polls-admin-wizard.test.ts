@@ -97,7 +97,10 @@ describe("keywords on publish", () => {
     await polls(ctx).insertOne(poll);
     await addVote(poll._id);
     const res = await publish(poll._id, { keywords: "new" });
-    expect(res.status).toBe(400);
+    // EDITING-POLL-AVAILABLE lets the frozen fields past the UPDATE gate so the
+    // validator refuses each with its own 409 naming the field.
+    expect(res.status).toBe(409);
+    expect(res.body.error).toMatch(/keywords cannot be changed/);
     expect((await detail(poll._id)).body.keywords).toBe("kept");
   });
 
@@ -264,12 +267,18 @@ describe("the starter-choices hold", () => {
     expect((await polls(ctx).findOne({ _id: poll._id }))!.pollState).toBe("AWAITING APPROVAL");
   });
 
-  it("does the same when the poll has votes", async () => {
+  // EDITING-POLL-AVAILABLE US1: the save of an ever-voted poll never pauses it —
+  // the text change waits as the pending update while the poll stays OPEN.
+  it("parks a voted poll's text change as pending instead of re-entering AWAITING APPROVAL", async () => {
     const poll = makePoll({ pollState: "OPEN" });
     await polls(ctx).insertOne(poll);
     await addVote(poll._id);
-    expect((await publish(poll._id, { subtitle: "x" })).status).toBe(200);
-    expect((await polls(ctx).findOne({ _id: poll._id }))!.pollState).toBe("AWAITING APPROVAL");
+    const res = await publish(poll._id, { subtitle: "x" });
+    expect(res.status).toBe(200);
+    expect(res.body.pending).toBe(true);
+    const stored = (await polls(ctx).findOne({ _id: poll._id }))!;
+    expect(stored.pollState).toBe("OPEN");
+    expect(stored.pendingUpdate).toEqual({ subtitle: "x" });
   });
 
   it("still holds back an unpublished poll", async () => {
@@ -322,8 +331,13 @@ describe("colors through the wizard's requests", () => {
     expect((await editSession(poll._id, "tab-1")).body.mode).toBe("UPDATE");
     const res = await publish(poll._id, { clientGuid: "tab-1", subtitle: "Now with colors", colors: ["#FF91CB", null] });
     expect(res.status).toBe(200);
+    // EDITING-POLL-AVAILABLE: the colours apply in the save transaction while the
+    // subtitle, a reviewed field, waits as the pending update; the poll stays OPEN.
+    expect(res.body.pending).toBe(true);
     const stored = (await polls(ctx).findOne({ _id: poll._id }))!;
-    expect(stored.subtitle).toBe("Now with colors");
+    expect(stored.pollState).toBe("OPEN");
+    expect(stored.subtitle).toBe("");
+    expect(stored.pendingUpdate).toEqual({ subtitle: "Now with colors" });
     expect(stored.choices.map((c) => [c.id, c.label, c.color])).toEqual([["a", "Left", "#FF91CB"], ["b", "Right", undefined]]);
   });
 });

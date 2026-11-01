@@ -148,7 +148,10 @@ export async function castVote(deps: VotePathDeps, vote: VoteRequest): Promise<V
   const knownChoices = new Set(projection.choices.map((c) => c.id));
   const choiceIds = [...new Set(vote.choiceIds)];
   if (choiceIds.some((id) => !knownChoices.has(id))) {
-    throw new VoteError(400, "Select at least one choice.");
+    // An approved choice deletion can remove an id between the card's render and
+    // the vote, so the refusal invites a fresh pick rather than reading like an
+    // empty selection.
+    throw new VoteError(400, "That choice is no longer available — please choose again.");
   }
 
   const votedBefore = await hasVotedBefore(deps, vote.sessionId, vote.email, vote.pid);

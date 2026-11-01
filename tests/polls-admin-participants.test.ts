@@ -149,6 +149,23 @@ describe("Participants, bans, and exports (US8)", () => {
     expect(notYetEmails).not.toContain("banned@example.com");
   });
 
+  it("GET results names the choice mode, so the page can add the votes cast on a multiple-choice poll (TWEAK02)", async () => {
+    const poll = makePoll({
+      choiceMode: "Multiple-Choice Poll",
+      currentVotes: [
+        { emailAddress: "a@example.com", userName: "A", choiceIds: ["c1", "c2"], votedAt: new Date() },
+        { emailAddress: "b@example.com", userName: "B", choiceIds: ["c1"], votedAt: new Date() }
+      ]
+    });
+    await polls(ctx).insertOne(poll);
+    const res = await request(ctx.app).get(`/api/admin/polls/${poll._id}/results`).set("Cookie", adminCookie);
+    expect(res.status).toBe(200);
+    expect(res.body.choiceMode).toBe("Multiple-Choice Poll");
+    expect(res.body.totalVoted).toBe(2);
+    // The per-choice counts sum to the votes cast, which the page derives.
+    expect(res.body.choices.reduce((sum: number, c: { count: number }) => sum + c.count, 0)).toBe(3);
+  });
+
   it("carries notYetVoted only when the poll is private AND Invitation Only", async () => {
     const cases = [
       { settings: { pollVisibility: "Private Poll", pollSharingMode: "Invitation Only" }, present: true },

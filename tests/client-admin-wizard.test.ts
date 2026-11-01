@@ -575,7 +575,9 @@ describe("colors on an existing poll", () => {
     return { p, poll };
   }
 
-  it("keeps Colors open while Choices is locked on a poll that has votes, listing the stored choices", async () => {
+  // EDITING-POLL-AVAILABLE C1 reversed the old lock: on a voted poll the Choices
+  // textbox stays editable too, and its changes go to review through the merge.
+  it("keeps Colors and Choices open on a poll that has votes, listing the stored choices", async () => {
     const { p } = await openExisting("Voted", true);
     expect(heading(wizardCard(p))).toBe("Step 4 · View");
     expect(Array.from(wizardCard(p).querySelectorAll(".wizard-color-label")).map((l) => l.textContent)).toEqual(["Left", "Right"]);
@@ -584,8 +586,8 @@ describe("colors on an existing poll", () => {
     (circles(wizardCard(p))[2]!.querySelector("button") as HTMLButtonElement).click();
     await p.settle();
     expect(heading(wizardCard(p))).toBe("Step 3 · Choices");
-    expect(wizardCard(p).querySelector(".wizard-locked")).not.toBeNull();
-    expect(choicesBox(p).disabled).toBe(true);
+    expect(wizardCard(p).querySelector(".wizard-locked")).toBeNull();
+    expect(choicesBox(p).disabled).toBe(false);
   });
 
   it("posts only to the colors route, with the session's guid, when colors are all that changed on a poll with votes", async () => {
@@ -1007,11 +1009,25 @@ describe("the read-only face", () => {
     expect(Array.from(dates.querySelectorAll(".card-state-buttons button")).map((b) => b.textContent)).toEqual(["Open", "Close", "Archive"]);
     expect(Array.from(dates.querySelectorAll(".card-field-label")).map((l) => l.textContent)).toEqual(["Created", "Launched"]);
     expect(Array.from(card.querySelectorAll(".card-counts-panel .card-field-label")).map((l) => l.textContent)).toEqual([
-      "Vote Count", "Banned Voter Count"
+      "Voter Count", "Banned Voter Count"
     ]);
     expect(card.querySelector(".card-pen")).toBeNull();
     expect(card.textContent).not.toContain("Voter Count Limit");
     expect(card.querySelector('[id^="voterCountLimit"], .admin-participant-list')).toBeNull();
+  });
+
+  it("shows Voter Count and, on a multiple-choice poll, the Vote Count of selections (TWEAK02)", async () => {
+    await seed(makePoll({
+      title: "Multi counts", pollState: "OPEN", choiceMode: "Multiple-Choice Poll",
+      currentVotes: [
+        { emailAddress: "a@example.com", userName: "A", choiceIds: ["c1", "c2"], votedAt: new Date() },
+        { emailAddress: "b@example.com", userName: "B", choiceIds: ["c1"], votedAt: new Date() }
+      ]
+    }));
+    const p = await open();
+    const fields = Array.from(cardWith(p, "Multi counts").querySelectorAll(".card-counts-panel .card-field"))
+      .map((f) => [f.querySelector(".card-field-label")!.textContent, f.querySelector(".card-field-value")!.textContent]);
+    expect(fields).toEqual([["Voter Count", "2"], ["Vote Count", "3"], ["Banned Voter Count", "0"]]);
   });
 
   it("offers no voter settings in the wizard either", async () => {
@@ -1087,11 +1103,14 @@ describe("an existing poll in the wizard", () => {
     expect(scheduled).toContain("one choice");
     expect(scheduled).toContain("stays open until you close it");
     expect(scheduled.some((t) => t!.startsWith("on "))).toBe(true);
-    expect(linkTexts(cardWith(p, "Running"))).toEqual(["Running", "Sub", "Bar colors are assigned automatically.", "stays open until you close it"]);
-    expect(linkTexts(cardWith(p, "Finished"))).toEqual(["Finished", "Sub", "Bar colors are assigned automatically."]);
+    // EDITING-POLL-AVAILABLE C1/C4: on an ever-voted poll the choices (the merge),
+    // the one-way choice mode and the vote mutability stay changeable, so their
+    // parts link in UPDATE too.
+    expect(linkTexts(cardWith(p, "Running"))).toEqual(["Running", "Sub", "Choice 1, Choice 2", "Bar colors are assigned automatically.", "one choice", "their vote is final", "stays open until you close it"]);
+    expect(linkTexts(cardWith(p, "Finished"))).toEqual(["Finished", "Sub", "Choice 1, Choice 2", "Bar colors are assigned automatically.", "one choice", "their vote is final"]);
   });
 
-  it("opens at the tapped step with every step visited, locks what cannot change and says saving re-screens", async () => {
+  it("opens at the tapped step with every step visited, locks what cannot change and says saving re-screens only for a reviewed change", async () => {
     await voted(makePoll({ title: "Running", subtitle: "Sub", pollState: "OPEN" }));
     const p = await open();
     link(cardWith(p, "Running"), "Running").click();
@@ -1101,7 +1120,14 @@ describe("an existing poll in the wizard", () => {
     expect(circles(card).map((s) => s.className.replace("wizard-step ", ""))).toEqual([
       "is-visited", "is-current", "is-visited", "is-visited", "is-visited", "is-visited"
     ]);
-    expect(card.querySelector(".wizard-review-note")!.textContent).toBe("Saving sends your poll to be reviewed again.");
+    // EDITING-POLL-AVAILABLE C5: on an ever-voted poll only a title, subtitle or
+    // choice change goes to review, so the note waits for one.
+    expect(card.querySelector(".wizard-review-note")).toBeNull();
+    type(p, titleField(p), "Running renamed");
+    expect(wizardCard(p).querySelector(".wizard-review-note")!.textContent).toBe("Saving sends your poll to be reviewed again.");
+    type(p, titleField(p), "Running");
+    expect(wizardCard(p).querySelector(".wizard-review-note")).toBeNull();
+    card = wizardCard(p);
     expect(Array.from(card.querySelectorAll(".wizard-footer button")).map((b) => b.textContent)).toEqual(["Cancel", "Save changes"]);
     (circles(card)[0]!.querySelector("button") as HTMLButtonElement).click();
     await p.settle();
@@ -1128,8 +1154,12 @@ describe("an existing poll in the wizard", () => {
     const body = sent("/publish")[0]!.body!;
     expect(Object.keys(body).sort()).toEqual(["clientGuid", "subtitle", "timeZone"]);
     expect(body.subtitle).toBe("New sub");
+    // EDITING-POLL-AVAILABLE C6/C8: the save of an ever-voted poll never pauses it —
+    // the poll stays OPEN while the changes wait for review, and the editor is
+    // withheld until the review resolves.
     const card = cardWith(p, "Running");
-    expect(card.querySelector(".card-state-value")!.textContent).toBe("AWAITING APPROVAL");
+    expect(card.querySelector(".card-state-value")!.textContent).toBe("OPEN");
+    expect(card.querySelector(".card-state-detail")!.textContent).toBe("changes pending review");
     expect(links(card)).toEqual([]);
   });
 
@@ -1183,6 +1213,294 @@ describe("an existing poll in the wizard", () => {
     expect(p.document.querySelector(".poll-admin-card--new")).toBeNull();
     expect(p.document.activeElement).toBe(links(cardWith(p, "Lost"))[0]);
   }, 20_000);
+});
+
+describe("choice edits inside the wizard (EDITING-POLL-AVAILABLE US2)", () => {
+  const when = new Date();
+  /** An OPEN poll with two c1 voters and one c2 voter, so the grant's counts are { c1: 2, c2: 1 }. */
+  async function votedPoll(overrides: Partial<Poll> = {}) {
+    const poll = makePoll({
+      title: "Snacks",
+      pollState: "OPEN",
+      currentVotes: [
+        { emailAddress: "v1@example.com", userName: "v1", choiceIds: ["c1"], votedAt: when },
+        { emailAddress: "v2@example.com", userName: "v2", choiceIds: ["c1"], votedAt: when },
+        { emailAddress: "v3@example.com", userName: "v3", choiceIds: ["c2"], votedAt: when }
+      ],
+      ...overrides
+    });
+    await seed(poll);
+    await voteHistory(ctx).insertOne({ pid: poll._id, emailAddress: "v1@example.com", userName: "v1", choiceIds: ["c1"], votedAt: when });
+    return poll;
+  }
+
+  async function openAtChoices(p: BrowserPage) {
+    link(cardWith(p, "Snacks"), "Choice 1, Choice 2").click();
+    await p.settle(50);
+    return wizardCard(p);
+  }
+
+  const dialog = (p: BrowserPage) => p.document.querySelector<HTMLElement>('.modal[role="alertdialog"]');
+  const dialogButton = (p: BrowserPage, text: string) =>
+    Array.from(dialog(p)!.querySelectorAll<HTMLButtonElement>(".modal-action")).find((b) => b.textContent === text)!;
+
+  it("keeps today's Choices editor enabled on a voted OPEN poll (C1)", async () => {
+    await votedPoll();
+    const p = await open();
+    const card = await openAtChoices(p);
+    expect(heading(card)).toBe("Step 3 · Choices");
+    const box = choicesBox(p);
+    expect(box.disabled).toBe(false);
+    expect(box.value).toBe("Choice 1\nChoice 2");
+    const paste = Array.from(card.querySelectorAll<HTMLButtonElement>(".wizard-paste .m3-tonal-btn"))
+      .find((b) => b.textContent === "Paste choices")!;
+    expect(paste.disabled).toBe(false);
+    expect(card.querySelector(".wizard-locked")).toBeNull();
+  });
+
+  it("leaving the step with a voted deletion opens the dialog, and Keep choices restores the session-entry text (C2, C3)", async () => {
+    await votedPoll();
+    const p = await open();
+    await openAtChoices(p);
+    type(p, choicesBox(p), "Choice 2\nChoice 3");
+    blur(p, choicesBox(p));
+    await next(p);
+    const box = dialog(p)!;
+    expect(box).not.toBeNull();
+    expect(box.getAttribute("aria-modal")).toBe("true");
+    expect(box.querySelector(".modal-headline")!.textContent).toBe("Delete choices with votes?");
+    expect(box.querySelector(".modal-text")!.textContent).toBe("Choice 1 — 2 vote(s)");
+    dialogButton(p, "Keep choices").click();
+    await p.settle(50);
+    expect(dialog(p)).toBeNull();
+    expect(heading(wizardCard(p))).toBe("Step 3 · Choices");
+    expect(choicesBox(p).value).toBe("Choice 1\nChoice 2");
+    expect(sent("/publish")).toEqual([]);
+  });
+
+  it("Delete proceeds, and the confirmed set does not prompt again (C2)", async () => {
+    await votedPoll();
+    const p = await open();
+    await openAtChoices(p);
+    type(p, choicesBox(p), "Choice 2\nChoice 3");
+    blur(p, choicesBox(p));
+    await next(p);
+    dialogButton(p, "Delete").click();
+    await p.settle(50);
+    expect(heading(wizardCard(p))).toBe("Step 4 · View");
+    (circles(wizardCard(p))[2]!.querySelector("button") as HTMLButtonElement).click();
+    await p.settle(50);
+    expect(heading(wizardCard(p))).toBe("Step 3 · Choices");
+    await next(p);
+    expect(dialog(p)).toBeNull();
+    expect(heading(wizardCard(p))).toBe("Step 4 · View");
+  });
+
+  it("a zero-vote deletion never prompts (C2)", async () => {
+    await votedPoll({
+      currentVotes: [{ emailAddress: "v1@example.com", userName: "v1", choiceIds: ["c1"], votedAt: when }]
+    });
+    const p = await open();
+    await openAtChoices(p);
+    type(p, choicesBox(p), "Choice 1\nChoice 3");
+    blur(p, choicesBox(p));
+    await next(p);
+    expect(dialog(p)).toBeNull();
+    expect(heading(wizardCard(p))).toBe("Step 4 · View");
+  });
+
+  it("a rename shows as a deletion of the old label (C2)", async () => {
+    await votedPoll();
+    const p = await open();
+    await openAtChoices(p);
+    type(p, choicesBox(p), "Choice 1 renamed\nChoice 2");
+    blur(p, choicesBox(p));
+    await next(p);
+    const box = dialog(p)!;
+    expect(box).not.toBeNull();
+    expect(box.querySelector(".modal-text")!.textContent).toBe("Choice 1 — 2 vote(s)");
+    dialogButton(p, "Keep choices").click();
+    await p.settle(50);
+    expect(choicesBox(p).value).toBe("Choice 1\nChoice 2");
+  });
+
+  it("Save changes gates on the dialog too, and its payload carries labels with aligned colors (C2, C8)", async () => {
+    await votedPoll();
+    const p = await open();
+    await openAtChoices(p);
+    type(p, choicesBox(p), "Choice 2\nChoice 3");
+    blur(p, choicesBox(p));
+    footerButton(wizardCard(p), "Save changes").click();
+    await p.settle(50);
+    expect(dialog(p)).not.toBeNull();
+    expect(sent("/publish")).toEqual([]);
+    dialogButton(p, "Delete").click();
+    await p.settle(200);
+    const body = sent("/publish")[0]!.body!;
+    expect(Object.keys(body).sort()).toEqual(["clientGuid", "colors", "labels", "timeZone"]);
+    expect(body.labels).toEqual(["Choice 2", "Choice 3"]);
+    expect(body.colors).toEqual([null, null]);
+  });
+});
+
+describe("sharing mode on a voted Private poll (EDITING-POLL-AVAILABLE US3)", () => {
+  async function votedPrivate(overrides: Partial<Poll> = {}) {
+    const poll = makePoll({
+      title: "Team outing",
+      pollState: "OPEN",
+      pollVisibility: "Private Poll",
+      pollSharingMode: "Anyone With The Link",
+      ...overrides
+    });
+    await seed(poll);
+    await voteHistory(ctx).insertOne({ pid: poll._id, emailAddress: "v@example.com", userName: "v", choiceIds: ["c1"], votedAt: new Date() });
+    return poll;
+  }
+
+  const whoRadio = (p: BrowserPage, value: string) =>
+    wizardCard(p).querySelector<HTMLInputElement>(`input[name^="who-"][value="${value}"]`)!;
+
+  it("enables the two private options, keeps public and the anonymity switch locked, and sends the change (C4, C8)", async () => {
+    await votedPrivate();
+    const p = await open();
+    link(cardWith(p, "Team outing"), "Team outing").click();
+    await p.settle(50);
+    (circles(wizardCard(p))[0]!.querySelector("button") as HTMLButtonElement).click();
+    await p.settle();
+    expect(heading(wizardCard(p))).toBe("Step 1 · Who can vote");
+    expect(whoRadio(p, "link").disabled).toBe(false);
+    expect(whoRadio(p, "invite").disabled).toBe(false);
+    expect(whoRadio(p, "public").disabled).toBe(true);
+    expect(wizardCard(p).querySelector<HTMLInputElement>(".m3-switch")!.disabled).toBe(true);
+    expect(wizardCard(p).querySelector(".wizard-locked")).not.toBeNull();
+
+    await pick(p, "who", "invite");
+    footerButton(wizardCard(p), "Save changes").click();
+    await p.settle(200);
+    const body = sent("/publish")[0]!.body!;
+    expect(Object.keys(body).sort()).toEqual(["clientGuid", "pollSharingMode", "timeZone"]);
+    expect(body.pollSharingMode).toBe("Invitation Only");
+  });
+
+  it("keeps every Step 1 control locked on a voted public poll", async () => {
+    await votedPrivate({ title: "Town hall", pollVisibility: "Public Poll", pollSharingMode: "Anyone With The Link" });
+    const p = await open();
+    link(cardWith(p, "Town hall"), "Town hall").click();
+    await p.settle(50);
+    (circles(wizardCard(p))[0]!.querySelector("button") as HTMLButtonElement).click();
+    await p.settle();
+    for (const value of ["link", "invite", "public"]) expect(whoRadio(p, value).disabled, value).toBe(true);
+  });
+});
+
+describe("Step 5 on a voted poll (EDITING-POLL-AVAILABLE US4/US5)", () => {
+  const stepRadio = (p: BrowserPage, name: string, value: string) =>
+    wizardCard(p).querySelector<HTMLInputElement>(`input[name^="${name}-"][value="${value}"]`)!;
+
+  async function openAtHow(p: BrowserPage, title: string) {
+    link(cardWith(p, title), title).click();
+    await p.settle(50);
+    (circles(wizardCard(p))[4]!.querySelector("button") as HTMLButtonElement).click();
+    await p.settle();
+  }
+
+  it("enables both count options on a voted Single-Choice poll and sends the widening (C4, C8)", async () => {
+    const poll = makePoll({ title: "Pick one", pollState: "OPEN" });
+    await seed(poll);
+    await voteHistory(ctx).insertOne({ pid: poll._id, emailAddress: "v@example.com", userName: "v", choiceIds: ["c1"], votedAt: new Date() });
+    const p = await open();
+    await openAtHow(p, "Pick one");
+    expect(stepRadio(p, "howmany", "one").disabled).toBe(false);
+    expect(stepRadio(p, "howmany", "multi").disabled).toBe(false);
+
+    await pick(p, "howmany", "multi");
+    footerButton(wizardCard(p), "Save changes").click();
+    await p.settle(200);
+    const body = sent("/publish")[0]!.body!;
+    expect(Object.keys(body).sort()).toEqual(["choiceMode", "clientGuid", "timeZone"]);
+    expect(body.choiceMode).toBe("Multiple-Choice Poll");
+  });
+
+  it("keeps only the single-choice option locked on a voted Multiple-Choice poll", async () => {
+    const poll = makePoll({ title: "Pick several", pollState: "OPEN", choiceMode: "Multiple-Choice Poll" });
+    await seed(poll);
+    await voteHistory(ctx).insertOne({ pid: poll._id, emailAddress: "v@example.com", userName: "v", choiceIds: ["c1"], votedAt: new Date() });
+    const p = await open();
+    await openAtHow(p, "Pick several");
+    expect(stepRadio(p, "howmany", "one").disabled).toBe(true);
+    expect(stepRadio(p, "howmany", "multi").disabled).toBe(false);
+    expect(wizardCard(p).querySelector(".wizard-locked")).not.toBeNull();
+  });
+
+  it("unlocks the mutability radios on a voted poll and sends the switch (C4, C8)", async () => {
+    const poll = makePoll({ title: "First vote final", pollState: "OPEN" });
+    await seed(poll);
+    await voteHistory(ctx).insertOne({ pid: poll._id, emailAddress: "v@example.com", userName: "v", choiceIds: ["c1"], votedAt: new Date() });
+    const p = await open();
+    await openAtHow(p, "First vote final");
+    expect(stepRadio(p, "mutable", "change").disabled).toBe(false);
+    expect(stepRadio(p, "mutable", "final").disabled).toBe(false);
+
+    await pick(p, "mutable", "change");
+    footerButton(wizardCard(p), "Save changes").click();
+    await p.settle(200);
+    const body = sent("/publish")[0]!.body!;
+    expect(Object.keys(body).sort()).toEqual(["clientGuid", "timeZone", "voteMutability"]);
+    expect(body.voteMutability).toBe("Dynamic-Vote Poll");
+  });
+});
+
+describe("pending review on the card (EDITING-POLL-AVAILABLE US1)", () => {
+  async function voted(poll: Poll) {
+    await seed(poll);
+    await voteHistory(ctx).insertOne({ pid: poll._id, emailAddress: "v@example.com", userName: "v", choiceIds: ["c1"], votedAt: new Date() });
+    return poll;
+  }
+
+  it("shows the pending status and withholds the editor links", async () => {
+    await voted(makePoll({ title: "Pending poll", pollState: "OPEN", pendingUpdate: { title: "Renamed" } }));
+    const p = await open();
+    const card = cardWith(p, "Pending poll");
+    expect(card.querySelector(".card-state-value")!.textContent).toBe("OPEN");
+    expect(card.querySelector(".card-state-detail")!.textContent).toBe("changes pending review");
+    expect(links(card)).toEqual([]);
+  });
+
+  it("shows the rejection reason without changing the poll's own state", async () => {
+    await voted(makePoll({
+      title: "Rejected changes", subtitle: "Sub", pollState: "OPEN",
+      pendingRejectionReason: "contains unacceptable language"
+    }));
+    const p = await open();
+    const card = cardWith(p, "Rejected changes");
+    expect(card.querySelector(".card-state-value")!.textContent).toBe("OPEN");
+    expect(card.querySelector(".card-state-detail")!.textContent).toBe("changes rejected: contains unacceptable language");
+    // A rejected update leaves the poll editable, so a corrected save can follow.
+    expect(links(card).length).toBeGreaterThan(0);
+  });
+
+  it("surfaces the server's refusal when the editor is opened on a freshly pending poll", async () => {
+    const poll = await voted(makePoll({ title: "Stale row", subtitle: "Sub", pollState: "OPEN" }));
+    const p = await open();
+    // The review began after the page loaded, so this row still offers its links.
+    await ctx.db.updateTable("polls")
+      .set({ pending_update: JSON.stringify({ title: "Renamed" }) })
+      .where("id", "=", poll._id).execute();
+    link(cardWith(p, "Stale row"), "Stale row").click();
+    await p.settle(50);
+    expect(p.document.querySelector(".poll-admin-card--new")).toBeNull();
+    expect(cardWith(p, "Stale row").querySelector(".card-status-line")!.textContent)
+      .toBe("Changes are being reviewed. Try again shortly.");
+  });
+
+  it("keeps the blanket review note on a never-voted existing poll", async () => {
+    await seed(makePoll({ title: "Unvoted", subtitle: "Sub", pollState: "OPEN" }));
+    const p = await open();
+    link(cardWith(p, "Unvoted"), "Unvoted").click();
+    await p.settle(50);
+    expect(wizardCard(p).querySelector(".wizard-review-note")!.textContent)
+      .toBe("Saving sends your poll to be reviewed again.");
+  });
 });
 
 describe("the line graph switch on the View step", () => {
@@ -1308,5 +1626,28 @@ describe("the line graph switch on the View step", () => {
     const hidden = await open(creatorCookie);
     await openViewStep(hidden, "Hidden");
     expect(summaryColors(hidden)).not.toMatch(/graph/i);
+  });
+});
+
+describe("the editing banner on an existing poll's wizard (TWEAK01)", () => {
+  it("shows Poll State Is: EDITING while the wizard is open, and clears it on Cancel", async () => {
+    await seed(makePoll({ title: "Banner poll", subtitle: "Sub", pollState: "OPEN" }));
+    const p = await open();
+    link(cardWith(p, "Banner poll"), "Banner poll").click();
+    await p.settle(50);
+    const status = wizardCard(p).querySelector<HTMLElement>(".card-status-line")!;
+    expect(status.hidden).toBe(false);
+    expect(status.textContent).toBe("Your poll is being edited in this tab. Poll State Is: EDITING.");
+
+    footerButton(wizardCard(p), "Cancel").click();
+    await p.settle(100);
+    expect(p.document.querySelector(".poll-admin-card--new")).toBeNull();
+    expect(cardWith(p, "Banner poll").querySelector<HTMLElement>(".card-status-line")!.hidden).toBe(true);
+  });
+
+  it("shows no banner on a new poll's wizard", async () => {
+    const p = await open();
+    await createPoll(p);
+    expect(wizardCard(p).querySelector<HTMLElement>(".card-status-line")!.hidden).toBe(true);
   });
 });

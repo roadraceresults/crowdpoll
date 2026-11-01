@@ -24,6 +24,15 @@
     document.getElementById("resultsSubtitle").textContent = data.subtitle || "";
     document.getElementById("resultsTotals").textContent =
       data.totalVoted + " participant" + (data.totalVoted === 1 ? "" : "s") + " voted";
+    // On a multiple-choice poll the selections outnumber the participants.
+    const votesCast = document.getElementById("resultsVotesCast");
+    if (data.choiceMode === "Multiple-Choice Poll") {
+      const total = data.choices.reduce((sum, c) => sum + c.count, 0);
+      votesCast.textContent = total + " vote" + (total === 1 ? "" : "s") + " cast";
+      votesCast.hidden = false;
+    } else {
+      votesCast.hidden = true;
+    }
 
     document.getElementById("resultsChoices").replaceChildren(
       ...data.choices.map((c) => {

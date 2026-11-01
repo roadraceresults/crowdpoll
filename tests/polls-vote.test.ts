@@ -129,17 +129,25 @@ describe("POST /api/polls/:pid/vote", () => {
     expect(two.body.error).toMatch(/one choice/);
   });
 
-  it("refuses a vote in every non-OPEN state and accepts only OPEN", async () => {
+  it("refuses a vote in every state that is not effectively OPEN", async () => {
+    // EDITING-POLL-AVAILABLE R1: a poll under edit serves its stashed state, so a
+    // poll stashed from OPEN votes exactly like an OPEN one, and one stashed from
+    // CLOSED refuses like a CLOSED one — never with POLL_EDITING.
     for (const pollState of POLL_STATES) {
       const poll = makePoll({ pollState, pollStateBeforeEditUpdate: pollState === "EDITING" ? "OPEN" : null });
       await polls(ctx).insertOne(poll);
       const { cookie } = await voter();
       const res = await vote(poll._id, cookie, ["c1"]);
-      if (pollState === "OPEN") expect(res.status, pollState).toBe(200);
+      if (pollState === "OPEN" || pollState === "EDITING") expect(res.status, pollState).toBe(200);
       else expect(res.status, pollState).toBe(409);
-      if (pollState === "EDITING") expect(res.body.code).toBe("POLL_EDITING");
       if (pollState === "CLOSED") expect(res.body.code).toBeUndefined();
     }
+    const stashedClosed = makePoll({ pollState: "EDITING", pollStateBeforeEditUpdate: "CLOSED" });
+    await polls(ctx).insertOne(stashedClosed);
+    const { cookie } = await voter();
+    const closed = await vote(stashedClosed._id, cookie, ["c1"]);
+    expect(closed.status).toBe(409);
+    expect(closed.body.code).toBeUndefined();
   });
 
   it("multi-choice counts both choices against one participant", async () => {

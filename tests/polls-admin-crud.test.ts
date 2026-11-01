@@ -261,6 +261,30 @@ describe("Admin poll CRUD (US4)", () => {
     expect(row.bannedVoterCount).toBe(1);
   });
 
+  it("GET /api/admin/polls carries voteTotal, the votes cast, on multiple-choice rows only (TWEAK02)", async () => {
+    const cookie = await adminCookie();
+    const multi = makePoll({
+      title: "Multi totals",
+      choiceMode: "Multiple-Choice Poll",
+      currentVotes: [
+        { emailAddress: "a@example.com", userName: "A", choiceIds: ["c1", "c2"], votedAt: new Date() },
+        { emailAddress: "b@example.com", userName: "B", choiceIds: ["c1"], votedAt: new Date() }
+      ]
+    });
+    const single = makePoll({
+      title: "Single totals",
+      currentVotes: [{ emailAddress: "a@example.com", userName: "A", choiceIds: ["c1"], votedAt: new Date() }]
+    });
+    await polls(ctx).insertMany([multi, single]);
+    const res = await request(ctx.app).get("/api/admin/polls").set("Cookie", cookie);
+    const multiRow = res.body.polls.find((p: { pid: string }) => p.pid === multi._id);
+    const singleRow = res.body.polls.find((p: { pid: string }) => p.pid === single._id);
+    // Two voters, three selections: the voter count and the votes cast differ.
+    expect(multiRow.voteCount).toBe(2);
+    expect(multiRow.voteTotal).toBe(3);
+    expect(singleRow.voteTotal).toBeUndefined();
+  });
+
   it("GET /api/admin/polls withholds the rosters themselves", async () => {
     const cookie = await adminCookie();
     const poll = makePoll({
@@ -609,7 +633,10 @@ describe("Admin poll CRUD (US4)", () => {
       .post(`/api/admin/polls/${poll._id}/publish`)
       .set("Cookie", cookie)
       .send({ pollVisibility: "Private Poll" });
-    expect(res.status).toBe(400);
+    // EDITING-POLL-AVAILABLE lets the frozen trio past the UPDATE gate so the
+    // validator can refuse each with its own 409 naming the field.
+    expect(res.status).toBe(409);
+    expect(res.body.error).toMatch(/pollVisibility cannot be changed/);
   });
 
   // 012 T025 (FR-001/FR-002): all five values are stored and returned byte-for-byte.
@@ -668,12 +695,13 @@ describe("Admin poll CRUD (US4)", () => {
   });
 
   // 012 T028 (FR-004): all three mechanics fields freeze together once a vote exists.
-  it("012 FR-004: refuses choiceMode, voteMutability, pollVisibility, pollSharingMode and voteAnonymity once voted on", async () => {
+  // EDITING-POLL-AVAILABLE relaxed 012 FR-004: choiceMode widens Single→Multiple and
+  // voteMutability switches both ways once voted, while visibility, anonymity and a
+  // public poll's sharing mode stay frozen with their own 409s.
+  it("keeps pollVisibility, voteAnonymity and a public poll's sharingMode frozen once voted on", async () => {
     const cookie = await adminCookie();
     for (const [field, value] of [
-      ["choiceMode", "Multiple-Choice Poll"],
-      ["voteMutability", "Dynamic-Vote Poll"],
-      ["pollVisibility", "Public Poll"],
+      ["pollVisibility", "Private Poll"],
       ["pollSharingMode", "Invitation Only"],
       ["voteAnonymity", "No"]
     ] as const) {
@@ -690,11 +718,37 @@ describe("Admin poll CRUD (US4)", () => {
         .post(`/api/admin/polls/${poll._id}/publish`)
         .set("Cookie", cookie)
         .send({ [field]: value });
-      // UPDATE mode rejects the field before the freeze is reached; either refusal
-      // is correct, and both leave the poll unchanged.
-      expect([400, 409], field).toContain(res.status);
+      expect(res.status, field).toBe(409);
+      expect(res.body.error, field).toMatch(new RegExp(`${field} cannot be changed`));
       const after = await polls(ctx).findOne({ _id: poll._id });
       expect(after?.[field], field).toBe(poll[field]);
+    }
+  });
+
+  it("applies choiceMode (Single→Multiple) and voteMutability at save once voted on", async () => {
+    const cookie = await adminCookie();
+    for (const [field, value] of [
+      ["choiceMode", "Multiple-Choice Poll"],
+      ["voteMutability", "Dynamic-Vote Poll"]
+    ] as const) {
+      const poll = makePoll({ pollState: "OPEN" });
+      await polls(ctx).insertOne(poll);
+      await voteHistory(ctx).insertOne({
+        pid: poll._id,
+        emailAddress: "v@example.com",
+        userName: "v",
+        choiceIds: ["c1"],
+        votedAt: new Date()
+      });
+      const res = await request(ctx.app)
+        .post(`/api/admin/polls/${poll._id}/publish`)
+        .set("Cookie", cookie)
+        .send({ [field]: value });
+      expect(res.status, field).toBe(200);
+      const after = await polls(ctx).findOne({ _id: poll._id });
+      expect(after?.[field], field).toBe(value);
+      expect(after?.pollState, field).toBe("OPEN");
+      expect(after?.pendingUpdate, field).toBeNull();
     }
   });
 
@@ -749,7 +803,9 @@ describe("Admin poll CRUD (US4)", () => {
     expect(after?.title).toBe("Original title");
   });
 
-  it("012 T048 (FR-014): labels are refused on the update surface", async () => {
+  // EDITING-POLL-AVAILABLE US2 reversed 012 FR-014: labels on a voted poll merge by
+  // id into the pending update, leaving the stored choices for the review to apply.
+  it("parks labels sent on the update surface as the pending update", async () => {
     const cookie = await adminCookie();
     const poll = makePoll({ pollState: "OPEN" });
     await polls(ctx).insertOne(poll);
@@ -762,9 +818,11 @@ describe("Admin poll CRUD (US4)", () => {
       .post(`/api/admin/polls/${poll._id}/publish`)
       .set("Cookie", cookie)
       .send({ labels: ["New", "Choices"] });
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(200);
+    expect(res.body.pending).toBe(true);
     const after = await polls(ctx).findOne({ _id: poll._id });
     expect(after?.choices.map((c) => c.label)).toEqual(originalLabels);
+    expect(after?.pendingUpdate?.choices?.map((c) => c.label)).toEqual(["New", "Choices"]);
   });
 
   it("012 T048: the dedicated choices route is gone", async () => {
@@ -883,7 +941,10 @@ describe("Admin poll CRUD (US4)", () => {
     expect(after?.currentVotes).toEqual(poll.currentVotes);
   });
 
-  it("keeps pollSharingMode and voteAnonymity frozen after the only vote is deleted", async () => {
+  // "Ever voted" still means the history row, even after the vote itself is deleted;
+  // EDITING-POLL-AVAILABLE keeps voteAnonymity frozen there while a Private poll's
+  // sharing mode now switches both ways.
+  it("keeps voteAnonymity frozen after the only vote is deleted, while a Private poll's sharing mode switches", async () => {
     const cookie = await adminCookie();
     const poll = makePoll({ pollVisibility: "Private Poll", pollState: "OPEN", currentVotes: [] });
     await polls(ctx).insertOne(poll);
@@ -894,22 +955,25 @@ describe("Admin poll CRUD (US4)", () => {
       choiceIds: ["c1"],
       votedAt: new Date()
     });
-    for (const body of [{ pollSharingMode: "Invitation Only" }, { voteAnonymity: "No" }]) {
-      const res = await request(ctx.app)
-        .post(`/api/admin/polls/${poll._id}/publish`)
-        .set("Cookie", cookie)
-        .send(body);
-      expect([400, 409], JSON.stringify(body)).toContain(res.status);
-    }
+    const frozen = await request(ctx.app)
+      .post(`/api/admin/polls/${poll._id}/publish`)
+      .set("Cookie", cookie)
+      .send({ voteAnonymity: "No" });
+    expect(frozen.status).toBe(409);
+    const switched = await request(ctx.app)
+      .post(`/api/admin/polls/${poll._id}/publish`)
+      .set("Cookie", cookie)
+      .send({ pollSharingMode: "Invitation Only" });
+    expect(switched.status).toBe(200);
     const unrelated = await request(ctx.app)
       .post(`/api/admin/polls/${poll._id}/publish`)
       .set("Cookie", cookie)
-      .send({ subtitle: "still editable" });
+      .send({ endAt: new Date(Date.now() + 86_400_000).toISOString() });
     expect(unrelated.status).toBe(200);
     const after = await polls(ctx).findOne({ _id: poll._id });
-    expect(after?.pollSharingMode).toBe("Anyone With The Link");
+    expect(after?.pollSharingMode).toBe("Invitation Only");
     expect(after?.voteAnonymity).toBe("Yes");
-    expect(after?.subtitle).toBe("still editable");
+    expect(after?.endAt).not.toBeNull();
   });
 
   it("refuses an unknown pollSharingMode or voteAnonymity with the exact message and saves nothing", async () => {

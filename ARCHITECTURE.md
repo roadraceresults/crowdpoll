@@ -251,7 +251,7 @@ sequenceDiagram
   B->>R: POST /api/polls/:pid/vote
   R->>C: floor:vote (SET NX), votes-ip:<ip> (INCR)
   R->>C: poll:<pid>, ban/invite sets, voted:<session>
-  Note over R: refusals keep their messages: banned, not invited, full, closed, editing, already voted
+  Note over R: refusals keep their messages: banned, not invited, full, closed, already voted.<br/>The projection serves an EDITING poll's stashed state, so an open poll under edit votes as OPEN
   R->>C: HINCRBY cnt:<pid> choice/total/seq, trend bucket, SADD dirty
   R->>C: XADD votes {pid, email, choices, votedAt, mutability}
   R-->>B: 200 { status, voteCount, choiceCounts, countsVersion, myChoiceIds, nextRefreshMs }
@@ -807,11 +807,23 @@ setting change. A poll takes the new-poll wizard (Cancel, Save, Publish) while i
 state is `INITIALIZED` — an `EDITING` poll is worded as `pollStateBeforeEditUpdate`, which the
 admin list row carries — and any other poll takes Cancel and Save changes. Save goes to
 `POST /api/admin/polls/:pid/save`, which stores the answers and leaves the poll `INITIALIZED`;
-Publish and Save changes go to `/publish`, which sends the poll to screening; it holds a poll
-back as `INITIALIZED` for still having its starter choices only when the poll has not been
-published, so a published poll always goes to screening. The list keeps the card of a poll
-whose saved wizard progress it holds when that poll leaves the current view, so the progress
-survives a switch of admin views.
+Publish and Save changes go to `/publish`. A never-voted poll is sent to screening
+(`AWAITING APPROVAL`), held back as `INITIALIZED` for still carrying its starter choices only
+while it has never been published. The save of an ever-voted published poll never changes
+`pollState` and never interrupts voting: fields other than the title, subtitle and choices
+apply in the save transaction, while a changed title, subtitle or choice list waits in
+`polls.pending_update` (`pending_rejection_reason` carries a refusal) until the approval sweep
+resolves it — the same sweep and claim columns, drawing from two disjoint pools
+(`AWAITING APPROVAL` polls and polls with a pending update), screening the content as it would
+read after the update. Approval applies the pending fields in one transaction — choices by id,
+each deleted id removed from every `votes.choice_ids` of the poll, the line-graph tally rebuilt
+in-transaction — then reconciles the counters and forgets the rewritten voters' tabs;
+`launched_at` is never re-stamped and a poll that closed meanwhile stays closed, and a voter
+whose vote was emptied may vote again even on a Final-Vote poll. While an update is pending, a
+second save and the edit session are refused (`PENDING_REVIEW`), and the admin row carries
+`pendingUpdate`/`pendingRejectionReason` for the card's status line. The list keeps the card of
+a poll whose saved wizard progress it holds when that poll leaves the current view, so the
+progress survives a switch of admin views.
 
 The Settings Summary has a line for colors after the choices line (`buildColorsSummaryLine`): "Bar colors are assigned automatically.", or the number set by hand with one swatch per colored choice; its sentence opens Step 4, and "The line graph is shown." follows it when the setting is on. The View step (step 4) shows an Administrator's **Show the line graph** switch first (`buildLineGraphSwitch`, from `GET /api/me`'s `isAdmin`), then lists one row per line of the Choices box, each with a button that opens
 one shared grid of swatches. The palette is a single ordered list of eighteen name and hex pairs in
@@ -821,8 +833,12 @@ reissued on every save: reordering the lines keeps each colour, and renaming or 
 drops it. `save` and `publish` take a `colors` list beside `labels`, of the same length, whose
 entries are a palette hex code, a colour the poll already stores, or `null`; the server pairs each
 colour with its label before it drops empty labels, and a request with labels and no colours
-replaces the choices with none coloured. Choices are frozen once a poll has votes, but colours are
-not: `publish` in `UPDATE` mode accepts `colors`, and when colours are the only thing that changed
+replaces the choices with none coloured. Choices on a voted poll change by id through
+`mergeChoices` — exact trimmed-label match: a survivor keeps its id, label and position, an
+addition gets a minted id, and a rename is a deletion plus an addition — and the merged list
+waits for review as part of the pending update (the card confirms a deletion that holds votes,
+with the counts snapshot the edit-session grant carried). Colours apply without review:
+`publish` in `UPDATE` mode accepts `colors`, and when colours are the only thing that changed
 the card posts `POST /api/admin/polls/:pid/colors`. That route holds the same guard as the
 edit-session release (the caller must hold the session's `clientGuid`), refuses a poll with no
 votes, sets the colour on the existing choices by position, restores `pollStateBeforeEditUpdate`
@@ -836,22 +852,26 @@ sequenceDiagram
   participant PG as PostgreSQL
   participant VK as Valkey
   C->>E: clientGuid
-  E-->>C: poll is EDITING, voting paused
+  E-->>C: poll is EDITING; the served projection keeps the stashed state, so voting continues
   C->>R: colors list, clientGuid
   R->>PG: UPDATE choices, state = stashed state, clear session WHERE clientGuid matches
   R->>PG: bump content version
   R->>VK: refresh the poll's cached projection
-  R-->>C: pollState, choices — voting resumes
+  R-->>C: pollState, choices
   Note over VK: open cards receive the new colour on their next content refresh
 ``` Only the wizard
 holds a server-side session with an owning tab id and a heartbeat, and the card in the wizard
 is exempt from the list's periodic refresh. `keywords` is a poll field: comma-separated
-lower-case words, stored only on a public poll, frozen with the other settings once the poll
+lower-case words, stored only on a public poll, frozen once the poll
 has votes, and searched by both engines (weight D in the `search` column). A poll's audience is three
 two-valued fields — `pollVisibility`, `pollSharingMode`, `voteAnonymity` — read through one
-predicate, `isInvitationOnly(poll)`, and frozen once the poll has ever been voted on
+predicate, `isInvitationOnly(poll)`. Once the poll has ever been voted on
 (`vote_history` holds a row for it — asked as a semi-join, one index probe per poll that stops at
-the first row, never a scan of the history). The `home_listable` generated column is the only place
+the first row, never a scan of the history), `pollVisibility` and `voteAnonymity` are frozen,
+while a Private poll's `pollSharingMode` switches both ways: access follows the live invitation
+checks, so no vote or invitation record is rewritten by the switch alone. Choice mode widens one
+way (Single-Choice → Multiple-Choice, never back) and vote mutability switches both ways, the new
+rule applying forward. The `home_listable` generated column is the only place
 the public scope is written: public polls in `WAITING TO OPEN`, `OPEN` or `CLOSED`, or under
 edit after having been one of those.
 

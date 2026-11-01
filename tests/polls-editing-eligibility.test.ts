@@ -170,7 +170,9 @@ describe("POST /api/admin/polls/:pid/edit-session (011 T020)", () => {
     }
   });
 
-  it("refuses a choices save once the poll has ever been voted on (FR-010)", async () => {
+  // EDITING-POLL-AVAILABLE US2 reversed 012's freeze: a voted poll's choices change
+  // by id through the merge, parked as the poll's pending update instead of applying.
+  it("routes a choices save on an ever-voted poll into the pending update", async () => {
     const poll = makePoll({ pollState: "OPEN" });
     await polls(ctx).insertOne(poll);
     await voteHistory(ctx).insertOne({
@@ -180,14 +182,11 @@ describe("POST /api/admin/polls/:pid/edit-session (011 T020)", () => {
       .post(`/api/admin/polls/${poll._id}/publish`)
       .set("Cookie", cookie)
       .send({ labels: ["A", "B"] });
-    // 012 T050: the refusal moved from the deleted PUT …/choices route (409) into the
-    // publish handler's UPDATE-mode field check (400). Choices remain immutable once
-    // a poll has been voted on — only the shape of the refusal changed.
-    expect(res.status).toBe(400);
-    // 012 FR-059 widened this whitelist to include the participant lists, so the
-    // assertion pins the part that matters: choices are refused on the update surface.
-    expect(res.body.error).toMatch(/this poll has votes/i);
-    expect(res.body.error).not.toMatch(/labels/);
+    expect(res.status).toBe(200);
+    expect(res.body.pending).toBe(true);
+    const stored = await polls(ctx).findOne({ _id: poll._id });
+    expect(stored!.choices.map((c) => c.label)).toEqual(["Choice 1", "Choice 2"]);
+    expect(stored!.pendingUpdate!.choices!.map((c) => c.label)).toEqual(["A", "B"]);
   });
 });
 
@@ -481,21 +480,27 @@ describe("UPDATE-mode publish rejects fields it may not change (011 FR-009, T030
     expect(res.status).toBe(200);
   });
 
-  it("rejects every field outside them with 400, naming what is allowed", async () => {
-    // 012 FR-064 removed voterCountLimit from this list: it is capacity rather than
-    // mechanics, so it stays editable once a poll has votes. The three that remain all
-    // change what an existing vote *means*, which is why they are frozen (012 FR-004).
-    for (const field of ["choiceMode", "pollVisibility", "voteMutability"]) {
-      await polls(ctx).deleteMany({});
-      await voteHistory(ctx).deleteMany({});
-      const poll = await votedSession();
-      const res = await request(ctx.app)
-        .post(`/api/admin/polls/${poll._id}/publish`)
-        .set("Cookie", cookie)
-        .send({ clientGuid: "tab-A", [field]: "anything" });
-      expect(res.status, field).toBe(400);
-      expect(res.body.error).toMatch(/only title, subtitle, startAt, endAt/i);
-    }
+  it("rejects a field outside them with 400, naming what is allowed", async () => {
+    // EDITING-POLL-AVAILABLE widened the UPDATE surface (labels, pollSharingMode,
+    // choiceMode, voteMutability now pass the gate), so only a field no mode accepts
+    // still gets the 400 here; the frozen trio is refused with its own 409 instead.
+    const poll = await votedSession();
+    const res = await request(ctx.app)
+      .post(`/api/admin/polls/${poll._id}/publish`)
+      .set("Cookie", cookie)
+      .send({ clientGuid: "tab-A", somethingElse: "anything" });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/only title, subtitle, startAt, endAt/i);
+
+    await polls(ctx).deleteMany({});
+    await voteHistory(ctx).deleteMany({});
+    const frozen = await votedSession();
+    const refused = await request(ctx.app)
+      .post(`/api/admin/polls/${frozen._id}/publish`)
+      .set("Cookie", cookie)
+      .send({ clientGuid: "tab-A", pollVisibility: "Private Poll" });
+    expect(refused.status).toBe(409);
+    expect(refused.body.error).toMatch(/pollVisibility cannot be changed/);
   });
 
   it("allows those same fields on a poll that has never been voted on", async () => {

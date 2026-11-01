@@ -61,7 +61,7 @@ Once again, this isn't ideal, but it is the decision of the poll creator.
 
 ## Accepted Resolutions (2026-10-30)
 
-The following decisions were accepted from `requirements-report.md` (findings UA1–UA9, AM2–AM5) and are part of these requirements.
+The following decisions were accepted from `requirements-report.md` (findings UA1–UA9, AM2–AM5, NC1–NC3) and are part of these requirements.
 
 - **Choice identity (UA1)**: on a poll with votes, choices are changed by id;  
   additions append new ids, a deletion removes one id, and every surviving choice keeps its id, label and position.  
@@ -69,8 +69,9 @@ The following decisions were accepted from `requirements-report.md` (findings UA
 - **Voting during editing (UA2)**: the edit session is kept for editor exclusivity and expiry,  
   but votes are no longer refused while a poll is `EDITING` with a stashed state of `OPEN`;  
   the voter-facing "momentarily unavailable" flow disappears for open polls.  
-- **Delete dropdown counts (UA3)**: the vote counts shown in the Delete Choice dropdown are returned once, in the edit-session response,  
-  read through the existing results path, and held by the card for the life of the session.  
+- **Edit-session counts snapshot (UA3, amended 2026-10-30)**: the Delete Choice dropdown is gone (superseded, see the note under point 1),  
+  but the vote-counts snapshot is kept: returned once in the edit-session response, read through the existing results path,  
+  and held by the card for the life of the session as the source for the deletion-confirmation prompt (AM5).  
 - **Added choice colour and position (UA4)**: an added choice is appended at the end with no manual colour (Automatic);  
   the Colors step lists it like any other choice.  
   Existing choices keep their positions, so no existing Automatic bar changes colour.  
@@ -99,6 +100,15 @@ The following decisions were accepted from `requirements-report.md` (findings UA
   a rename is therefore a deletion plus an addition, which the confirmation prompt makes visible.  
 - **Deletion confirmation scope (AM5)**: the confirmation prompt appears only when at least one deleted choice has votes (per the UA3 snapshot), naming those choices and their counts;  
   zero-vote deletions apply without a prompt.  
+- **Screening on save (NC1)**: on a save of an open, voted poll the poll stays OPEN with its old content;  
+  the saved changes are screened in the background and take effect when approved (normally within one approval sweep, ~5 s);  
+  a rejection leaves the poll running unchanged and tells the creator.  
+- **Votes for a deleted choice (NC2)**: the deleted choice's id is removed from every affected vote in the same transaction;  
+  a vote left empty counts as not-voted, so that voter (Dynamic or Final) may vote again;  
+  counters and the line-graph tally are rebuilt for the poll.  
+- **Line-graph toggle (NC3)**: out of scope — this feature neither implements nor extends the line-graph toggle;  
+  since `main` was merged into this branch on 2026-10-30 the toggle (`line_graph_enabled`, migration 013) is present,  
+  so the opening list's "available of line graph" entry is accurate as written.  
 
 ## Additional Requirements (2026-10-30 9:16 AM)
 

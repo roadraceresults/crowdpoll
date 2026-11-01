@@ -93,21 +93,38 @@ describe("A poll's whole life (011 quickstart Part 2)", () => {
     expect(await voteHistory(ctx).countDocuments({ pid })).toBe(1);
   });
 
-  it("F: now that it has a vote, only the update surface is offered", async () => {
+  it("F: now that it has a vote, the update surface is offered and a choices save waits for review", async () => {
     const session = await admin("post", `/api/admin/polls/${pid}/edit-session`).send({ clientGuid: "tab-3" });
     expect(session.body.mode).toBe("UPDATE");
-    // ...and choices are immutable.
-    // Sends the lock holder's guid so the refusal comes from the field check rather
-    // than from the lock — the point being that holding the lock does not make
-    // choices editable once a poll has been voted on.
-    const refused = await admin("post", `/api/admin/polls/${pid}/publish`).send({
+    // EDITING-POLL-AVAILABLE: a changed choice list on an ever-voted poll is no
+    // longer refused — it merges by label into pending_update, voting continues
+    // on the stored list, and the approval sweep applies it.
+    const parked = await admin("post", `/api/admin/polls/${pid}/publish`).send({
       clientGuid: "tab-3",
-      labels: ["A", "B"]
+      labels: ["Hobnob", "Digestive", "Shortbread"]
     });
-    // 012 T050: refused by publish's UPDATE-mode field check (400) now that the
-    // dedicated choices route is gone.
-    expect(refused.status).toBe(400);
-    await admin("delete", `/api/admin/polls/${pid}/edit-session`).send({ clientGuid: "tab-3" });
+    expect(parked.status).toBe(200);
+    expect(parked.body.pending).toBe(true);
+    expect(await state()).toBe("OPEN");
+    expect((await polls(ctx).findOne({ _id: pid }))!.choices.map((c) => c.label)).toEqual([
+      "Hobnob",
+      "Digestive",
+      "Bourbon"
+    ]);
+
+    // While the change awaits review, a further edit session is refused.
+    const refused = await admin("post", `/api/admin/polls/${pid}/edit-session`).send({ clientGuid: "tab-3b" });
+    expect(refused.status).toBe(409);
+    expect(refused.body.reason).toBe("PENDING_REVIEW");
+
+    // The approval sweep applies the merge: Bourbon (no votes) goes, Shortbread
+    // arrives, and the survivors keep their ids so the vote stays attached.
+    await pollsAwaitingApprovalSweep(ctx, DEPS);
+    const applied = (await polls(ctx).findOne({ _id: pid }))!;
+    expect(applied.pendingUpdate).toBeNull();
+    expect(applied.pollState).toBe("OPEN");
+    expect(applied.choices.map((c) => c.label)).toEqual(["Hobnob", "Digestive", "Shortbread"]);
+    expect(await voteHistory(ctx).countDocuments({ pid })).toBe(1);
   });
 
   it("C: an abandoned session frees itself within the bounded time", async () => {

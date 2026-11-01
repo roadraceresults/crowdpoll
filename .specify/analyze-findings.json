@@ -90,6 +90,11 @@
         "specs/20261028-182852-line-graph-toggle/research.md": "2b2e9bbdd58388846b22e67fdac816035cf1ed7d1d30c4f9d0001755b638664d",
         "specs/20261028-182852-line-graph-toggle/contracts/api.md": "f595740df210b5348e59d3c4349b9e67861c2e99119aeddc60db6e3e1f71743b",
         "requirements/20261028-114023-line-graph-toggle/requirements.md": "1e39b28459938b8e0f4f1a1f641a619a7f0af2d9f7d1c183351cd7955ee30526",
-        "specs/20261028-182852-line-graph-toggle/data-model.md": "d54fb34fc83540e83aaff62aebd53773e338f19bd9f2738b1cdea09b790b78ab"
+        "specs/20261028-182852-line-graph-toggle/data-model.md": "d54fb34fc83540e83aaff62aebd53773e338f19bd9f2738b1cdea09b790b78ab",
+        "specs/20261029-225209-EDITING-POLL-AVAILABLE/analyze-findings.md": "69c6ff98371b928f0c0f27d07b6f071bf586f7c4ca8a59af1fe5c59fcba7810c",
+        "specs/20261029-225209-EDITING-POLL-AVAILABLE/plan.md": "158bc7f0e604e2bdcfe50db679ee7494b0c71c3a0064c6d516d0d3b9140cbc69",
+        "specs/20261029-225209-EDITING-POLL-AVAILABLE/contracts/api.md": "9acf419879820b8db86077f4ed153cc02af2bcb40947dbdec85a84eed66b96a3",
+        "specs/20261029-225209-EDITING-POLL-AVAILABLE/spec.md": "d2e79ea310de1db7eb79b830aaa69aead3411967e2c8ab505a56de9c80dfc22f",
+        "specs/20261029-225209-EDITING-POLL-AVAILABLE/tasks.md": "e9bea75ef5ba77032603d37ab1e4b635151d4934d59053dc0b4ab1f22ce9bbac"
     }
 }

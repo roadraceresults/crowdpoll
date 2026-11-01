@@ -1055,8 +1055,11 @@ function initPollCard(viewport, opts){
     // FR-022: totals alongside the results (app addition; see site.css).
     // 008 FR-004/FR-005: written to both faces' copies from one composition
     // in one call, so they can never show different values.
-    // FIX022: "N votes" (one participant, one vote — the count is of participants who voted).
-    let text = poll.totalVoted + ' vote' + (poll.totalVoted === 1 ? '' : 's');
+    // FIX022/TWEAK02/TWEAK03: the count is of participants who voted. Only a
+    // multiple-choice poll says "voters", where the votes cast can differ; on a
+    // single-choice poll the two counts are the same, so it reads "votes".
+    const noun = poll.choiceMode === 'Multiple-Choice Poll' ? ' voter' : ' vote';
+    let text = poll.totalVoted + noun + (poll.totalVoted === 1 ? '' : 's');
     if (typeof poll.totalNotYetVoted === 'number' && poll.totalNotYetVoted > 0){
       text += ' · ' + poll.totalNotYetVoted + ' not yet voted';
     }

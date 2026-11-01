@@ -12,6 +12,7 @@ import * as invitations from "./010-invitations.js";
 import * as invitationTokens from "./011-invitation-tokens.js";
 import * as lineGraphTally from "./012-line-graph-tally.js";
 import * as lineGraphEnabled from "./013-line-graph-enabled.js";
+import * as pendingUpdate from "./014-pending-update.js";
 
 /** Applied in key order; add a new migration by appending the next number. */
 export const migrations: Record<string, Migration> = {
@@ -27,5 +28,6 @@ export const migrations: Record<string, Migration> = {
   "010-invitations": invitations,
   "011-invitation-tokens": invitationTokens,
   "012-line-graph-tally": lineGraphTally,
-  "013-line-graph-enabled": lineGraphEnabled
+  "013-line-graph-enabled": lineGraphEnabled,
+  "014-pending-update": pendingUpdate
 };

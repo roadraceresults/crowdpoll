@@ -429,8 +429,11 @@ the requirements now say so under "Accepted Resolutions (2026-10-30)".
 
 **UA3. Where the Delete dropdown's vote counts come from.**  
 <span style="font-size:large" ><b>
-**Notes**: Recommendation accepted by "Accept all" 2026-10-30: Recommendation, the counts are returned once in the edit-session response and held by the card for the session's life;  
-the requirements now say so under "Accepted Resolutions (2026-10-30)".  
+✅ Resolved</b></span>  
+✅ Requirements File Updated: 2026-10-30 12:19 PM  
+**Notes**: Developer Resolution B accepted by "Accept UA3, B" 2026-10-30, replacing the resolution first accepted by "Accept all" (the developer re-opened this finding by hand after the Delete dropdown was superseded, see IN1):  
+the dropdown is gone, but the counts snapshot in the edit-session response is kept as the source for the deletion-confirmation prompt (AM5);  
+the requirements' UA3 bullet under "Accepted Resolutions (2026-10-30)" is amended accordingly.  
 
 > The dropdown shows each choice "with its current vote count (current when the Admin Poll Card went into edit mode)", but the source is unspecified.  
 > Candidates: the poll row's flushed `choice_counts` (up to one flush interval stale), the live counters `cnt:<pid>`, or `computeResults`.  
@@ -444,8 +447,10 @@ the requirements now say so under "Accepted Resolutions (2026-10-30)".
 
   - **Developer Resolution B**:  
 
-    [x] ➡️ **Not Accepted**
-    - this finding is outdated, because the requirement for new controls has been removed
+    [X] ➡️ **Accepted**
+
+    - this finding is outdated, because the requirement for the new controls has been removed;  
+      the Delete Choice dropdown is gone, but the vote-counts snapshot in the edit-session response is kept as the source for the deletion-confirmation prompt (AM5).  
 
 **UA4. Colour and position of an added choice.**  
 <span style="font-size:large" ><b>
@@ -606,16 +611,19 @@ the diagram is redrawn the next time a report is regenerated for these requireme
 ### 5.4 "Needs Clarification" Items
 
 **NC1. Must a save on an open, voted poll still pass Acceptability Screening before taking effect — and may the poll stay OPEN meanwhile?**  
+<span style="font-size:large" ><b>
+✅ Resolved</b></span>  
+✅ Requirements File Updated: 2026-10-30 12:13 PM  
+**Notes**: Recommendation A accepted by ticked box 2026-10-30: the poll stays OPEN with its old content, the saved changes are screened in the background and take effect when approved, and a rejection leaves the poll running unchanged and tells the creator;  
+the requirements now say so under "Accepted Resolutions (2026-10-30)".  
 
 > Today every non-colours save of a voted poll sets `AWAITING APPROVAL` (`src/routes/pollsApi.ts:556-563`): the poll is unlisted everywhere and refuses votes until the approval sweep approves it.  
 > New choice labels, titles and subtitles are exactly what the screener reads (`src/polls/screening.ts:41-45`), so skipping screening entirely would let unreviewed text onto a live poll.  
 > This is the heart of requirement 1 (minimize unavailability), so it needs a decision.  
 
-❌ NOT Resolved
-
   - **Recommendation A** _(recommended)_: **the poll stays OPEN with its old content; the saved changes are screened in the background and take effect when approved (normally within one approval sweep, ~5 s); a rejection leaves the poll running unchanged and tells the creator.**  
 
-    [x] ➡️ **Accept** (To Accept, you may: mark <b>[X]</b> on this line, save the file, then Type/Say "<b>next</b>" in the CC CLI terminal, OR Type/Say "<b>Accept NC1, A</b>" in CC CLI)
+    [X] ➡️ **Accepted**
 
     - <u>Pros</u>: zero voter-visible unavailability; unreviewed text never shows; matches "take effect when Saved, or as soon as made possible by the Sweeps mechanism".  
     - <u>Cons</u>: needs a place to hold the pending (unapproved) changes, a new mechanism;  
@@ -624,7 +632,7 @@ the diagram is redrawn the next time a report is regenerated for these requireme
 
   - **Recommendation B**: **changes apply at Save and the poll stays OPEN; screening runs afterwards, and a failed screening reverts the text and notifies the creator.**  
 
-    [ ] ➡️ **Accept** (To Accept, you may: mark <b>[X]</b> on this line, save the file, then Type/Say "<b>next</b>" in the CC CLI terminal, OR Type/Say "<b>Accept NC1, B</b>" in CC CLI)
+    [ ] ➡️ **Not Accepted**
 
     - <u>Pros</u>: simplest data path — the save is one ordinary update; settings that carry no text (mutability, sharing mode) need no screening at all.  
     - <u>Cons</u>: unreviewed text is publicly visible for up to a sweep interval;  
@@ -633,7 +641,7 @@ the diagram is redrawn the next time a report is regenerated for these requireme
 
   - **Recommendation C**: **keep today's `AWAITING APPROVAL` pause, accepting a short unavailable window as the "minimized" fallback of requirement 1.**  
 
-    [ ] ➡️ **Accept** (To Accept, you may: mark <b>[X]</b> on this line, save the file, then Type/Say "<b>next</b>" in the CC CLI terminal, OR Type/Say "<b>Accept NC1, C</b>" in CC CLI)
+    [ ] ➡️ **Not Accepted**
 
     - <u>Pros</u>: no new mechanism.  
     - <u>Cons</u>: the poll vanishes from every tab and refuses votes for seconds per save, and approval re-stamps `launched_at`, pushing an old poll to the top of Newest.  
@@ -641,11 +649,14 @@ the diagram is redrawn the next time a report is regenerated for these requireme
 
   - **Developer Resolution D**:  
 
-    [ ] ➡️ **Accept** (To Accept, you may: mark <b>[X]</b> on this line, save the file, then Type/Say "<b>next</b>" in the CC CLI terminal, OR Type/Say "<b>Accept NC1, D</b>" in CC CLI)
-
-    - you may enter your own resolution here  
+    [ ] ➡️ **Not Accepted**
 
 **NC2. What happens to votes already cast for a deleted choice?**  
+<span style="font-size:large" ><b>
+✅ Resolved</b></span>  
+✅ Requirements File Updated: 2026-10-30 12:13 PM  
+**Notes**: Recommendation A accepted by ticked box 2026-10-30: the deleted id is removed from every affected vote in the same transaction, an emptied vote counts as not-voted so that voter may vote again, and counters and the line-graph tally are rebuilt;  
+the requirements now say so under "Accepted Resolutions (2026-10-30)".  
 
 > Votes store raw choice ids (`votes.choice_ids`), so after a deletion the stale id either stays in the rows or is rewritten.  
 > If it stays: `computeResults` drops the choice but `totalVoted` still counts its voters, so single-choice percentages stop adding to 100;  
@@ -653,11 +664,9 @@ the diagram is redrawn the next time a report is regenerated for these requireme
 > live counters keep the stale field until a reconcile.  
 > The populate-test-poll script already deletes votes for a dropped choice, which suggests a precedent.  
 
-❌ NOT Resolved
-
   - **Recommendation A** _(recommended)_: **the deleted id is removed from every affected vote in the same transaction; a vote left empty counts as not-voted, so that voter (Dynamic or Final) may vote again; counters and the line-graph tally are rebuilt for the poll.**  
 
-    [x] ➡️ **Accept** (To Accept, you may: mark <b>[X]</b> on this line, save the file, then Type/Say "<b>next</b>" in the CC CLI terminal, OR Type/Say "<b>Accept NC2, A</b>" in CC CLI)
+    [X] ➡️ **Accepted**
 
     - <u>Pros</u>: percentages stay consistent, nobody is locked out by a choice they can no longer hold, and the confirm-deletion prompt gives the creator fair warning.  
     - <u>Cons</u>: votes are destroyed (history keeps them); the save transaction does more work on a large poll.  
@@ -665,7 +674,7 @@ the diagram is redrawn the next time a report is regenerated for these requireme
 
   - **Recommendation B**: **votes keep the stale id; the choice simply stops being displayed and counted, and its voters remain counted in the total.**  
 
-    [ ] ➡️ **Accept** (To Accept, you may: mark <b>[X]</b> on this line, save the file, then Type/Say "<b>next</b>" in the CC CLI terminal, OR Type/Say "<b>Accept NC2, B</b>" in CC CLI)
+    [ ] ➡️ **Not Accepted**
 
     - <u>Pros</u>: no stored vote is touched; deletion is trivially cheap and reversible by re-adding the id.  
     - <u>Cons</u>: totals and percentages become silently misleading;  
@@ -674,21 +683,23 @@ the diagram is redrawn the next time a report is regenerated for these requireme
 
   - **Developer Resolution C**:  
 
-    [ ] ➡️ **Accept** (To Accept, you may: mark <b>[X]</b> on this line, save the file, then Type/Say "<b>next</b>" in the CC CLI terminal, OR Type/Say "<b>Accept NC2, C</b>" in CC CLI)
-
-    - you may enter your own resolution here  
+    [ ] ➡️ **Not Accepted**
 
 **NC3. The premise lists "availability of line graph" as editable today, but that feature is not on this branch.**  
+<span style="font-size:large" ><b>
+✅ Resolved</b></span>  
+✅ Requirements File Updated: 2026-10-30 12:13 PM  
+**Notes**: Recommendation A accepted by ticked box 2026-10-30: the line-graph toggle is out of scope — this feature neither implements nor extends it.  
+Since this finding was written, `main` was merged into this branch (2026-10-30), bringing the toggle (`line_graph_enabled`, migration 013), so the premise line is now accurate as written and no correction note was needed;  
+the requirements record the out-of-scope decision under "Accepted Resolutions (2026-10-30)".  
 
 > The requirements' opening list of currently-editable settings includes "available of line graph".  
 > No `line_graph_enabled` setting exists in this branch's code or migrations; the line-graph-toggle feature exists only as requirements (`requirements/20261028-114023-line-graph-toggle/`) and was developed in a separate folder.  
 > It must be decided whether this feature depends on merging that one first, or simply must not conflict with it.  
 
-❌ NOT Resolved
-
   - **Recommendation A** _(recommended)_: **treat the line-graph toggle as out of scope: this feature neither implements nor depends on it, and the premise line is corrected to a note that the toggle arrives with its own feature.**  
 
-    [x] ➡️ **Accept** (To Accept, you may: mark <b>[X]</b> on this line, save the file, then Type/Say "<b>next</b>" in the CC CLI terminal, OR Type/Say "<b>Accept NC3, A</b>" in CC CLI)
+    [X] ➡️ **Accepted**
 
     - <u>Pros</u>: no cross-branch dependency; the fix-migrations tooling already handles the eventual merge order.  
     - <u>Cons</u>: the "currently editable" list in this document stays aspirational until that merge.  
@@ -696,7 +707,7 @@ the diagram is redrawn the next time a report is regenerated for these requireme
 
   - **Recommendation B**: **make merging the line-graph-toggle branch a prerequisite of this feature.**  
 
-    [ ] ➡️ **Accept** (To Accept, you may: mark <b>[X]</b> on this line, save the file, then Type/Say "<b>next</b>" in the CC CLI terminal, OR Type/Say "<b>Accept NC3, B</b>" in CC CLI)
+    [ ] ➡️ **Not Accepted**
 
     - <u>Pros</u>: the premise becomes literally true before work starts.  
     - <u>Cons</u>: couples two otherwise independent features and delays this one.  
@@ -704,9 +715,7 @@ the diagram is redrawn the next time a report is regenerated for these requireme
 
   - **Developer Resolution C**:  
 
-    [ ] ➡️ **Accept** (To Accept, you may: mark <b>[X]</b> on this line, save the file, then Type/Say "<b>next</b>" in the CC CLI terminal, OR Type/Say "<b>Accept NC3, C</b>" in CC CLI)
-
-    - you may enter your own resolution here  
+    [ ] ➡️ **Not Accepted**
 
 ## 6. Breaking Changes
 
@@ -728,4 +737,23 @@ the diagram is redrawn the next time a report is regenerated for these requireme
   `rebuildLineGraphTally` exists but has no admin-path caller — choice deletion will need one or both wired in.  
 - The card's review note ("Saving sends your poll to be reviewed again.") already shows for colours-only saves that are not reviewed;  
   the expanded no-review paths widen that inaccuracy unless the note becomes conditional.  
-- Approval after `AWAITING APPROVAL` re-stamps `launched_at` (`src/polls/store.ts:671-677`), so any save path that still passes through approval bumps an old poll to the top of Newest.  
+- Approval after `AWAITING APPROVAL` re-stamps `launched_at` (`src/polls/store.ts:671-677`), so any save path that still passes through approval bumps an old poll to the top of Newest.
+
+## 8. Requirements Report Complete Report  
+  
+- **Requirements Report Document:** requirements/20261029-225209-editing-poll-available/requirements-report.md  
+- **Requirements Document:** requirements/20261029-225209-editing-poll-available/requirements.md  
+- **Software Architecture Diagrams:** 4  
+- **Inconsistencies:** 1  
+- **Ambiguities:** 5  
+- **Unspecified Aspects:** 10  
+- **Needs Clarifications:** 3  
+- **Research Results:** 0  
+- **Breaking Changes:** 5  
+- **Technical Debt items:** 5  
+  
+The requirements are ready for /speckit-specify.
+To generate specs from the requirements document, use the `/speckit-specify` skill followed by the path (relative to the project root) to the requirements file.
+At the prompt, Type:  
+🟩 👉 /speckit-specify requirements/20261029-225209-editing-poll-available/requirements.md  
+  

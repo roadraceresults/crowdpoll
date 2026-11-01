@@ -150,16 +150,33 @@ describe("colors on a poll that has votes", () => {
     return poll;
   }
 
-  it("accepts colors in publish beside the other fields it allows, and still refuses labels", async () => {
+  // EDITING-POLL-AVAILABLE: colors apply in the save transaction while a title
+  // change waits in pending_update; the poll never re-enters AWAITING APPROVAL.
+  it("applies colors in publish at once while the title change waits for review", async () => {
     const poll = await votedPoll();
-    const refused = await publish(poll._id, { clientGuid: "tab-1", labels: ["A", "B"], colors: ["#F91010", null] });
-    expect(refused.status).toBe(400);
     const res = await publish(poll._id, { clientGuid: "tab-1", title: "Renamed", colors: ["#F91010", "#0808FD"] });
     expect(res.status).toBe(200);
-    expect(res.body.pollState).toBe("AWAITING APPROVAL");
-    const stored = await polls(ctx).findOne({ _id: poll._id });
-    expect(stored!.title).toBe("Renamed");
-    expect(stored!.choices.map((c) => [c.id, c.label, c.color])).toEqual([["c1", "Left", "#F91010"], ["c2", "Right", "#0808FD"]]);
+    expect(res.body.pending).toBe(true);
+    expect(res.body.pollState).toBe("OPEN");
+    const stored = (await polls(ctx).findOne({ _id: poll._id }))!;
+    expect(stored.title).toBe("Test Poll");
+    expect(stored.pendingUpdate).toEqual({ title: "Renamed" });
+    expect(stored.choices.map((c) => [c.id, c.label, c.color])).toEqual([["c1", "Left", "#F91010"], ["c2", "Right", "#0808FD"]]);
+  });
+
+  // EDITING-POLL-AVAILABLE: labels sent with colors merge by label into the
+  // pending update; the stored list (and its colors) waits for the sweep.
+  it("pairs colors with labels into the pending merge instead of refusing them", async () => {
+    const poll = await votedPoll();
+    const res = await publish(poll._id, { clientGuid: "tab-1", labels: ["Left", "Middle"], colors: ["#F91010", null] });
+    expect(res.status).toBe(200);
+    expect(res.body.pending).toBe(true);
+    const stored = (await polls(ctx).findOne({ _id: poll._id }))!;
+    expect(stored.choices.map((c) => [c.id, c.label, c.color])).toEqual([["c1", "Left", undefined], ["c2", "Right", undefined]]);
+    const merged = (stored.pendingUpdate as { choices: { id: string; label: string; color?: string }[] }).choices;
+    expect(merged.map((c) => [c.label, c.color])).toEqual([["Left", "#F91010"], ["Middle", undefined]]);
+    expect(merged[0]!.id).toBe("c1");
+    expect(merged[1]!.id).not.toBe("c2");
   });
 
   for (const state of ["OPEN", "WAITING TO OPEN", "CLOSED", "REJECTED"] as const) {

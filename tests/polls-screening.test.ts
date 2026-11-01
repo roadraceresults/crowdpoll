@@ -469,3 +469,197 @@ describe("Admin list rows carry every decision (011 T083/T084)", () => {
     expect(Object.keys(res.body)).toContain("pollAdminPageRefreshIntervalMs");
   });
 });
+
+describe("Pending review of an ever-voted poll (EDITING-POLL-AVAILABLE US1)", () => {
+  let ctx: TestContext;
+  let cookie: string;
+  beforeAll(async () => {
+    ctx = await startTestContext();
+    ({ cookie } = await forgeSession(ctx, ctx.config.admins[0]!));
+  });
+  afterAll(async () => {
+    await ctx.stop();
+  });
+  beforeEach(async () => {
+    await polls(ctx).deleteMany({});
+    await voteHistory(ctx).deleteMany({});
+  });
+
+  const publish = (pid: string, body: Record<string, unknown> = {}) =>
+    request(ctx.app).post(`/api/admin/polls/${pid}/publish`).set("Cookie", cookie).send(body);
+  const reload = async (pid: string) => (await polls(ctx).findOne({ _id: pid }))!;
+  const launchedAt = async (pid: string) =>
+    (await ctx.db.selectFrom("polls").select("launched_at").where("id", "=", pid).executeTakeFirstOrThrow()).launched_at;
+
+  const realChoices = [
+    { id: "a", label: "Hobnob", position: 0 },
+    { id: "b", label: "Digestive", position: 1 }
+  ];
+
+  /** An OPEN, published, ever-voted poll — the poll US1 must never pause. */
+  async function votedOpenPoll(over: Record<string, unknown> = {}) {
+    const poll = makePoll({
+      pollState: "OPEN",
+      title: "Original title",
+      subtitle: "Original subtitle",
+      choices: realChoices,
+      // A published public poll carries no voter limit; the fixture default (500)
+      // would read as a real limit change on the first save.
+      voterCountLimit: null,
+      ...over
+    } as never);
+    await polls(ctx).insertOne(poll);
+    await voteHistory(ctx).insertOne({
+      pid: poll._id, emailAddress: "v@x.com", userName: "v", choiceIds: ["a"], votedAt: new Date()
+    });
+    return poll;
+  }
+
+  it("a changed title goes to review instead of pausing the poll (FR-003)", async () => {
+    const poll = await votedOpenPoll();
+    const before = (await publicDetail(ctx, poll._id))!;
+
+    const res = await publish(poll._id, { title: "Renamed title" });
+    expect(res.status).toBe(200);
+    expect(res.body.pending).toBe(true);
+    expect(res.body.pollState).toBe("OPEN");
+
+    const after = await reload(poll._id);
+    expect(after.pollState).toBe("OPEN");
+    expect(after.title).toBe("Original title");
+    expect(after.pendingUpdate).toEqual({ title: "Renamed title" });
+    expect(after.pendingRejectionReason).toBeNull();
+
+    // Voters keep the pre-save content; stashing the update is not a content change.
+    const served = (await publicDetail(ctx, poll._id))!;
+    expect(served.title).toBe("Original title");
+    expect(served.contentVersion).toBe(before.contentVersion);
+  });
+
+  it("non-text fields apply in the save with no state change and nothing pending", async () => {
+    const poll = await votedOpenPoll();
+    const endAt = "2027-06-01T00:00:00.000Z";
+    const res = await publish(poll._id, { endAt });
+    expect(res.status).toBe(200);
+    expect(res.body.pending).toBe(false);
+
+    const after = await reload(poll._id);
+    expect(after.pollState).toBe("OPEN");
+    expect(after.endAt!.toISOString()).toBe(endAt);
+    expect(after.pendingUpdate).toBeNull();
+  });
+
+  it("the sweep applies an approved pending update without re-stamping launched_at (FR-024)", async () => {
+    const poll = await votedOpenPoll();
+    await publish(poll._id, { title: "Renamed title", subtitle: "New subtitle" });
+    const stamped = await launchedAt(poll._id);
+    expect(stamped).not.toBeNull();
+
+    expect(await pollsAwaitingApprovalSweep(ctx, DEPS)).toBe(1);
+
+    const after = await reload(poll._id);
+    expect(after.pollState).toBe("OPEN");
+    expect(after.title).toBe("Renamed title");
+    expect(after.subtitle).toBe("New subtitle");
+    expect(after.pendingUpdate).toBeNull();
+    expect(after.pendingRejectionReason).toBeNull();
+    expect(after.pollApprovalTimestamp).toBeNull();
+    expect(after.pollAcceptabilityScreeningAttempts).toBe(0);
+    expect((await launchedAt(poll._id))!.getTime()).toBe(stamped!.getTime());
+    expect((await publicDetail(ctx, poll._id))!.title).toBe("Renamed title");
+  });
+
+  it("a rejected pending update records the reason and changes nothing a voter sees", async () => {
+    const poll = await votedOpenPoll();
+    await publish(poll._id, { title: "you fuck" });
+    expect(await pollsAwaitingApprovalSweep(ctx, DEPS)).toBe(1);
+
+    const after = await reload(poll._id);
+    expect(after.pollState).toBe("OPEN");
+    expect(after.title).toBe("Original title");
+    expect(after.pendingUpdate).toBeNull();
+    expect(after.pendingRejectionReason).toMatch(/unacceptable language/i);
+    expect(after.pollAcceptabilityScreeningAttempts).toBe(0);
+  });
+
+  it("a screening timeout releases the pending claim and keeps the update pending", async () => {
+    const poll = await votedOpenPoll();
+    await publish(poll._id, { title: "Renamed title" });
+    const hangingScreener: Screener = () => new Promise(() => {});
+    await pollsAwaitingApprovalSweep(ctx, { maxAttempts: 10, callTimeoutMs: 5, screener: hangingScreener });
+
+    const after = await reload(poll._id);
+    expect(after.pollState).toBe("OPEN");
+    expect(after.pendingUpdate).toEqual({ title: "Renamed title" });
+    expect(after.pollApprovalTimestamp).toBeNull();
+    expect(after.pollAcceptabilityScreeningAttempts).toBe(1);
+    expect(after.pendingRejectionReason).toMatch(/timed out 1 times/);
+  });
+
+  it("a poll that closed mid-review stays closed and still receives the content (FR-025)", async () => {
+    const poll = await votedOpenPoll();
+    await publish(poll._id, { title: "Renamed title" });
+    await polls(ctx).updateOne({ _id: poll._id }, { $set: { pollState: "CLOSED" } });
+
+    expect(await pollsAwaitingApprovalSweep(ctx, DEPS)).toBe(1);
+
+    const after = await reload(poll._id);
+    expect(after.pollState).toBe("CLOSED");
+    expect(after.title).toBe("Renamed title");
+    expect(after.pendingUpdate).toBeNull();
+  });
+
+  it("a second save while one is pending is refused PENDING_REVIEW, and the editor will not open", async () => {
+    const poll = await votedOpenPoll();
+    await publish(poll._id, { title: "Renamed title" });
+
+    const second = await publish(poll._id, { title: "Another title" });
+    expect(second.status).toBe(409);
+    expect(second.body.code).toBe("PENDING_REVIEW");
+    expect(second.body.error).toMatch(/already being reviewed/i);
+
+    const session = await request(ctx.app)
+      .post(`/api/admin/polls/${poll._id}/edit-session`)
+      .set("Cookie", cookie)
+      .send({ clientGuid: "tab-A" });
+    expect(session.status).toBe(409);
+    expect(session.body.reason).toBe("PENDING_REVIEW");
+    expect(session.body.message).toMatch(/being reviewed/i);
+    expect((await reload(poll._id)).pendingUpdate).toEqual({ title: "Renamed title" });
+
+    // The admin list says why the editor is unavailable (A5).
+    const rows = (await request(ctx.app).get("/api/admin/polls").set("Cookie", cookie)).body.polls;
+    const row = rows.find((r: { pid: string }) => r.pid === poll._id);
+    expect(row.pendingUpdate).toBe(true);
+    expect(row.pendingRejectionReason).toBeNull();
+    expect(row.canEdit).toBe(false);
+    expect(row.canUpdate).toBe(false);
+  });
+
+  it("claims both pools: a pending update and an AWAITING APPROVAL poll each get their turn", async () => {
+    const pending = await votedOpenPoll();
+    await publish(pending._id, { title: "Renamed title" });
+    const awaiting = makePoll({ pollState: "AWAITING APPROVAL", title: "Best biscuit?", choices: realChoices });
+    await polls(ctx).insertOne(awaiting);
+
+    expect(await pollsAwaitingApprovalSweep(ctx, DEPS)).toBe(1);
+    expect(await pollsAwaitingApprovalSweep(ctx, DEPS)).toBe(1);
+
+    expect((await reload(pending._id)).title).toBe("Renamed title");
+    expect((await reload(pending._id)).pendingUpdate).toBeNull();
+    expect((await reload(awaiting._id)).pollState).toBe("OPEN");
+  });
+
+  it("regression: an open, never-voted poll's publish still sets AWAITING APPROVAL (FR-022)", async () => {
+    const poll = makePoll({ pollState: "OPEN", title: "Original title", choices: realChoices });
+    await polls(ctx).insertOne(poll);
+    const res = await publish(poll._id, { title: "Renamed title" });
+    expect(res.status).toBe(200);
+    expect(res.body.pollState).toBe("AWAITING APPROVAL");
+
+    const after = await reload(poll._id);
+    expect(after.pollState).toBe("AWAITING APPROVAL");
+    expect(after.title).toBe("Renamed title");
+    expect(after.pendingUpdate).toBeNull();
+  });
+});
