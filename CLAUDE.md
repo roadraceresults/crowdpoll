@@ -5,6 +5,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261101-042151-CONCISE-CLAUDE-MD/plan.md` (research R1–R12, `data-model.md` — the instruction files, the git
+baseline and a run's states, nothing stored — the contracts `contracts/command.md` K1–K6, `contracts/file-layout.md`
+F1–F3 and `contracts/messages.md` M1–M2, and the quickstart live alongside it in
+`specs/20261101-042151-CONCISE-CLAUDE-MD/`). The requirements report is
+`requirements/20261101-042151-concise-claude-md/requirements-report.md`: 5 diagrams and 15 findings, all resolved.
+Decisions that are easy to get wrong:
+- **One new skill, `/speckit-concise-claudemd`**, instructions only, no script; `disable-model-invocation: true`, so
+  only the developer starts it; no argument (R1, R2).
+- **The first run copies `CLAUDE.md` byte for byte to `CLAUDE_COMPLETE.md`** (markers included), then writes the
+  concise `CLAUDE.md` and `.claude/rules/environment.md`; this chain must stay intact until then, so do not run the
+  agent-context hook before the split (R3, R12).
+- **"New since the last run" is `git diff <last commit touching CLAUDE_COMPLETE.md> -- CLAUDE.md`**: added text goes
+  to its section, edited text replaces its counterpart, removals the developer made by hand are carried over unless
+  `CLAUDE_COMPLETE.md` has uncommitted changes, nothing is added twice; no state file (R4).
+- **A feature is known by its plan path**; a pointer-only block is rebuilt from that `plan.md` (R5).
+- **`CLAUDE_COMPLETE.md` is named once in backticks, never `@`-imported, never offered to the AI**; no line or token
+  limit is written anywhere; the run prints lines and characters ÷ 4 for both files, before and after (R6, FR-003, FR-005).
+- **No shipped Spec Kit file changes**; `/speckit-tweak` and `/speckit-requirements` change only their messages (R9).
+- **The first run happens on `main`** (R11).
+No CrowdPoll code, configuration, data, test or migration change; no new dependency.
+The preceding feature is
 `specs/20261029-225209-EDITING-POLL-AVAILABLE/plan.md` (research R1–R12, `data-model.md` — two `polls` columns,
 `pending_update` and `pending_rejection_reason`, added by migration `014-pending-update`, and the vote-rewrite
 semantics of a choice deletion; the HTTP contracts `contracts/api.md` A1–A7, the UI contracts

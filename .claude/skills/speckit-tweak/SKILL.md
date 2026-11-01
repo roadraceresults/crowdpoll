@@ -321,7 +321,10 @@ The tweak to show is **the first `## TWEAK###` section in `TWEAKS_FILE` whose ch
 with a `TWEAK###` jump).
 
 - If there is no such tweak, respond with exactly:
-  **All tweaks resolved. Add TWEAK### to `tweaks_file_directory`/`tweaks_file_name` if there are more tweaks.**
+  **All tweaks resolved.**  
+  **Add TWEAK### to `tweaks_file_directory`/`tweaks_file_name` if there are more tweaks.**  
+  **`CLAUDE.md` has grown as this feature has been implemented.**  
+  **Execute `/speckit-concise-claudemd` to trim it and transfer important details to `CLAUDE_COMPLETE.md`.**  
 - Otherwise, first **complete the tweak's heading** if its number or title is missing (see *Completing a tweak's
   heading*); then, before recommending anything, **ground the recommendation**: read the tweak's requirement in full,
   the code it points at (search the repository for the files, selectors, routes or strings it names), the
@@ -462,7 +465,10 @@ Remaining open tweaks: 1 — Type or Say "Next" to continue.   (a prompt line)
 ```
 
 When the last open tweak is closed by either question, add:
-`All tweaks resolved. Add TWEAK### to <tweaks_file_directory>/<tweaks_file_name> if there are more tweaks.`
+`All tweaks resolved.`  
+`Add TWEAK### to <tweaks_file_directory>/<tweaks_file_name> if there are more tweaks.`  
+`` `CLAUDE.md` has grown as this feature has been implemented. ``  
+`` Execute `/speckit-concise-claudemd` to trim it and transfer important details to `CLAUDE_COMPLETE.md`. ``  
 
 ### Operating Constraints
 
@@ -504,4 +510,4 @@ When the last open tweak is closed by either question, add:
 | `I resolved it` | Detects the developer's change from the working tree, runs the tests, appends `### ACCEPTED RECOMMENDATION`, marks `[-] Resolved (manually)`. |
 | `Accept as-is` | Marks the next open tweak `[-] Resolved (accepted as-is)` with an "accepted as-is" resolution line. |
 | `TWEAK007` then `Accept` | Acts on TWEAK007 regardless of its position. |
-| `Next` (nothing open) | `All tweaks resolved. Add TWEAK### to specs/018-TAB-BAR/tweaks.md if there are more tweaks.` |
+| `Next` (nothing open) | `All tweaks resolved.`<br>`Add TWEAK### to specs/018-TAB-BAR/tweaks.md if there are more tweaks.`<br>`` `CLAUDE.md` has grown as this feature has been implemented. ``<br>`` Execute `/speckit-concise-claudemd` to trim it and transfer important details to `CLAUDE_COMPLETE.md`. `` |

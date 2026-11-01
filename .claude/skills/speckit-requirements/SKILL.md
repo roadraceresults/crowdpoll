@@ -159,14 +159,14 @@ This could include:
 ⚪ **/speckit-requirements**  
 ⚪ **/speckit-specify**  
 ⚪ **/speckit-clarify**  
-⚪ **/speckit-clarify-findings** (optional)  
 ⚪ **/speckit-plan**  
 ⚪ **/speckit-tasks**  
 ⚪ **/speckit-analyze**  
-⚪ **/speckit-analyze-findings** (optional)  
+⚪ **/speckit-analyze-findings** (recommended)  
 ⚪ (or **/speckit-plan-thru-analyze**, which runs /speckit-plan through /speckit-analyze-findings in one go)  
 ⚪ **/speckit-implement**  
-⚪ **/speckit-tweaks**  (optional)  
+⚪ **/speckit-tweak**  (optional)  
+⚪ **/speckit-concise-claudemd** (recommended)  
 ⚪  
 🟩 👉 1. Open the newly created requirements file: `<REQUIREMENTS_DIRECTORY>/requirements.md` in your editor.  
 🟩 👉 2. Enter your high-level requirements in the section: # Initial High-Level Requirements.  
