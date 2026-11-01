@@ -72,7 +72,7 @@ describe("the admin search panel's structure", () => {
       createdAtOp: "Created on",
       startAtOp: "Starts on",
       endAtOp: "Ends on",
-      voteCountOp: "Vote count",
+      voteCountOp: "Voter count",
       invitedVoterCountOp: "Invitee count",
       bannedVoterCountOp: "Banned users count"
     });

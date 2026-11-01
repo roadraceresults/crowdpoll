@@ -118,6 +118,14 @@ export interface PollTable {
   ever_voted: Generated<boolean>;
   time_zone: ColumnType<string | null, string | null | undefined, string | null>;
   line_graph_enabled: Generated<boolean>;
+  pending_update: ColumnType<PendingUpdateJson | null, string | null | undefined, string | null>;
+  pending_rejection_reason: ColumnType<string | null, string | null | undefined, string | null>;
+}
+
+export interface PendingUpdateJson {
+  title?: string;
+  subtitle?: string;
+  choices?: PollChoiceJson[];
 }
 
 export interface VoteTable {

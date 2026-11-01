@@ -126,7 +126,11 @@
       entry.append(dot, el('span', 'line-graph-legend-label', series.label), el('span', 'line-graph-legend-pct', series.points[series.points.length - 1] + '%'));
       state.legendEl.append(entry);
     }
-    state.legendEl.append(el('span', 'line-graph-total', data.totalVoted + ' vote' + (data.totalVoted === 1 ? '' : 's')));
+    // TWEAK03: "voters" only on a multiple-choice poll, read from the card the
+    // mount context carries, so the noun always agrees with the card's own totals.
+    const detail = state.ctx.card && state.ctx.card.detail ? state.ctx.card.detail() : null;
+    const noun = detail && detail.choiceMode === 'Multiple-Choice Poll' ? ' voter' : ' vote';
+    state.legendEl.append(el('span', 'line-graph-total', data.totalVoted + noun + (data.totalVoted === 1 ? '' : 's')));
   }
 
   function hourlyScale(scale) {

@@ -62,7 +62,8 @@ delivery network.
 - **Vote history graph** — beside a maximized poll, a line graph shows how each choice's share of
   the vote has moved over time, in the same colours as its bars (a colour too faint for the light or
   dark theme is drawn in a deeper or brighter shade of itself, so every line stays visible), with a
-  legend giving each line's current share and the total vote count. Choose **1 Day**, **1 Week**,
+  legend giving each line's current share and the total count of votes (of voters, on a
+  multiple-choice poll, where the votes cast can outnumber them). Choose **1 Day**, **1 Week**,
   **1 Month** or **1 Year** (only the ranges the poll's history covers are offered; the longest is
   shown first). Point at the graph, or touch it on a phone, to read every line's share at that
   moment; on a phone the reading stays after you lift your finger, until you tap outside the graph.
@@ -144,12 +145,22 @@ delivery network.
   been set manually, with a swatch for each.
 - **Editing a poll** — select the part of the summary you want to change and the wizard opens
   at that step. Only what the poll's state allows can change: everything until the poll has
-  votes, then only the title, the subtitle, the dates and the bar colors. **Save changes** sends
-  the poll back to be reviewed; changing only colors on a poll that has votes does not.
+  votes. Once it has votes, the title, subtitle, choices, dates and bar colors stay editable,
+  a private poll can switch between *Anyone you send the link to* and *Only people you
+  invite* (both ways), a single-choice poll can become
+  multiple-choice (never back), and whether voters may change their vote switches both ways.
+  Visibility (public/private), anonymity and keywords stay frozen. Editing never interrupts an
+  open poll: voters keep voting while the wizard is open. **Save changes** applies everything
+  except a changed title, subtitle or choice list at once; those three wait as *changes pending
+  review* — the poll stays open and unchanged until the review approves them — and the card says
+  so until it resolves (or shows *changes rejected* with the reason). Choices change by label:
+  a kept line keeps its votes, a new line is added, and a removed line's votes are released —
+  the card asks before you delete a choice that has votes, and those voters may vote again.
+  Changing only colors on a poll that has votes is applied without review.
 - **Keywords** — a public poll can carry search keywords (lower-case words separated by
   commas); home search finds the poll by them.
-- A poll's voter count limit, invitation list and banned voter list keep their stored values,
-  but cannot be changed on the admin page for now.
+- A poll's voter count limit and banned voter list keep their stored values, but cannot be
+  changed on the admin page for now; the invitation list is managed from the Invitees panel.
 
 ## For poll creators
 

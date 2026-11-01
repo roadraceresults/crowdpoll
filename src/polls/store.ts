@@ -4,7 +4,7 @@ import type { Database, NewPollRow, PollRow, PollRowUpdate, VoteRow } from "../d
 import { ensureVoteHistoryPartition } from "../db/partitions.js";
 import { emailKeyOf } from "../auth/emailKey.js";
 import { bumpContentVersion, POLL_PROJECTION_KEY, refreshProjection } from "./versions.js";
-import { recordLineGraphTally } from "./lineGraphTally.js";
+import { fillLineGraphTally, recordLineGraphTally } from "./lineGraphTally.js";
 import { forgetTabs } from "../refresh/tabVersions.js";
 
 export type Db = Kysely<Database>;
@@ -170,6 +170,16 @@ export interface Poll {
   timeZone: string | null;
   /** Whether the maximized view draws the line graph; off unless an Administrator switches it on. */
   lineGraphEnabled: boolean;
+  /** Saved-but-not-yet-approved content of an ever-voted poll; null → nothing pending. */
+  pendingUpdate: PendingUpdate | null;
+  /** The screener's verdict when a pending update was rejected; cleared by the next accepted save. */
+  pendingRejectionReason: string | null;
+}
+
+export interface PendingUpdate {
+  title?: string;
+  subtitle?: string;
+  choices?: Choice[];
 }
 
 export interface VoteHistoryEntry {
@@ -218,7 +228,9 @@ function rowToPoll(row: PollRow, invited: string[], banned: string[], votes: Vot
     pollAcceptabilityScreeningAttempts: row.poll_acceptability_screening_attempts,
     pollRejectionReason: row.poll_rejection_reason,
     timeZone: row.time_zone,
-    lineGraphEnabled: row.line_graph_enabled
+    lineGraphEnabled: row.line_graph_enabled,
+    pendingUpdate: (row.pending_update as PendingUpdate | null) ?? null,
+    pendingRejectionReason: row.pending_rejection_reason
   };
 }
 
@@ -277,7 +289,8 @@ const FIELD_TO_COLUMN: Partial<Record<keyof Poll, keyof PollRowUpdate>> = {
   pollAcceptabilityScreeningAttempts: "poll_acceptability_screening_attempts",
   pollRejectionReason: "poll_rejection_reason",
   timeZone: "time_zone",
-  lineGraphEnabled: "line_graph_enabled"
+  lineGraphEnabled: "line_graph_enabled",
+  pendingRejectionReason: "pending_rejection_reason"
 };
 
 /** Fields whose change is invisible to a voter and so leaves `content_version` alone. */
@@ -286,7 +299,9 @@ const NON_CONTENT_FIELDS: ReadonlySet<keyof Poll> = new Set<keyof Poll>([
   "pollApprovalTimestamp",
   "pollAcceptabilityScreeningAttempts",
   "currentVotes",
-  "timeZone"
+  "timeZone",
+  "pendingUpdate",
+  "pendingRejectionReason"
 ]);
 
 function columnsFor($set: Partial<Poll>): PollRowUpdate {
@@ -298,6 +313,9 @@ function columnsFor($set: Partial<Poll>): PollRowUpdate {
   if ($set.choices !== undefined) {
     columns.choices = JSON.stringify($set.choices);
     columns.choice_labels = choiceLabelsText($set.choices);
+  }
+  if ($set.pendingUpdate !== undefined) {
+    columns.pending_update = $set.pendingUpdate === null ? null : JSON.stringify($set.pendingUpdate);
   }
   if ($set.invitedVoterList !== undefined) columns.invited_count = $set.invitedVoterList.length;
   if ($set.bannedVoterList !== undefined) columns.banned_count = $set.bannedVoterList.length;
@@ -408,6 +426,21 @@ export async function pollsEverVoted(db: Executor, pids: string[]): Promise<Set<
   return new Set(rows.map((r) => r.id));
 }
 
+/**
+ * Votes cast across all choices per poll — on a multiple-choice poll more than
+ * the voter count, which `polls.vote_count` holds. One aggregate for the page.
+ */
+export async function voteTotals(db: Executor, pids: string[]): Promise<Map<string, number>> {
+  if (pids.length === 0) return new Map();
+  const rows = await db
+    .selectFrom("votes")
+    .select(["poll_id", sql<string>`sum(cardinality(choice_ids))`.as("total")])
+    .where("poll_id", "in", pids)
+    .groupBy("poll_id")
+    .execute();
+  return new Map(rows.map((r) => [r.poll_id, Number(r.total)]));
+}
+
 export function hasVoteHistoryQuery(db: Executor, pid: string) {
   return db.selectFrom("polls").select("id").where("id", "=", pid).where("ever_voted", "=", true);
 }
@@ -482,7 +515,9 @@ function newRow(poll: Poll, creator?: PollCreator): NewPollRow {
     poll_acceptability_screening_attempts: poll.pollAcceptabilityScreeningAttempts,
     poll_rejection_reason: poll.pollRejectionReason,
     time_zone: poll.timeZone,
-    line_graph_enabled: poll.lineGraphEnabled
+    line_graph_enabled: poll.lineGraphEnabled,
+    pending_update: poll.pendingUpdate === null ? null : JSON.stringify(poll.pendingUpdate),
+    pending_rejection_reason: poll.pendingRejectionReason
   };
 }
 
@@ -712,6 +747,71 @@ export async function updatePoll(
   return result;
 }
 
+/**
+ * Applies an approved pending update in one transaction: the pending fields are
+ * written, a deleted choice's id is removed from every vote that named it (an
+ * emptied row is the stored "not voted"), the line-graph records are recomputed
+ * from the untouched history, and the claim and pending columns are cleared.
+ * `poll_state` is never written here, so `launched_at` is not re-stamped and a
+ * poll that closed mid-review stays closed. Returns the emails whose votes were
+ * rewritten, for the caller's `forgetTabs`; the caller also reconciles the
+ * live counters after commit.
+ */
+export async function applyPendingUpdate(
+  { db, cache }: StoreDeps,
+  pid: string,
+  pending: PendingUpdate
+): Promise<string[]> {
+  return db.transaction().execute(async (trx) => {
+    const before = await trx
+      .selectFrom("polls")
+      .selectAll()
+      .where("id", "=", pid)
+      .where("pending_update", "is not", null)
+      .forUpdate()
+      .executeTakeFirst();
+    if (!before) return [];
+
+    const columns: PollRowUpdate = {
+      pending_update: null,
+      pending_rejection_reason: null,
+      poll_approval_timestamp: null,
+      poll_acceptability_screening_attempts: 0
+    };
+    if (pending.title !== undefined) columns.title = pending.title;
+    if (pending.subtitle !== undefined) columns.subtitle = pending.subtitle;
+
+    let rewritten: string[] = [];
+    if (pending.choices !== undefined) {
+      columns.choices = JSON.stringify(pending.choices);
+      columns.choice_labels = choiceLabelsText(pending.choices);
+      const kept = new Set(pending.choices.map((c) => c.id));
+      const deleted = before.choices.map((c) => c.id).filter((id) => !kept.has(id));
+      if (deleted.length > 0) {
+        const rows = await trx
+          .updateTable("votes")
+          .set({
+            choice_ids: sql<string[]>`array(select x from unnest(choice_ids) as x where x <> all(${deleted}::text[]))`
+          })
+          .where("poll_id", "=", pid)
+          .where(sql<boolean>`choice_ids && ${deleted}::text[]`)
+          .returning("email")
+          .execute();
+        rewritten = rows.map((r) => r.email);
+        // Recomputed inside the apply so no reader sees the old lines beside the
+        // new choice list; the history itself is append-only and untouched.
+        await trx.deleteFrom("line_graph_tally").where("poll_id", "=", pid).execute();
+        await trx.deleteFrom("line_graph_selection").where("poll_id", "=", pid).execute();
+        await fillLineGraphTally(trx, pid);
+      }
+    }
+
+    await trx.updateTable("polls").set(columns).where("id", "=", pid).execute();
+    await bumpContentVersion(trx, cache, pid);
+    return rewritten;
+  });
+}
+
 export async function deletePoll({ db, cache }: StoreDeps, pid: string): Promise<void> {
   await db.transaction().execute(async (trx) => {
     await trx.deleteFrom("vote_history").where("poll_id", "=", pid).execute();
@@ -831,7 +931,7 @@ export function crashedClaimQuery(db: Executor, cutoff: Date) {
   return db
     .selectFrom("polls")
     .select("id")
-    .where("poll_state", "=", "AWAITING APPROVAL")
+    .where((eb) => eb.or([eb("poll_state", "=", "AWAITING APPROVAL"), eb("pending_update", "is not", null)]))
     .where("poll_approval_timestamp", "is not", null)
     .where("poll_approval_timestamp", "<", cutoff)
     .orderBy("poll_approval_timestamp", "asc")
@@ -839,11 +939,15 @@ export function crashedClaimQuery(db: Executor, cutoff: Date) {
 }
 
 export async function recoverCrashedApprovalClaim({ db, cache }: StoreDeps, cutoff: Date): Promise<boolean> {
+  // The timed-out note lands beside the claim it belongs to: on the poll's own
+  // rejection reason for an AWAITING APPROVAL screening, on the pending one for a
+  // pending-update review.
   const row = await db
     .updateTable("polls")
     .set({
       poll_approval_timestamp: null,
-      poll_rejection_reason: sql<string>`'Acceptability Screening has timed out ' || poll_acceptability_screening_attempts || ' times'`
+      poll_rejection_reason: sql<string | null>`case when poll_state = 'AWAITING APPROVAL' then 'Acceptability Screening has timed out ' || poll_acceptability_screening_attempts || ' times' else poll_rejection_reason end`,
+      pending_rejection_reason: sql<string | null>`case when pending_update is not null then 'Acceptability Screening has timed out ' || poll_acceptability_screening_attempts || ' times' else pending_rejection_reason end`
     })
     .where("id", "=", crashedClaimQuery(db, cutoff))
     .returningAll()
@@ -853,10 +957,12 @@ export async function recoverCrashedApprovalClaim({ db, cache }: StoreDeps, cuto
 }
 
 export function nextForApprovalQuery(db: Executor) {
+  // Two disjoint pools share the claim columns: polls AWAITING APPROVAL and
+  // ever-voted polls whose saved changes wait in pending_update.
   return db
     .selectFrom("polls")
     .select("id")
-    .where("poll_state", "=", "AWAITING APPROVAL")
+    .where((eb) => eb.or([eb("poll_state", "=", "AWAITING APPROVAL"), eb("pending_update", "is not", null)]))
     .where("poll_approval_timestamp", "is", null)
     .orderBy(sql`start_at asc nulls first`)
     .orderBy("created_at", "asc")

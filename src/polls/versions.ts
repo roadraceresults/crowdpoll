@@ -30,7 +30,10 @@ export function projectPoll(row: PollRow): PollProjection {
     voteMutability: row.vote_mutability,
     pollVisibility: row.poll_visibility,
     pollSharingMode: row.poll_sharing_mode,
-    pollState: row.poll_state,
+    // A poll under edit serves the state it held when the session began, so the
+    // vote path and every voter-facing reader treat an open poll as OPEN while
+    // its creator edits. The edit session itself reads the raw poll_state.
+    pollState: row.poll_state === "EDITING" ? row.poll_state_before_edit_update ?? "INITIALIZED" : row.poll_state,
     startAt: row.start_at ? new Date(row.start_at).toISOString() : null,
     endAt: row.end_at ? new Date(row.end_at).toISOString() : null,
     choices: [...row.choices].sort((a, b) => a.position - b.position),

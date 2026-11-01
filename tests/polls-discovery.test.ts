@@ -47,13 +47,14 @@ describe("TRENDING scope", () => {
     expect(await trendingPids()).toEqual([editing._id]);
   });
 
-  it("never discloses the pre-edit state, the sharing mode or the anonymity setting on a card", async () => {
+  it("never discloses the raw edit-session state, the sharing mode or the anonymity setting on a card", async () => {
     const editing = makePoll({ pollState: "EDITING", pollStateBeforeEditUpdate: "OPEN" });
     await polls(ctx).insertOne(editing);
     await trendingSweep(ctx, ctx.config, ctx.trendingPublisher);
     const res = await request(ctx.app).get("/api/trending/cards");
     const card = res.body.cards[editing._id];
-    expect(card.pollState).toBe("EDITING");
+    // EDITING-POLL-AVAILABLE R1: the card carries the effective (stashed) state.
+    expect(card.pollState).toBe("OPEN");
     expect(card).not.toHaveProperty("pollStateBeforeEditUpdate");
     expect(card).not.toHaveProperty("voteAnonymity");
     expect(card).not.toHaveProperty("invitedVoterList");

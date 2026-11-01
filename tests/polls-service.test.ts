@@ -332,13 +332,12 @@ describe("capabilitiesFor (012 FR-030/FR-031)", () => {
   });
 });
 
-describe("validatePollFields freezes the three visibility settings once voted on", () => {
+describe("validatePollFields freezes the visibility settings once voted on", () => {
   const voted = makePoll({ pollVisibility: "Private Poll" });
 
-  it("refuses each setting with a 409 naming it", () => {
+  it("refuses each frozen setting with a 409 naming it", () => {
     for (const [body, message] of [
       [{ pollVisibility: "Public Poll" }, "pollVisibility cannot be changed after the poll has received a vote."],
-      [{ pollSharingMode: "Invitation Only" }, "pollSharingMode cannot be changed after the poll has received a vote."],
       [{ voteAnonymity: "No" }, "voteAnonymity cannot be changed after the poll has received a vote."]
     ] as const) {
       let caught: unknown;
@@ -351,6 +350,19 @@ describe("validatePollFields freezes the three visibility settings once voted on
       expect((caught as AdminError).status).toBe(409);
       expect((caught as AdminError).message).toBe(message);
     }
+  });
+
+  // EDITING-POLL-AVAILABLE FR-016 relaxed the old sharing-mode freeze: a Private
+  // poll's mode switches both ways after votes; a public poll's stays frozen.
+  it("accepts the sharing mode both ways on a voted Private poll, never on a public one", () => {
+    expect(validatePollFields(voted, { pollSharingMode: "Invitation Only" }, true).pollSharingMode).toBe("Invitation Only");
+    expect(
+      validatePollFields(makePoll({ pollVisibility: "Private Poll", pollSharingMode: "Invitation Only" }), { pollSharingMode: "Anyone With The Link" }, true)
+        .pollSharingMode
+    ).toBe("Anyone With The Link");
+    expect(() => validatePollFields(makePoll(), { pollSharingMode: "Invitation Only" }, true)).toThrowError(
+      "pollSharingMode cannot be changed after the poll has received a vote."
+    );
   });
 
   it("accepts all three on a poll that has never been voted on", () => {

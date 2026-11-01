@@ -92,7 +92,7 @@ describe("where the panel shows", () => {
     expect(panel.parentElement!.firstElementChild!.classList.contains("wizard-summary")).toBe(true);
     expect(panel.nextElementSibling).toBeNull();
     const labels = Array.from(p.document.querySelectorAll(".card-counts-panel .card-field-label")).map((n) => n.textContent);
-    expect(labels).toEqual(["Vote Count", "Invitation Count", "Accepted Count", "Banned Voter Count"]);
+    expect(labels).toEqual(["Voter Count", "Invitation Count", "Accepted Count", "Banned Voter Count"]);
     expect(panel.querySelector(".invitees-title")!.textContent).toBe("Invitees");
     expect(panel.querySelector(".invitees-capacity")!.textContent).toBe("1 of 20");
     for (const cls of ["invitees-input", "invitees-invite-btn", "invitees-results", "invitee-list"]) {

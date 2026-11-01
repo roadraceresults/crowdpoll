@@ -11,13 +11,16 @@ import type { AppConfig } from "../config.js";
 import type { Db } from "../db/client.js";
 import { ensureVoteHistoryPartition } from "../db/partitions.js";
 import {
+  applyPendingUpdate,
   claimNextForApproval,
   recoverCrashedApprovalClaim,
   scheduleCandidates,
   staleEditingPolls,
   updatePoll,
+  type Poll,
   type StoreDeps
 } from "./store.js";
+import { forgetTabs } from "../refresh/tabVersions.js";
 import { evaluateSchedule, correctInvertedSchedule } from "./service.js";
 import { screenWithTimeout, localScreener, type Screener } from "./screening.js";
 import { dirtyDayKey, flushDirty, reconcile } from "./counters.js";
@@ -193,6 +196,8 @@ export async function pollsAwaitingApprovalSweep(
   const claimed = await claimNextForApproval(deps, now);
   if (!claimed) return 0;
 
+  if (claimed.pendingUpdate) return screenPendingUpdate(deps, approval, claimed, claimed.pendingUpdate, screener);
+
   if (claimed.pollAcceptabilityScreeningAttempts > approval.maxAttempts) {
     await updatePoll(deps, claimed._id, {
       pollState: "REJECTED",
@@ -238,6 +243,68 @@ export async function pollsAwaitingApprovalSweep(
     pollApprovalTimestamp: null,
     pollAcceptabilityScreeningAttempts: 0
   });
+  return 1;
+}
+
+/**
+ * The pending pool's half of the approval sweep: an ever-voted poll's saved
+ * title/subtitle/choice changes, screened as the poll would read after the apply.
+ * `pollState` is never written here — the poll never unlists, `launched_at` is
+ * not re-stamped, and a poll that closed mid-review stays closed while still
+ * receiving the approved content.
+ */
+async function screenPendingUpdate(
+  deps: SweepDeps,
+  approval: ApprovalSweepDeps,
+  claimed: Poll,
+  pending: NonNullable<Poll["pendingUpdate"]>,
+  screener: Screener
+): Promise<number> {
+  if (claimed.pollAcceptabilityScreeningAttempts > approval.maxAttempts) {
+    await updatePoll(deps, claimed._id, {
+      pendingUpdate: null,
+      pendingRejectionReason: `Acceptability Screening has failed ${approval.maxAttempts} times and will not automatically be re-attempted.`,
+      pollApprovalTimestamp: null,
+      pollAcceptabilityScreeningAttempts: approval.maxAttempts
+    });
+    console.log(`[sweeps] Rejected the pending update of poll ${claimed._id}: screening attempts exhausted`);
+    return 1;
+  }
+
+  let verdict: string;
+  try {
+    verdict = await screenWithTimeout(
+      screener,
+      {
+        title: pending.title ?? claimed.title,
+        subtitle: pending.subtitle ?? claimed.subtitle,
+        choiceLabels: (pending.choices ?? claimed.choices).map((c) => c.label)
+      },
+      approval.callTimeoutMs
+    );
+  } catch {
+    await updatePoll(deps, claimed._id, {
+      pollApprovalTimestamp: null,
+      pendingRejectionReason: `Acceptability Screening has timed out ${claimed.pollAcceptabilityScreeningAttempts} times`
+    });
+    return 1;
+  }
+
+  if (verdict !== "") {
+    await updatePoll(deps, claimed._id, {
+      pendingUpdate: null,
+      pendingRejectionReason: verdict,
+      pollApprovalTimestamp: null,
+      pollAcceptabilityScreeningAttempts: 0
+    });
+    console.log(`[sweeps] Rejected the pending update of poll ${claimed._id}: ${verdict}`);
+    return 1;
+  }
+
+  const rewritten = await applyPendingUpdate(deps, claimed._id, pending);
+  if (pending.choices !== undefined) await reconcile(deps, [claimed._id]);
+  await forgetTabs(deps.cache, rewritten);
+  console.log(`[sweeps] Applied the pending update of poll ${claimed._id}`);
   return 1;
 }
 

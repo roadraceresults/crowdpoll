@@ -107,6 +107,60 @@
     return pendingDiscardAnswer;
   }
 
+  // The deletion confirmation. Same dialog pattern as askToDiscard, with one line
+  // per deleted choice that holds votes. Keep choices, Escape and the scrim answer
+  // false; Delete answers true.
+  let pendingDeleteAnswer = null;
+
+  function askToDeleteChoices(deletions) {
+    if (pendingDeleteAnswer) return pendingDeleteAnswer;
+    pendingDeleteAnswer = new Promise((resolve) => {
+      const backdrop = el("div", "modal-backdrop");
+      const box = el("div", "modal");
+      box.setAttribute("role", "alertdialog");
+      box.setAttribute("aria-modal", "true");
+      box.setAttribute("aria-labelledby", "delete-choices-headline");
+      box.setAttribute("aria-describedby", "delete-choices-text");
+      const headline = el("h2", "modal-headline", "Delete choices with votes?");
+      headline.id = "delete-choices-headline";
+      const text = el("div", "modal-text");
+      text.id = "delete-choices-text";
+      for (const d of deletions) {
+        text.appendChild(el("p", "modal-deleted-choice", d.label + " — " + d.votes + " vote(s)"));
+      }
+      const keep = el("button", "tab-refresh modal-action modal-keep", "Keep choices");
+      const remove = el("button", "tab-refresh modal-action modal-discard", "Delete");
+      keep.type = remove.type = "button";
+      const actions = el("div", "modal-actions");
+      actions.append(keep, remove);
+      box.append(headline, text, actions);
+      backdrop.appendChild(box);
+      const opener = document.activeElement;
+
+      function close(answer) {
+        document.removeEventListener("keydown", onKey);
+        backdrop.remove();
+        pendingDeleteAnswer = null;
+        if (opener && opener !== document.body && opener.isConnected && opener.focus) opener.focus();
+        resolve(answer);
+      }
+      function onKey(event) {
+        if (event.key === "Escape") close(false);
+        if (event.key === "Tab") {
+          event.preventDefault();
+          (document.activeElement === keep ? remove : keep).focus();
+        }
+      }
+      keep.addEventListener("click", () => close(false));
+      remove.addEventListener("click", () => close(true));
+      backdrop.addEventListener("click", (event) => { if (event.target === backdrop) close(false); });
+      document.addEventListener("keydown", onKey);
+      document.body.appendChild(backdrop);
+      keep.focus();
+    });
+    return pendingDeleteAnswer;
+  }
+
   function formatTimestamp(value) {
     return value ? new Date(value).toLocaleString() : "—";
   }
@@ -143,6 +197,10 @@
   function stateDetailText(poll, now) {
     if (poll.pollState === "AWAITING APPROVAL") return elapsedSinceApproval(poll, now);
     if (poll.pollState === "REJECTED") return poll.pollRejectionReason || "no reason given";
+    // A pending update never changes the poll's own state: the poll stays OPEN
+    // (or whatever it is) and only the saved changes are under review.
+    if (poll.pendingUpdate) return "changes pending review";
+    if (poll.pendingRejectionReason) return "changes rejected: " + poll.pendingRejectionReason;
     return "";
   }
 
@@ -422,9 +480,10 @@
 
     // What the poll's state lets change, field by field. The mode is the server's
     // (editModeFor): EDIT with no votes, UPDATE with votes, none while AWAITING
-    // APPROVAL, ARCHIVED or edited elsewhere. With votes only the title, subtitle
-    // and dates can change (UPDATE_FIELDS). The dates are tighter than the server:
-    // the start only before the poll opens, the end only until it closes.
+    // APPROVAL, ARCHIVED or edited elsewhere. With votes the title, subtitle,
+    // dates and choices can change (UPDATE_FIELDS) — choices change by id through
+    // the merge, so the textbox stays editable. The dates are tighter than the
+    // server: the start only before the poll opens, the end only until it closes.
     const START_STATES = ["INITIALIZED", "REJECTED", "WAITING TO OPEN"];
 
     function editMode() {
@@ -439,14 +498,20 @@
       if (field === "startAt") return START_STATES.includes(state);
       if (field === "endAt") return state !== "CLOSED" && state !== "ARCHIVED";
       if (field === "title" || field === "subtitle" || field === "colors" || field === "lineGraphEnabled") return true;
-      return mode === "EDIT";   // pollVisibility, keywords, labels, choiceMode, voteMutability
+      if (field === "labels") return true;
+      // A Private poll's sharing mode switches both ways after votes; visibility
+      // itself stays frozen, and a public poll's mode is locked with it.
+      if (field === "pollSharingMode") return mode === "EDIT" || current.pollVisibility === "Private Poll";
+      // Choice mode widens one way after votes: a Single-Choice poll may become
+      // Multiple-Choice, never back. Mutability switches both ways.
+      if (field === "choiceMode") return mode === "EDIT" || current.choiceMode === "Single-Choice Poll";
+      if (field === "voteMutability") return true;
+      return mode === "EDIT";   // pollVisibility, keywords
     }
 
     // The field each stored value belongs to, for canChange.
     const FIELD_OF = {
-      pollSharingMode: "pollVisibility",
-      voteAnonymity: "pollVisibility",
-      voteMutability: "choiceMode"
+      voteAnonymity: "pollVisibility"
     };
 
     // Step 2's limits. Lengths count UTF-16 units, as the server does.
@@ -682,15 +747,58 @@
       else disarmExitGuards();
     }
 
-    function goToStep(n) {
-      if (wizard.step === 3 && n !== 3 && duplicateMessage()) {
-        const box = card.querySelector('[id^="pollChoices-"]');
-        if (box) box.focus();
-        return;
+    async function goToStep(n) {
+      if (wizard.step === 3 && n !== 3) {
+        if (duplicateMessage()) {
+          const box = card.querySelector('[id^="pollChoices-"]');
+          if (box) box.focus();
+          return;
+        }
+        if (!(await confirmChoiceDeletions())) return;
       }
       wizard.step = n;
       wizard.visited.add(n);
       renderWizard();
+    }
+
+    // The Choices textbox's text when the session began — what "Keep choices"
+    // restores, whole (C2).
+    function sessionChoicesText() {
+      return [...((session && session.poll.choices) || [])]
+        .sort((a, b) => a.position - b.position)
+        .map((c) => c.label)
+        .join("\n");
+    }
+
+    // The deletions the current textbox implies, by the server's own rule: a
+    // stored label with no matching trimmed line is deleted. Counts come from the
+    // session-start snapshot, never a fresher number (C3).
+    function pendingVotedDeletions() {
+      if (!session || editMode() !== "UPDATE") return [];
+      const lines = new Set(choiceLines().map((l) => l.trim()).filter((l) => l.length > 0));
+      return ((session.poll.choices) || [])
+        .filter((c) => !lines.has(c.label.trim()) && (session.choiceCounts && session.choiceCounts[c.id] || 0) > 0)
+        .map((c) => ({ id: c.id, label: c.label, votes: session.choiceCounts[c.id] }));
+    }
+
+    // Resolves true when leaving the Choices section may proceed: no voted
+    // deletion is pending, the same set was already confirmed, or Delete is
+    // pressed. Keep choices reverts the whole textbox to its session-entry text
+    // and stays put. Zero-vote deletions never prompt (C2).
+    async function confirmChoiceDeletions() {
+      const deletions = pendingVotedDeletions();
+      if (deletions.length === 0) return true;
+      const key = deletions.map((d) => d.id).sort().join(",");
+      if (wizard.confirmedDeletions === key) return true;
+      if (await askToDeleteChoices(deletions)) {
+        wizard.confirmedDeletions = key;
+        return true;
+      }
+      wizard.choicesText = sessionChoicesText();
+      wizard.confirmedDeletions = null;
+      syncWizardDirty();
+      renderWizard();
+      return false;
     }
 
     function allStepsVisited() {
@@ -765,8 +873,10 @@
       const who1 = line();
       who1.classList.add("wizard-summary-who");
       who1.append("Your poll is a ", part(kind, 1, "pollVisibility"), ". ");
-      if (who === "link") who1.append(part("Anyone you send the link to", 1, "pollVisibility"), " can vote.");
-      else if (who === "invite") who1.append(part("Only people you invite", 1, "pollVisibility"), " by email can vote.");
+      // The two private wordings belong to the sharing mode, which a voted Private
+      // poll may still switch, so they stay tappable when the visibility is frozen.
+      if (who === "link") who1.append(part("Anyone you send the link to", 1, "pollSharingMode"), " can vote.");
+      else if (who === "invite") who1.append(part("Only people you invite", 1, "pollSharingMode"), " by email can vote.");
       else who1.append(part("Everyone on CrowdPoll", 1, "pollVisibility"), " can find it and vote.");
       // Private polls say whether votes are anonymous.
       if (who !== "public") {
@@ -841,6 +951,13 @@
       if (footer) footer.replaceWith(buildFooter());
       const next = card.querySelector(".wizard-next");
       if (next) setNextBlocked(next);
+      if (existing) {
+        const note = card.querySelector(".wizard-review-note");
+        const needed = reviewNeeded();
+        const fresh = card.querySelector(".wizard-footer");
+        if (needed && !note && fresh) fresh.before(reviewNote());
+        else if (!needed && note) note.remove();
+      }
     }
 
     function setNextBlocked(next) {
@@ -1767,10 +1884,17 @@
         if (!reasons.includes(reason)) reasons.push(reason);
       }
       const closed = ["CLOSED", "ARCHIVED"].includes(wordedState());
-      if (n === 1 && !canChange("pollVisibility")) lock(".m3-radio, .m3-switch", LOCKED_BY_VOTES);
+      // Step 1 locks per control: the two private options follow the sharing mode,
+      // which a voted Private poll may still switch; the public option and the
+      // anonymity switch follow the frozen visibility and anonymity.
+      if (n === 1 && !canChange("pollVisibility")) lock('.m3-radio[value="public"], .m3-switch', LOCKED_BY_VOTES);
+      if (n === 1 && !canChange("pollSharingMode")) lock('.m3-radio[value="link"], .m3-radio[value="invite"]', LOCKED_BY_VOTES);
       if (n === 2 && !canChange("keywords")) lock(".m3-chip-input, .m3-chip-remove", LOCKED_BY_VOTES);
       if (n === 3 && !canChange("labels")) lock(".m3-field-input, .wizard-paste .m3-tonal-btn", LOCKED_BY_VOTES);
-      if (n === 5 && !canChange("choiceMode")) lock(".m3-radio", LOCKED_BY_VOTES);
+      // Step 5 locks per control. Choice mode widens one way after votes, so only
+      // the single-choice option locks on a voted Multiple-Choice poll.
+      if (n === 5 && !canChange("choiceMode")) lock('.m3-radio[value="one"]', LOCKED_BY_VOTES);
+      if (n === 5 && !canChange("voteMutability")) lock('.m3-radio[value="change"], .m3-radio[value="final"]', LOCKED_BY_VOTES);
       if (n === 6) {
         if (!canChange("startAt")) {
           lock('input[name="starts-' + current.pid + '"], input[aria-label="Start date and time"]',
@@ -1895,13 +2019,25 @@
       return el("p", "wizard-review-note", "Saving sends your poll to be reviewed again.");
     }
 
+    // An ever-voted poll only goes to review for a change the screener reads
+    // (title, subtitle or choices), so the note shows only while the pending save
+    // contains one. A never-voted poll is re-screened whole on every save.
+    function reviewNeeded() {
+      if (editMode() !== "UPDATE") return true;
+      const before = wizardFields(pollAnswers());
+      const after = wizardFields();
+      return ["title", "subtitle", "labels"].some((name) =>
+        canChange(FIELD_OF[name] || name) &&
+        JSON.stringify(after[name]) !== JSON.stringify(before[name]));
+    }
+
     function renderWizard() {
       card.classList.add("poll-admin-card--new");
       const focusedStep = document.activeElement && document.activeElement.closest &&
         document.activeElement.closest(".poll-admin-card") === card;
       const listed = !existing && showsInvitees();
       card.replaceChildren(status, buildSummary(), buildCircles(), buildStepPanel(),
-        ...(existing ? [reviewNote()] : []), buildFooter(), ...(listed ? [inviteesPanel()] : []));
+        ...(existing && reviewNeeded() ? [reviewNote()] : []), buildFooter(), ...(listed ? [inviteesPanel()] : []));
       if (listed && invitees.data === null) loadInvitees();
       if (focusedStep) {
         const target = card.querySelector(".m3-radio:checked:not(:disabled)") ||
@@ -1970,6 +2106,7 @@
       wizard = null;
       existing = false;
       card.classList.remove("poll-admin-card--new");
+      showStatus("");
       resetEditState();
       deps.onEditEnd(current.pid);
     }
@@ -2023,6 +2160,7 @@
 
     // Save changes sends only the fields that changed and may change, to /publish.
     async function saveChanges() {
+      if (!(await confirmChoiceDeletions())) return;
       const before = wizardFields(pollAnswers());
       const after = wizardFields();
       const body = { clientGuid: session.clientGuid };
@@ -2206,7 +2344,11 @@
         launched
       ]);
 
-      const counts = [readOnlyField("Vote Count", String(current.voteCount ?? 0))];
+      const counts = [readOnlyField("Voter Count", String(current.voteCount ?? 0))];
+      // On a multiple-choice poll the voters and the votes cast differ, so both show.
+      if (current.choiceMode === "Multiple-Choice Poll") {
+        counts.push(readOnlyField("Vote Count", String(current.voteTotal ?? 0)));
+      }
       if (showsInvitees()) {
         counts.push(countField("Invitation Count", "invitations", current.invitationCount),
                     countField("Accepted Count", "accepted", current.acceptedCount));
@@ -2715,7 +2857,7 @@
         deps.onEditEnd(current.pid);
         return;
       }
-      session = { clientGuid, poll: body.poll, mode: body.mode };
+      session = { clientGuid, poll: body.poll, mode: body.mode, choiceCounts: body.choiceCounts || {} };
       // Every poll opens the wizard; one that is not in its new-poll wizard starts
       // from its stored answers, with every step visited and answered.
       mode = "WIZARD";
@@ -2728,6 +2870,9 @@
       dirty = false;
       deps.onEditStart(current.pid);
       renderWizard();
+      // The wizard face has no state header, so the status line carries the
+      // EDITING state the session put the poll in, until the session ends.
+      if (existing) showStatus("Your poll is being edited in this tab. Poll State Is: EDITING.");
       startHeartbeat();
     }
 

@@ -271,6 +271,17 @@ describe("a bar's percentage", () => {
     page = await openPage(ctx, "index.html");
     expect(percentages()).toEqual(["67%", "33%"]);
   });
+
+  it("counts voters on the totals line of a multiple-choice poll only (TWEAK03)", async () => {
+    const poll = makePoll({ title: "Pick any", choiceMode: "Multiple-Choice Poll" });
+    await polls(ctx).insertOne(poll);
+    await countVote(ctx.cache, poll._id, ["c1", "c2"], [], true);
+    await countVote(ctx.cache, poll._id, ["c1"], [], true);
+    await trendingSweep(ctx, ctx.config, ctx.trendingPublisher);
+    page = await openPage(ctx, "index.html");
+    const totals = page.document.querySelector('.tab-panel[data-panel="trending"] .card-front .poll-totals')!.textContent;
+    expect(totals).toContain("2 voters");
+  });
 });
 
 describe("a content change in a listed poll", () => {

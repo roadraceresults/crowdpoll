@@ -5,6 +5,36 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261029-225209-EDITING-POLL-AVAILABLE/plan.md` (research R1–R12, `data-model.md` — two `polls` columns,
+`pending_update` and `pending_rejection_reason`, added by migration `014-pending-update`, and the vote-rewrite
+semantics of a choice deletion; the HTTP contracts `contracts/api.md` A1–A7, the UI contracts
+`contracts/ui-contracts.md` C1–C8, and the quickstart live alongside it in
+`specs/20261029-225209-EDITING-POLL-AVAILABLE/`). The requirements report is
+`requirements/20261029-225209-editing-poll-available/requirements-report.md`: 4 diagrams and 19 findings, all resolved.
+Decisions that are easy to get wrong:
+- **While a poll is `EDITING`, `projectPoll` publishes the stashed state** (`pollStateBeforeEditUpdate`), so the vote
+  path and every voter-facing reader treat an open poll as OPEN during editing; the edit session, its heartbeat, the
+  stale sweep and the admin views keep reading the raw `pollState` (R1). The `POLL_EDITING` branches stay in the code.
+- **A save of an ever-voted poll never sets `AWAITING APPROVAL`**: non-text fields apply in the save transaction with
+  no state change; a changed title, subtitle or choice list is held in `polls.pending_update` and applied by the
+  approval sweep (shared claim columns, two disjoint pools). `pollState` is never written by the pending machinery, so
+  `launched_at` is not re-stamped and a poll that closed meanwhile stays closed (R2, R10). A second save while one is
+  pending is refused `409 PENDING_REVIEW`, and `editModeFor` is INELIGIBLE while pending (R8, R11).
+- **Choices on a voted poll change by id via `mergeChoices`** (exact trimmed-label match; survivors keep id, label and
+  position; additions append with minted ids; a rename is delete + add); `replaceChoices` stays reserved for
+  never-voted polls (R3). Applying a deletion removes the id from every `votes.choice_ids` in the apply transaction,
+  rebuilds the line-graph tally in-transaction, then reconciles counters and forgets the voters' tabs; an emptied vote
+  means "not voted" and the voter may re-vote even on a Final-Vote poll (R4).
+- **Freezes stay keyed on ever-voted**: sharing mode (Private only) and vote mutability unlock both ways,
+  choice mode unlocks Single→Multiple only; visibility, anonymity and keywords stay frozen (R5). The client must split
+  `FIELD_OF`'s grouping so sharing mode and mutability unlock without visibility/choice mode (C4).
+- **The deletion confirmation uses the `choiceCounts` snapshot from the edit-session grant** (live counters at session
+  start, held for the session), prompts only when a deleted choice has votes, and Cancel reverts the whole Choices
+  textbox to its session-entry text (R6, R7).
+- **Setting/clearing `pending_update` must not bump `content_version`** (both new fields join `NON_CONTENT_FIELDS`);
+  the apply itself is an ordinary content write (data-model).
+One additive migration, no new dependency, route, setting or cookie; `postman/openapi.json` follows A7.
+The preceding feature is
 `specs/20261030-123029-POPULATE-GRAPH-SUBTITLE/plan.md` (research R1–R6, `data-model.md` — one required input key
 parsed onto `PollData.subtitle` and written to the existing `polls.subtitle`, nothing stored anew — the CLI contract
 `contracts/cli.md` C1–C5, and the quickstart live alongside it in `specs/20261030-123029-POPULATE-GRAPH-SUBTITLE/`).
@@ -24,7 +54,17 @@ The preceding feature is
 `specs/20261028-182852-line-graph-toggle/plan.md` (research R1–R13, `data-model.md` — one `polls` column,
 `line_graph_enabled`, added by migration `013-line-graph-enabled`; the HTTP contracts `contracts/api.md` A1–A5, the UI
 contracts `contracts/ui-contracts.md` C1–C6, and the quickstart live alongside it in
-`specs/20261028-182852-line-graph-toggle/`). The preceding feature is
+`specs/20261028-182852-line-graph-toggle/`). The requirements report is
+`requirements/20261028-114023-line-graph-toggle/requirements-report.md`: 4 diagrams and 19 findings, all resolved.
+Decisions that are easy to get wrong:
+- **The line graph is per-poll, off by default, and only an Administrator may switch it** — enforced server-side
+  (403), not only hidden; non-admin saves that include `lineGraphEnabled` are refused.
+- **The setting is a content field**: a change bumps `content_version` like a title change and rides in the poll
+  projections and admin rows; no new request or polling cost.
+- **The graph route answers the off state itself**; the graph code from POLL-LINE-GRAPH/LINE-GRAPH-M3 is unchanged.
+- **The admin card's "View" step holds the switch**; colours-only saves may carry `lineGraphEnabled` to `/colors`.
+No new configuration value, cookie or browser storage key.
+The preceding feature is
 `specs/20261029-171759-PLAN-ANALYZE-CHAIN/plan.md` (research R1–R9, `data-model.md` — the feature, the gate result and
 the steps of one run, nothing stored — the command contract `contracts/command.md` K1–K7, and the quickstart live alongside
 it in `specs/20261029-171759-PLAN-ANALYZE-CHAIN/`). The requirements report is

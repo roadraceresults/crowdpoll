@@ -124,7 +124,9 @@ export function createDefaultPoll(now: Date = new Date()): Poll {
     pollAcceptabilityScreeningAttempts: 0,
     pollRejectionReason: null,
     timeZone: null,
-    lineGraphEnabled: false
+    lineGraphEnabled: false,
+    pendingUpdate: null,
+    pendingRejectionReason: null
   };
 }
 
@@ -207,9 +209,9 @@ export function isAllDefaults(poll: Pick<Poll, "title" | "subtitle" | "choices">
 export type EditMode = "EDIT" | "UPDATE";
 
 export function editModeFor(
-  poll: Pick<Poll, "pollState">,
+  poll: Pick<Poll, "pollState" | "pendingUpdate">,
   hasEverVoted: boolean
-): { mode: EditMode } | { refusal: "LOCKED" | "INELIGIBLE"; message: string } {
+): { mode: EditMode } | { refusal: "LOCKED" | "INELIGIBLE" | "PENDING_REVIEW"; message: string } {
   if (poll.pollState === "EDITING") {
     return {
       refusal: "LOCKED",
@@ -221,6 +223,9 @@ export function editModeFor(
   }
   if (poll.pollState === "ARCHIVED") {
     return { refusal: "INELIGIBLE", message: "This poll is archived and cannot be changed." };
+  }
+  if (poll.pendingUpdate) {
+    return { refusal: "PENDING_REVIEW", message: "Changes are being reviewed. Try again shortly." };
   }
   return { mode: hasEverVoted ? "UPDATE" : "EDIT" };
 }
@@ -249,7 +254,7 @@ export const CLOSEABLE_STATES: readonly PollState[] = ["WAITING TO OPEN", "OPEN"
 export function capabilitiesFor(
   poll: Pick<
     Poll,
-    "pollState" | "pollAcceptabilityScreeningAttempts"
+    "pollState" | "pollAcceptabilityScreeningAttempts" | "pendingUpdate"
   >,
   hasEverBeenVotedOn: boolean,
   maxScreeningAttempts: number
@@ -271,12 +276,12 @@ export function capabilitiesFor(
   };
 }
 
-export function canEditPoll(poll: Pick<Poll, "pollState">, hasEverVoted: boolean): boolean {
+export function canEditPoll(poll: Pick<Poll, "pollState" | "pendingUpdate">, hasEverVoted: boolean): boolean {
   const r = editModeFor(poll, hasEverVoted);
   return "mode" in r && r.mode === "EDIT";
 }
 
-export function canUpdatePoll(poll: Pick<Poll, "pollState">, hasEverVoted: boolean): boolean {
+export function canUpdatePoll(poll: Pick<Poll, "pollState" | "pendingUpdate">, hasEverVoted: boolean): boolean {
   const r = editModeFor(poll, hasEverVoted);
   return "mode" in r && r.mode === "UPDATE";
 }
@@ -496,17 +501,18 @@ export function validatePollFields(
   }
 
   if (body.choiceMode !== undefined) {
-    // 012 FR-004: frozen alongside pollVisibility once the poll has a vote. The
-    // multi-vote check below is now unreachable through this path and is kept
-    // only because `validatePollFields` is also called with hasEverVoted=false
-    // for a poll whose votes were all removed by a ban.
-    if (hasEverVoted) {
-      throw new AdminError(409, "choiceMode cannot be changed after the poll has received a vote.");
-    }
     if (body.choiceMode !== "Single-Choice Poll" && body.choiceMode !== "Multiple-Choice Poll") {
       throw new AdminError(400, "Invalid choiceMode.");
     }
-    if (body.choiceMode === "Single-Choice Poll") {
+    // EDITING-POLL-AVAILABLE FR-019: widening to multiple-choice invalidates no
+    // vote, so it is allowed after votes; narrowing back to single-choice would,
+    // so that direction stays frozen.
+    if (hasEverVoted && body.choiceMode === "Single-Choice Poll" && poll.choiceMode === "Multiple-Choice Poll") {
+      throw new AdminError(409, "choiceMode cannot be changed back to single-choice after the poll has received a vote.");
+    }
+    // The multi-vote check keeps its original scope: a poll whose votes were all
+    // removed by a ban (hasEverVoted=false) may still hold multi-voted choices.
+    if (!hasEverVoted && body.choiceMode === "Single-Choice Poll") {
       const anyChoiceMultiVoted = poll.choices.some(
         (c) => poll.currentVotes.filter((v) => v.choiceIds.includes(c.id)).length > 1
       );
@@ -518,10 +524,8 @@ export function validatePollFields(
   }
 
   if (body.voteMutability !== undefined) {
-    // 012 FR-004: frozen alongside pollVisibility once the poll has a vote.
-    if (hasEverVoted) {
-      throw new AdminError(409, "voteMutability cannot be changed after the poll has received a vote.");
-    }
+    // EDITING-POLL-AVAILABLE FR-020: mutability switches both ways after votes.
+    // Existing votes are untouched; the rule applies forward from the save.
     if (body.voteMutability !== "Final-Vote Poll" && body.voteMutability !== "Dynamic-Vote Poll") {
       throw new AdminError(400, "Invalid voteMutability.");
     }
@@ -539,7 +543,11 @@ export function validatePollFields(
   }
 
   if (body.pollSharingMode !== undefined) {
-    if (hasEverVoted) {
+    // EDITING-POLL-AVAILABLE FR-016: a Private poll's sharing mode may switch both
+    // ways after votes — access follows the live invitation checks, so no vote is
+    // rewritten by the switch alone. Visibility stays frozen, and with it a public
+    // poll's sharing mode.
+    if (hasEverVoted && isPublicVisibility(poll.pollVisibility)) {
       throw new AdminError(409, "pollSharingMode cannot be changed after the poll has received a vote.");
     }
     if (!(POLL_SHARING_MODES as readonly string[]).includes(body.pollSharingMode as string)) {
@@ -971,6 +979,53 @@ export function replaceChoices(
   return newChoices;
 }
 
+/**
+ * The ever-voted counterpart of `replaceChoices`: the textbox lines change the
+ * stored list *by id*. A line whose trimmed text equals a stored label is that
+ * choice — it keeps its id, label and position, so its votes and tallies stay
+ * attached. A new line is an addition with a minted id placed after every stored
+ * position; a stored label with no line is a deletion, so a rename is a deletion
+ * plus an addition. Validation mirrors `replaceChoices`.
+ */
+export function mergeChoices(
+  poll: Pick<Poll, "choices">,
+  labels: unknown,
+  config: Pick<AppConfig, "minChoices" | "maxChoices">,
+  colors?: unknown
+): { choices: Choice[]; deletedIds: string[] } {
+  if (!Array.isArray(labels)) {
+    throw new AdminError(400, "labels must be an array.");
+  }
+  const paired = checkedColors(colors, labels.length, storedColorsOf(poll))
+    .map((color, i) => ({ label: typeof labels[i] === "string" ? labels[i].trim() : "", color }))
+    .filter((entry) => entry.label.length > 0);
+  const cleaned = paired.map((entry) => entry.label);
+
+  if (cleaned.length < config.minChoices || cleaned.length > config.maxChoices) {
+    throw new AdminError(400, `A poll must have between ${config.minChoices} and ${config.maxChoices} choices.`);
+  }
+  if (cleaned.some((label) => label.length > CHOICE_LABEL_MAX)) {
+    throw new AdminError(400, `Choice label must be at most ${CHOICE_LABEL_MAX} characters.`);
+  }
+  if (new Set(cleaned).size !== cleaned.length) {
+    throw new AdminError(409, "Choice labels must be unique.");
+  }
+
+  const byLabel = new Map(poll.choices.map((c) => [c.label.trim(), c]));
+  const survivorIds = new Set<string>();
+  let nextPosition = Math.max(-1, ...poll.choices.map((c) => c.position)) + 1;
+  const choices: Choice[] = paired.map(({ label, color }) => {
+    const stored = byLabel.get(label);
+    if (stored) {
+      survivorIds.add(stored.id);
+      return { id: stored.id, label: stored.label, position: stored.position, ...(color ? { color } : {}) };
+    }
+    return { id: randomUUID(), label, position: nextPosition++, ...(color ? { color } : {}) };
+  });
+  const deletedIds = poll.choices.filter((c) => !survivorIds.has(c.id)).map((c) => c.id);
+  return { choices, deletedIds };
+}
+
 function storedColorsOf(poll: Pick<Poll, "choices">): Set<string> {
   return new Set(poll.choices.flatMap((c) => (c.color ? [c.color.toUpperCase()] : [])));
 }
@@ -1053,7 +1108,9 @@ export function duplicatePoll(source: Poll, now: Date = new Date()): Poll {
     pollAcceptabilityScreeningAttempts: 0,
     pollRejectionReason: null,
     timeZone: null,
-    lineGraphEnabled: false
+    lineGraphEnabled: false,
+    pendingUpdate: null,
+    pendingRejectionReason: null
   };
 }
 

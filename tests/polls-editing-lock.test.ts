@@ -10,6 +10,7 @@ import { startTestContext, forgeSession, type TestContext } from "./helpers/setu
 import { makePoll } from "./helpers/poll-fixtures.js";
 import { polls, publicDetail, publicListing, voteHistory } from "./helpers/poll-fixtures.js";
 import { staleEditUpdateSweep } from "../src/polls/sweeps.js";
+import { addBookmark } from "../src/polls/bookmarks.js";
 
 const HEARTBEAT_MS = 10_000;
 
@@ -72,8 +73,9 @@ describe("Editing lock (011 FR-017..FR-023)", () => {
     await polls(ctx).insertOne(poll);
     await open(poll._id, "tab-A");
     expect(await publicListing(ctx)).toContain(poll._id);
-    // ...and it says why, so the card can show the message rather than guess.
-    expect((await publicDetail(ctx, poll._id))!.pollState).toBe("EDITING");
+    // EDITING-POLL-AVAILABLE R1: the card now carries the stashed state, so the
+    // poll looks simply OPEN to a voter while the creator edits.
+    expect((await publicDetail(ctx, poll._id))!.pollState).toBe("OPEN");
   });
 
   it("012 FR-046: still hides an EDITING poll the public had never seen", async () => {
@@ -379,7 +381,9 @@ describe("Writing from inside a session (011 regression guard)", () => {
     expect(after.title).not.toBe("Hijack");
   });
 
-  it("choices stay immutable inside a session once the poll has been voted on", async () => {
+  it("choices submitted inside a session on a voted poll go to review by the merge, not into the poll", async () => {
+    // EDITING-POLL-AVAILABLE US2 reverses 012 T050: the update surface accepts
+    // `labels` and routes them through the by-id merge into pending_update.
     const poll = makePoll({ pollState: "OPEN" });
     await polls(ctx).insertOne(poll);
     await voteHistory(ctx).insertOne({
@@ -393,13 +397,127 @@ describe("Writing from inside a session (011 regression guard)", () => {
     const res = await request(ctx.app)
       .post(`/api/admin/polls/${poll._id}/publish`)
       .set("Cookie", cookie)
-      .send({ clientGuid: "tab-A", labels: ["X", "Y"] });
-    // 012 T050: same refusal, moved from the deleted choices route into publish's
-    // UPDATE-mode field check. Holding the lock does not make choices editable.
-    expect(res.status).toBe(400);
-    // 012 FR-059 widened this whitelist to include the participant lists, so the
-    // assertion pins the part that matters: choices are refused on the update surface.
-    expect(res.body.error).toMatch(/this poll has votes/i);
-    expect(res.body.error).not.toMatch(/labels/);
+      .send({ clientGuid: "tab-A", labels: ["Choice 1", "Y"] });
+    expect(res.status).toBe(200);
+    expect(res.body.pending).toBe(true);
+
+    const after = (await polls(ctx).findOne({ _id: poll._id }))!;
+    // The served list is unchanged until the review approves it...
+    expect(after.choices.map((c) => c.label)).toEqual(["Choice 1", "Choice 2"]);
+    // ...and the survivor keeps its id in the waiting list, so its votes follow it.
+    expect(after.pendingUpdate!.choices!.map((c) => ({ id: c.id, label: c.label }))).toEqual([
+      { id: "c1", label: "Choice 1" },
+      { id: after.pendingUpdate!.choices![1]!.id, label: "Y" }
+    ]);
+    expect(after.pendingUpdate!.choices![1]!.id).not.toBe("c2");
+  });
+});
+
+describe("Voting stays available while the creator edits (EDITING-POLL-AVAILABLE US1)", () => {
+  let ctx: TestContext;
+  let cookie: string;
+  let users = 0;
+  beforeAll(async () => {
+    ctx = await startTestContext();
+    ({ cookie } = await forgeSession(ctx, ctx.config.admins[0]!));
+  });
+  afterAll(async () => {
+    await ctx.stop();
+  });
+  beforeEach(async () => {
+    await polls(ctx).deleteMany({});
+    for (const key of await ctx.cache.scan("floor:*")) await ctx.cache.del(key);
+  });
+
+  const open = (pid: string, clientGuid: string) =>
+    request(ctx.app).post(`/api/admin/polls/${pid}/edit-session`).set("Cookie", cookie).send({ clientGuid });
+  const reload = async (pid: string) => (await polls(ctx).findOne({ _id: pid }))!;
+  const vote = async (pid: string, choiceIds: string[]) => {
+    users += 1;
+    const voter = await forgeSession(ctx, `avail-voter-${users}@example.com`);
+    return request(ctx.app)
+      .post(`/api/polls/${pid}/vote`)
+      .set("Cookie", voter.cookie)
+      .set("X-Forwarded-For", `10.9.0.${users}`)
+      .send({ choiceIds });
+  };
+
+  it("an EDITING poll stashed from OPEN serves OPEN and accepts a counted vote (FR-001)", async () => {
+    const poll = makePoll({ pollVisibility: "Public Poll", pollState: "OPEN" });
+    await polls(ctx).insertOne(poll);
+    await open(poll._id, "tab-A");
+
+    // The projection and the listing treat the poll as OPEN...
+    expect((await publicDetail(ctx, poll._id))!.pollState).toBe("OPEN");
+    expect(await publicListing(ctx)).toContain(poll._id);
+
+    // ...and a vote is accepted and counted while the editor is open.
+    const res = await vote(poll._id, ["c1"]);
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ status: "recorded", voteCount: 1, choiceCounts: { c1: 1 } });
+    expect(await ctx.consumer.runOnce()).toBe(1);
+    const rows = await ctx.db.selectFrom("votes").selectAll().where("poll_id", "=", poll._id).execute();
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.choice_ids).toEqual(["c1"]);
+
+    // The raw state stays EDITING for the session, its heartbeat and the admin views.
+    expect((await reload(poll._id)).pollState).toBe("EDITING");
+  });
+
+  it("the per-viewer overlay reports no vote block while the creator edits", async () => {
+    const poll = makePoll({ pollVisibility: "Public Poll", pollState: "OPEN" });
+    await polls(ctx).insertOne(poll);
+    await open(poll._id, "tab-A");
+
+    const viewer = await forgeSession(ctx, "overlay-viewer@example.com");
+    await addBookmark(ctx, "overlay-viewer@example.com", poll._id, 200);
+    const res = await request(ctx.app).post("/api/tabs/watching/refresh").set("Cookie", viewer.cookie).send({});
+    expect(res.status).toBe(200);
+    expect(res.body.cards[poll._id].overlay.voteBlockedReason ?? null).toBeNull();
+  });
+
+  it("a poll stashed from CLOSED still refuses a vote", async () => {
+    const poll = makePoll({ pollState: "CLOSED" });
+    await polls(ctx).insertOne(poll);
+    await open(poll._id, "tab-A");
+    expect((await publicDetail(ctx, poll._id))!.pollState).toBe("CLOSED");
+    const res = await vote(poll._id, ["c1"]);
+    expect(res.status).toBe(409);
+    expect(res.body.error).toMatch(/not open for voting/i);
+  });
+
+  it("the grant carries the live per-choice counts at session start (A1)", async () => {
+    const when = new Date();
+    const poll = makePoll({
+      pollState: "OPEN",
+      currentVotes: [
+        { emailAddress: "v1@example.com", userName: "v1", choiceIds: ["c1"], votedAt: when },
+        { emailAddress: "v2@example.com", userName: "v2", choiceIds: ["c1"], votedAt: when }
+      ]
+    });
+    await polls(ctx).insertOne(poll);
+    const res = await open(poll._id, "tab-A");
+    expect(res.status).toBe(200);
+    expect(res.body.choiceCounts).toEqual({ c1: 2, c2: 0 });
+  });
+
+  it("the session stays exclusive and still expires to the stashed state (FR-002)", async () => {
+    const poll = makePoll({ pollState: "OPEN" });
+    await polls(ctx).insertOne(poll);
+    await open(poll._id, "tab-A");
+
+    const second = await open(poll._id, "tab-B");
+    expect(second.status).toBe(409);
+    expect(second.body.reason).toBe("LOCKED");
+
+    const now = new Date();
+    await polls(ctx).updateOne(
+      { _id: poll._id },
+      { $set: { pollEditUpdateHeartbeatTimestamp: new Date(now.getTime() - HEARTBEAT_MS * 2 - 1) } }
+    );
+    expect(await staleEditUpdateSweep(ctx, HEARTBEAT_MS, now)).toBe(1);
+    const after = await reload(poll._id);
+    expect(after.pollState).toBe("OPEN");
+    expect(after.pollEditUpdateClientGUID).toBeNull();
   });
 });

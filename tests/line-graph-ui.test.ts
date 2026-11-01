@@ -168,6 +168,16 @@ describe("mount (C1, C2, C4, C5, FR-018)", () => {
     expect(side.querySelector(".line-graph-total")!.textContent).toBe("4 votes");
   });
 
+  it("counts the legend total in voters on a multiple-choice poll (TWEAK03)", async () => {
+    const poll = await seedPoll("Counted Multi", { choiceMode: "Multiple-Choice Poll" });
+    await seedHistory(poll._id);
+    await sweeps();
+    page = await open();
+    const side = await maximize(page, "Counted Multi");
+
+    expect(side.querySelector(".line-graph-total")!.textContent).toBe("4 voters");
+  });
+
   it("strokes each polyline with the manual hex when present, else the card's own colour", async () => {
     const poll = await seedPoll("Coloured");
     await seedHistory(poll._id);

@@ -291,3 +291,47 @@ describe("openapi.json tracks the 017 surfaces", () => {
     expect((outcome.status as { enum: string[] }).enum).toEqual(["recorded", "queued"]);
   });
 });
+
+/**
+ * EDITING-POLL-AVAILABLE (A7): the pending-review surfaces — the edit-session
+ * grant's counts snapshot and new refusal, the widened UPDATE save, the admin
+ * row's pending fields, and the narrowed reachability of POLL_EDITING.
+ */
+describe("openapi.json tracks the EDITING-POLL-AVAILABLE surfaces", () => {
+  it("documents choiceCounts and the PENDING_REVIEW refusal on the edit session", () => {
+    const session = spec.paths["/api/admin/polls/{pid}/edit-session"] as Record<
+      string,
+      { responses: Record<string, unknown> }
+    >;
+    expect(JSON.stringify(session.post!.responses["200"])).toContain("choiceCounts");
+    expect(JSON.stringify(session.post!.responses["409"])).toContain("PENDING_REVIEW");
+  });
+
+  it("documents the widened UPDATE fields, the pending response field and the PENDING_REVIEW 409 on publish", () => {
+    const publish = spec.paths["/api/admin/polls/{pid}/publish"] as Record<
+      string,
+      { requestBody: { content: Record<string, { schema: unknown }> }; responses: Record<string, unknown> }
+    >;
+    const body = schemaProperties(publish.post!.requestBody.content["application/json"]!.schema);
+    for (const field of ["labels", "pollSharingMode", "choiceMode", "voteMutability"]) {
+      expect(Object.keys(body), field).toContain(field);
+    }
+    expect(JSON.stringify(publish.post!.responses["200"])).toContain('"pending"');
+    expect(JSON.stringify(publish.post!.responses["409"])).toContain("PENDING_REVIEW");
+  });
+
+  it("documents the two pending fields on the admin list row", () => {
+    const props = Object.keys(
+      (spec.components.schemas.AdminPollSummary as { properties: Record<string, unknown> }).properties
+    );
+    expect(props).toContain("pendingUpdate");
+    expect(props).toContain("pendingRejectionReason");
+  });
+
+  it("keeps POLL_EDITING documented while narrowing it to the direct validation path", () => {
+    const vote = spec.paths["/api/polls/{pid}/vote"] as Record<string, { responses: Record<string, unknown> }>;
+    const refusal = JSON.stringify(vote.post!.responses["409"]);
+    expect(refusal).toContain("POLL_EDITING");
+    expect(refusal).toContain("stashed state");
+  });
+});

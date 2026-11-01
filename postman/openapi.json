@@ -382,6 +382,17 @@
             ],
             "description": "Why the poll was rejected. Shown for every poll that has one, whatever the state (FR-030)."
           },
+          "pendingUpdate": {
+            "type": "boolean",
+            "description": "True while a saved title, subtitle or choice change of this ever-voted poll is waiting for review; the editor is withheld (canEdit/canUpdate false) until the review resolves (EDITING-POLL-AVAILABLE A5)."
+          },
+          "pendingRejectionReason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why the poll's last pending update was rejected or timed out; the poll's own state is untouched by it (EDITING-POLL-AVAILABLE A5)."
+          },
           "pollApprovalTimestamp": {
             "type": [
               "string",
@@ -452,6 +463,10 @@
             "type": "integer",
             "description": "Participants who have actually voted (non-empty choiceIds)"
           },
+          "voteTotal": {
+            "type": "integer",
+            "description": "Present on Multiple-Choice polls only: votes cast across all choices, which can exceed voteCount"
+          },
           "invitationCount": {
             "type": "integer",
             "description": "Length of the invited list"
@@ -498,6 +513,14 @@
           },
           "subtitle": {
             "type": "string"
+          },
+          "choiceMode": {
+            "type": "string",
+            "enum": [
+              "Single-Choice Poll",
+              "Multiple-Choice Poll"
+            ],
+            "description": "On a Multiple-Choice poll the results page derives the votes cast as the sum of the per-choice counts"
           },
           "choices": {
             "type": "array",
@@ -2447,7 +2470,7 @@
             }
           },
           "409": {
-            "description": "The poll is not open for voting. The stored state is the only gate, whatever route the voter took (011 FR-004). 012 FR-044: when the reason is that the poll is being edited, the body also carries code=POLL_EDITING so the card can offer a retry rather than the closed-poll treatment.",
+            "description": "The poll is not open for voting. The served projection is the gate, whatever route the voter took (011 FR-004). 012 FR-044: when the reason is that the poll is being edited, the body also carries code=POLL_EDITING so the card can offer a retry rather than the closed-poll treatment. EDITING-POLL-AVAILABLE: the projection of an EDITING poll publishes its stashed state, so a poll stashed from OPEN keeps accepting votes and POLL_EDITING is no longer reachable for it through the normal flow; the code remains for the direct validation path.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2508,7 +2531,7 @@
             "$ref": "#/components/responses/Busy"
           }
         },
-        "description": "012 FR-044: a poll being edited is refused with 409 and code POLL_EDITING, checked before the generic not-open refusal. The code exists so the card can distinguish \"try again shortly\" from \"this poll has closed\" without matching on message text."
+        "description": "012 FR-044: a poll being edited is refused with 409 and code POLL_EDITING, checked before the generic not-open refusal. The code exists so the card can distinguish \"try again shortly\" from \"this poll has closed\" without matching on message text. Since EDITING-POLL-AVAILABLE the projection serves an edited poll's stashed state, so an open poll under edit votes as OPEN and the code is reachable only through the direct validation path."
       }
     },
     "/api/admin/polls": {
@@ -3116,6 +3139,13 @@
                     },
                     "poll": {
                       "$ref": "#/components/schemas/AdminPollDetail"
+                    },
+                    "choiceCounts": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "integer"
+                      },
+                      "description": "Each current choice id mapped to its live vote count at the moment the session was taken; held by the card for the session and never refreshed mid-session (EDITING-POLL-AVAILABLE A1)."
                     }
                   }
                 }
@@ -3159,7 +3189,8 @@
                       "type": "string",
                       "enum": [
                         "LOCKED",
-                        "INELIGIBLE"
+                        "INELIGIBLE",
+                        "PENDING_REVIEW"
                       ]
                     },
                     "message": {
@@ -3169,7 +3200,7 @@
                 }
               }
             },
-            "description": "Locked by another tab, or the state forbids editing. No change is made."
+            "description": "Locked by another tab, the state forbids editing, or the poll's saved changes are still being reviewed (PENDING_REVIEW, EDITING-POLL-AVAILABLE A1). No change is made."
           }
         }
       },
@@ -3341,7 +3372,7 @@
           "Admin polls"
         ],
         "summary": "Save the poll and request approval (011 FR-026)",
-        "description": "Replaces autosave: nothing reaches the server until this call, so a half-finished edit can never become public. Returns immediately — the screening outcome arrives later from pollsAwaitingApprovalSweep. In UPDATE mode only title, subtitle, startAt, endAt, the participant lists, the voter count limit and colors are accepted.",
+        "description": "Replaces autosave: nothing reaches the server until this call, so a half-finished edit can never become public. Returns immediately — the screening outcome arrives later from pollsAwaitingApprovalSweep. In UPDATE mode title, subtitle, startAt, endAt, the participant lists, the voter count limit, colors, lineGraphEnabled, labels, pollSharingMode, choiceMode and voteMutability are accepted. On an ever-voted published poll the save never pauses voting: non-text fields apply at once with no state change, while a changed title, subtitle or choice list is held as the poll's pending update and applied when the approval sweep approves it (EDITING-POLL-AVAILABLE A2).",
         "parameters": [
           {
             "name": "pid",
@@ -3386,10 +3417,20 @@
                     "format": "date-time"
                   },
                   "choiceMode": {
-                    "type": "string"
+                    "type": "string",
+                    "enum": [
+                      "Single-Choice Poll",
+                      "Multiple-Choice Poll"
+                    ],
+                    "description": "Once the poll has ever been voted on, the change is one-way: Single-Choice Poll may become Multiple-Choice Poll, and the reverse is refused with 409 (EDITING-POLL-AVAILABLE A2)."
                   },
                   "voteMutability": {
-                    "type": "string"
+                    "type": "string",
+                    "enum": [
+                      "Dynamic-Vote Poll",
+                      "Final-Vote Poll"
+                    ],
+                    "description": "Switches both ways, votes or none: existing votes are untouched and the rule applies forward from the save (EDITING-POLL-AVAILABLE A2)."
                   },
                   "pollVisibility": {
                     "type": "string",
@@ -3405,7 +3446,7 @@
                       "Anyone With The Link",
                       "Invitation Only"
                     ],
-                    "description": "For a private poll, whether anyone with the link may take part or only invited addresses. Always present; ignored while the poll is public. Frozen once the poll has ever been voted on."
+                    "description": "For a private poll, whether anyone with the link may take part or only invited addresses. Always present; ignored while the poll is public. On a Private poll it switches both ways even once the poll has been voted on — access follows the live invitation checks and no vote is rewritten; on a Public poll it stays frozen with the visibility (EDITING-POLL-AVAILABLE A2)."
                   },
                   "voteAnonymity": {
                     "type": "string",
@@ -3430,7 +3471,7 @@
                     },
                     "minItems": 2,
                     "maxItems": 50,
-                    "description": "012 FR-011/FR-013: the poll's choice list, replacing the deleted PUT .../choices route. Accepted in EDIT mode only; in UPDATE mode it joins the disallowed fields and the whole save is refused with 400. Validated in the same pass as every other field and written in the same operation, so a rejected publish persists nothing."
+                    "description": "012 FR-011/FR-013: the poll's choice list, replacing the deleted PUT .../choices route. In EDIT mode the list replaces the choices with fresh ids. In UPDATE mode (ever-voted poll) it is merged by exact trimmed label: a matching stored label keeps its id, label and position, a new line is appended with a minted id, and a missing label is a deletion; the merged list waits as the poll's pending update until the review approves it (EDITING-POLL-AVAILABLE A2). Validated in the same pass as every other field and written in the same operation, so a rejected publish persists nothing."
                   },
                   "invitedVoterList": {
                     "type": "array",
@@ -3491,6 +3532,10 @@
                         "message": {
                           "type": "string",
                           "description": "Present only when a poll that has not been published yet was held back for still holding its starter choices (FR-024/FR-025)."
+                        },
+                        "pending": {
+                          "type": "boolean",
+                          "description": "Present on the save of an ever-voted published poll: true when a changed title, subtitle or choice list went to review as the poll's pending update, false when nothing needed review. The poll's state never changes either way (EDITING-POLL-AVAILABLE A2)."
                         }
                       }
                     }
@@ -3498,10 +3543,10 @@
                 }
               }
             },
-            "description": "Either AWAITING APPROVAL, or INITIALIZED with a message when the poll has not been published yet and still holds its starter choices. A published poll is always sent for review."
+            "description": "A never-voted poll goes to AWAITING APPROVAL (or stays INITIALIZED with a message while it holds its starter choices). The save of an ever-voted published poll applies non-text fields at once with no state change and answers with pending: whether a title, subtitle or choice change went to review."
           },
           "400": {
-            "description": "Field outside the four permitted in UPDATE mode, over-length text, or startAt not before endAt",
+            "description": "Field outside those permitted in UPDATE mode, over-length text, or startAt not before endAt",
             "content": {
               "application/json": {
                 "schema": {
@@ -3531,11 +3576,27 @@
             }
           },
           "409": {
-            "description": "The poll is locked, awaiting approval, or archived",
+            "description": "The poll is locked, awaiting approval, or archived — or its earlier save is still being reviewed, answered with code PENDING_REVIEW and the message \"Changes are already being reviewed. Try again shortly.\" (EDITING-POLL-AVAILABLE A2).",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "PENDING_REVIEW"
+                          ],
+                          "description": "Present only while the poll's pending update is under review."
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }

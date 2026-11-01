@@ -21,6 +21,7 @@ import {
   pollCreatorId,
   creatorEmails,
   pollsEverVoted,
+  voteTotals,
   titlesLike,
   updatePoll,
   type Db,
@@ -44,6 +45,7 @@ import {
   validateStateAction,
   applyChoiceColors,
   replaceChoices,
+  mergeChoices,
   duplicatePoll,
   nextAvailableCopyTitle,
   VoteError,
@@ -57,6 +59,7 @@ import {
   validateFieldLength,
   TITLE_MAX
 } from "../polls/service.js";
+import { rebuildIfMissing } from "../polls/counters.js";
 import {
   acceptedCounts,
   addInvitees,
@@ -285,7 +288,13 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
         });
         return;
       }
-      res.json({ granted: true, mode: decision.mode, poll: buildAdminPollDetail(claimed) });
+      // The per-choice counts at the moment the session is taken: the deletion
+      // confirmation names these for the whole session, never a fresher number.
+      const live = await rebuildIfMissing({ db, cache }, claimed._id);
+      const choiceCounts = Object.fromEntries(
+        claimed.choices.map((c) => [c.id, live?.choiceCounts[c.id] ?? 0])
+      );
+      res.json({ granted: true, mode: decision.mode, poll: buildAdminPollDetail(claimed), choiceCounts });
     })
   );
 
@@ -490,6 +499,15 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
         return;
       }
       if (await refusesLineGraphSetting(req, res, poll._id)) return;
+      // One update is reviewed at a time: a further save would have nothing
+      // truthful to answer about the first one's fate (FR-005).
+      if (poll.pendingUpdate) {
+        res.status(409).json({
+          error: "Changes are already being reviewed. Try again shortly.",
+          code: "PENDING_REVIEW"
+        });
+        return;
+      }
       const hasEverVoted = await hasEverBeenVotedOn(db, poll._id);
       const clientGuid = typeof req.body?.clientGuid === "string" ? req.body.clientGuid : "";
       const decision = resolveEditContext(poll, clientGuid, hasEverVoted);
@@ -514,10 +532,14 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
       // administrator needs to raise it.
       const UPDATE_FIELDS = [
         "title", "subtitle", "startAt", "endAt",
-        "invitedVoterList", "bannedVoterList", "voterCountLimit", "colors", "lineGraphEnabled"
+        "invitedVoterList", "bannedVoterList", "voterCountLimit", "colors", "lineGraphEnabled",
+        "labels", "pollSharingMode", "choiceMode", "voteMutability"
       ];
+      // The frozen trio passes this gate so `validatePollFields` can refuse each
+      // with its own 409 naming the field; everything else still gets the 400.
+      const FROZEN_FIELDS = ["pollVisibility", "voteAnonymity", "keywords"];
       if (decision.mode === "UPDATE") {
-        const disallowed = Object.keys(body).filter((k) => !UPDATE_FIELDS.includes(k));
+        const disallowed = Object.keys(body).filter((k) => !UPDATE_FIELDS.includes(k) && !FROZEN_FIELDS.includes(k));
         if (disallowed.length > 0) {
           res.status(400).json({
             error: `This poll has votes; only ${UPDATE_FIELDS.join(", ")} may be changed.`
@@ -536,9 +558,14 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
       delete body.colors;
 
       let $set: Partial<Poll>;
+      // An ever-voted poll's choices change by id, so votes stay attached to the
+      // labels that survive; the merged list waits in pending_update (R3).
+      let mergedChoices: Choice[] | null = null;
       try {
         $set = validatePollFields(poll, body, hasEverVoted, new Date(), config);
-        if (labels !== undefined) {
+        if (decision.mode === "UPDATE" && labels !== undefined) {
+          mergedChoices = mergeChoices(poll, labels, config, colors).choices;
+        } else if (labels !== undefined) {
           $set.choices = replaceChoices(poll, labels, config, colors);
           $set.currentVotes = poll.currentVotes;
         } else if (colors !== undefined) {
@@ -565,6 +592,60 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
           ...buildAdminPollDetail({ ...poll, ...$set, pollState: "INITIALIZED" }),
           message: "This poll still has its default values and cannot be published."
         });
+        return;
+      }
+
+      // An ever-voted, already published poll never goes back through
+      // AWAITING APPROVAL: the non-text fields apply now, with no state change,
+      // and a changed title or subtitle waits in `pending_update` for the
+      // approval sweep. The poll keeps serving its pre-save content meanwhile.
+      if (decision.mode === "UPDATE" && effectiveState !== "INITIALIZED") {
+        const pending: { title?: string; subtitle?: string; choices?: Choice[] } = {};
+        if ($set.title !== undefined) {
+          if ($set.title !== poll.title) pending.title = $set.title;
+          delete $set.title;
+        }
+        if ($set.subtitle !== undefined) {
+          if ($set.subtitle !== poll.subtitle) pending.subtitle = $set.subtitle;
+          delete $set.subtitle;
+        }
+        if (mergedChoices) {
+          const byPosition = (list: Choice[]) => [...list].sort((a, b) => a.position - b.position);
+          if (JSON.stringify(byPosition(mergedChoices)) !== JSON.stringify(byPosition(poll.choices))) {
+            pending.choices = mergedChoices;
+          }
+        }
+        // The validator re-asserts a public poll's null limit on every pass; writing
+        // it back unchanged would bump content_version for a save that changed
+        // nothing a voter sees.
+        if ($set.voterCountLimit !== undefined && $set.voterCountLimit === poll.voterCountLimit) {
+          delete $set.voterCountLimit;
+        }
+        const hasPending = Object.keys(pending).length > 0;
+        const sessionRelease = decision.holdsLock
+          ? { pollState: poll.pollStateBeforeEditUpdate ?? ("INITIALIZED" as const), ...CLEAR_SESSION }
+          : {};
+        const saved = await updatePoll(
+          store,
+          poll._id,
+          {
+            ...$set,
+            ...(hasPending ? { pendingUpdate: pending } : {}),
+            pendingRejectionReason: null,
+            ...sessionRelease
+          },
+          decision.holdsLock ? { pollEditUpdateClientGUID: clientGuid } : {}
+        );
+        if (!saved) {
+          res.status(409).json({ error: "This poll is currently being edited. Please try again shortly." });
+          return;
+        }
+        console.log(
+          hasPending
+            ? `[admin] Saved poll ${poll._id}; title/subtitle changes sent for review`
+            : `[admin] Saved poll ${poll._id} with no change needing review`
+        );
+        res.json({ ...buildAdminPollDetail(saved), pending: hasPending });
         return;
       }
 
@@ -673,16 +754,18 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
       const votedPids = await pollsEverVoted(db, rows.map((p) => p.id));
       const emails = await creatorEmails(db, rows);
       const accepted = await acceptedCounts(db, rows.map((p) => p.id));
-      const polls = rows.map((p) => adminListRow(p, votedPids.has(p.id), emails.get(p.created_by_id) ?? "", accepted, caller?.id));
+      const totals = await voteTotals(db, rows.filter((p) => p.choice_mode === "Multiple-Choice Poll").map((p) => p.id));
+      const polls = rows.map((p) => adminListRow(p, votedPids.has(p.id), emails.get(p.created_by_id) ?? "", accepted, totals, caller?.id));
       // Re-attempt Screening stays with administrators; a creator republishes instead.
       res.json({ polls: ownerFilter ? polls.map((p) => ({ ...p, canRescreen: false })) : polls, truncated });
     })
   );
 
-  function adminListRow(p: PollRow, hasEverBeenVotedOn: boolean, createdByEmail: string, accepted: Map<string, number>, callerId?: string) {
+  function adminListRow(p: PollRow, hasEverBeenVotedOn: boolean, createdByEmail: string, accepted: Map<string, number>, totals: Map<string, number>, callerId?: string) {
     const forRules = {
       pollState: p.poll_state as Poll["pollState"],
-      pollAcceptabilityScreeningAttempts: p.poll_acceptability_screening_attempts
+      pollAcceptabilityScreeningAttempts: p.poll_acceptability_screening_attempts,
+      pendingUpdate: (p.pending_update as Poll["pendingUpdate"]) ?? null
     };
     return {
       pid: p.id,
@@ -699,6 +782,8 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
       startAt: p.start_at,
       endAt: p.end_at,
       pollRejectionReason: p.poll_rejection_reason,
+      pendingUpdate: p.pending_update !== null,
+      pendingRejectionReason: p.pending_rejection_reason,
       lineGraphEnabled: p.line_graph_enabled,
       pollApprovalTimestamp: p.poll_approval_timestamp,
       pollAcceptabilityScreeningAttempts: p.poll_acceptability_screening_attempts,
@@ -711,6 +796,8 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
       voteMutability: p.vote_mutability,
       voterCountLimit: p.voter_count_limit,
       voteCount: p.vote_count,
+      // Multiple-choice only: votes cast across all choices, more than the voter count.
+      ...(p.choice_mode === "Multiple-Choice Poll" ? { voteTotal: totals.get(p.id) ?? 0 } : {}),
       invitationCount: p.invited_count,
       acceptedCount: isInvitationOnly({ pollVisibility: p.poll_visibility as Poll["pollVisibility"], pollSharingMode: p.poll_sharing_mode as Poll["pollSharingMode"] })
         ? accepted.get(p.id) ?? 0
@@ -741,7 +828,8 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
       const votedPids = await pollsEverVoted(db, rows.map((p) => p.id));
       const emails = await creatorEmails(db, rows);
       const accepted = await acceptedCounts(db, rows.map((p) => p.id));
-      res.json({ polls: rows.map((p) => adminListRow(p, votedPids.has(p.id), emails.get(p.created_by_id) ?? "", accepted, caller?.id)), truncated });
+      const totals = await voteTotals(db, rows.filter((p) => p.choice_mode === "Multiple-Choice Poll").map((p) => p.id));
+      res.json({ polls: rows.map((p) => adminListRow(p, votedPids.has(p.id), emails.get(p.created_by_id) ?? "", accepted, totals, caller?.id)), truncated });
     })
   );
 
@@ -885,6 +973,7 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
         pid: poll._id,
         title: poll.title,
         subtitle: poll.subtitle,
+        choiceMode: poll.choiceMode,
         choices: results.choices,
         // Aggregates are computed from the poll, never from the roster below, so
         // they stay correct when an over-sized roster is withheld.
