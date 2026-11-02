@@ -6,6 +6,20 @@ The full description, every earlier feature's decisions and the settings table a
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261101-150208-ADAPTIVE-Y-AXIS/plan.md` (research R1–R7, `data-model.md` — the axis top, step and mapping derived
+per draw, nothing stored — the UI contracts `contracts/ui-contracts.md` C1–C4, and the quickstart live alongside it in
+`specs/20261101-150208-ADAPTIVE-Y-AXIS/`). The requirements report is
+`requirements/20261101-150208-adaptive-y-axis/requirements-report.md`: 3 diagrams and 6 findings, all resolved.
+Decisions that are easy to get wrong:
+- **The top is chosen in the browser**, in `lineGraph.js` `renderSvg()`, from the drawn series of the scale shown
+  (`state.data.series`): the smallest of 25, 50, 75, 100 at or above the highest point; no line → 25 (R1, R2).
+- **Gridlines every 5, 10 or 15% for a 25, 50 or 75% top; every 25% for 100%**, so a 100% graph is unchanged (R3).
+- **No stored top**: every `renderSvg()` call (mount, scale switch, refresh, resize) derives it again (R4).
+- **One mapping**: `y` uses the top, and `view.y` carries it to the crosshair markers; tooltip and live region keep the
+  real percentages (R5).
+- **POLL-LINE-GRAPH contract C5 is amended** ("0% to 25, 50, 75 or 100%, … five or six gridlines") (R6).
+No server, route, configuration, data or migration change; no new dependency.
+The preceding feature is
 `specs/20261101-121236-POPULATE-ALL-POLLS/plan.md` (research R1–R11, `data-model.md` — one git-ignored local file,
 `devScripts/populate/populate-all-polls-history.json`, nothing in the database — the CLI contract `contracts/cli.md`
 C1–C5, and the quickstart live alongside it in `specs/20261101-121236-POPULATE-ALL-POLLS/`). The requirements report is

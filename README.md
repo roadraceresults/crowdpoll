@@ -65,7 +65,8 @@ delivery network.
   legend giving each line's current share and the total count of votes (of voters, on a
   multiple-choice poll, where the votes cast can outnumber them). Choose **1 Day**, **1 Week**,
   **1 Month** or **1 Year** (only the ranges the poll's history covers are offered; the longest is
-  shown first). Point at the graph, or touch it on a phone, to read every line's share at that
+  shown first). The scale ends at 25, 50, 75 or 100%, whichever fits the lines shown, so small
+  shares fill the graph. Point at the graph, or touch it on a phone, to read every line's share at that
   moment; on a phone the reading stays after you lift your finger, until you tap outside the graph.
   From the keyboard, Tab to the graph and use the Left and Right arrow keys (Home and End for the
   ends, Escape to hide the reading); a screen reader reads each point. Times are in your own time

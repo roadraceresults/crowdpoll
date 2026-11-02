@@ -33,7 +33,8 @@ wrap on narrow columns, and update on every successful refresh. The legend is th
 One polyline per drawn choice. Stroke = the manual `color` from the response when present, else the colour the
 card assigned that choice (`card.resultColors()` — palette with the poll's offset, or the fixed yes/no colours),
 identical in light and dark themes. Axes, gridlines, labels, crosshair and tooltip take Material 3 tokens and
-follow the theme. The Y axis spans 0–100% with four or five gridlines; X labels sit at natural steps (days on
+follow the theme. The Y axis spans 0% to 25, 50, 75 or 100%, chosen per draw (20261101-150208-ADAPTIVE-Y-AXIS C1–C3), with five or six
+gridlines; X labels sit at natural steps (days on
 daily scales, hours on hourly ones), formatted in the viewer's local time via `Intl.DateTimeFormat`.
 
 ## C6. Sparse data placeholder

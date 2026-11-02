@@ -39,6 +39,7 @@ beforeEach(async () => {
   await polls(ctx).deleteMany({});
   for (const key of await ctx.cache.scan("line-graph:*")) await ctx.cache.del(key);
   for (const key of await ctx.cache.scan("floor:*")) await ctx.cache.del(key);
+  for (const key of await ctx.cache.scan("pageload:*")) await ctx.cache.del(key);
 });
 
 async function seedPoll(title: string, overrides: Partial<Poll> = {}): Promise<Poll> {
@@ -69,6 +70,30 @@ async function seedHistory(pid: string): Promise<void> {
     await voteHistory(ctx).insertOne({ pid, emailAddress: row.email, userName: "", choiceIds: row.choiceIds, votedAt: new Date(Date.now() - row.agoMs) });
   }
 }
+
+/** One voter per entry, all at the same `votedAt`, so every bucket of the 1 Day scale shows the final shares. */
+async function seedVotes(pid: string, agoMs: number, choiceIds: string[]): Promise<void> {
+  const votedAt = new Date(Date.now() - agoMs);
+  for (const choiceId of choiceIds) {
+    await voteHistory(ctx).insertOne({ pid, emailAddress: `${randomUUID()}@example.com`, userName: "", choiceIds: [choiceId], votedAt });
+  }
+}
+
+/** The Y-axis labels as numbers, bottom to top. */
+function yAxisLabels(svg: Element): number[] {
+  return Array.from(svg.querySelectorAll("text"))
+    .filter((t) => t.getAttribute("text-anchor") === "end" && t.textContent!.endsWith("%"))
+    .sort((a, b) => Number(b.getAttribute("y")) - Number(a.getAttribute("y")))
+    .map((t) => Number(t.textContent!.slice(0, -1)));
+}
+
+const FOUR_CHOICES = [
+  { id: "c1", label: "Yes", position: 0 },
+  { id: "c2", label: "No", position: 1 },
+  { id: "c3", label: "Maybe", position: 2 },
+  { id: "c4", label: "Later", position: 3 }
+];
+const TWO_CHOICES = FOUR_CHOICES.slice(0, 2);
 
 const sweeps = async () => {
   await trendingSweep(ctx, ctx.config, ctx.trendingPublisher);
@@ -819,6 +844,24 @@ describe("auto refresh (C8, C9)", () => {
     expect(tooltipTime(side)).toBe(placed);
   });
 
+  it("raises the Y axis on a refresh that brings a higher point, keeping the crosshair's time", async () => {
+    const poll = await seedPoll("Rising", { choices: FOUR_CHOICES });
+    await seedVotes(poll._id, 3 * HOUR, ["c1", "c2", "c3", "c4"]);
+    await sweeps();
+    page = await open();
+    stubInterval(page);
+    const side = await maximize(page, "Rising");
+    expect(yAxisLabels(side.querySelector("svg.line-graph-svg")!)).toEqual([0, 5, 10, 15, 20, 25]);
+    hover(page, side, 0);
+    const placed = tooltipTime(side);
+
+    await seedVotes(poll._id, 0, ["c1", "c1"]);
+    for (const key of await ctx.cache.scan("line-graph:*")) await ctx.cache.del(key);
+    await page.settle(4 * INTERVAL);
+    expect(yAxisLabels(side.querySelector("svg.line-graph-svg")!)).toEqual([0, 10, 20, 30, 40, 50]);
+    expect(tooltipTime(side)).toBe(placed);
+  });
+
   it("moves the crosshair to the newest point when its time is gone after a refresh", async () => {
     const poll = await seedPoll("Shifted");
     await seedHistory(poll._id);
@@ -868,6 +911,97 @@ describe("auto refresh (C8, C9)", () => {
   });
 });
 
+
+describe("adaptive Y axis (ADAPTIVE-Y-AXIS C1–C3)", () => {
+  const svgOf = (side: HTMLElement) => side.querySelector("svg.line-graph-svg")!;
+
+  async function graphOf(title: string, choices: Poll["choices"] | undefined, choiceIds: string[]): Promise<HTMLElement> {
+    const poll = await seedPoll(title, choices ? { choices } : {});
+    await seedVotes(poll._id, 3 * HOUR, choiceIds);
+    await sweeps();
+    page = await open();
+    return maximize(page, title);
+  }
+
+  it("ends the axis at 25% with a gridline every 5% when no drawn point is above 25%", async () => {
+    const side = await graphOf("Quarter", FOUR_CHOICES, ["c1", "c2", "c3", "c4"]);
+    const svg = svgOf(side);
+    expect(yAxisLabels(svg)).toEqual([0, 5, 10, 15, 20, 25]);
+    expect(svg.querySelectorAll("line.line-graph-grid").length).toBe(6);
+    expect(svg.querySelectorAll("line.line-graph-grid.line-graph-baseline").length).toBe(1);
+
+    const topLabel = Array.from(svg.querySelectorAll("text")).find((t) => t.textContent === "25%")!;
+    const firstPoint = svg.querySelector("polyline.line-graph-line")!.getAttribute("points")!.split(" ")[0]!;
+    expect(firstPoint.split(",")[1]).toBe(topLabel.getAttribute("y"));
+
+    svg.dispatchEvent(new page!.window.MouseEvent("pointermove", { clientX: 0, bubbles: true }));
+    const shown = Array.from(side.querySelectorAll(".line-graph-tooltip .line-graph-tooltip-pct")).map((s) => s.textContent);
+    expect(shown).toEqual(["25%", "25%", "25%", "25%"]);
+  });
+
+  it("ends the axis at 50% with a gridline every 10% for a highest point of 50%", async () => {
+    const side = await graphOf("Half", TWO_CHOICES, ["c1", "c2"]);
+    expect(yAxisLabels(svgOf(side))).toEqual([0, 10, 20, 30, 40, 50]);
+  });
+
+  it("ends the axis at 75% with a gridline every 15% for a highest point of 75%", async () => {
+    const side = await graphOf("Three quarters", TWO_CHOICES, ["c1", "c1", "c1", "c2"]);
+    expect(yAxisLabels(svgOf(side))).toEqual([0, 15, 30, 45, 60, 75]);
+  });
+
+  it("keeps today's 0–100% axis for a highest point above 75%", async () => {
+    const side = await graphOf("Whole", undefined, ["c1"]);
+    const svg = svgOf(side);
+    expect(yAxisLabels(svg)).toEqual([0, 25, 50, 75, 100]);
+    expect(svg.querySelectorAll("line.line-graph-grid").length).toBe(5);
+  });
+
+  it("chooses the top again from the scale shown when the viewer switches scale", async () => {
+    const poll = await seedPoll("Rescaled", { choices: FOUR_CHOICES });
+    await seedVotes(poll._id, 20 * 24 * HOUR, ["c1"]);
+    await seedVotes(poll._id, 10 * 24 * HOUR, ["c2", "c3", "c4"]);
+    await sweeps();
+    page = await open();
+    const side = await maximize(page, "Rescaled");
+    expect(side.querySelector(".line-graph-segment[aria-pressed='true']")!.textContent).toBe("1 Month");
+    expect(yAxisLabels(svgOf(side))).toEqual([0, 25, 50, 75, 100]);
+
+    (Array.from(side.querySelectorAll(".line-graph-segment")).find((b) => b.textContent === "1 Day") as HTMLElement).click();
+    expect(yAxisLabels(svgOf(side))).toEqual([0, 5, 10, 15, 20, 25]);
+  });
+
+  describe("with choices under the vote threshold (30%)", () => {
+    let outer: TestContext;
+    beforeAll(async () => {
+      outer = ctx;
+      ctx = await startTestContext({ ENV_LINE_GRAPH_MIN_VOTE_PERCENTAGE: "30" });
+    });
+    afterAll(async () => {
+      page?.close();
+      page = null;
+      await ctx.stop();
+      ctx = outer;
+    });
+
+    it("ends the axis at 25% when no line is drawn", async () => {
+      const side = await graphOf("Undrawn", FOUR_CHOICES, ["c1", "c2", "c3", "c4"]);
+      const svg = svgOf(side);
+      expect(svg.querySelectorAll("polyline.line-graph-line").length).toBe(0);
+      expect(yAxisLabels(svg)).toEqual([0, 5, 10, 15, 20, 25]);
+    });
+
+    it("does not count an undrawn choice's higher earlier share", async () => {
+      const poll = await seedPoll("Faded");
+      await seedVotes(poll._id, 5 * HOUR, ["c1"]);
+      await seedVotes(poll._id, 3 * HOUR, ["c2", "c2", "c2"]);
+      await sweeps();
+      page = await open();
+      const svg = svgOf(await maximize(page, "Faded"));
+      expect(Array.from(svg.querySelectorAll("polyline.line-graph-line")).map((l) => l.getAttribute("data-choice-id"))).toEqual(["c2"]);
+      expect(yAxisLabels(svg)).toEqual([0, 15, 30, 45, 60, 75]);
+    });
+  });
+});
 
 describe("the line graph setting (FR-010, FR-012, FR-014)", () => {
   const INTERVAL = 40;

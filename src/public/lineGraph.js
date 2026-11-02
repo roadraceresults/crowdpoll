@@ -260,6 +260,13 @@
     placeFromKeyboard(Math.min(Math.max(targets[event.key], 0), last));
   }
 
+  const AXIS_TOPS = [25, 50, 75, 100];
+
+  function axisTopFor(series) {
+    const highest = Math.max(0, ...series.flatMap((s) => s.points));
+    return AXIS_TOPS.find((top) => highest <= top) || 100;
+  }
+
   function renderSvg() {
     const { data } = state;
     const keptTime = state.crosshairTime;
@@ -272,7 +279,9 @@
     const first = data.buckets[0];
     const span = data.buckets[data.buckets.length - 1] - first || 1;
     const x = (t) => pad.left + ((t - first) / span) * innerWidth;
-    const y = (pct) => pad.top + ((100 - pct) / 100) * innerHeight;
+    const top = axisTopFor(data.series);
+    const step = top === 100 ? 25 : top / 5;
+    const y = (pct) => pad.top + ((top - pct) / top) * innerHeight;
 
     const svg = svgEl('svg', {
       class: 'line-graph-svg',
@@ -281,7 +290,7 @@
       preserveAspectRatio: 'none'
     });
 
-    for (const pct of [0, 25, 50, 75, 100]) {
+    for (let pct = 0; pct <= top; pct += step) {
       svg.append(svgEl('line', { class: pct === 0 ? 'line-graph-grid line-graph-baseline' : 'line-graph-grid', x1: pad.left, y1: y(pct), x2: width - pad.right, y2: y(pct) }));
       const label = svgEl('text', { x: pad.left - 6, y: y(pct), 'text-anchor': 'end', 'dominant-baseline': 'middle' });
       label.textContent = pct + '%';

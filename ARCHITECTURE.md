@@ -585,7 +585,10 @@ poll shares one computation per interval. A deleted account's anonymized votes c
 because deletion gives each poll one placeholder address, in `line_graph_selection` too.
 
 `lineGraph.js` draws hand-rolled SVG: title, subtitle, a legend with each line's current share and
-the vote total, the plot, and an M3 segmented button of the available scales. A line's colour is the
+the vote total, the plot, and an M3 segmented button of the available scales. On every draw (open,
+scale switch, refresh, resize) `renderSvg()` derives the Y-axis top from the drawn series of the
+scale shown: the smallest of 25, 50, 75 and 100 at or above the highest point (25 with no line),
+with gridlines every 5, 10, 15 or 25%. A line's colour is the
 choice's manual hex from the response, else the colour the card itself assigned (`card.resultColors()`),
 so lines and bars never disagree in hue; `PollCard.lineColorOn` shades a colour under 3:1 against the
 panel's computed background to the nearest same-hue shade that reaches it, and a
