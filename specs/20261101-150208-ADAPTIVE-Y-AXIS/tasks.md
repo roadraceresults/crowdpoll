@@ -59,7 +59,7 @@ order except where marked [P].
 ## Phase 5: Polish and Documentation
 
 - [X] T010 [P] In `specs/20261027-151601-POLL-LINE-GRAPH/contracts/ui-contracts.md` C5, replace "The Y axis spans 0–100% with four or five gridlines" with the sentence of contracts/ui-contracts.md C4.
-- [ ] T011 Run `npx tsc --noEmit` and `npm test`; all pass.
+- [X] T011 Run `npx tsc --noEmit` and `npm test`; all pass.
 - [ ] T012 Run quickstart §2–§4 in the browser, including §3's resize check (the axis keeps its top on a window resize; FR-005), which jsdom cannot test. Check §2's polls once the next hour has begun (votes in the current hour give the "not enough data" note), or seed them with `populate-poll` using votes dated at least two hours ago.
 - [X] T013 [P] Documentation (Constitution, Documentation Deliverables): in `README.md`'s "Vote history graph" bullet, add that the graph's scale ends at 25, 50, 75 or 100%, whichever fits the lines shown; in `ARCHITECTURE.md`'s "The vote-history line graph" section, add one sentence that `renderSvg()` derives the axis top from the drawn series on every draw.
 
