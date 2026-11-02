@@ -268,6 +268,29 @@ counters it just moved, and the row work happens later in batches. A second vote
 Final-Vote poll is refused even while the first is still queued, because the voted-set is
 written at enqueue time.
 
+### Adding a choice
+
+`POST /api/polls/:pid/choices` is a voter's write to a Private poll whose `voters_add_choices` is set. It is shed
+as `vote` and takes its own floor bucket (`enforceFloor("vote", "choice")`, `floor:choice:<who>`), so a vote right
+after an addition is not too soon. Unlike a vote it writes the poll row at once:
+
+1. the grants (`Vote on Polls`, then `View Polls` → `404`) and `mayViewResults`;
+2. the raw state on the row as read (`assertAddableState`: `EDITING`, `pending_update`, anything not `OPEN`) — the
+   projection's OPEN-while-EDITING is not enough;
+3. `assertMayAddChoice` (setting on, then `assertEligible`; the creator skips both the eligibility checks and the
+   Final-Vote refusal) and `validateAddedChoice` (empty, 40 characters, control and invisible characters,
+   duplicate ignoring case and spacing, `ENV_MAX_CHOICES`);
+4. screening in the request (`screenWithTimeout`), never through `pending_update`;
+5. `appendChoice`: `select … for update`, the state, duplicate and ceiling checks again, the choice appended with
+   a minted id at the next position (and `addedBy` = the user id when the poll is not anonymous), then
+   `bumpContentVersion`.
+
+The answer is `projectPoll`'s choice list, which never carries `addedBy`: the adder's id reaches the admin rows
+and details only, named there from `user.name` (`addedByName`). Other voters see the choice on their next
+content refresh, as after a creator's edit. A creator's later save sends `baseChoiceIds`, and
+`withChoicesAddedSince` keeps every stored choice not in it, so an addition made while the wizard was open
+survives. Account deletion strips `addedBy`, and turning a poll anonymous drops it.
+
 ## Refresh model and the three load bounds
 
 Five mechanisms keep a page current, and they meet only through the cache and PostgreSQL:

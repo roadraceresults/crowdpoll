@@ -82,6 +82,17 @@ function removeInOneTransaction(db: Db, cache: Cache, user: { id: string; email:
       await trx.updateTable("line_graph_selection").set({ email: placeholder }).where("poll_id", "=", pid).where("email", "=", email).execute();
     }
 
+    // The choices they added on others' polls stay, without their account; no content bump (R9).
+    const addedTo = await trx
+      .selectFrom("polls")
+      .select(["id", "choices"])
+      .where(sql<boolean>`choices @> ${JSON.stringify([{ addedBy: user.id }])}::jsonb`)
+      .execute();
+    for (const poll of addedTo) {
+      const choices = poll.choices.map(({ addedBy, ...choice }) => (addedBy === user.id ? choice : { ...choice, addedBy }));
+      await trx.updateTable("polls").set({ choices: JSON.stringify(choices) }).where("id", "=", poll.id).execute();
+    }
+
     // By email key: an invitation typed in another spelling of the address is theirs too (R10, R15).
     const removedInvitations = await trx
       .deleteFrom("poll_invitations")

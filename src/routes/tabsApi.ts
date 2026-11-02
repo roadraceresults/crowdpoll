@@ -179,7 +179,7 @@ export function createTabsApiRouter(context: AppContext): Router {
     );
     const [counts, mine, blocks, watchable] = await Promise.all([
       readOrRebuildCounts({ db, cache }, readableIds),
-      overlay(db, email, readableIds),
+      overlay(db, email, readableIds, userId),
       voteBlocks(callerOf(res), email, userId, readable),
       mayWatchMany({ db, config }, callerOf(res), readable)
     ]);
@@ -377,7 +377,7 @@ export function createTabsApiRouter(context: AppContext): Router {
       const raw = typeof req.query.pids === "string" ? req.query.pids : "";
       const pids = [...new Set(raw.split(",").map((p) => p.trim()).filter(Boolean))].slice(0, config.maxPollsSearchResults);
       const [mine, rows] = await Promise.all([
-        overlay(db, emailOf(res), pids),
+        overlay(db, emailOf(res), pids, userIdOf(res)),
         pids.length === 0 ? [] : db.selectFrom("polls").select([...ACCESS_COLUMNS]).where("id", "in", pids).execute()
       ]);
       const watchable = await mayWatchMany({ db, config }, callerOf(res), rows);
@@ -429,7 +429,7 @@ export function createTabsApiRouter(context: AppContext): Router {
       const email = emailOf(res);
       const [counts, mine, blocks] = await Promise.all([
         readOrRebuildCounts({ db, cache }, [pid]),
-        overlay(db, email, [pid]),
+        overlay(db, email, [pid], userIdOf(res)),
         voteBlocks(callerOf(res), email, userIdOf(res), [row])
       ]);
       const entry: OverlayEntry = mine[pid] ?? { voted: false, bookmarked: false };

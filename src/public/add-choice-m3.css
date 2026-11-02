@@ -1,0 +1,161 @@
+/* Material 3 outlined button and basic dialog with an outlined text field:
+   https://m3.material.io/components/buttons/specs
+   https://m3.material.io/components/text-fields/specs */
+
+/* ---------- 1. The voting face's action row ---------- */
+.card-back .actions:has(> .add-choice-btn:not([hidden])){
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  align-items:center;
+}
+.card-back .actions > .add-choice-btn{ justify-self:center; }
+
+/* ---------- 2. Add Choice, an outlined button ---------- */
+.card-face .add-choice-btn{
+  position:relative;
+  overflow:hidden;
+  height:32px;
+  padding:0 16px;
+  border:1px solid var(--md-sys-color-outline);
+  border-radius:var(--md-sys-shape-corner-full);
+  background:transparent;
+  color:var(--md-sys-color-primary);
+  white-space:nowrap;
+  font-family:var(--md-sys-typescale-font);
+  font-weight:var(--md-sys-typescale-label-large-weight);
+  font-size:var(--md-sys-typescale-label-large-size);
+  line-height:var(--md-sys-typescale-label-large-line-height);
+  letter-spacing:var(--md-sys-typescale-label-large-tracking);
+  cursor:pointer;
+}
+.card-face .add-choice-btn::before,
+.add-choice-dialog .add-choice-action::before{
+  content:'';
+  position:absolute;
+  inset:0;
+  border-radius:inherit;
+  background:currentColor;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity 0.15s ease;
+}
+.card-face .add-choice-btn:hover::before,
+.add-choice-dialog .add-choice-action:hover::before{ opacity:var(--md-sys-state-hover-state-layer-opacity); }
+.card-face .add-choice-btn:focus-visible::before,
+.add-choice-dialog .add-choice-action:focus-visible::before{ opacity:var(--md-sys-state-focus-state-layer-opacity); }
+.card-face .add-choice-btn:active::before,
+.add-choice-dialog .add-choice-action:active::before{ opacity:var(--md-sys-state-pressed-state-layer-opacity); }
+.card-face .add-choice-btn:focus-visible,
+.add-choice-dialog .add-choice-action:focus-visible{
+  outline:3px solid var(--md-sys-color-secondary);
+  outline-offset:2px;
+}
+.card-face .add-choice-btn:disabled{
+  border-color:color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent);
+  color:color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+  cursor:default;
+}
+
+/* ---------- 3. The dialog ---------- */
+.add-choice-dialog .modal-headline{
+  margin:0 0 16px;
+  font-family:var(--md-sys-typescale-font);
+  font-weight:var(--md-sys-typescale-headline-small-weight);
+  font-size:var(--md-sys-typescale-headline-small-size);
+  line-height:var(--md-sys-typescale-headline-small-line-height);
+  letter-spacing:var(--md-sys-typescale-headline-small-tracking);
+  color:var(--md-sys-color-on-surface);
+}
+
+/* ---------- 4. The outlined field, counter and supporting text ---------- */
+.add-choice-field{
+  position:relative;
+  display:block;
+}
+.add-choice-field .add-choice-input{
+  box-sizing:border-box;
+  width:100%;
+  height:56px;
+  padding:0 16px;
+  border:1px solid var(--md-sys-color-outline);
+  border-radius:var(--md-sys-shape-corner-extra-small);
+  background:transparent;
+  color:var(--md-sys-color-on-surface);
+  font-family:var(--md-sys-typescale-font);
+  font-weight:var(--md-sys-typescale-body-large-weight);
+  font-size:var(--md-sys-typescale-body-large-size);
+  line-height:var(--md-sys-typescale-body-large-line-height);
+  letter-spacing:var(--md-sys-typescale-body-large-tracking);
+}
+.add-choice-field .add-choice-input:focus{
+  outline:none;
+  border:2px solid var(--md-sys-color-primary);
+  padding:0 15px;
+}
+.add-choice-field .add-choice-label{
+  position:absolute;
+  top:-8px;
+  left:12px;
+  padding:0 4px;
+  background:var(--md-sys-color-surface-container-high);
+  color:var(--md-sys-color-on-surface-variant);
+  font-family:var(--md-sys-typescale-font);
+  font-weight:var(--md-sys-typescale-body-small-weight);
+  font-size:var(--md-sys-typescale-body-small-size);
+  line-height:var(--md-sys-typescale-body-small-line-height);
+  letter-spacing:var(--md-sys-typescale-body-small-tracking);
+}
+.add-choice-field:focus-within .add-choice-label{ color:var(--md-sys-color-primary); }
+.add-choice-below{
+  display:flex;
+  justify-content:space-between;
+  gap:16px;
+  min-height:16px;
+  margin:4px 16px 0;
+  color:var(--md-sys-color-on-surface-variant);
+  font-family:var(--md-sys-typescale-font);
+  font-weight:var(--md-sys-typescale-body-small-weight);
+  font-size:var(--md-sys-typescale-body-small-size);
+  line-height:var(--md-sys-typescale-body-small-line-height);
+  letter-spacing:var(--md-sys-typescale-body-small-tracking);
+}
+.add-choice-below .m3-field-support{ margin:0; }
+.add-choice-below .m3-field-counter{ flex:0 0 auto; }
+.add-choice-dialog.is-error .add-choice-input,
+.add-choice-dialog.is-error .add-choice-input:focus{ border-color:var(--md-sys-color-error); }
+.add-choice-dialog.is-error .add-choice-label,
+.add-choice-dialog.is-error .m3-field-support{ color:var(--md-sys-color-error); }
+
+/* ---------- 5. Save and Cancel ---------- */
+.add-choice-dialog .modal-actions{
+  justify-content:flex-end;
+  gap:8px;
+  margin-top:24px;
+}
+.add-choice-dialog .add-choice-action{
+  position:relative;
+  overflow:hidden;
+  height:40px;
+  min-width:48px;
+  padding:0 12px;
+  border:0;
+  border-radius:var(--md-sys-shape-corner-full);
+  background:transparent;
+  color:var(--md-sys-color-primary);
+  font-family:var(--md-sys-typescale-font);
+  font-weight:var(--md-sys-typescale-label-large-weight);
+  font-size:var(--md-sys-typescale-label-large-size);
+  line-height:var(--md-sys-typescale-label-large-line-height);
+  letter-spacing:var(--md-sys-typescale-label-large-tracking);
+  cursor:pointer;
+}
+.add-choice-dialog .add-choice-save{
+  padding:0 24px;
+  background:var(--md-sys-color-primary);
+  color:var(--md-sys-color-on-primary);
+}
+.add-choice-dialog .add-choice-save:disabled{
+  background:color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent);
+  color:color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+  cursor:default;
+}

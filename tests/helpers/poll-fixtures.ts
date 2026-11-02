@@ -37,6 +37,7 @@ export function makePoll(overrides: Partial<Poll> = {}): Poll {
     lineGraphEnabled: false,
     pendingUpdate: null,
     pendingRejectionReason: null,
+    votersAddChoices: false,
     ...overrides
   };
 }

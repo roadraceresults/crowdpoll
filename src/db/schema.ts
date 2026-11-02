@@ -77,6 +77,7 @@ export interface PollChoiceJson {
   label: string;
   position: number;
   color?: string;
+  addedBy?: string;
 }
 
 export interface PollTable {
@@ -120,6 +121,7 @@ export interface PollTable {
   line_graph_enabled: Generated<boolean>;
   pending_update: ColumnType<PendingUpdateJson | null, string | null | undefined, string | null>;
   pending_rejection_reason: ColumnType<string | null, string | null | undefined, string | null>;
+  voters_add_choices: Generated<boolean>;
 }
 
 export interface PendingUpdateJson {

@@ -31,6 +31,8 @@ import {
 export const TITLE_MAX = 50;
 export const SUBTITLE_MAX = 30;
 export const CHOICE_LABEL_MAX = 100;
+/** The longest choice a new poll's wizard or a voter's addition may have. */
+export const WIZARD_CHOICE_MAX = 40;
 export const EMAIL_MAX = 200;
 /** The whole stored keywords value: every keyword plus one comma between each pair. */
 export const KEYWORDS_MAX = 200;
@@ -126,7 +128,8 @@ export function createDefaultPoll(now: Date = new Date()): Poll {
     timeZone: null,
     lineGraphEnabled: false,
     pendingUpdate: null,
-    pendingRejectionReason: null
+    pendingRejectionReason: null,
+    votersAddChoices: false
   };
 }
 
@@ -603,6 +606,23 @@ export function validatePollFields(
     $set.lineGraphEnabled = body.lineGraphEnabled;
   }
 
+  const becomesPublic = isPublicVisibility($set.pollVisibility ?? poll.pollVisibility);
+  if (body.votersAddChoices !== undefined) {
+    if (typeof body.votersAddChoices !== "boolean") {
+      throw new AdminError(400, "votersAddChoices must be true or false.");
+    }
+    if (body.votersAddChoices && becomesPublic) {
+      throw new AdminError(400, "Only a private poll can let voters add choices.");
+    }
+    $set.votersAddChoices = body.votersAddChoices;
+  } else if (becomesPublic && poll.votersAddChoices) {
+    $set.votersAddChoices = false;
+  }
+
+  if ($set.voteAnonymity === "Yes" && poll.choices.some((c) => c.addedBy !== undefined)) {
+    $set.choices = poll.choices.map(withoutAddedBy);
+  }
+
   // 012 US10 (FR-059/FR-060): the participant lists arrive as the desired final
   // state, and currentVotes is derived from them rather than mutated in place by
   // three separate routes. Banning is what removes a vote, and it only takes effect
@@ -907,6 +927,96 @@ export class AdminError extends Error {
   }
 }
 
+export class ChoiceError extends Error {
+  status: number;
+  code: string;
+  constructor(status: number, message: string, code: string) {
+    super(message);
+    this.status = status;
+    this.code = code;
+  }
+}
+
+const FORBIDDEN_CHOICE_CHARACTERS = /[\p{Cc}\u200B-\u200F\u202A-\u202E\u2066-\u2069]/u;
+
+/** The form two labels are compared in: case and runs of white space do not tell them apart. */
+export function normalizedChoiceKey(label: string): string {
+  return label.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+export function duplicateChoiceError(): ChoiceError {
+  return new ChoiceError(409, "This poll already has that choice.", "DUPLICATE_CHOICE");
+}
+
+export function choicesFullError(maxChoices: number): ChoiceError {
+  return new ChoiceError(409, `This poll already has the most choices allowed (${maxChoices}).`, "CHOICES_FULL");
+}
+
+/** Choices are added only to a poll open for voting, outside an edit session and with no update under review. */
+export function assertAddableState(poll: { pollState: string; hasPendingUpdate: boolean }): void {
+  if (poll.pollState === "EDITING") {
+    throw new ChoiceError(409, "The poll's choices are being edited. Try again shortly.", "POLL_EDITING");
+  }
+  if (poll.hasPendingUpdate) {
+    throw new ChoiceError(409, "Changes are being reviewed. Try again shortly.", "PENDING_REVIEW");
+  }
+  if (poll.pollState === "WAITING TO OPEN") throw new ChoiceError(409, "This poll has not started yet.", "NOT_OPEN");
+  if (poll.pollState !== "OPEN") throw new ChoiceError(409, "This poll is not open for voting.", "NOT_OPEN");
+}
+
+/** A voter's new choice, checked against the poll as read; the trimmed label, or a `ChoiceError`. */
+export function validateAddedChoice(
+  poll: Pick<Poll, "choices">,
+  rawLabel: unknown,
+  config: Pick<AppConfig, "maxChoices">
+): string {
+  const label = typeof rawLabel === "string" ? rawLabel.trim() : "";
+  if (label === "") throw new ChoiceError(400, "Enter a choice.", "EMPTY_CHOICE");
+  if (label.length > WIZARD_CHOICE_MAX) {
+    throw new ChoiceError(400, `A choice can be at most ${WIZARD_CHOICE_MAX} characters.`, "CHOICE_TOO_LONG");
+  }
+  if (FORBIDDEN_CHOICE_CHARACTERS.test(label)) {
+    throw new ChoiceError(400, "A choice can't contain line breaks, tabs or invisible characters.", "CHOICE_CHARACTERS");
+  }
+  const key = normalizedChoiceKey(label);
+  if (poll.choices.some((c) => normalizedChoiceKey(c.label) === key)) throw duplicateChoiceError();
+  if (poll.choices.length >= config.maxChoices) throw choicesFullError(config.maxChoices);
+  return label;
+}
+
+/**
+ * The creator's submitted lines plus every stored choice added since their card loaded
+ * (an id missing from `baseChoiceIds`), so a save never deletes a choice its author never saw.
+ */
+export function withChoicesAddedSince(
+  poll: Pick<Poll, "choices">,
+  labels: unknown,
+  colors: unknown,
+  baseChoiceIds: unknown
+): { labels: unknown; colors: unknown } {
+  if (!Array.isArray(labels) || !Array.isArray(baseChoiceIds) || !baseChoiceIds.every((id) => typeof id === "string")) {
+    return { labels, colors };
+  }
+  const base = new Set(baseChoiceIds as string[]);
+  const submitted = new Set(labels.map((l) => (typeof l === "string" ? l.trim() : "")));
+  const added = [...poll.choices]
+    .sort((a, b) => a.position - b.position)
+    .filter((c) => !base.has(c.id) && !submitted.has(c.label.trim()));
+  if (added.length === 0) return { labels, colors };
+  return {
+    labels: [...labels, ...added.map((c) => c.label)],
+    colors: Array.isArray(colors) ? [...colors, ...added.map((c) => c.color ?? null)] : colors
+  };
+}
+
+function withoutAddedBy({ addedBy: _addedBy, ...choice }: Choice): Choice {
+  return choice;
+}
+
+function addedByOf(stored: Choice | undefined): Pick<Choice, "addedBy"> {
+  return stored?.addedBy ? { addedBy: stored.addedBy } : {};
+}
+
 /** FR-002/003: length-limit validation shared by title/subtitle. */
 /** "" or comma-separated keywords of lower-case letters, digits and single spaces, without repeats. */
 export function validateKeywords(value: unknown): string {
@@ -969,11 +1079,13 @@ export function replaceChoices(
   // FR-010 (011): the submitted list replaces the stored list outright. No
   // tombstones are retained and no vote reconciliation is needed — this only
   // runs for a poll that has never been voted on.
+  const storedByLabel = new Map(poll.choices.map((c) => [c.label.trim(), c]));
   const newChoices: Choice[] = paired.map(({ label, color }, position) => ({
     id: randomUUID(),
     label,
     position,
-    ...(color ? { color } : {})
+    ...(color ? { color } : {}),
+    ...addedByOf(storedByLabel.get(label))
   }));
   poll.choices = newChoices;
   return newChoices;
@@ -1018,7 +1130,7 @@ export function mergeChoices(
     const stored = byLabel.get(label);
     if (stored) {
       survivorIds.add(stored.id);
-      return { id: stored.id, label: stored.label, position: stored.position, ...(color ? { color } : {}) };
+      return { id: stored.id, label: stored.label, position: stored.position, ...(color ? { color } : {}), ...addedByOf(stored) };
     }
     return { id: randomUUID(), label, position: nextPosition++, ...(color ? { color } : {}) };
   });
@@ -1051,11 +1163,12 @@ export function applyChoiceColors(poll: Poll, colors: unknown): Choice[] {
   if (!Array.isArray(colors)) throw new AdminError(400, "Colors must have one entry per choice.");
   const ordered = [...poll.choices].sort((a, b) => a.position - b.position);
   const checked = checkedColors(colors, ordered.length, storedColorsOf(poll));
-  return ordered.map(({ id, label, position }, i) => ({
+  return ordered.map(({ id, label, position, addedBy }, i) => ({
     id,
     label,
     position,
-    ...(checked[i] ? { color: checked[i] } : {})
+    ...(checked[i] ? { color: checked[i] } : {}),
+    ...(addedBy ? { addedBy } : {})
   }));
 }
 
@@ -1110,7 +1223,8 @@ export function duplicatePoll(source: Poll, now: Date = new Date()): Poll {
     timeZone: null,
     lineGraphEnabled: false,
     pendingUpdate: null,
-    pendingRejectionReason: null
+    pendingRejectionReason: null,
+    votersAddChoices: false
   };
 }
 

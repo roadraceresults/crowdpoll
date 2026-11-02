@@ -103,7 +103,7 @@ async function uninvitedCreatorVotes(deps: VotePathDeps, pid: string): Promise<n
 
 async function assertEligible(
   deps: VotePathDeps,
-  projection: PollProjection,
+  projection: Pick<PollProjection, "pid" | "pollVisibility" | "pollSharingMode">,
   email: string,
   userId: string,
   isNewVoter: boolean
@@ -136,6 +136,30 @@ async function assertEligible(
   const voters = (counts?.voteCount ?? 0) - (invitationOnly ? await uninvitedCreatorVotes(deps, projection.pid) : 0);
   if (voters >= limit) {
     throw new VoteError(403, "This poll has reached its maximum number of votes.");
+  }
+}
+
+export interface ChoiceAdder {
+  sessionId: string;
+  userId: string;
+  email: string;
+}
+
+export type AddChoicePoll = Pick<PollProjection, "pid" | "pollVisibility" | "pollSharingMode" | "voteMutability"> & {
+  votersAddChoices: boolean;
+  createdById: string;
+};
+
+/** Whether this caller may add a choice to this poll: whom a vote is open to, before their final vote. */
+export async function assertMayAddChoice(deps: VotePathDeps, poll: AddChoicePoll, caller: ChoiceAdder): Promise<void> {
+  if (poll.pollVisibility !== "Private Poll" || !poll.votersAddChoices) {
+    throw new VoteError(403, "This poll doesn't take new choices.", "ADD_CHOICES_OFF");
+  }
+  if (caller.userId !== "" && caller.userId === poll.createdById) return;
+  const votedBefore = await hasVotedBefore(deps, caller.sessionId, caller.email, poll.pid);
+  await assertEligible(deps, poll, caller.email, caller.userId, !votedBefore);
+  if (poll.voteMutability === "Final-Vote Poll" && votedBefore) {
+    throw new VoteError(409, "You have already cast your final vote on this poll.", "FINAL_VOTE_CAST");
   }
 }
 

@@ -112,6 +112,8 @@ export interface Choice {
   label: string;
   position: number;
   color?: string;
+  /** User id of the voter who added it; recorded only on polls without anonymous voting, never projected. */
+  addedBy?: string;
 }
 
 export interface VoteEntry {
@@ -174,6 +176,8 @@ export interface Poll {
   pendingUpdate: PendingUpdate | null;
   /** The screener's verdict when a pending update was rejected; cleared by the next accepted save. */
   pendingRejectionReason: string | null;
+  /** Whether voters of a Private poll may add choices. */
+  votersAddChoices: boolean;
 }
 
 export interface PendingUpdate {
@@ -230,7 +234,8 @@ function rowToPoll(row: PollRow, invited: string[], banned: string[], votes: Vot
     timeZone: row.time_zone,
     lineGraphEnabled: row.line_graph_enabled,
     pendingUpdate: (row.pending_update as PendingUpdate | null) ?? null,
-    pendingRejectionReason: row.pending_rejection_reason
+    pendingRejectionReason: row.pending_rejection_reason,
+    votersAddChoices: row.voters_add_choices
   };
 }
 
@@ -290,7 +295,8 @@ const FIELD_TO_COLUMN: Partial<Record<keyof Poll, keyof PollRowUpdate>> = {
   pollRejectionReason: "poll_rejection_reason",
   timeZone: "time_zone",
   lineGraphEnabled: "line_graph_enabled",
-  pendingRejectionReason: "pending_rejection_reason"
+  pendingRejectionReason: "pending_rejection_reason",
+  votersAddChoices: "voters_add_choices"
 };
 
 /** Fields whose change is invisible to a voter and so leaves `content_version` alone. */
@@ -414,6 +420,19 @@ export async function creatorEmails(db: Executor, rows: { created_by_id: string 
   return new Map(users.map((user) => [user.id, user.email]));
 }
 
+/** The names of the accounts that added these choices, by user id, for the admin views only. */
+export async function adderNames(db: Executor, choiceLists: Choice[][]): Promise<Map<string, string>> {
+  const ids = [...new Set(choiceLists.flat().flatMap((c) => (c.addedBy ? [c.addedBy] : [])))];
+  if (ids.length === 0) return new Map();
+  const users = await db.selectFrom("user").select(["id", "name"]).where("id", "in", ids).execute();
+  return new Map(users.map((user) => [user.id, user.name]));
+}
+
+/** Each choice a voter added, with that voter's name, or null once the account is gone. */
+export function withAdderNames(choices: Choice[], names: Map<string, string>) {
+  return choices.map((c) => (c.addedBy ? { ...c, addedByName: names.get(c.addedBy) ?? null } : c));
+}
+
 /** One index probe per poll that stops at its first history row, however many votes it holds. */
 export function pollsEverVotedQuery(db: Executor, pids: string[]) {
   return db.selectFrom("polls").select("id").where("id", "in", pids).where("ever_voted", "=", true);
@@ -517,7 +536,8 @@ function newRow(poll: Poll, creator?: PollCreator): NewPollRow {
     time_zone: poll.timeZone,
     line_graph_enabled: poll.lineGraphEnabled,
     pending_update: poll.pendingUpdate === null ? null : JSON.stringify(poll.pendingUpdate),
-    pending_rejection_reason: poll.pendingRejectionReason
+    pending_rejection_reason: poll.pendingRejectionReason,
+    voters_add_choices: poll.votersAddChoices
   };
 }
 
@@ -809,6 +829,29 @@ export async function applyPendingUpdate(
     await trx.updateTable("polls").set(columns).where("id", "=", pid).execute();
     await bumpContentVersion(trx, cache, pid);
     return rewritten;
+  });
+}
+
+/**
+ * A voter's new choice, appended under the poll row's lock: `build` sees the row as
+ * locked, so it decides against the state and choices no other writer can change
+ * meanwhile, and returns the choice to append or throws.
+ */
+export async function appendChoice(
+  { db, cache }: StoreDeps,
+  pid: string,
+  build: (row: PollRow) => Choice
+): Promise<PollRow | null> {
+  return db.transaction().execute(async (trx) => {
+    const row = await trx.selectFrom("polls").selectAll().where("id", "=", pid).forUpdate().executeTakeFirst();
+    if (!row) return null;
+    const choices: Choice[] = [...row.choices, build(row)];
+    await trx
+      .updateTable("polls")
+      .set({ choices: JSON.stringify(choices), choice_labels: choiceLabelsText(choices) })
+      .where("id", "=", pid)
+      .execute();
+    return bumpContentVersion(trx, cache, pid);
   });
 }
 

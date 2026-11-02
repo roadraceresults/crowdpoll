@@ -121,9 +121,11 @@ export interface OverlayEntry {
   mayWatch?: boolean;
   /** Personal tabs only (FIX020): the relations that put the poll in the tab. */
   relations?: UserPollRelation[];
+  /** The caller created the poll. */
+  ownPoll?: true;
 }
 
-export async function overlay(db: Executor, email: string, pids: string[]): Promise<Record<string, OverlayEntry>> {
+export async function overlay(db: Executor, email: string, pids: string[], userId = ""): Promise<Record<string, OverlayEntry>> {
   const out: Record<string, OverlayEntry> = {};
   if (pids.length === 0) return out;
   for (const pid of pids) out[pid] = { voted: false, bookmarked: false };
@@ -143,5 +145,9 @@ export async function overlay(db: Executor, email: string, pids: string[]): Prom
     .where("poll_id", "in", pids)
     .execute();
   for (const b of bookmarks) out[b.poll_id] = { ...out[b.poll_id]!, bookmarked: true };
+  if (userId !== "") {
+    const own = await db.selectFrom("polls").select("id").where("id", "in", pids).where("created_by_id", "=", userId).execute();
+    for (const p of own) out[p.id] = { ...out[p.id]!, ownPoll: true };
+  }
   return out;
 }
