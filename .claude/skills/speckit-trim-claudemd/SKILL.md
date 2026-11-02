@@ -1,5 +1,5 @@
 ---
-name: "speckit-concise-claudemd"
+name: "speckit-trim-claudemd"
 description: "Keep CLAUDE.md concise: move what is new in it to CLAUDE_COMPLETE.md, then condense CLAUDE.md back to the current plan, the overview, layout, commands and cross-feature rules. Run by hand after a feature is implemented, before it is committed or merged."
 allowed-tools: Read, Write, Edit, Bash
 user-invocable: true
@@ -28,7 +28,7 @@ $ARGUMENTS
 ```
 
 The command takes no arguments. If the text above is not empty after trimming, print
-`ERROR: Unrecognized argument(s): <text>. Usage: /speckit-concise-claudemd` and stop, writing nothing.
+`ERROR: Unrecognized argument(s): <text>. Usage: /speckit-trim-claudemd` and stop, writing nothing.
 
 ## Rules for every run
 
@@ -122,7 +122,7 @@ Then take step 2 when `CLAUDE_COMPLETE.md` does not exist, otherwise step 3.
 Measure both files again with `wc -l -m`. Tokens ≈ characters ÷ 4, rounded to the nearest 100. Print:
 
 ```text
-/speckit-concise-claudemd — <first run | run>
+/speckit-trim-claudemd — <first run | run>
 
                        Before                 After
 CLAUDE.md            <l> lines ≈<t> tokens   <l> lines ≈<t> tokens
@@ -212,7 +212,7 @@ When merging a branch conflicts in either file:
 - **`CLAUDE_COMPLETE.md`**: keep both chain entries, newest first, and both sides of any other conflicting passage.
 - **`CLAUDE.md`**: take the side whose SPECKIT block names the branch's own plan, so that plan's summary reaches the
   next run; taking `main`'s side would lose a summary `CLAUDE_COMPLETE.md` does not hold yet.
-- Commit the merge, then run `/speckit-concise-claudemd`, which restores the concise form.
+- Commit the merge, then run `/speckit-trim-claudemd`, which restores the concise form.
 
 A branch planned before this skill existed brings its old long block into `CLAUDE.md`; the next run moves it as it
 would a new summary.

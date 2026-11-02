@@ -36,36 +36,6 @@ Decisions that are easy to get wrong:
   real percentages (R5).
 - **POLL-LINE-GRAPH contract C5 is amended** ("0% to 25, 50, 75 or 100%, … five or six gridlines") (R6).
 No server, route, configuration, data or migration change; no new dependency.
-The preceding feature is
-`specs/20261101-121236-POPULATE-ALL-POLLS/plan.md` (research R1–R11, `data-model.md` — one git-ignored local file,
-`devScripts/populate/populate-all-polls-history.json`, nothing in the database — the CLI contract `contracts/cli.md`
-C1–C5, and the quickstart live alongside it in `specs/20261101-121236-POPULATE-ALL-POLLS/`). The requirements report is
-`requirements/20261101-121236-populate-all-polls/requirements-report.md`: 4 diagrams and 13 findings, all resolved.
-Decisions that are easy to get wrong:
-- **`npm run populate-poll <file>`** runs the unchanged population; only `resolveDataPath` is new (relative to
-  `INIT_CWD`, and `<path>.json` tried when the path has no extension and does not exist) plus the npm usage line (R2, R3).
-- **Each file is a child process**, `process.execPath --import tsx populate-poll.ts <absolute file>`, no shell; its
-  output is piped through live and unchanged, and its `[populate] Done: poll <id> <outcome>` and `Votes written:` lines
-  are parsed; exit 0 without them is a failure, `populated, but its summary could not be read` (R4, R5).
-- **Skip = same database identity, file name and SHA-256**; the identity is `ENV_DATABASE_URL` with its password
-  removed, read from `process.env` (no `loadConfig` in the parent); a success replaces the (database, file) entry and
-  the file is written by temp-file-and-rename after each success (R6–R8).
-- **`.json` files directly in the folder, name order**; default `<project root>/polldata`; failures are logged, not
-  recorded, listed again after `[populate-all] Done: …`, and make the exit code 1 (R9, R10).
-- `populate-poll` never reads or writes the history; `.gitignore` needs `!devScripts/populate/populate-all-polls.ts`.
-No server, route, configuration, data or migration change; no new dependency.
-The preceding feature is
-`specs/20261101-042151-CONCISE-CLAUDE-MD/plan.md` (research R1–R12, `data-model.md`, the contracts
-`contracts/command.md` K1–K6, `contracts/file-layout.md` F1–F3 and `contracts/messages.md` M1–M2, and the quickstart,
-all in that folder). Decisions that are easy to get wrong:
-- **One skill, `/speckit-concise-claudemd`**, instructions only; `disable-model-invocation: true`, no argument (R1, R2).
-- **The first run copies this file byte for byte to the complete file**, then writes the concise file and
-  `.claude/rules/environment.md` (R3).
-- **"New since the last run" is the git diff of this file against the last commit touching the complete file**; hand
-  removals are carried over unless the complete file has uncommitted changes; nothing is added twice (R4).
-- **A feature is known by its plan path**; a pointer-only block is rebuilt from that `plan.md` (R5).
-- **The complete file is named once in backticks, never imported**; no size limit is written anywhere (R6).
-- **No shipped Spec Kit file changes** (R9).
 <!-- SPECKIT END -->
 
 ## Project Overview
@@ -107,8 +77,6 @@ npx tsc --noEmit    # type-check only (there is no linter)
 npm test        # vitest run — all suites under ./tests on an embedded PostgreSQL; no local services needed
 npx vitest run tests/auth.test.ts      # one file
 npx vitest run -t "name of the test"   # tests matching a name
-npm run populate-poll <file>          # create or refresh one demonstration poll from a data file
-npm run populate-all-polls [<dir>]    # populate every new or changed data file of a folder (default polldata/)
 ```
 
 ## Configuration rules

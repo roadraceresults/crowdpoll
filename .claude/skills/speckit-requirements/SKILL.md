@@ -166,7 +166,7 @@ This could include:
 ⚪ (or **/speckit-plan-thru-analyze**, which runs /speckit-plan through /speckit-analyze-findings in one go)  
 ⚪ **/speckit-implement**  
 ⚪ **/speckit-tweak**  (optional)  
-⚪ **/speckit-concise-claudemd** (recommended)  
+⚪ **/speckit-trim-claudemd** (recommended to keep CLAUDE.md concise, which saves tokens)  
 ⚪  
 🟩 👉 1. Open the newly created requirements file: `<REQUIREMENTS_DIRECTORY>/requirements.md` in your editor.  
 🟩 👉 2. Enter your high-level requirements in the section: # Initial High-Level Requirements.  
