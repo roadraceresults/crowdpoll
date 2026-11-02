@@ -6,6 +6,23 @@ The full description, every earlier feature's decisions and the settings table a
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261101-181626-USER-ADD-CHOICES/plan.md` (research R1–R12, `data-model.md` — one `polls` column,
+`voters_add_choices`, added by migration `015-voters-add-choices`, and `Choice.addedBy`; the HTTP contracts
+`contracts/api.md` A1–A5, the UI contracts `contracts/ui-contracts.md` C1–C5, and the quickstart live alongside it in
+`specs/20261101-181626-USER-ADD-CHOICES/`). The requirements report is
+`requirements/20261101-181626-user-add-choices/requirements-report.md`: 4 diagrams and 16 findings, all resolved.
+Decisions that are easy to get wrong:
+- **Voters add through `POST /api/polls/:pid/choices`**, shed as `vote`, with its own bucket
+  (`enforceFloor("vote", "choice")`) so a vote right after an addition is not too soon (R2, R3, clarification Q2).
+- **Only while the raw `pollState` is OPEN with no `pending_update`**, checked under the row lock in `appendChoice`;
+  the projection's OPEN-while-EDITING is not enough (R5, R7).
+- **The limit is `WIZARD_CHOICE_MAX` (40)**, moved to `src/polls/service.ts` and sent as `wizardChoiceMax`;
+  duplicates compare ignoring case and spacing; screening runs in the request, never via `pending_update` (R6, R8).
+- **`addedBy` is admin-only**: never in `PollProjection`; not recorded on anonymous polls; cleared on account deletion
+  and when a poll turns anonymous (R9, clarification Q1).
+- **The creator's save sends `baseChoiceIds`**, and stored choices not listed are kept (R10).
+One additive migration, no new dependency or setting; one route, one browser module, one stylesheet.
+The preceding feature is
 `specs/20261101-150208-ADAPTIVE-Y-AXIS/plan.md` (research R1–R7, `data-model.md` — the axis top, step and mapping derived
 per draw, nothing stored — the UI contracts `contracts/ui-contracts.md` C1–C4, and the quickstart live alongside it in
 `specs/20261101-150208-ADAPTIVE-Y-AXIS/`). The requirements report is

@@ -1,5 +1,5 @@
 {
-    "requirements_directory": "requirements/20261101-150208-adaptive-y-axis",
+    "requirements_directory": "requirements/20261101-181626-user-add-choices",
     "last_written": {
         "requirements/20261019-153514-production-email/requirements.md": "e0bd2b0bf28c2fbd6699c99cdf364c1398d3b7aed8eb456198295f78d108ee08",
         "requirements/20261019-153514-production-email/requirements-report.md": "4f75f5e263fa092fc0fcedc4a7cdaa32128382e287f2ac0394e4957e8d8bd413",
@@ -42,6 +42,8 @@
         "requirements/20261101-121236-populate-all-polls/requirements.md": "2de07c870f2f0bb78c7788ba4628a02b1274f41d9339596a4be183d52ba999f5",
         "requirements/20261101-121236-populate-all-polls/requirements-report.md": "04826a5c428c9423b25cd3773448f8e3d79400901ca27133aa5361f0efbdab4c",
         "requirements/20261101-150208-adaptive-y-axis/requirements.md": "a693396279fd5338e2b47d1fc83614dd9a31c69f70acfe729273056188a961c5",
-        "requirements/20261101-150208-adaptive-y-axis/requirements-report.md": "6908bc186552745aae0bf4915dc8bbf3ca4ec620eb0ca840f631b9469a9f5c2d"
+        "requirements/20261101-150208-adaptive-y-axis/requirements-report.md": "6908bc186552745aae0bf4915dc8bbf3ca4ec620eb0ca840f631b9469a9f5c2d",
+        "requirements/20261101-181626-user-add-choices/requirements.md": "4511796da7484629662fbd24f58a19fbd2281c1adb60f290f456c2cb0b9bf4f3",
+        "requirements/20261101-181626-user-add-choices/requirements-report.md": "356270f68a42e54755ec9c1d220de1dad91ddee17cd1bad8b1f69e486e20abaa"
     }
 }

@@ -8,9 +8,12 @@ import type { AppConfig } from "../config.js";
 import type { SessionCache } from "../auth/sessionCache.js";
 import type { Cache } from "../cache/cache.js";
 import type { AppContext } from "../server.js";
-import { castVote } from "../votes/votePath.js";
+import { assertMayAddChoice, castVote } from "../votes/votePath.js";
+import { randomUUID } from "node:crypto";
+import { localScreener, screenWithTimeout } from "../polls/screening.js";
+import { projectPoll } from "../polls/versions.js";
 import { adminSearch, AdminSearchError, parseAdminSearch } from "../search/adminSearch.js";
-import { mayWatch } from "../polls/access.js";
+import { mayViewResults, mayWatch } from "../polls/access.js";
 import { addBookmark, BookmarkCapError, removeBookmark } from "../polls/bookmarks.js";
 import {
   countTitleCollisions,
@@ -20,6 +23,9 @@ import {
   listAdminRows,
   pollCreatorId,
   creatorEmails,
+  adderNames,
+  withAdderNames,
+  appendChoice,
   pollsEverVoted,
   voteTotals,
   titlesLike,
@@ -46,10 +52,17 @@ import {
   applyChoiceColors,
   replaceChoices,
   mergeChoices,
+  withChoicesAddedSince,
   duplicatePoll,
   nextAvailableCopyTitle,
   VoteError,
   AdminError,
+  ChoiceError,
+  assertAddableState,
+  validateAddedChoice,
+  normalizedChoiceKey,
+  duplicateChoiceError,
+  choicesFullError,
   exportPollData,
   exportPollMarkdown,
   editModeFor,
@@ -188,6 +201,87 @@ export function createVoteRouter(context: AppContext): Router {
       }
     })
   );
+
+  router.post(
+    "/api/polls/:pid/choices",
+    shedding.withKind("vote"),
+    floors.enforceFloor("vote", "choice"),
+    wrap(async (req, res) => {
+      const pid = pidOf(req);
+      const refuse = (status: number, error: string, code?: string) => {
+        console.log(`[choices] Refused choice for poll ${pid}: ${code ?? status}`);
+        res.status(status).json({ error, ...(code ? { code } : {}) });
+      };
+      const caller = await callerEmail(sessions, req);
+      if (!caller) {
+        refuse(401, "Sign in to add a choice");
+        return;
+      }
+      if (!holdsPermission(caller, "Vote on Polls", config)) {
+        refuse(403, NO_VOTE_PERMISSION, "no-vote-permission");
+        return;
+      }
+      if (!holdsPermission(caller, "View Polls", config) || !(await mayViewResults({ db, config }, caller, pid))) {
+        refuse(404, "Not found");
+        return;
+      }
+      await budget.countRequest("vote");
+      const row = await db.selectFrom("polls").selectAll().where("id", "=", pid).executeTakeFirst();
+      if (!row) {
+        refuse(404, "Not found");
+        return;
+      }
+      try {
+        assertAddableState({ pollState: row.poll_state, hasPendingUpdate: row.pending_update !== null });
+        await assertMayAddChoice(
+          { db, cache, config, rosters, abuse },
+          {
+            pid,
+            pollVisibility: row.poll_visibility,
+            pollSharingMode: row.poll_sharing_mode,
+            voteMutability: row.vote_mutability,
+            votersAddChoices: row.voters_add_choices,
+            createdById: row.created_by_id
+          },
+          { sessionId: caller.sessionId, userId: caller.id, email: caller.email }
+        );
+        const label = validateAddedChoice(row, req.body?.label, config);
+        let verdict: string;
+        try {
+          verdict = await screenWithTimeout(localScreener, { title: "", subtitle: "", choiceLabels: [label] }, config.screeningCallTimeoutMs);
+        } catch (err) {
+          console.log(`[choices] Screening failed for poll ${pid}: ${err instanceof Error ? err.message : String(err)}`);
+          throw new ChoiceError(503, "Couldn't check this choice. Try again.", "SCREENING_UNAVAILABLE");
+        }
+        if (verdict !== "") throw new ChoiceError(422, "This choice uses language that isn't allowed.", "UNACCEPTABLE_LANGUAGE");
+        const saved = await appendChoice({ db, cache }, pid, (locked) => {
+          assertAddableState({ pollState: locked.poll_state, hasPendingUpdate: locked.pending_update !== null });
+          const key = normalizedChoiceKey(label);
+          if (locked.choices.some((c) => normalizedChoiceKey(c.label) === key)) throw duplicateChoiceError();
+          if (locked.choices.length >= config.maxChoices) throw choicesFullError(config.maxChoices);
+          return {
+            id: randomUUID(),
+            label,
+            position: Math.max(-1, ...locked.choices.map((c) => c.position)) + 1,
+            ...(locked.vote_anonymity === "No" ? { addedBy: caller.id } : {})
+          };
+        });
+        if (!saved) {
+          refuse(404, "Not found");
+          return;
+        }
+        const projection = projectPoll(saved);
+        console.log(`[choices] Added choice to poll ${pid} (${projection.choices.length} choices)`);
+        res.json({ choices: projection.choices, contentVersion: projection.contentVersion });
+      } catch (err) {
+        if (err instanceof ChoiceError || err instanceof VoteError) {
+          refuse(err.status, err.message, err.code);
+          return;
+        }
+        throw err;
+      }
+    })
+  );
   return router;
 }
 
@@ -234,6 +328,12 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
       invitedVoterList: withinDisplayLimit(rest.invitedVoterList),
       bannedVoterList: withinDisplayLimit(rest.bannedVoterList)
     };
+  }
+
+  // The reads of one poll name the voters who added its choices, as the list does.
+  async function namedAdminPollDetail(poll: Poll) {
+    const detail = buildAdminPollDetail(poll);
+    return { ...detail, choices: withAdderNames(detail.choices, await adderNames(db, [detail.choices])) };
   }
 
   // 011 T020 (US1): begin an editing or updating session. The server decides the
@@ -294,7 +394,7 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
       const choiceCounts = Object.fromEntries(
         claimed.choices.map((c) => [c.id, live?.choiceCounts[c.id] ?? 0])
       );
-      res.json({ granted: true, mode: decision.mode, poll: buildAdminPollDetail(claimed), choiceCounts });
+      res.json({ granted: true, mode: decision.mode, poll: await namedAdminPollDetail(claimed), choiceCounts });
     })
   );
 
@@ -518,6 +618,8 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
 
       const body = (req.body ?? {}) as Record<string, unknown>;
       delete body.clientGuid;
+      const baseChoiceIds = body.baseChoiceIds;
+      delete body.baseChoiceIds;
       // FR-009 (011): the reduced surface may change only these four. 012 folds the
       // choice list into this same call, so `labels` joins the disallowed set here
       // rather than being refused by a route of its own (FR-014).
@@ -533,7 +635,7 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
       const UPDATE_FIELDS = [
         "title", "subtitle", "startAt", "endAt",
         "invitedVoterList", "bannedVoterList", "voterCountLimit", "colors", "lineGraphEnabled",
-        "labels", "pollSharingMode", "choiceMode", "voteMutability"
+        "labels", "pollSharingMode", "choiceMode", "voteMutability", "votersAddChoices"
       ];
       // The frozen trio passes this gate so `validatePollFields` can refuse each
       // with its own 409 naming the field; everything else still gets the 400.
@@ -552,8 +654,10 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
       // same pass as everything else, and lands in the same $set. Two routes meant a
       // rejected publish could leave choices already persisted — a partial save the
       // administrator had no way to see. One write makes that unreachable.
-      const labels = body.labels;
-      const colors = body.colors;
+      const { labels, colors } =
+        body.labels !== undefined
+          ? withChoicesAddedSince(poll, body.labels, body.colors, baseChoiceIds)
+          : { labels: undefined, colors: body.colors };
       delete body.labels;
       delete body.colors;
 
@@ -563,13 +667,14 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
       let mergedChoices: Choice[] | null = null;
       try {
         $set = validatePollFields(poll, body, hasEverVoted, new Date(), config);
+        const current = $set.choices ? { ...poll, choices: $set.choices } : poll;
         if (decision.mode === "UPDATE" && labels !== undefined) {
-          mergedChoices = mergeChoices(poll, labels, config, colors).choices;
+          mergedChoices = mergeChoices(current, labels, config, colors).choices;
         } else if (labels !== undefined) {
-          $set.choices = replaceChoices(poll, labels, config, colors);
+          $set.choices = replaceChoices(current, labels, config, colors);
           $set.currentVotes = poll.currentVotes;
         } else if (colors !== undefined) {
-          $set.choices = applyChoiceColors(poll, colors);
+          $set.choices = applyChoiceColors(current, colors);
         }
       } catch (err) {
         if (err instanceof AdminError) {
@@ -589,7 +694,7 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
       if (effectiveState === "INITIALIZED" && isAllDefaults(merged)) {
         await updatePoll(store, poll._id, { ...$set, pollState: "INITIALIZED", ...CLEAR_SESSION });
         res.json({
-          ...buildAdminPollDetail({ ...poll, ...$set, pollState: "INITIALIZED" }),
+          ...await namedAdminPollDetail({ ...poll, ...$set, pollState: "INITIALIZED" }),
           message: "This poll still has its default values and cannot be published."
         });
         return;
@@ -645,7 +750,7 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
             ? `[admin] Saved poll ${poll._id}; title/subtitle changes sent for review`
             : `[admin] Saved poll ${poll._id} with no change needing review`
         );
-        res.json({ ...buildAdminPollDetail(saved), pending: hasPending });
+        res.json({ ...await namedAdminPollDetail(saved), pending: hasPending });
         return;
       }
 
@@ -658,7 +763,7 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
         ...CLEAR_SESSION
       });
       res.json(
-        buildAdminPollDetail({
+        await namedAdminPollDetail({
           ...poll,
           ...$set,
           pollState: "AWAITING APPROVAL",
@@ -701,17 +806,20 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
       const body = { ...((req.body ?? {}) as Record<string, unknown>) };
       delete body.clientGuid;
       if (typeof body.title === "string" && body.title.trim() === "") delete body.title;
-      const labels = body.labels;
-      const colors = body.colors;
+      const { labels, colors } =
+        body.labels !== undefined
+          ? withChoicesAddedSince(poll, body.labels, body.colors, body.baseChoiceIds)
+          : { labels: undefined, colors: body.colors };
       delete body.labels;
       delete body.colors;
+      delete body.baseChoiceIds;
       const hasLabels = Array.isArray(labels) && labels.some((l) => typeof l === "string" && l.trim() !== "");
 
       let $set: Partial<Poll>;
       try {
         $set = validatePollFields(poll, body, hasEverVoted, new Date(), config);
         if (hasLabels) {
-          $set.choices = replaceChoices(poll, labels, { ...config, minChoices: 1 }, colors);
+          $set.choices = replaceChoices($set.choices ? { ...poll, choices: $set.choices } : poll, labels, { ...config, minChoices: 1 }, colors);
           $set.currentVotes = poll.currentVotes;
         }
       } catch (err) {
@@ -725,7 +833,7 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
       await updatePoll(store, poll._id, { ...$set, pollState: "INITIALIZED", ...CLEAR_SESSION });
       console.log(`[admin] Saved poll ${poll._id} without publishing`);
       res.json({
-        ...buildAdminPollDetail({ ...poll, ...$set, pollState: "INITIALIZED", ...CLEAR_SESSION }),
+        ...await namedAdminPollDetail({ ...poll, ...$set, pollState: "INITIALIZED", ...CLEAR_SESSION }),
         message: "Saved: you can finish later."
       });
     })
@@ -753,15 +861,16 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
       // ever been voted on decides both editing surfaces and deletability.
       const votedPids = await pollsEverVoted(db, rows.map((p) => p.id));
       const emails = await creatorEmails(db, rows);
+      const names = await adderNames(db, rows.map((p) => p.choices));
       const accepted = await acceptedCounts(db, rows.map((p) => p.id));
       const totals = await voteTotals(db, rows.filter((p) => p.choice_mode === "Multiple-Choice Poll").map((p) => p.id));
-      const polls = rows.map((p) => adminListRow(p, votedPids.has(p.id), emails.get(p.created_by_id) ?? "", accepted, totals, caller?.id));
+      const polls = rows.map((p) => adminListRow(p, votedPids.has(p.id), emails.get(p.created_by_id) ?? "", accepted, totals, names, caller?.id));
       // Re-attempt Screening stays with administrators; a creator republishes instead.
       res.json({ polls: ownerFilter ? polls.map((p) => ({ ...p, canRescreen: false })) : polls, truncated });
     })
   );
 
-  function adminListRow(p: PollRow, hasEverBeenVotedOn: boolean, createdByEmail: string, accepted: Map<string, number>, totals: Map<string, number>, callerId?: string) {
+  function adminListRow(p: PollRow, hasEverBeenVotedOn: boolean, createdByEmail: string, accepted: Map<string, number>, totals: Map<string, number>, names: Map<string, string>, callerId?: string) {
     const forRules = {
       pollState: p.poll_state as Poll["pollState"],
       pollAcceptabilityScreeningAttempts: p.poll_acceptability_screening_attempts,
@@ -785,13 +894,14 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
       pendingUpdate: p.pending_update !== null,
       pendingRejectionReason: p.pending_rejection_reason,
       lineGraphEnabled: p.line_graph_enabled,
+      votersAddChoices: p.voters_add_choices,
       pollApprovalTimestamp: p.poll_approval_timestamp,
       pollAcceptabilityScreeningAttempts: p.poll_acceptability_screening_attempts,
       hasEverBeenVotedOn,
       pollVisibility: p.poll_visibility,
       pollSharingMode: p.poll_sharing_mode,
       voteAnonymity: p.vote_anonymity,
-      choices: [...p.choices].sort((a, b) => a.position - b.position),
+      choices: withAdderNames([...p.choices].sort((a, b) => a.position - b.position), names),
       choiceMode: p.choice_mode,
       voteMutability: p.vote_mutability,
       voterCountLimit: p.voter_count_limit,
@@ -827,9 +937,10 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
       const { rows, truncated } = await adminSearch(db, filters, config.maxPollsAdminSearchResults);
       const votedPids = await pollsEverVoted(db, rows.map((p) => p.id));
       const emails = await creatorEmails(db, rows);
+      const names = await adderNames(db, rows.map((p) => p.choices));
       const accepted = await acceptedCounts(db, rows.map((p) => p.id));
       const totals = await voteTotals(db, rows.filter((p) => p.choice_mode === "Multiple-Choice Poll").map((p) => p.id));
-      res.json({ polls: rows.map((p) => adminListRow(p, votedPids.has(p.id), emails.get(p.created_by_id) ?? "", accepted, totals, caller?.id)), truncated });
+      res.json({ polls: rows.map((p) => adminListRow(p, votedPids.has(p.id), emails.get(p.created_by_id) ?? "", accepted, totals, names, caller?.id)), truncated });
     })
   );
 
@@ -842,7 +953,7 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
         res.status(404).json({ error: "Not found" });
         return;
       }
-      res.json(buildAdminPollDetail(poll));
+      res.json(await namedAdminPollDetail(poll));
     })
   );
 
@@ -867,7 +978,7 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
         throw err;
       }
       await updatePoll(store, poll._id, $set);
-      res.json(buildAdminPollDetail({ ...poll, ...$set }));
+      res.json(await namedAdminPollDetail({ ...poll, ...$set }));
     })
   );
 

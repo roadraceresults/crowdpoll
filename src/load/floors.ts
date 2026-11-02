@@ -7,7 +7,7 @@ import { countStat } from "../refresh/tabVersions.js";
 
 export type FloorKind = Exclude<RequestKind, "other">;
 
-export const FLOOR_KEY = (kind: FloorKind, who: string) => `floor:${kind}:${who}`;
+export const FLOOR_KEY = (bucket: string, who: string) => `floor:${bucket}:${who}`;
 /** Refusals that only the stretch caused, for the controller line (research R9). */
 export const STRETCHED_KEY = "stats:floor:stretched";
 
@@ -30,12 +30,13 @@ export function createFloors({ config, cache, sessions, budget }: FloorDeps) {
     one per floor interval, so a few requests may follow each other at once while
     the sustained rate stays one per floor. A burst of 1 is the plain floor.
     Searches and manual refreshes refill at the stretched interval (floor × k),
-    so a client that ignores nextRefreshMs is held to it too.
+    so a client that ignores nextRefreshMs is held to it too. `bucket` names the
+    token bucket only, so a request may keep its own tokens at another kind's pace.
   */
-  function enforceFloor(kind: FloorKind): RequestHandler {
+  function enforceFloor(kind: FloorKind, bucket: string = kind): RequestHandler {
     return (req, res, next) => {
       (async () => {
-        const key = FLOOR_KEY(kind, await floorSubject(sessions, req));
+        const key = FLOOR_KEY(bucket, await floorSubject(sessions, req));
         const floor = config.floors[kind];
         const interval = kind === "search" || kind === "refresh" ? await budget.nextRefreshMs(kind) : floor;
         const remaining = await cache.takeToken(key, config.bursts[kind], interval);

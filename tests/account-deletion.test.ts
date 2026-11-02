@@ -115,6 +115,32 @@ describe("DELETE /api/me (A8, R8)", () => {
     expect(await ctx.db.selectFrom("invitation_history").selectAll().execute()).toEqual([]);
   });
 
+  it("removes the adder from the choices they added, keeps the choices and leaves the content version (USER-ADD-CHOICES R9)", async () => {
+    const { cookie, userId } = await forgeSession(ctx, "adder-leaving@example.org");
+    const owner = await forgeSession(ctx, "owner-added@example.org");
+    const poll = makePoll({
+      pollVisibility: "Private Poll",
+      voteAnonymity: "No",
+      choices: [
+        { id: "c1", label: "Choice 1", position: 0 },
+        { id: "c2", label: "Choice 2", position: 1, addedBy: owner.userId },
+        { id: "c3", label: "Tacos", position: 2, addedBy: userId }
+      ]
+    });
+    await insertPoll(ctx, poll, { id: owner.userId, name: "owner", email: "owner-added@example.org" });
+    const before = await ctx.db.selectFrom("polls").select("content_version").where("id", "=", poll._id).executeTakeFirstOrThrow();
+
+    expect((await remove(cookie)).status).toBe(200);
+
+    const after = await ctx.db.selectFrom("polls").select(["choices", "content_version"]).where("id", "=", poll._id).executeTakeFirstOrThrow();
+    expect(after.choices).toEqual([
+      { id: "c1", label: "Choice 1", position: 0 },
+      { id: "c2", label: "Choice 2", position: 1, addedBy: owner.userId },
+      { id: "c3", label: "Tacos", position: 2 }
+    ]);
+    expect(after.content_version).toBe(before.content_version);
+  });
+
   it("changes nothing when the deletion fails, and says so", async () => {
     const stuck = "stuck@example.org";
     const { cookie, userId } = await forgeSession(ctx, stuck);

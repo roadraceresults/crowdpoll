@@ -188,6 +188,17 @@
             "type": "string",
             "pattern": "^#[0-9A-F]{6}$",
             "description": "The choice's bar color as a palette hex code; absent means Automatic"
+          },
+          "addedBy": {
+            "type": "string",
+            "description": "The user id of the voter who added the choice, on a poll without anonymous voting. Admin responses only (A4); never in a projection, card or tab row; removed when that account is deleted or the poll turns anonymous"
+          },
+          "addedByName": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The adding voter's user name, beside addedBy, in admin responses only; null once the account no longer exists"
           }
         }
       },
@@ -482,6 +493,10 @@
           "lineGraphEnabled": {
             "type": "boolean",
             "description": "Whether the maximized view draws the line graph. Only an Administrator may change it; from anyone else the request is refused with 403."
+          },
+          "votersAddChoices": {
+            "type": "boolean",
+            "description": "Voters of this Private poll may add choices while it is open (POST /api/polls/{pid}/choices); always false on a Public poll"
           }
         }
       },
@@ -614,6 +629,13 @@
           "mayWatch": {
             "type": "boolean",
             "description": "False when the caller may not watch the poll (no View Polls grant, not published, banned, or a private poll not reached); the card then hides the Watch control. Absent where the server does not say."
+          },
+          "ownPoll": {
+            "type": "boolean",
+            "enum": [
+              true
+            ],
+            "description": "Present when the visitor created the poll: the Add Choice button ignores their final vote"
           }
         }
       },
@@ -737,6 +759,10 @@
           "lineGraphEnabled": {
             "type": "boolean",
             "description": "Whether the maximized view draws the line graph. Only an Administrator may change it; from anyone else the request is refused with 403."
+          },
+          "votersAddChoices": {
+            "type": "boolean",
+            "description": "Voters of this Private poll may add choices while it is open (POST /api/polls/{pid}/choices); always false on a Public poll"
           }
         }
       },
@@ -1118,6 +1144,10 @@
           "lineGraphEnabled": {
             "type": "boolean",
             "description": "Whether the maximized view draws the line graph. Only an Administrator may change it; from anyone else the request is refused with 403."
+          },
+          "votersAddChoices": {
+            "type": "boolean",
+            "description": "Voters of this Private poll may add choices while it is open (POST /api/polls/{pid}/choices); always false on a Public poll"
           }
         }
       },
@@ -1628,6 +1658,10 @@
                     "lineGraphRefreshIntervalMs": {
                       "type": "integer",
                       "description": "Line-graph refresh interval in milliseconds, already clamped to the live-refresh floor."
+                    },
+                    "wizardChoiceMax": {
+                      "type": "integer",
+                      "description": "Longest choice, in characters, the new-poll wizard and the Add Choice dialog accept (40)"
                     }
                   }
                 }
@@ -3511,6 +3545,17 @@
                   "lineGraphEnabled": {
                     "type": "boolean",
                     "description": "Whether the maximized view draws the line graph. Only an Administrator may change it; from anyone else the request is refused with 403."
+                  },
+                  "votersAddChoices": {
+                    "type": "boolean",
+                    "description": "Let voters add choices; also changeable after votes. true on a Public poll is refused 400 \"Only a private poll can let voters add choices.\""
+                  },
+                  "baseChoiceIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Sent beside labels: the ids of the choices the card started from. A stored choice not listed (added by a voter meanwhile) is kept, appended after the submitted labels with its colour and adder. Absent: the labels replace the list as before"
                   }
                 }
               }
@@ -3740,6 +3785,17 @@
                   "lineGraphEnabled": {
                     "type": "boolean",
                     "description": "Whether the maximized view draws the line graph. Only an Administrator may change it; from anyone else the request is refused with 403."
+                  },
+                  "votersAddChoices": {
+                    "type": "boolean",
+                    "description": "Let voters add choices; also changeable after votes. true on a Public poll is refused 400 \"Only a private poll can let voters add choices.\""
+                  },
+                  "baseChoiceIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Sent beside labels: the ids of the choices the card started from. A stored choice not listed (added by a voter meanwhile) is kept, appended after the submitted labels with its colour and adder. Absent: the labels replace the list as before"
                   }
                 }
               }
@@ -6750,6 +6806,157 @@
                       "type": "string"
                     }
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/polls/{pid}/choices": {
+      "post": {
+        "tags": [
+          "polls"
+        ],
+        "operationId": "addChoice",
+        "summary": "A voter adds a choice to a Private poll that lets voters add choices, while it is open",
+        "description": "Shed as a vote, with its own floor bucket (floor:choice:<who>) at ENV_MIN_VOTE_REFRESH_INTERVAL. The label is screened in the request. The state refusals are checked first, then again under the row lock with the duplicate and ceiling checks. Logs [choices] Added choice to poll <pid> (<n> choices) or [choices] Refused choice for poll <pid>: <code>.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "pid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "label"
+                ],
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "maxLength": 40
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The choice is appended last; the answer is the projection's choices (no addedBy) and the new content version",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "choices",
+                    "contentVersion"
+                  ],
+                  "properties": {
+                    "choices": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Choice"
+                      }
+                    },
+                    "contentVersion": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "EMPTY_CHOICE \"Enter a choice.\", CHOICE_TOO_LONG \"A choice can be at most 40 characters.\" or CHOICE_CHARACTERS \"A choice can't contain line breaks, tabs or invisible characters.\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in to add a choice",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "no-vote-permission (lacks Vote on Polls), ADD_CHOICES_OFF \"This poll doesn't take new choices.\" (Public poll or setting off), or the vote path's ban, invitation and voter-limit refusals; or terms-required (see TermsRequired)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such poll, or the caller may not view it (including a caller without View Polls who is not an Administrator)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "POLL_EDITING, PENDING_REVIEW, NOT_OPEN (the vote path's wording), FINAL_VOTE_CAST \"You have already cast your final vote on this poll.\", DUPLICATE_CHOICE \"This poll already has that choice.\" (ignoring case and spacing) or CHOICES_FULL \"This poll already has the most choices allowed (<max>).\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "UNACCEPTABLE_LANGUAGE \"This choice uses language that isn't allowed.\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "too-soon: the add-choice allowance is used up",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "busy (shed), or SCREENING_UNAVAILABLE \"Couldn't check this choice. Try again.\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }

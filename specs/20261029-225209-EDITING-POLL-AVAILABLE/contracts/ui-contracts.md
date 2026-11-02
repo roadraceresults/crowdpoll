@@ -8,8 +8,8 @@ The textarea (`id="pollChoices-<pid>"`, `aria-label="Choices"`), the Paste choic
 
 - The diff is computed against the session-entry choices (`session.poll.choices`) by exact label match after trimming — the same rule as the server: matching line = survivor, new line = addition, missing label = deletion; an in-place rewording is a deletion plus an addition.
 - The confirmation fires when the Choices section is left with at least one **voted** deletion pending; the exits are: a step circle / `goToStep` away from step 3, the Next button, and Save changes. Deletions where every deleted choice has zero votes never prompt.
-- The dialog follows the `askToDiscard` pattern: `role=alertdialog`, `aria-modal`, headline "Delete choices with votes?", a list naming each voted deletion as "<label> — <N> vote(s)", buttons **Keep choices** (default focus) and **Delete**. Escape and the scrim mean Keep.
-- **Delete** proceeds with the navigation or save. **Keep choices** (Cancel) restores the whole Choices textbox to its session-entry text and stays on the step (AM3's whole-section revert).
+- The dialog follows the `askToDiscard` pattern: `role=alertdialog`, `aria-modal`, headline "Delete choices with votes?", a list naming each voted deletion as "<label> — <N> vote(s)", buttons **Cancel** (default focus; "Keep choices" until TWEAK04 of USER-ADD-CHOICES) and **Delete**. Escape and the scrim mean Keep.
+- **Delete** proceeds with the navigation or save. **Cancel** restores the whole Choices textbox to its session-entry text and stays on the step (AM3's whole-section revert).
 - A confirmed deletion set does not re-prompt on later exits while the diff's voted deletions are unchanged; changing the deletions re-arms the prompt.
 
 ## C3. The counts in the confirmation

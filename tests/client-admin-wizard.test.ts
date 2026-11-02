@@ -1258,7 +1258,7 @@ describe("choice edits inside the wizard (EDITING-POLL-AVAILABLE US2)", () => {
     expect(card.querySelector(".wizard-locked")).toBeNull();
   });
 
-  it("leaving the step with a voted deletion opens the dialog, and Keep choices restores the session-entry text (C2, C3)", async () => {
+  it("leaving the step with a voted deletion opens the dialog, and Cancel restores the session-entry text (C2, C3)", async () => {
     await votedPoll();
     const p = await open();
     await openAtChoices(p);
@@ -1270,7 +1270,7 @@ describe("choice edits inside the wizard (EDITING-POLL-AVAILABLE US2)", () => {
     expect(box.getAttribute("aria-modal")).toBe("true");
     expect(box.querySelector(".modal-headline")!.textContent).toBe("Delete choices with votes?");
     expect(box.querySelector(".modal-text")!.textContent).toBe("Choice 1 — 2 vote(s)");
-    dialogButton(p, "Keep choices").click();
+    dialogButton(p, "Cancel").click();
     await p.settle(50);
     expect(dialog(p)).toBeNull();
     expect(heading(wizardCard(p))).toBe("Step 3 · Choices");
@@ -1319,7 +1319,7 @@ describe("choice edits inside the wizard (EDITING-POLL-AVAILABLE US2)", () => {
     const box = dialog(p)!;
     expect(box).not.toBeNull();
     expect(box.querySelector(".modal-text")!.textContent).toBe("Choice 1 — 2 vote(s)");
-    dialogButton(p, "Keep choices").click();
+    dialogButton(p, "Cancel").click();
     await p.settle(50);
     expect(choicesBox(p).value).toBe("Choice 1\nChoice 2");
   });
@@ -1337,7 +1337,8 @@ describe("choice edits inside the wizard (EDITING-POLL-AVAILABLE US2)", () => {
     dialogButton(p, "Delete").click();
     await p.settle(200);
     const body = sent("/publish")[0]!.body!;
-    expect(Object.keys(body).sort()).toEqual(["clientGuid", "colors", "labels", "timeZone"]);
+    expect(Object.keys(body).sort()).toEqual(["baseChoiceIds", "clientGuid", "colors", "labels", "timeZone"]);
+    expect(body.baseChoiceIds).toHaveLength(2);
     expect(body.labels).toEqual(["Choice 2", "Choice 3"]);
     expect(body.colors).toEqual([null, null]);
   });
@@ -1649,5 +1650,123 @@ describe("the editing banner on an existing poll's wizard (TWEAK01)", () => {
     const p = await open();
     await createPoll(p);
     expect(wizardCard(p).querySelector<HTMLElement>(".card-status-line")!.hidden).toBe(true);
+  });
+});
+
+describe("voters may add choices (USER-ADD-CHOICES C5)", () => {
+  const addSwitch = (p: BrowserPage) => wizardCard(p).querySelector<HTMLInputElement>(".m3-switch--add-choices");
+  const summaryAdd = (card: HTMLElement) => card.querySelector(".wizard-summary-add-choices")?.textContent ?? null;
+
+  async function votedPrivate(overrides: Partial<Poll> = {}) {
+    const poll = makePoll({ title: "Picnic", pollState: "OPEN", pollVisibility: "Private Poll", ...overrides });
+    await seed(poll);
+    await voteHistory(ctx).insertOne({ pid: poll._id, emailAddress: "v@example.com", userName: "v", choiceIds: ["c1"], votedAt: new Date() });
+    return poll;
+  }
+
+  it("offers the switch in Step 5 of a private poll only, off for a new poll, and sends it on Save and Publish", async () => {
+    const p = await open();
+    await createPoll(p);
+    for (let i = 0; i < 4; i++) await next(p);
+    expect(heading(wizardCard(p))).toBe("Step 5 · How to vote");
+    expect(addSwitch(p)).toBeNull();
+    (circles(wizardCard(p))[0]!.querySelector("button") as HTMLButtonElement).click();
+    await p.settle();
+    await pick(p, "who", "link");
+    (circles(wizardCard(p))[4]!.querySelector("button") as HTMLButtonElement).click();
+    await p.settle();
+    expect(addSwitch(p)!.checked).toBe(false);
+    expect(summaryAdd(wizardCard(p))).toBeNull();
+    addSwitch(p)!.click();
+    await p.settle();
+    await next(p);
+    expect(summaryAdd(wizardCard(p))).toBe("Voters may add choices: Yes.");
+    footerButton(wizardCard(p), "Save").click();
+    await p.settle(100);
+    expect(sent("/save")[0]!.body!.votersAddChoices).toBe(true);
+  });
+
+  it("sends false when the poll is switched to public", async () => {
+    const p = await open();
+    await createPoll(p);
+    await pick(p, "who", "link");
+    for (let i = 0; i < 4; i++) await next(p);
+    addSwitch(p)!.click();
+    await p.settle();
+    (circles(wizardCard(p))[0]!.querySelector("button") as HTMLButtonElement).click();
+    await p.settle();
+    await pick(p, "who", "public");
+    expect(summaryAdd(wizardCard(p))).toBeNull();
+    footerButton(wizardCard(p), "Save").click();
+    await p.settle(100);
+    expect(sent("/save")[0]!.body!.votersAddChoices).toBe(false);
+  });
+
+  it("is enabled on a voted private poll, links from the summary, and saves alone", async () => {
+    await votedPrivate();
+    const p = await open();
+    const card = cardWith(p, "Picnic");
+    expect(summaryAdd(card)).toBe("Voters may add choices: No.");
+    link(card, "No").click();
+    await p.settle(50);
+    expect(heading(wizardCard(p))).toBe("Step 5 · How to vote");
+    expect(addSwitch(p)!.disabled).toBe(false);
+    addSwitch(p)!.click();
+    await p.settle();
+    footerButton(wizardCard(p), "Save changes").click();
+    await p.settle(100);
+    const body = sent("/publish")[0]!.body!;
+    expect(Object.keys(body).sort()).toEqual(["clientGuid", "timeZone", "votersAddChoices"]);
+    expect(body.votersAddChoices).toBe(true);
+  });
+
+  it("caps a new poll's choices at wizardChoiceMax from /api/config", async () => {
+    const p = await open();
+    await createPoll(p);
+    await next(p);
+    await next(p);
+    type(p, choicesBox(p), "x".repeat(41));
+    expect(choicesBox(p).value).toHaveLength(40);
+  });
+
+  it("sends baseChoiceIds, the session's choice ids, with the labels on Save and on Save changes", async () => {
+    const p = await open();
+    await createPoll(p);
+    await answerFirstSteps(p);
+    footerButton(wizardCard(p), "Save").click();
+    await p.settle(100);
+    const saved = sent("/save")[0]!.body!;
+    expect(saved.labels).toEqual(["Cakes", "Cookies"]);
+    expect(Array.isArray(saved.baseChoiceIds)).toBe(true);
+
+    bodies = [];
+    await polls(ctx).deleteMany({});
+    await votedPrivate();
+    const q = await open();
+    link(cardWith(q, "Picnic"), "Choice 1, Choice 2").click();
+    await q.settle(50);
+    type(q, choicesBox(q), "Choice 1\nChoice 2\nChoice 3");
+    blur(q, choicesBox(q));
+    footerButton(wizardCard(q), "Save changes").click();
+    await q.settle(200);
+    expect(sent("/publish")[0]!.body!.baseChoiceIds).toEqual(["c1", "c2"]);
+  });
+
+  it("lists Added by <name> in Step 3 for choices a voter added, and nothing for the others", async () => {
+    const adder = await forgeSession(ctx, "adder-wizard@example.com");
+    await ctx.db.updateTable("user").set({ name: "Ada" }).where("id", "=", adder.userId).execute();
+    await votedPrivate({
+      voteAnonymity: "No",
+      choices: [
+        { id: "c1", label: "Choice 1", position: 0 },
+        { id: "c2", label: "Choice 2", position: 1 },
+        { id: "c3", label: "Choice 3", position: 2, addedBy: adder.userId }
+      ]
+    });
+    const p = await open();
+    link(cardWith(p, "Picnic"), "Choice 1, Choice 2, Choice 3").click();
+    await p.settle(50);
+    const items = Array.from(wizardCard(p).querySelectorAll(".wizard-added-by li")).map((li) => li.textContent);
+    expect(items).toEqual(["Choice 3: Added by Ada"]);
   });
 });

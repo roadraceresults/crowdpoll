@@ -19,6 +19,7 @@ export interface PollProjection {
   choices: { id: string; label: string; position: number; color?: string }[];
   contentVersion: number;
   lineGraphEnabled: boolean;
+  votersAddChoices: boolean;
 }
 
 export function projectPoll(row: PollRow): PollProjection {
@@ -36,9 +37,12 @@ export function projectPoll(row: PollRow): PollProjection {
     pollState: row.poll_state === "EDITING" ? row.poll_state_before_edit_update ?? "INITIALIZED" : row.poll_state,
     startAt: row.start_at ? new Date(row.start_at).toISOString() : null,
     endAt: row.end_at ? new Date(row.end_at).toISOString() : null,
-    choices: [...row.choices].sort((a, b) => a.position - b.position),
+    choices: [...row.choices]
+      .sort((a, b) => a.position - b.position)
+      .map(({ id, label, position, color }) => ({ id, label, position, ...(color ? { color } : {}) })),
     contentVersion: row.content_version,
-    lineGraphEnabled: row.line_graph_enabled
+    lineGraphEnabled: row.line_graph_enabled,
+    votersAddChoices: row.voters_add_choices
   };
 }
 

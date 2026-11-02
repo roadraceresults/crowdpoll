@@ -43,6 +43,12 @@ delivery network.
 - **Vote** — press **Vote** on a card, pick your choice(s) and **Submit vote**. The card shows
   the new counts at once. On a very busy site the card may say your vote is *queued*; it has
   been counted and will be stored within moments.
+- **Add Choice** — on a Private poll whose creator lets voters add choices, the voting side of
+  the card has an **Add Choice** button while the poll is open. Type a choice of up to 40
+  characters and press **Save**: it appears last on the card at once, for every voter, and can be
+  voted for straight away. A choice the poll already has (ignoring capitals and spaces), a full
+  poll, or language that isn't allowed is refused with the reason in the dialog. On a Final-Vote
+  poll you can add choices only until you have voted.
 - **Live Results** — press **Live Results** on any card to watch it update every few seconds
   in the Live Results tab (every 2 seconds, easing off to every 10 while nothing changes; up to
   five polls; a sixth is refused until you remove one). On that tab the same link reads
@@ -144,6 +150,13 @@ delivery network.
   started, while the choices themselves stay locked; changing only colors does not send the poll
   to be reviewed again. The poll's summary says "Bar colors are assigned automatically." or how many colors have
   been set manually, with a swatch for each.
+- **Voters may add choices** — on a Private poll, the How to vote step has a **Voters may add
+  choices** switch, off by default, which can be changed at any time, even after votes; the summary
+  says "Voters may add choices: Yes" or "No". A choice a voter adds is an ordinary choice: you can
+  rename, recolor or delete it. On a poll that shows who voted for what, the Choices step lists
+  **Added by** with the voter's name for each choice a voter added; nothing is recorded on an
+  anonymous poll, and the name goes when that account is deleted. Saving the wizard keeps any
+  choice a voter added while it was open; only the choices you removed are deleted.
 - **Editing a poll** — select the part of the summary you want to change and the wizard opens
   at that step. Only what the poll's state allows can change: everything until the poll has
   votes. Once it has votes, the title, subtitle, choices, dates and bar colors stay editable,

@@ -112,6 +112,8 @@
       choiceMode: card.choiceMode,
       voteMutability: card.voteMutability,
       pollVisibility: card.pollVisibility,
+      pollSharingMode: card.pollSharingMode,
+      votersAddChoices: card.votersAddChoices === true,
       pollState: card.pollState,
       lineGraphEnabled: card.lineGraphEnabled === true,
       startAt: card.startAt,
@@ -129,6 +131,7 @@
       detail.mayWatch = overlay.mayWatch !== false;
       detail.canVote = !overlay.voteBlockedReason;
       detail.voteBlockedReason = overlay.voteBlockedReason || null;
+      detail.ownPoll = overlay.ownPoll === true;
       // FIX020: the personal tabs say why a poll is listed. The server's relations
       // are brought up to date with what the user did since (a vote, a bookmark).
       if (Array.isArray(overlay.relations)) {

@@ -287,7 +287,7 @@ describe("Client heartbeat and release (011 T064/T065)", () => {
     expect(cancel).toContain("await releaseSession()");
     expect(cancel).toContain("leaveWizard()");
     for (const exit of ["async function saveWizard", "async function publishWizard", "async function saveChanges"]) {
-      expect(js.slice(js.indexOf(exit), js.indexOf(exit) + 1200), exit).toContain("leaveWizard()");
+      expect(js.slice(js.indexOf(exit), js.indexOf(exit) + 1400), exit).toContain("leaveWizard()");
     }
     const reset = js.slice(js.indexOf("function resetEditState"), js.indexOf("function focusSummary"));
     expect(reset).toContain('mode = "READ_ONLY"');

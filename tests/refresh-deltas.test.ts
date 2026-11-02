@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { computeDelta, parseClientVersions, type CurrentListing } from "../src/refresh/deltas.js";
-import type { PollProjection } from "../src/polls/versions.js";
+import { projectPoll, type PollProjection } from "../src/polls/versions.js";
+import type { PollRow } from "../src/db/schema.js";
 
 function projection(pid: string, contentVersion: number): PollProjection {
   return {
@@ -15,7 +16,9 @@ function projection(pid: string, contentVersion: number): PollProjection {
     startAt: null,
     endAt: null,
     choices: [{ id: "c1", label: "One", position: 0 }],
-    contentVersion
+    contentVersion,
+    lineGraphEnabled: false,
+    votersAddChoices: false
   };
 }
 
@@ -141,5 +144,39 @@ describe("computeDelta", () => {
     });
     const next = computeDelta(held, published);
     expect(next.status === 200 && next.body.cards.p3).toMatchObject({ pid: "p3", title: "Poll p3" });
+  });
+});
+
+describe("projectPoll", () => {
+  const row = {
+    id: "p9",
+    title: "Lunch",
+    subtitle: "",
+    choice_mode: "Single-Choice Poll",
+    vote_mutability: "Dynamic-Vote Poll",
+    poll_visibility: "Private Poll",
+    poll_sharing_mode: "Anyone With The Link",
+    poll_state: "OPEN",
+    poll_state_before_edit_update: null,
+    start_at: null,
+    end_at: null,
+    choices: [
+      { id: "c2", label: "Tacos", position: 1, addedBy: "user-7" },
+      { id: "c1", label: "Pizza", position: 0, color: "#FFE5AD" }
+    ],
+    content_version: 5,
+    line_graph_enabled: false,
+    voters_add_choices: true
+  } as unknown as PollRow;
+
+  it("carries votersAddChoices", () => {
+    expect(projectPoll(row).votersAddChoices).toBe(true);
+  });
+
+  it("never projects who added a choice", () => {
+    expect(projectPoll(row).choices).toEqual([
+      { id: "c1", label: "Pizza", position: 0, color: "#FFE5AD" },
+      { id: "c2", label: "Tacos", position: 1 }
+    ]);
   });
 });

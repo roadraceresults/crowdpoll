@@ -30,6 +30,32 @@ beforeEach(async () => {
 
 const requestsTo = (p: BrowserPage, prefix: string) => p.requests.filter((r) => r.url.startsWith(prefix));
 
+describe("the first tab render's session wait (TWEAK05)", () => {
+  it("unsubscribes once, without an error, when the session is already known", async () => {
+    const errors: string[] = [];
+    let unsubscribed = 0;
+    page = await openPage(ctx, "index.html", {
+      scripts: ["pollCard.js", "voteClient.js", "deltaClient.js", "tabs.js"],
+      beforeScripts: (window) => {
+        window.console.error = (...args: unknown[]) => { errors.push(args.map(String).join(" ")); };
+        (window as unknown as { Session: unknown }).Session = {
+          getSession: () => null,
+          canCreatePolls: () => false,
+          refresh: async () => false,
+          // Answers at once, as app.js does once the session is loaded.
+          subscribe: (fn: (session: null) => void) => {
+            fn(null);
+            return () => { unsubscribed += 1; };
+          }
+        };
+      }
+    });
+    await page.settle(50);
+    expect(errors.filter((e) => /unsubscribe|subscriber failed/.test(e))).toEqual([]);
+    expect(unsubscribed).toBe(1);
+  });
+});
+
 describe("the home page in a browser", () => {
   it("shows eight tabs in order with Title Case labels, Trending open and every other panel hidden", async () => {
     page = await openPage(ctx, "index.html");

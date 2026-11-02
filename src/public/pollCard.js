@@ -899,7 +899,9 @@ function renderVotingOptions(wrap, list, upRow, downRow, data, layoutFor){
       + (compact ? ' is-compact' : '');
     row.style.height = barHeight + 'px';
     row.dataset.index = i;
-    row.title = item.label;
+    // TWEAK02: a temporary diagnostic, the choice's vote count after its label.
+    const labelText = item.label + ' (' + (item.count || 0) + ')';
+    row.title = labelText;
 
     const radio = document.createElement('span');
     radio.className = 'vote-radio' + (item.selected ? ' is-selected' : '');
@@ -912,7 +914,7 @@ function renderVotingOptions(wrap, list, upRow, downRow, data, layoutFor){
     if (!compact){
       label = document.createElement('span');
       label.className = 'vote-label';
-      label.textContent = item.label;
+      label.textContent = labelText;
       label.style.fontSize = fontSize + 'px';
       label.style.left = labelLeft + 'px';
       row.appendChild(label);
@@ -982,6 +984,7 @@ function initPollCard(viewport, opts){
   const votingDown = votingWrap?.querySelector('.arrow-row-down');
 
   const submitBtn = viewport.querySelector('.submit-vote-btn');
+  const addChoiceBtn = viewport.querySelector('.add-choice-btn');
 
   // 007-closed-state: front (Live Results link/Vote) and back (choice
   // bars/Submit vote) elements swapped for a closed message once a poll
@@ -1024,6 +1027,7 @@ function initPollCard(viewport, opts){
       label: c.label,
       color: c.color,
       pct: c.pct,
+      count: c.count || 0,
       selected: selectedIds.indexOf(c.id) !== -1
     }));
     data.sort((a, b) => b.pct - a.pct);
@@ -1213,6 +1217,23 @@ function initPollCard(viewport, opts){
     if (cardFlip.classList.contains('is-flipped')) cardFlip.classList.remove('is-flipped');
   }
 
+  /* Private polls whose creator lets voters add choices: offered to whom a vote is open,
+     until their final vote (the creator excepted). The server checks it all again. */
+  function mayAddChoice(){
+    if (!poll || poll.pollVisibility !== 'Private Poll' || !poll.votersAddChoices) return false;
+    if (poll.pollState !== 'OPEN' || poll.canVote === false) return false;
+    const me = window.Session && window.Session.getSession();
+    if (!me) return false;
+    const granted = Array.isArray(me.permissions) ? me.permissions : null;
+    if (granted && !granted.includes('Administrator') && !(granted.includes('Vote on Polls') && granted.includes('View Polls'))) return false;
+    const finalVoteCast = poll.voteMutability === 'Final-Vote Poll' && (poll.myChoiceIds || []).length > 0;
+    return !finalVoteCast || poll.ownPoll === true;
+  }
+
+  function updateAddChoice(){
+    if (addChoiceBtn) addChoiceBtn.hidden = !mayAddChoice();
+  }
+
   function render(){
     if (!data) return;
     votingList?.classList.toggle('is-multi', Boolean(poll) && poll.choiceMode !== 'Single-Choice Poll');
@@ -1222,6 +1243,7 @@ function initPollCard(viewport, opts){
     updateClosedState();
     updateActionButtons();
     updateStateMessage();
+    updateAddChoice();
   }
 
   /*
@@ -1406,6 +1428,77 @@ function initPollCard(viewport, opts){
     }
     showVoteError(result.error || 'Your vote could not be recorded. Please try again.');
     render();
+  });
+
+  async function latestDetail(){
+    try {
+      const res = await fetch('/api/me/polls/' + encodeURIComponent(opts.pid));
+      if (!res.ok) return null;
+      const body = await res.json();
+      const state = window.DeltaClient.createTabState();
+      state.cards.set(opts.pid, body.poll);
+      state.counts.set(opts.pid, body.counts);
+      state.overlay.set(opts.pid, body.overlay);
+      return window.DeltaClient.toPollDetail(state, opts.pid);
+    } catch {
+      return null;
+    }
+  }
+
+  function applyAddedChoices(answer){
+    const held = new Map(poll.choices.map((c) => [c.id, c]));
+    applyPoll(Object.assign({}, poll, {
+      contentVersion: answer.contentVersion,
+      choices: answer.choices.map((c) => {
+        const known = held.get(c.id);
+        return { id: c.id, label: c.label, position: c.position, color: c.color, count: known ? known.count : 0, pct: known ? known.pct : 0 };
+      })
+    }));
+  }
+
+  async function saveChoice(label){
+    let res;
+    try {
+      res = await fetch('/api/polls/' + encodeURIComponent(opts.pid) + '/choices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ label: label })
+      });
+    } catch {
+      return { error: '' };
+    }
+    const body = await res.json().catch(() => ({}));
+    if (res.ok){
+      applyAddedChoices(body);
+      if (opts.onChoicesAdded) opts.onChoicesAdded(opts.pid, body);
+      return { ok: true };
+    }
+    const known = typeof body.error === 'string' && body.error !== 'too-soon' && body.error !== 'busy';
+    return { status: res.status, error: known ? body.error : '' };
+  }
+
+  addChoiceBtn?.addEventListener('click', async () => {
+    if (!mayAddChoice()) return;
+    clearVoteError();
+    addChoiceBtn.disabled = true;
+    addChoiceBtn.setAttribute('aria-busy', 'true');
+    const detail = await latestDetail();
+    addChoiceBtn.disabled = false;
+    addChoiceBtn.removeAttribute('aria-busy');
+    if (!detail){
+      showVoteError("Couldn't load the latest choices. Try again.");
+      return;
+    }
+    applyPoll(detail);
+    const bounds = opts.choiceBounds || {};
+    const max = bounds.maxChoices || 50;
+    if (poll.choices.length >= max){
+      showVoteError('This poll already has the most choices allowed (' + max + ').');
+      return;
+    }
+    if (!mayAddChoice() || !window.AddChoiceDialog) return;
+    addChoiceBtn.focus();
+    window.AddChoiceDialog.open({ choices: poll.choices, maxLength: bounds.wizardChoiceMax || 40, onSave: saveChoice });
   });
 
   function holdVoteButton(ms){
@@ -1600,6 +1693,7 @@ const POLL_CARD_TEMPLATE = `
                 <path d="M11 18l-6-6 6-6"/>
               </svg>
             </button>
+            <button class="add-choice-btn" type="button" hidden>Add Choice</button>
             <!-- 008 FR-007: this label is the width both buttons size to. If it
                  changes, update .btn-vote-sizer on the front face to match. -->
             <button class="btn-primary btn-vote submit-vote-btn" type="button" disabled>Submit vote</button>
@@ -1619,7 +1713,7 @@ const POLL_CARD_TEMPLATE = `
 
 window.M3Ripple?.add(
   '.card-face .btn-vote, .card-face .icon-btn, .card-face .bookmark-btn, .card-face .maximize-btn, ' +
-  '.card-face .live-link, .card-face .arrow-row, .card-face .vote-row, .maximized-card-close'
+  '.card-face .live-link, .card-face .arrow-row, .card-face .vote-row, .maximized-card-close, .card-face .add-choice-btn'
 );
 
 window.PollCard = {

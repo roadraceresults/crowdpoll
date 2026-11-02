@@ -37,7 +37,7 @@
   // 014: minChoices / maxChoices are ENV_MIN_CHOICES / ENV_MAX_CHOICES, told to the
   // page by /api/config like the voter limit; the values here are only the fallback
   // until it answers.
-  const runtime = { privateVoterLimit: 100, participantsViewportSize: 10, maxInvitationsPerDay: 200, minChoices: 2, maxChoices: 50, barPalette: [] };
+  const runtime = { privateVoterLimit: 100, participantsViewportSize: 10, maxInvitationsPerDay: 200, minChoices: 2, maxChoices: 50, wizardChoiceMax: 40, barPalette: [] };
 
   function setRuntimeConfig(cfg) {
     if (Number.isInteger(cfg.maxPrivatePollVoters)) runtime.privateVoterLimit = cfg.maxPrivatePollVoters;
@@ -45,6 +45,7 @@
     if (Number.isInteger(cfg.maxInvitationsPerDay)) runtime.maxInvitationsPerDay = cfg.maxInvitationsPerDay;
     if (Number.isInteger(cfg.minChoices)) runtime.minChoices = cfg.minChoices;
     if (Number.isInteger(cfg.maxChoices)) runtime.maxChoices = cfg.maxChoices;
+    if (Number.isInteger(cfg.wizardChoiceMax)) runtime.wizardChoiceMax = cfg.wizardChoiceMax;
     if (Array.isArray(cfg.barPalette)) runtime.barPalette = cfg.barPalette;
   }
 
@@ -108,7 +109,7 @@
   }
 
   // The deletion confirmation. Same dialog pattern as askToDiscard, with one line
-  // per deleted choice that holds votes. Keep choices, Escape and the scrim answer
+  // per deleted choice that holds votes. Cancel, Escape and the scrim answer
   // false; Delete answers true.
   let pendingDeleteAnswer = null;
 
@@ -128,7 +129,7 @@
       for (const d of deletions) {
         text.appendChild(el("p", "modal-deleted-choice", d.label + " — " + d.votes + " vote(s)"));
       }
-      const keep = el("button", "tab-refresh modal-action modal-keep", "Keep choices");
+      const keep = el("button", "tab-refresh modal-action modal-keep", "Cancel");
       const remove = el("button", "tab-refresh modal-action modal-discard", "Delete");
       keep.type = remove.type = "button";
       const actions = el("div", "modal-actions");
@@ -505,7 +506,7 @@
       // Choice mode widens one way after votes: a Single-Choice poll may become
       // Multiple-Choice, never back. Mutability switches both ways.
       if (field === "choiceMode") return mode === "EDIT" || current.choiceMode === "Single-Choice Poll";
-      if (field === "voteMutability") return true;
+      if (field === "voteMutability" || field === "votersAddChoices") return true;
       return mode === "EDIT";   // pollVisibility, keywords
     }
 
@@ -517,7 +518,6 @@
     // Step 2's limits. Lengths count UTF-16 units, as the server does.
     const TITLE_MAX = 50;
     const SUBTITLE_MAX = 30;
-    const WIZARD_CHOICE_MAX = 40;     // an existing poll keeps CHOICE_LABEL_MAX (100)
     const KEYWORDS_TOTAL_MAX = 200;   // every keyword plus one comma between each pair
     const DEFAULT_TITLE = /^New Poll \d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/;
 
@@ -570,6 +570,7 @@
           .map((c) => c.label).join("\n"),
         colors: storedColors(),
         lineGraph: current.lineGraphEnabled === true,
+        addChoices: current.votersAddChoices === true,
         ...storedHow(),
         ...storedWhen(),
         showVoters: current.voteAnonymity === "No"
@@ -584,6 +585,7 @@
         choicesText: storedChoicesText(),
         colors: storedColors(),
         lineGraph: current.lineGraphEnabled === true,
+        addChoices: current.votersAddChoices === true,
         ...storedHow(),
         ...storedWhen(),
         showVoters: current.voteAnonymity === "No"
@@ -603,6 +605,7 @@
         choicesText: from.choicesText,
         colors: { ...from.colors },
         lineGraph: from.lineGraph,
+        addChoices: from.addChoices,
         multi: from.multi,
         rangeKind: from.rangeKind,
         from: from.from,
@@ -626,7 +629,7 @@
         wizard.choicesText !== base.choicesText ||
         JSON.stringify(colorsOfLines(wizard)) !== JSON.stringify(colorsOfLines(base)) ||
         ["multi", "rangeKind", "from", "to", "exact", "mutable",
-          "startMode", "startLocal", "endMode", "endLocal", "showVoters", "lineGraph"].some((k) => wizard[k] !== base[k]);
+          "startMode", "startLocal", "endMode", "endLocal", "showVoters", "lineGraph", "addChoices"].some((k) => wizard[k] !== base[k]);
     }
 
     // Step 3: the choices are the box's non-blank lines. These helpers read the open
@@ -761,7 +764,7 @@
       renderWizard();
     }
 
-    // The Choices textbox's text when the session began — what "Keep choices"
+    // The Choices textbox's text when the session began — what "Cancel"
     // restores, whole (C2).
     function sessionChoicesText() {
       return [...((session && session.poll.choices) || [])]
@@ -783,7 +786,7 @@
 
     // Resolves true when leaving the Choices section may proceed: no voted
     // deletion is pending, the same set was already confirmed, or Delete is
-    // pressed. Keep choices reverts the whole textbox to its session-entry text
+    // pressed. Cancel reverts the whole textbox to its session-entry text
     // and stays put. Zero-vote deletions never prompt (C2).
     async function confirmChoiceDeletions() {
       const deletions = pendingVotedDeletions();
@@ -901,6 +904,11 @@
         howLine.classList.add("wizard-summary-how");
         howLine.append("Each voter picks ", part(howPhrase(howPlan(s)), 5, "choiceMode"), ", and ",
           part(s.mutable ? "can change their vote" : "their vote is final", 5, "voteMutability"), ".");
+        if (who !== "public") {
+          const addLine = line();
+          addLine.classList.add("wizard-summary-add-choices");
+          addLine.append("Voters may add choices: ", part(s.addChoices ? "Yes" : "No", 5, "votersAddChoices"), ".");
+        }
       }
       // When to vote, once Step 6 is answered (its first change).
       if (s.answered.has(6)) {
@@ -1398,7 +1406,7 @@
       });
       wireChoicesBox(box, {
         // An existing poll keeps the server's 100 characters, so its labels are not cut.
-        maxLabel: existing ? CHOICE_LABEL_MAX : WIZARD_CHOICE_MAX,
+        maxLabel: existing ? CHOICE_LABEL_MAX : runtime.wizardChoiceMax,
         setError,
         onInput: () => {
           wizard.choicesText = box.value;
@@ -1451,8 +1459,22 @@
       update();
       requestAnimationFrame(grow);   // scrollHeight is only known once it is in the page
       pasteWrap.append(paste, pasteNote);
-      body.append(field.wrap, pasteWrap);
+      body.append(field.wrap);
+      const addedBy = buildAddedByList();
+      if (addedBy) body.appendChild(addedBy);
+      body.appendChild(pasteWrap);
       return body;
+    }
+
+    // The voters who added choices, in choice order; the names reach this card only.
+    function buildAddedByList() {
+      const added = [...(current.choices || [])].sort((a, b) => a.position - b.position)
+        .filter((c) => c.addedByName);
+      if (!added.length) return null;
+      const list = el("ul", "wizard-added-by");
+      list.setAttribute("aria-label", "Choices added by voters");
+      for (const choice of added) list.appendChild(el("li", null, choice.label + ": Added by " + choice.addedByName));
+      return list;
     }
 
     // ── Step 4: Colors ──
@@ -1726,6 +1748,7 @@
           !wizard.mutable, () => { wizard.mutable = false; howChanged(); })
       );
       body.appendChild(change);
+      if (wizard.who !== "public") body.appendChild(buildAddChoicesSwitch());
 
       const help = el("details", "wizard-help");
       help.appendChild(el("summary", null, "What does this mean?"));
@@ -1739,9 +1762,37 @@
         el("dt", null, "Their first vote is final"), el("dd", null,
           "A voter's first vote counts, and cannot be changed.")
       );
+      if (wizard.who !== "public") list.append(el("dt", null, ADD_CHOICES_LABEL), el("dd", null, ADD_CHOICES_HELP));
       help.appendChild(list);
       body.appendChild(help);
       return body;
+    }
+
+    // ── "Voters may add choices" ──
+    // A Material 3 switch below vote mutability, for private polls only; it can
+    // change after votes.
+    const ADD_CHOICES_LABEL = "Voters may add choices";
+    const ADD_CHOICES_HELP = "Off (the default): only you set the choices. On: anyone who may vote on your " +
+      "poll can add a choice while it is open, up to the most choices a poll may have.";
+
+    function buildAddChoicesSwitch() {
+      const row = el("label", "m3-switch-row");
+      const text = el("span", "m3-switch-text");
+      const support = el("span", "m3-switch-support",
+        wizard.addChoices ? "On: voters can add a choice while the poll is open." : "Off: only you set the choices.");
+      support.id = "addChoicesSwitchSupport-" + current.pid;
+      text.append(el("span", "m3-switch-label", ADD_CHOICES_LABEL), support);
+      const input = el("input", "m3-switch m3-switch--add-choices");
+      input.type = "checkbox";
+      input.setAttribute("role", "switch");
+      input.checked = wizard.addChoices === true;
+      input.setAttribute("aria-describedby", support.id);
+      input.addEventListener("change", () => {
+        wizard.addChoices = input.checked;
+        howChanged();
+      });
+      row.append(text, input);
+      return row;
     }
 
     // ── Step 6: When to vote ──
@@ -2072,6 +2123,8 @@
       fields.voteAnonymity = s.who !== "public" && s.showVoters ? "No" : "Yes";
       // Only an Administrator may change the line graph; the server refuses the field from anyone else.
       if (viewerIsAdmin) fields.lineGraphEnabled = s.lineGraph === true;
+      // Only a private poll takes added choices; a switch to public turns it off.
+      fields.votersAddChoices = s.who !== "public" && s.addChoices === true;
       return fields;
     }
 
@@ -2098,7 +2151,8 @@
         endMode: wizard.endMode,
         endLocal: wizard.endLocal,
         showVoters: wizard.showVoters,
-        lineGraph: wizard.lineGraph
+        lineGraph: wizard.lineGraph,
+        addChoices: wizard.addChoices
       };
     }
 
@@ -2111,12 +2165,18 @@
       deps.onEditEnd(current.pid);
     }
 
+    // The choices this card started from: a save keeps any a voter added since.
+    function baseChoiceIds() {
+      return ((session && session.poll.choices) || []).map((c) => c.id);
+    }
+
     async function postWizard(suffix) {
       try {
         const res = await fetch(pollUrl(suffix), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...wizardFields(), clientGuid: session.clientGuid, timeZone: timeZone() })
+          body: JSON.stringify({ ...wizardFields(), baseChoiceIds: baseChoiceIds(), clientGuid: session.clientGuid,
+            timeZone: timeZone() })
         });
         const body = await res.json().catch(() => ({}));
         return res.ok ? { ok: true, body } : { ok: false, body };
@@ -2169,7 +2229,7 @@
         if (!canChange(FIELD_OF[name] || name)) continue;
         body[name] = value;
       }
-      if (body.labels !== undefined) body.colors = after.colors;
+      if (body.labels !== undefined) Object.assign(body, { colors: after.colors, baseChoiceIds: baseChoiceIds() });
       let res;
       let answer = {};
       try {

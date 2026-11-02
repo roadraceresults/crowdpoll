@@ -442,3 +442,54 @@ describe("Applying a pending choice deletion (R4)", () => {
     });
   });
 });
+
+describe("votersAddChoices through /publish (USER-ADD-CHOICES A5)", () => {
+  let ctx: TestContext;
+  let cookie: string;
+  beforeAll(async () => {
+    ctx = await startTestContext();
+    ({ cookie } = await forgeSession(ctx, ctx.config.admins[0]!));
+  });
+  afterAll(async () => {
+    await ctx.stop();
+  });
+  beforeEach(async () => {
+    await polls(ctx).deleteMany({});
+    await voteHistory(ctx).deleteMany({});
+  });
+
+  const publish = (pid: string, body: Record<string, unknown>) =>
+    request(ctx.app).post(`/api/admin/polls/${pid}/publish`).set("Cookie", cookie).send(body);
+  const row = (pid: string) =>
+    ctx.db.selectFrom("polls").select(["voters_add_choices", "content_version", "pending_update"]).where("id", "=", pid).executeTakeFirstOrThrow();
+
+  async function voted(overrides: Parameters<typeof makePoll>[0] = {}) {
+    const poll = makePoll({ pollState: "OPEN", pollVisibility: "Private Poll", ...overrides });
+    await polls(ctx).insertOne(poll);
+    await voteHistory(ctx).insertOne({ pid: poll._id, emailAddress: "v@example.com", userName: "v", choiceIds: ["c1"], votedAt: new Date() });
+    return poll;
+  }
+
+  it("saves on a voted Private poll at once, with no review, and bumps content_version", async () => {
+    const poll = await voted();
+    const before = await row(poll._id);
+    const res = await publish(poll._id, { votersAddChoices: true });
+    expect(res.status).toBe(200);
+    const after = await row(poll._id);
+    expect(after.voters_add_choices).toBe(true);
+    expect(after.pending_update).toBeNull();
+    expect(Number(after.content_version)).toBeGreaterThan(Number(before.content_version));
+  });
+
+  it("refuses true on a Public poll, and a value that is not true or false", async () => {
+    const pub = await voted({ pollVisibility: "Public Poll" });
+    const refused = await publish(pub._id, { votersAddChoices: true });
+    expect(refused.status).toBe(400);
+    expect(refused.body.error).toBe("Only a private poll can let voters add choices.");
+    const priv = await voted();
+    const bad = await publish(priv._id, { votersAddChoices: "yes" });
+    expect(bad.status).toBe(400);
+    expect(bad.body.error).toBe("votersAddChoices must be true or false.");
+    expect((await row(priv._id)).voters_add_choices).toBe(false);
+  });
+});

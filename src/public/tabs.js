@@ -184,11 +184,16 @@
       {
         isSignedIn: isSignedIn,
         onVoted: (pid, outcome) => applyVote(cardOpts.tab, pid, outcome),
+        onChoicesAdded: (pid, answer) => applyAddedChoices(pid, answer),
         onLive: (pid) => { if (window.LiveResults) window.LiveResults.addPoll(pid); },
         onBookmark: (pid, bookmarked) => toggleBookmark(pid, bookmarked),
         onMaximize: (pid) => maximize(pid),
         onMinimize: () => restore(),
-        choiceBounds: { minChoices: (config && config.minChoices) || 2, maxChoices: (config && config.maxChoices) || 50 }
+        choiceBounds: {
+          minChoices: (config && config.minChoices) || 2,
+          maxChoices: (config && config.maxChoices) || 50,
+          wizardChoiceMax: (config && config.wizardChoiceMax) || 40
+        }
       },
       cardOpts
     );
@@ -346,6 +351,14 @@
         next.choices = next.choices.map((choice) => {
           const count = patch.outcome.choiceCounts[choice.id] || 0;
           return Object.assign({}, choice, { count: count, pct: share > 0 ? Math.round((count / share) * 100) : 0 });
+        });
+      }
+      if (patch.added) {
+        const held = new Map(next.choices.map((c) => [c.id, c]));
+        next.contentVersion = patch.added.contentVersion;
+        next.choices = patch.added.choices.map((c) => {
+          const known = held.get(c.id);
+          return { id: c.id, label: c.label, position: c.position, color: c.color, count: known ? known.count : 0, pct: known ? known.pct : 0 };
         });
       }
       retainedDetail = next;
@@ -905,6 +918,19 @@
     if (owner && owner.onVoted) owner.onVoted(pid);
   }
 
+  /* A voter's added choice goes into every tab's copy of the poll, so a later rebuild
+     (a vote, a refresh at the same version) keeps it. */
+  function applyAddedChoices(pid, answer) {
+    Object.keys(controllers).forEach((name) => {
+      const controller = controllers[name];
+      if (!controller.state || !controller.grid || !controller.state.cards.has(pid)) return;
+      const card = controller.state.cards.get(pid);
+      controller.state.cards.set(pid, Object.assign({}, card, { choices: answer.choices, contentVersion: answer.contentVersion }));
+      controller.grid.reapply(controller.state, pid);
+    });
+    if (maximized) maximized.grid.patchRetained(pid, { added: answer });
+  }
+
   // ---- Selection ----
 
   function setActiveButton(name) {
@@ -1002,7 +1028,9 @@
       const unsubscribe = window.Session.subscribe(() => {
         clearTimeout(timer);
         resolve();
-        setTimeout(unsubscribe, 0);
+        // Session.subscribe calls back at once when the session is known, before
+        // `unsubscribe` is assigned; the arrow reads it once the timer fires.
+        setTimeout(() => unsubscribe(), 0);
       });
     });
   }

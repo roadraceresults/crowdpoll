@@ -36,7 +36,7 @@ npx vitest run tests/polls-pending-update.test.ts tests/polls-editing-lock.test.
 
 1. Creator: open the editor, go to Choices — the same textbox, Paste choices button and help text as ever (no new controls).
 2. Add a new line; delete a line that has votes; leave the section (click another step circle).
-3. A confirmation names the deleted choice with its vote count (as of edit-mode entry). Click **Keep choices** → the whole textbox reverts to its session-entry state.
+3. A confirmation names the deleted choice with its vote count (as of edit-mode entry). Click **Cancel** ("Keep choices" until TWEAK04 of USER-ADD-CHOICES) → the whole textbox reverts to its session-entry state.
 4. Redo the edit, confirm with **Delete**, Save changes.
 5. After the sweep: the added choice appears **last** with an Automatic colour; surviving choices keep their labels, positions, colours and counts; the deleted choice is gone from results; a single-choice poll's percentages sum to 100 %.
 6. Voter whose only choice was deleted: the card shows them as not having voted; they can vote again — even on a Final-Vote poll.
