@@ -15,7 +15,6 @@
   box-shadow:var(--md-sys-elevation-3);
 }
 
-@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .modal{ box-shadow:none; } }
 :root[data-theme="dark"] .modal{ box-shadow:none; }
 
 /* ---------- 3. Supporting text ---------- */

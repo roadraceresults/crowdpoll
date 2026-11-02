@@ -615,7 +615,7 @@ with gridlines every 5, 10, 15 or 25%. A line's colour is the
 choice's manual hex from the response, else the colour the card itself assigned (`card.resultColors()`),
 so lines and bars never disagree in hue; `PollCard.lineColorOn` shades a colour under 3:1 against the
 panel's computed background to the nearest same-hue shade that reaches it, and a
-`prefers-color-scheme` change redraws. A pointer over the plot places a crosshair, ringed markers and
+`data-theme` change on `<html>` (a `MutationObserver`) redraws. A pointer over the plot places a crosshair, ringed markers and
 a rich tooltip at the nearest bucket with every line's share and the time (with the hour on hourly
 scales), formatted in the viewer's locale and time zone; a touch reading stays until a press outside
 the plot. The plot is one Tab stop: focus shows the newest point, the arrow keys, Home and End move
@@ -695,10 +695,20 @@ flowchart TB
 - **Tokens.** `m3-tokens.css` holds every `--md-sys-*` value. In light the production tokens
   (`--ink`, `--paper`, `--moss` …) keep their values; in dark they are restated as Material 3
   roles, so every production rule follows the scheme.
-- **Scheme.** Dark applies under `@media (prefers-color-scheme: dark)` to
-  `:root:not([data-theme="light"])`, and to `:root[data-theme="dark"]`. `data-theme` is a
-  development and test hook, with one production use: `admin.html` and `admin-results.html`
-  carry `data-theme="light"` until their content is restyled.
+- **Scheme.** Light is the default for everyone; the device's `prefers-color-scheme` is never read.
+  Dark applies only under `:root[data-theme="dark"]`, which follows the user's Site Settings choice,
+  stored in the nullable `user.color_scheme` column (`'light'` or `'dark'`, migration
+  `016-color-scheme`; null reads as Light). `GET /api/me` returns it as `colorScheme`, and
+  `PATCH /api/me { colorScheme }` saves it (with or without `userName`; a scheme-only save touches
+  no poll) and calls `forgetUserSessions`.
+- **Applying it.** `colorScheme.js` is a synchronous script in every page's head, before the
+  stylesheets: it applies the `localStorage.colorScheme` copy, so a page paints in the scheme with no
+  flash. Once the session answers, its `Session.subscribe` callback sets `data-theme` and the copy
+  from the account; no session (`401`, sign-out) means Light and the copy removed. Other tabs follow
+  through the session broadcast (`auth-state`). The Site Settings card (`settingsCard.js`) applies a
+  choice in the `change` event's task and serializes the saves (one in flight, the latest queued);
+  while one is pending, `ColorScheme.setSaving` keeps incoming snapshots from overriding it, and a
+  failure reverts to the scheme the account last reported.
 - **Ripple.** `m3-ripple.js` installs one delegated `pointerdown` listener. Each script registers
   the controls it owns with `window.M3Ripple?.add(selector)`. A vote row's ripple is hosted over
   the row, because the click that follows rebuilds it. No ripple plays under reduced motion or on

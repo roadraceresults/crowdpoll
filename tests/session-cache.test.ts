@@ -38,10 +38,10 @@ describe("session cache-aside", () => {
     expect(countSessionQueries()).toBe(before);
   });
 
-  it("caches the user's permissions and terms version with the session and reads them once per miss", async () => {
+  it("caches the user's permissions, terms version and color scheme with the session and reads them once per miss", async () => {
     const { cookie, userId } = await forgeSession(ctx, "grants@example.com");
     await ctx.db.updateTable("user").set({ terms_version: "2001-01-01" }).where("id", "=", userId).execute();
-    const permissionReads = () => ctx.queries.filter((q) => /select "permissions", "terms_version" from "user"/.test(q)).length;
+    const permissionReads = () => ctx.queries.filter((q) => /select "permissions", "terms_version", "color_scheme" from "user"/.test(q)).length;
 
     const before = permissionReads();
     await request(ctx.app).get("/api/me").set("Cookie", cookie);

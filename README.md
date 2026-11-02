@@ -92,8 +92,13 @@ delivery network.
   multiple-choice poll it shows the share of all the selections made, so the bars add up to 100%.
 - **Look and dark mode** — the site follows Google's Material 3 design, in the Roboto typeface:
   tabs, buttons, menus, dialogs and short messages ("snackbars") look and respond the same way
-  everywhere. It follows your device's light or dark setting; the administration pages stay light
-  for now.
+  everywhere. The site is light for everyone, whatever your device's own light or dark setting.
+- **Site Settings** — the avatar menu's Site Settings item (a gear, for every signed-in user) opens a
+  page with one setting, Color Scheme: Light (the default) or Dark. A choice applies at once, with no
+  Save button, and is saved to your account, so every page, the administration pages and the line
+  graph included, opens in it on any device you sign in on. Other open tabs switch too. If the save
+  fails, the page goes back to the scheme your account holds and says so. Signing out returns the
+  browser to Light. Poll Administration's menu item now has its own checklist icon.
 - **Tooltips** — resting the pointer on an icon, or reaching it with the keyboard, explains what it
   does. On a touch screen, press and hold the icon. A result or choice whose name is cut off shows
   the full name the same way.

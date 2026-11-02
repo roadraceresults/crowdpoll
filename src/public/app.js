@@ -272,7 +272,14 @@
 
   const CREATE_POLL_GLYPH = `<circle cx="32" cy="32" r="32" fill="currentColor"/><path d="M32 18v28M18 32h28" fill="none" stroke="var(--paper)" stroke-width="6" stroke-linecap="round"/>`;
   const PROFILE_GLYPH = `<circle cx="32" cy="32" r="32" fill="#8093a7"/><circle cx="32" cy="25" r="11" fill="#e8edf2"/><path d="M32 40c-11 0-19 6.5-19 14.5V64h38v-9.5C51 46.5 43 40 32 40z" fill="#e8edf2"/>`;
-  const ADMIN_GLYPH = `<circle cx="32" cy="32" r="32" fill="currentColor"/><circle cx="32" cy="32" r="18" fill="none" stroke="var(--paper)" stroke-width="8" pathLength="16" stroke-dasharray="1 1"/><circle cx="32" cy="32" r="14" fill="var(--paper)"/><circle cx="32" cy="32" r="6" fill="currentColor"/>`;
+  const SETTINGS_GLYPH = `<circle cx="32" cy="32" r="32" fill="currentColor"/><circle cx="32" cy="32" r="18" fill="none" stroke="var(--paper)" stroke-width="8" pathLength="16" stroke-dasharray="1 1"/><circle cx="32" cy="32" r="14" fill="var(--paper)"/><circle cx="32" cy="32" r="6" fill="currentColor"/>`;
+  // A checklist: three ticked boxes, each followed by a bar, the middle bar shorter.
+  const ADMIN_GLYPH = `<circle cx="32" cy="32" r="32" fill="currentColor"/>` +
+    [13, 27, 41].map((top, row) =>
+      `<rect x="13" y="${top}" width="10" height="10" rx="2" fill="var(--paper)"/>` +
+      `<path d="M15.5 ${top + 5}l2.5 2.5 4.5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>` +
+      `<rect x="27" y="${top + 2}" width="${row === 1 ? 14 : 24}" height="6" rx="3" fill="var(--paper)"/>`
+    ).join("");
   const LOGOUT_GLYPH = `<circle cx="32" cy="32" r="32" fill="currentColor"/><path d="M30 17H23a4 4 0 0 0-4 4v22a4 4 0 0 0 4 4h7M28 32h19M39 24l8 8-8 8" fill="none" stroke="var(--paper)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`;
 
   const CREATE_POLL_NAV = `<nav class="header-nav"><a href="/admin" class="header-nav-link"><svg class="header-nav-icon" viewBox="0 0 64 64" aria-hidden="true" focusable="false">${CREATE_POLL_GLYPH}</svg>Create Poll</a></nav>`;
@@ -339,6 +346,12 @@
       editLink.href = "/profile";
       fillMenuItem(editLink, PROFILE_GLYPH, "Edit Profile");
       menu.appendChild(editLink);
+
+      // Every signed-in user may change their own settings, whatever their permissions.
+      const settingsLink = document.createElement("a");
+      settingsLink.href = "/settings";
+      fillMenuItem(settingsLink, SETTINGS_GLYPH, "Site Settings");
+      menu.appendChild(settingsLink);
 
       const createPollLink = document.createElement("a");
       createPollLink.className = "avatar-menu-create-poll";
@@ -564,6 +577,7 @@
   });
 
   window.SiteSearch = { value: siteSearchValue, set: setSiteSearch };
+  window.SiteGlyphs = { settings: SETTINGS_GLYPH };
 
 
   async function init() {

@@ -37,10 +37,7 @@
 .result-row > .result-label,
 .result-row > .result-pct{ color:var(--bar-ink, var(--ink)); }
 
-@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .result-row{ background:var(--bar-track-dark, var(--track)); } }
 :root[data-theme="dark"] .result-row{ background:var(--bar-track-dark, var(--track)); }
-@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .result-row > .result-label,
-:root:not([data-theme="light"]) .result-row > .result-pct{ color:var(--bar-ink-dark, var(--ink)); } }
 :root[data-theme="dark"] .result-row > .result-label,
 :root[data-theme="dark"] .result-row > .result-pct{ color:var(--bar-ink-dark, var(--ink)); }
 

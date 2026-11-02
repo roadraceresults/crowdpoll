@@ -1627,13 +1627,14 @@ describe("the header's Create Poll link and the vote grant (025)", () => {
     page = await signedInWith("menu-creator@example.com");
     expect(menuLinks(page)).toEqual([
       ["Edit Profile", "/profile"],
+      ["Site Settings", "/settings"],
       ["Create Poll", "/admin"],
       ["Poll Administration", "/admin"],
       ["Logout", "#"]
     ]);
     page.close();
     page = await signedInWith("menu-no-create@example.com", ["View Polls", "Vote on Polls"]);
-    expect(menuLinks(page).map(([text]) => text)).toEqual(["Edit Profile", "Create Poll", "Logout"]);
+    expect(menuLinks(page).map(([text]) => text)).toEqual(["Edit Profile", "Site Settings", "Create Poll", "Logout"]);
     expect(page.document.querySelector(".avatar-menu-create-poll")!.getAttribute("aria-disabled")).toBe("true");
   });
 

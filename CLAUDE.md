@@ -6,6 +6,25 @@ The full description, every earlier feature's decisions and the settings table a
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261102-134601-SITE-SETTINGS/plan.md` (research R1–R13, `data-model.md` — one `user` column,
+`color_scheme`, added by migration `016-color-scheme`, the `localStorage` copy and the `data-theme` states; the HTTP
+contracts `contracts/api.md` A1–A3, the UI contracts `contracts/ui-contracts.md` C1–C6, and the quickstart live
+alongside it in `specs/20261102-134601-SITE-SETTINGS/`). The requirements report is
+`requirements/20261102-134601-site-settings/requirements-report.md`: 3 diagrams and 13 findings, all resolved.
+Decisions that are easy to get wrong:
+- **Light is the default everywhere**: every `prefers-color-scheme` block is deleted; Dark exists only under
+  `:root[data-theme="dark"]`; the admin pages lose `data-theme="light"` (R8, NC1).
+- **`colorScheme.js` is a synchronous head script** on every page, before the stylesheets; it applies the
+  `localStorage.colorScheme` copy, and the `Session.subscribe` answer corrects it (a `401` → Light, copy removed)
+  (R3, R4, clarification Q1).
+- **`PATCH /api/me` takes `userName` and/or `colorScheme`**; a scheme-only save touches no poll; every PATCH calls
+  `forgetUserSessions` (R2).
+- **Saves are serialized** (one in flight, the latest queued); a failure reverts to `lastSaved` (R7).
+- **The line graph observes `<html data-theme>`**, not `matchMedia` (R9); the gear is `SETTINGS_GLYPH`, Poll
+  Administration a new checklist `ADMIN_GLYPH` (R10).
+- **Every page is contrast-audited in both schemes** (FR-011a, clarification Q2; R11).
+One additive migration, no new dependency or setting; one page route, one head script, one card module, one stylesheet.
+The preceding feature is
 `specs/20261101-181626-USER-ADD-CHOICES/plan.md` (research R1–R12, `data-model.md` — one `polls` column,
 `voters_add_choices`, added by migration `015-voters-add-choices`, and `Choice.addedBy`; the HTTP contracts
 `contracts/api.md` A1–A5, the UI contracts `contracts/ui-contracts.md` C1–C5, and the quickstart live alongside it in
@@ -22,20 +41,6 @@ Decisions that are easy to get wrong:
   and when a poll turns anonymous (R9, clarification Q1).
 - **The creator's save sends `baseChoiceIds`**, and stored choices not listed are kept (R10).
 One additive migration, no new dependency or setting; one route, one browser module, one stylesheet.
-The preceding feature is
-`specs/20261101-150208-ADAPTIVE-Y-AXIS/plan.md` (research R1–R7, `data-model.md` — the axis top, step and mapping derived
-per draw, nothing stored — the UI contracts `contracts/ui-contracts.md` C1–C4, and the quickstart live alongside it in
-`specs/20261101-150208-ADAPTIVE-Y-AXIS/`). The requirements report is
-`requirements/20261101-150208-adaptive-y-axis/requirements-report.md`: 3 diagrams and 6 findings, all resolved.
-Decisions that are easy to get wrong:
-- **The top is chosen in the browser**, in `lineGraph.js` `renderSvg()`, from the drawn series of the scale shown
-  (`state.data.series`): the smallest of 25, 50, 75, 100 at or above the highest point; no line → 25 (R1, R2).
-- **Gridlines every 5, 10 or 15% for a 25, 50 or 75% top; every 25% for 100%**, so a 100% graph is unchanged (R3).
-- **No stored top**: every `renderSvg()` call (mount, scale switch, refresh, resize) derives it again (R4).
-- **One mapping**: `y` uses the top, and `view.y` carries it to the crosshair markers; tooltip and live region keep the
-  real percentages (R5).
-- **POLL-LINE-GRAPH contract C5 is amended** ("0% to 25, 50, 75 or 100%, … five or six gridlines") (R6).
-No server, route, configuration, data or migration change; no new dependency.
 <!-- SPECKIT END -->
 
 ## Project Overview

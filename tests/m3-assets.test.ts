@@ -25,6 +25,7 @@ const LAYER_ORDER = [
   "pollCard-m3.css",
   "card-shell-m3.css",
   "profile-editor-m3.css",
+  "site-settings-m3.css",
   "admin-card-m3.css",
   "admin-search-m3.css",
   "single-column-m3.css",
@@ -50,6 +51,11 @@ const PAGES: Record<string, PageAssets> = {
     sheets: ["tabs.css", "pollCard.css", "site.css"],
     scripts: ["app.js", "headerFit.js", "fixedChrome.js", "cardShell.js", "profileCard.js", "backToTopFab.js"],
     layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "card-shell-m3.css", "profile-editor-m3.css", "footer-m3.css"]
+  },
+  "settings.html": {
+    sheets: ["tabs.css", "pollCard.css", "site.css"],
+    scripts: ["app.js", "headerFit.js", "fixedChrome.js", "cardShell.js", "settingsCard.js", "backToTopFab.js"],
+    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "card-shell-m3.css", "profile-editor-m3.css", "site-settings-m3.css", "footer-m3.css"]
   },
   "login.html": {
     sheets: ["tabs.css", "pollCard.css", "site.css"],
@@ -133,15 +139,6 @@ function forcedDarkRules(css: string): string[] {
   );
 }
 
-/** The rules inside `@media (prefers-color-scheme: dark)`, written as their forced twins. */
-function systemDarkRules(css: string): string[] {
-  return [...css.matchAll(/@media \(prefers-color-scheme: dark\)\{/g)].map((m) => {
-    const open = css.indexOf("{", m.index!);
-    const inner = css.slice(open + 1, blockEnd(css, open) - 1);
-    return normalise(inner.replaceAll(':root:not([data-theme="light"])', ':root[data-theme="dark"]'));
-  });
-}
-
 function expectedSheets(page: PageAssets): string[] {
   return ["m3-tokens.css", ...page.sheets, ...LAYER_ORDER.filter((layer) => page.layers.includes(layer))];
 }
@@ -165,27 +162,28 @@ describe("Material 3 page assets", () => {
       expect(html.indexOf('href="/fonts/fonts.css"')).toBeLessThan(html.indexOf('href="/m3-tokens.css"'));
       expect(html).not.toMatch(/fonts\.(googleapis|gstatic)\.com/);
     });
+
+    it(`${file} applies the color scheme before any stylesheet`, () => {
+      const html = read(file);
+      const tag = '<script src="/colorScheme.js"></script>';
+      expect(html.split(tag)).toHaveLength(2);
+      expect(html.indexOf(tag)).toBeLessThan(html.indexOf('<link rel="stylesheet"'));
+      expect(html.indexOf("<script")).toBe(html.indexOf(tag));
+    });
   }
 
-  it("follows the system colour scheme wherever a dark rule exists, with identical declarations", () => {
+  it("never follows the device's colour scheme: Dark comes only from the user's choice", () => {
     const sheets = readdirSync(publicDir).filter((name) => name.endsWith(".css"));
     let darkSheets = 0;
     for (const name of sheets) {
-      const forced = forcedDarkRules(read(name));
-      const system = systemDarkRules(read(name));
-      if (forced.length > 0) darkSheets++;
-      expect(system, name).toEqual(forced);
+      if (forcedDarkRules(read(name)).length > 0) darkSheets++;
+      expect(read(name), name).not.toContain("prefers-color-scheme");
     }
     expect(darkSheets).toBeGreaterThanOrEqual(4);
   });
 
-  it("keeps the admin pages light, and only them", () => {
-    for (const file of Object.keys(PAGES)) {
-      const html = read(file);
-      const light = file.startsWith("admin");
-      expect(html.includes('<html lang="en" data-theme="light">'), file).toBe(light);
-      expect(html.includes("data-theme"), file).toBe(light);
-    }
+  it("pins no page to a scheme: the admin pages follow the user's choice too", () => {
+    for (const file of Object.keys(PAGES)) expect(read(file).includes("data-theme"), file).toBe(false);
   });
 
   it("defines the shared ripple registry", () => {

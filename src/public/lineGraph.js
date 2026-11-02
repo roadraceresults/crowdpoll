@@ -445,8 +445,7 @@
       crosshairTime: null,
       pointerPlaced: false,
       liveEl: null,
-      colorScheme: null,
-      onSchemeChange: null,
+      schemeObserver: null,
       onDocumentPointerDown: null
     };
 
@@ -478,15 +477,13 @@
       state.observer.observe(element);
     }
 
-    if (typeof window.matchMedia === 'function') {
-      state.colorScheme = window.matchMedia('(prefers-color-scheme: dark)');
-      state.onSchemeChange = () => {
-        if (!state || !state.data || state.data.buckets.length < 2) return;
-        renderLegend();
-        renderSvg();
-      };
-      state.colorScheme.addEventListener('change', state.onSchemeChange);
-    }
+    // The page's color scheme is the data-theme attribute on <html>, set by colorScheme.js.
+    state.schemeObserver = new MutationObserver(() => {
+      if (!state || !state.data || state.data.buckets.length < 2) return;
+      renderLegend();
+      renderSvg();
+    });
+    state.schemeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
     state.onDocumentPointerDown = (event) => {
       if (state.crosshairTime !== null && !state.graphEl.contains(event.target)) clearCrosshair();
@@ -501,7 +498,7 @@
     if (!state) return;
     stopRefresh();
     if (state.observer) state.observer.disconnect();
-    if (state.colorScheme) state.colorScheme.removeEventListener('change', state.onSchemeChange);
+    state.schemeObserver.disconnect();
     if (state.onDocumentPointerDown) document.removeEventListener('pointerdown', state.onDocumentPointerDown);
     state.el.replaceChildren();
     state = null;

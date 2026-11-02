@@ -55,6 +55,11 @@ function parseEmail(raw: unknown): string | null {
   return email;
 }
 
+/** The session user's color scheme, set by the session lookup; never chosen reads as light. */
+function colorSchemeOf(user: object): "light" | "dark" {
+  return (user as { colorScheme?: string }).colorScheme === "dark" ? "dark" : "light";
+}
+
 /** Origin of the incoming request (https custom domain behind the proxy). */
 function requestOrigin(req: Request): string {
   return `${req.protocol}://${req.get("host")}`;
@@ -714,7 +719,8 @@ export function createApiRouter({ auth, db, cache, config, sessions, pageLoads }
         isAdmin: isAdminEmail(user.email, config),
         permissions: effectivePermissions(user as Caller, config),
         termsAccepted: hasAcceptedTerms(session),
-        termsFirstAcceptance: !(session.user as { termsVersion?: string | null }).termsVersion
+        termsFirstAcceptance: !(session.user as { termsVersion?: string | null }).termsVersion,
+        colorScheme: colorSchemeOf(session.user)
       });
     })
   );
@@ -783,7 +789,7 @@ export function createApiRouter({ auth, db, cache, config, sessions, pageLoads }
     })
   );
 
-  // PATCH /api/me — edit userName (FR-013)
+  // PATCH /api/me — edit userName (FR-013) and/or the color scheme (Site Settings)
   router.patch(
     "/api/me",
     wrap(async (req, res) => {
@@ -792,22 +798,40 @@ export function createApiRouter({ auth, db, cache, config, sessions, pageLoads }
         res.status(401).json({ error: "Not signed in" });
         return;
       }
-      const userName = typeof req.body?.userName === "string" ? req.body.userName.trim() : "";
-      if (userName.length === 0 || userName.length > USERNAME_MAX) {
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      const renaming = "userName" in body;
+      const choosingScheme = "colorScheme" in body;
+      if (!renaming && !choosingScheme) {
+        res.status(400).json({ error: "Nothing to change." });
+        return;
+      }
+      const userName = typeof body.userName === "string" ? body.userName.trim() : "";
+      if (renaming && (userName.length === 0 || userName.length > USERNAME_MAX)) {
         res.status(400).json({
           error: `Please enter a userName between 1 and ${USERNAME_MAX} characters.`
         });
         return;
       }
+      const colorScheme = body.colorScheme;
+      if (choosingScheme && colorScheme !== "light" && colorScheme !== "dark") {
+        res.status(400).json({ error: 'Color scheme must be "light" or "dark".' });
+        return;
+      }
       try {
         // The unique index on lower("userName") is the single source of truth for
         // name collisions; the rename also reaches every poll the user created.
+        // A color scheme alone touches only the user row.
         await db.transaction().execute(async (trx) => {
           await trx
             .updateTable("user")
-            .set({ userName, updatedAt: new Date() })
+            .set({
+              ...(renaming ? { userName } : {}),
+              ...(choosingScheme ? { color_scheme: colorScheme as string } : {}),
+              updatedAt: new Date()
+            })
             .where("id", "=", session.user.id)
             .execute();
+          if (!renaming) return;
           const created = await trx
             .updateTable("polls")
             .set({ created_by_name: userName })
@@ -824,16 +848,19 @@ export function createApiRouter({ auth, db, cache, config, sessions, pageLoads }
         throw err;
       }
       await sessions.forgetUserSessions(session.user.id);
-      console.log(`[profile] User ${session.user.id} renamed to "${userName}"`);
+      if (renaming) console.log(`[profile] User ${session.user.id} renamed to "${userName}"`);
+      if (choosingScheme) console.log(`[settings] User ${session.user.id} color scheme set to ${colorScheme}`);
       const user = session.user as typeof session.user & {
+        userName?: string;
         profileAvatar?: string;
         status?: string;
       };
       res.json({
-        userName,
+        userName: renaming ? userName : user.userName,
         emailAddress: user.email,
         profileAvatar: user.profileAvatar,
-        status: user.status
+        status: user.status,
+        colorScheme: choosingScheme ? colorScheme : colorSchemeOf(session.user)
       });
     })
   );
