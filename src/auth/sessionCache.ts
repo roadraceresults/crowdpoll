@@ -58,12 +58,17 @@ export function createSessionCache({ auth, db, cache, ttlMs }: SessionCacheDeps)
     if (!session) return null;
     const row = await db
       .selectFrom("user")
-      .select(["permissions", "terms_version"])
+      .select(["permissions", "terms_version", "color_scheme"])
       .where("id", "=", session.user.id)
       .executeTakeFirst();
-    const user = session.user as Session["user"] & { permissions: string[]; termsVersion: string | null };
+    const user = session.user as Session["user"] & {
+      permissions: string[];
+      termsVersion: string | null;
+      colorScheme: "light" | "dark";
+    };
     user.permissions = row?.permissions ?? [];
     user.termsVersion = row?.terms_version ?? null;
+    user.colorScheme = row?.color_scheme === "dark" ? "dark" : "light";
     return session;
   }
 

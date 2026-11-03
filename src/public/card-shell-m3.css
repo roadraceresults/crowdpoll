@@ -258,15 +258,10 @@
   flex:1 1 auto;
   border-top:1px solid var(--md-sys-color-outline-variant);
 }
-@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .card-shell-body .oauth-google{ background:#131314; border-color:#8E918F; color:#E3E3E3; } }
 :root[data-theme="dark"] .card-shell-body .oauth-google{ background:#131314; border-color:#8E918F; color:#E3E3E3; }
-@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .card-shell-body .oauth-microsoft{ background:#2F2F2F; border-color:#2F2F2F; color:#FFFFFF; } }
 :root[data-theme="dark"] .card-shell-body .oauth-microsoft{ background:#2F2F2F; border-color:#2F2F2F; color:#FFFFFF; }
-@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .card-shell-body .oauth-apple{ background:#FFFFFF; color:#000000; } }
 :root[data-theme="dark"] .card-shell-body .oauth-apple{ background:#FFFFFF; color:#000000; }
-@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .card-shell-body .oauth-apple .oauth-logo-light{ display:none; } }
 :root[data-theme="dark"] .card-shell-body .oauth-apple .oauth-logo-light{ display:none; }
-@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .card-shell-body .oauth-apple .oauth-logo-dark{ display:block; } }
 :root[data-theme="dark"] .card-shell-body .oauth-apple .oauth-logo-dark{ display:block; }
 
 /* ---------- 11. The form field error ---------- */

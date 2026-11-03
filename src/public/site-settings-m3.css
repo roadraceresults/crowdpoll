@@ -1,0 +1,99 @@
+/* Material 3 radio buttons for the Site Settings card: https://m3.material.io/components/radio-button/specs
+   Tokens only: they carry both color schemes, so this sheet has no dark block. */
+
+/* ---------- 1. The gear in the avatar's slot ---------- */
+.settings-glyph{
+  width:48px;
+  height:48px;
+  color:var(--md-sys-color-on-surface);
+}
+
+/* ---------- 2. The group ---------- */
+.card-shell-body .settings-group{
+  display:grid;
+  margin:0 0 16px;
+}
+.card-shell-body .settings-group-label{
+  margin:0 0 4px;
+  font-weight:var(--md-sys-typescale-title-medium-weight);
+  font-size:var(--md-sys-typescale-title-medium-size);
+  line-height:var(--md-sys-typescale-title-medium-line-height);
+  letter-spacing:var(--md-sys-typescale-title-medium-tracking);
+  color:var(--md-sys-color-on-surface);
+}
+
+/* ---------- 3. Rows ---------- */
+.card-shell-body .settings-group label{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  min-height:48px;
+  font-family:var(--md-sys-typescale-font);
+  font-weight:var(--md-sys-typescale-body-large-weight);
+  font-size:var(--md-sys-typescale-body-large-size);
+  line-height:var(--md-sys-typescale-body-large-line-height);
+  letter-spacing:var(--md-sys-typescale-body-large-tracking);
+  color:var(--md-sys-color-on-surface);
+  cursor:pointer;
+}
+
+/* ---------- 4. The radio ---------- */
+.card-shell-body .settings-group input[type="radio"]{
+  appearance:none;
+  position:relative;
+  flex:0 0 auto;
+  width:20px;
+  height:20px;
+  margin:0 0 0 14px;
+  border:2px solid var(--md-sys-color-on-surface-variant);
+  border-radius:50%;
+  background:transparent;
+  cursor:pointer;
+}
+.card-shell-body .settings-group input[type="radio"]::before{
+  content:'';
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:40px;
+  height:40px;
+  margin:-20px 0 0 -20px;
+  border-radius:50%;
+  background:var(--md-sys-color-on-surface);
+  opacity:0;
+  pointer-events:none;
+  transition:opacity 0.15s ease;
+}
+.card-shell-body .settings-group input[type="radio"]::after{
+  content:'';
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:10px;
+  height:10px;
+  margin:-5px 0 0 -5px;
+  border-radius:50%;
+  background:var(--md-sys-color-primary);
+  transform:scale(0);
+  transition:transform 0.15s ease;
+}
+.card-shell-body .settings-group input[type="radio"]:hover::before{ opacity:var(--md-sys-state-hover-state-layer-opacity); }
+.card-shell-body .settings-group input[type="radio"]:focus-visible::before{ opacity:var(--md-sys-state-focus-state-layer-opacity); }
+.card-shell-body .settings-group input[type="radio"]:active::before{ opacity:var(--md-sys-state-pressed-state-layer-opacity); }
+.card-shell-body .settings-group input[type="radio"]:checked{ border-color:var(--md-sys-color-primary); }
+.card-shell-body .settings-group input[type="radio"]:checked::before{ background:var(--md-sys-color-primary); }
+.card-shell-body .settings-group input[type="radio"]:checked::after{ transform:scale(1); }
+.card-shell-body .settings-group input[type="radio"]:focus-visible{
+  outline:3px solid var(--md-sys-color-secondary);
+  outline-offset:2px;
+}
+
+/* ---------- 5. The message ---------- */
+.card-shell-body .settings-message{
+  min-height:var(--md-sys-typescale-body-medium-line-height);
+  margin:4px 0 0;
+  font-weight:var(--md-sys-typescale-body-medium-weight);
+  font-size:var(--md-sys-typescale-body-medium-size);
+  line-height:var(--md-sys-typescale-body-medium-line-height);
+  color:var(--md-sys-color-error);
+}

@@ -293,11 +293,8 @@
 .avatar-menu button:hover{ background:none; }
 
 /* ---------- 8. Logo and wordmark in the dark scheme ---------- */
-@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .brand svg :is([fill="#000000" i], [fill="#020202" i], [fill="#030202" i], [fill="#030302" i], [fill="#30302F" i], [fill="#303030" i], [fill="#313030" i]){ fill:var(--md-sys-color-on-surface); } }
 :root[data-theme="dark"] .brand svg :is([fill="#000000" i], [fill="#020202" i], [fill="#030202" i], [fill="#030302" i], [fill="#30302F" i], [fill="#303030" i], [fill="#313030" i]){ fill:var(--md-sys-color-on-surface); }
-@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .brand svg [stroke="#000000" i]{ stroke:var(--md-sys-color-on-surface); } }
 :root[data-theme="dark"] .brand svg [stroke="#000000" i]{ stroke:var(--md-sys-color-on-surface); }
-@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .brand svg :is([fill="#FAFAFA" i], [fill="#FBFBFB" i], [fill="#FDFAFA" i], [fill="#F9F9F9" i], [fill="#EEEDED" i], [fill="#EAEAEA" i]){ fill:transparent; } }
 :root[data-theme="dark"] .brand svg :is([fill="#FAFAFA" i], [fill="#FBFBFB" i], [fill="#FDFAFA" i], [fill="#F9F9F9" i], [fill="#EEEDED" i], [fill="#EAEAEA" i]){ fill:transparent; }
 
 /* ---------- 9. Snackbars ---------- */

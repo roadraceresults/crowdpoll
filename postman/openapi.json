@@ -154,6 +154,14 @@
           "termsFirstAcceptance": {
             "type": "boolean",
             "description": "True while the account has never accepted any version of the Terms (a new account, e.g. after a first provider sign-in); the Accept Terms card then greets it instead of calling the Terms updated"
+          },
+          "colorScheme": {
+            "type": "string",
+            "enum": [
+              "light",
+              "dark"
+            ],
+            "description": "The account's color scheme; light when never chosen. Every page applies it (Site Settings)."
           }
         },
         "description": "clientSecret is never returned by any endpoint."
@@ -2125,7 +2133,7 @@
           "profile"
         ],
         "operationId": "updateProfile",
-        "summary": "Edit userName",
+        "summary": "Edit userName and/or the color scheme",
         "security": [
           {
             "sessionCookie": []
@@ -2137,14 +2145,20 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "userName"
-                ],
+                "minProperties": 1,
+                "description": "At least one key. Each present key is validated before anything is written; a colorScheme alone changes only the user row.",
                 "properties": {
                   "userName": {
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 200
+                  },
+                  "colorScheme": {
+                    "type": "string",
+                    "enum": [
+                      "light",
+                      "dark"
+                    ]
                   }
                 }
               }
@@ -2163,7 +2177,7 @@
             }
           },
           "400": {
-            "description": "Empty or over 200 characters",
+            "description": "Nothing to change; userName empty or over 200 characters; or colorScheme not \"light\" or \"dark\"",
             "content": {
               "application/json": {
                 "schema": {

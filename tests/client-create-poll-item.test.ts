@@ -22,9 +22,9 @@ const labels = (menu: HTMLElement) => Array.from(menu.querySelectorAll("a")).map
 const item = (menu: HTMLElement) => menu.querySelector("a.avatar-menu-create-poll") as HTMLAnchorElement;
 
 describe("the avatar menu's Create Poll item", () => {
-  it("sits between Edit Profile and Poll Administration and opens poll administration for an administrator", async () => {
+  it("sits between Site Settings and Poll Administration and opens poll administration for an administrator", async () => {
     const { menu } = await menuFor(ADMINISTRATOR);
-    expect(labels(menu!)).toEqual(["Edit Profile", "Create Poll", "Poll Administration", "Logout"]);
+    expect(labels(menu!)).toEqual(["Edit Profile", "Site Settings", "Create Poll", "Poll Administration", "Logout"]);
     expect(item(menu!).getAttribute("href")).toBe("/admin");
     expect(item(menu!).hasAttribute("aria-disabled")).toBe(false);
     expect(item(menu!).querySelector(".avatar-menu-create-poll-reason")).toBeNull();
@@ -39,7 +39,7 @@ describe("the avatar menu's Create Poll item", () => {
   it("is dimmed, focusable, inert and says why for a user who may not create polls", async () => {
     const { home, menu } = await menuFor(PLAIN_MEMBER);
     const link = item(menu!);
-    expect(labels(menu!)).toEqual(["Edit Profile", "Create Poll", "Logout"]);
+    expect(labels(menu!)).toEqual(["Edit Profile", "Site Settings", "Create Poll", "Logout"]);
     expect(link.getAttribute("aria-disabled")).toBe("true");
     expect(link.getAttribute("href")).toBe("/admin");
     expect(link.title).toBe("You need permission to create polls");
@@ -82,7 +82,7 @@ describe("the avatar menu's icons", () => {
   it("gives every item an icon before its label, and Create Poll the header link's icon", async () => {
     const { menu } = await menuFor(ADMINISTRATOR);
     const links = Array.from(menu!.querySelectorAll("a"));
-    expect(links).toHaveLength(4);
+    expect(links).toHaveLength(5);
     for (const link of links) {
       expect(link.firstElementChild!.matches("svg.avatar-menu-icon[aria-hidden='true']")).toBe(true);
       expect(link.lastElementChild!.matches("span.avatar-menu-label")).toBe(true);

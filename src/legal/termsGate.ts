@@ -4,7 +4,7 @@ import { TERMS_VERSION } from "./version.js";
 
 export const TERMS_REQUIRED = { error: "Please accept the updated Terms of Service.", code: "terms-required" } as const;
 
-const PAGE_ROUTES = new Set(["/", "/login", "/create-account", "/confirm-signin", "/invite", "/profile", "/admin", "/admin/poll/results"]);
+const PAGE_ROUTES = new Set(["/", "/login", "/create-account", "/confirm-signin", "/invite", "/profile", "/settings", "/admin", "/admin/poll/results"]);
 
 const ALLOWED_API = new Set([
   "POST /api/legal/accept-terms",

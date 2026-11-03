@@ -186,6 +186,19 @@ export function createPagesRouter({ sessions, config, db, cache }: PageDeps): Ro
       .catch(next);
   });
 
+  router.get("/settings", (req, res, next: NextFunction) => {
+    sessions
+      .getSession(req)
+      .then((session) => {
+        if (!session) {
+          res.redirect("/login");
+          return;
+        }
+        page("settings.html")(req, res, next);
+      })
+      .catch(next);
+  });
+
   router.get(
     "/accept-terms",
     wrap(async (req, res) => {

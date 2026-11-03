@@ -19,6 +19,7 @@ export interface UserTable {
   permissions: ColumnType<string[], string[] | undefined, string[]>;
   terms_version: string | null;
   terms_accepted_at: NullableTimestamp;
+  color_scheme: string | null;
 }
 
 export interface SessionTable {

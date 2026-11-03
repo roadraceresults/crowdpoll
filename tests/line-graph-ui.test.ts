@@ -218,25 +218,30 @@ describe("mount (C1, C2, C4, C5, FR-018)", () => {
   });
 });
 
-/** jsdom has no matchMedia: a stand-in that records the dark-scheme query's `change` listeners so a test can switch the scheme. */
-function fakeColorScheme(): { install: (window: Window) => void; listeners: (() => void)[] } {
-  const listeners: (() => void)[] = [];
+/** Counts the observers watching <html>'s data-theme, so a test can see the graph stop listening. */
+function watchThemeObservers(): { install: (window: Window) => void; active: () => number } {
+  let active = 0;
   return {
-    listeners,
+    active: () => active,
     install: (window) => {
-      window.matchMedia = ((query: string) => ({
-        matches: false,
-        media: query,
-        addListener: () => {},
-        removeListener: () => {},
-        addEventListener: (type: string, listener: () => void) => {
-          if (type === "change" && query === "(prefers-color-scheme: dark)") listeners.push(listener);
-        },
-        removeEventListener: (type: string, listener: () => void) => {
-          const at = listeners.indexOf(listener);
-          if (type === "change" && at >= 0) listeners.splice(at, 1);
+      const Base = window.MutationObserver;
+      window.MutationObserver = class extends Base {
+        private watching = false;
+        override observe(target: Node, options?: MutationObserverInit) {
+          if (target === window.document.documentElement && options?.attributeFilter?.includes("data-theme") && !this.watching) {
+            this.watching = true;
+            active++;
+          }
+          super.observe(target, options);
         }
-      })) as unknown as typeof window.matchMedia;
+        override disconnect() {
+          if (this.watching) {
+            this.watching = false;
+            active--;
+          }
+          super.disconnect();
+        }
+      } as typeof MutationObserver;
     }
   };
 }
@@ -268,8 +273,7 @@ describe("line colours per theme (C2)", () => {
     const poll = await seedPoll("Dark");
     await seedHistory(poll._id);
     await sweeps();
-    const scheme = fakeColorScheme();
-    page = await open(scheme.install);
+    page = await open();
     setPanelSurface(page, "rgb(15, 21, 17)");
     const side = await maximize(page, "Dark");
 
@@ -281,27 +285,28 @@ describe("line colours per theme (C2)", () => {
     expect(tooltipDots[2]!.style.background).toBe("rgb(68, 68, 253)");
   });
 
-  it("redraws for the new theme when the device's colour scheme changes, and stops listening on close", async () => {
+  it("redraws for the new theme when the page's colour scheme changes, and stops listening on close", async () => {
     const poll = await seedPoll("Switch");
     await seedHistory(poll._id);
     await sweeps();
-    const scheme = fakeColorScheme();
-    page = await open(scheme.install);
+    const observers = watchThemeObservers();
+    page = await open(observers.install);
+    page.document.documentElement.dataset.theme = "dark";
     setPanelSurface(page, "rgb(15, 21, 17)");
     const side = await maximize(page, "Switch");
     expect(lineStroke(side, "c3")).toBe("#4444FD");
     const dotBefore = legendDots(side)[2];
 
     side.style.backgroundColor = "rgb(255, 255, 255)";
-    for (const listener of [...scheme.listeners]) listener();
+    delete page.document.documentElement.dataset.theme;
     await page.settle(10);
     expect(lineStroke(side, "c3")).toBe("#0808FD");
     expect(legendDots(side)[2]).not.toBe(dotBefore);
-    expect(scheme.listeners.length).toBeGreaterThan(0);
+    expect(observers.active()).toBeGreaterThan(0);
 
     (cardByTitle(page, "Switch").querySelector(".maximize-btn") as HTMLElement).click();
     await page.settle(50);
-    expect(scheme.listeners.length).toBe(0);
+    expect(observers.active()).toBe(0);
   });
 });
 
