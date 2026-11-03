@@ -46,4 +46,10 @@ describe("the bar palette", () => {
     const res = await request(ctx.app).get("/api/config");
     expect(res.body.barPalette).toEqual(BAR_PALETTE);
   });
+
+  it("sends the choice-label limit as choiceLabelMax, with no wizardChoiceMax", async () => {
+    const res = await request(ctx.app).get("/api/config");
+    expect(res.body.choiceLabelMax).toBe(35);
+    expect(res.body).not.toHaveProperty("wizardChoiceMax");
+  });
 });

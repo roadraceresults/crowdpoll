@@ -314,23 +314,23 @@ describe("Admin poll CRUD (US4)", () => {
     const tooLong = await request(ctx.app)
       .post(`/api/admin/polls/${poll._id}/publish`)
       .set("Cookie", cookie)
-      .send({ title: "x".repeat(51) });
+      .send({ title: "x".repeat(61) });
     expect(tooLong.status).toBe(400);
-    expect(tooLong.body.error).toContain("at most 50");
+    expect(tooLong.body.error).toContain("at most 60");
 
     const atLimit = await request(ctx.app)
       .post(`/api/admin/polls/${poll._id}/publish`)
       .set("Cookie", cookie)
-      .send({ title: "x".repeat(50), subtitle: "s".repeat(30) });
+      .send({ title: "x".repeat(60), subtitle: "s".repeat(40) });
     expect(atLimit.status).toBe(200);
-    expect(atLimit.body.subtitle).toBe("s".repeat(30));
+    expect(atLimit.body.subtitle).toBe("s".repeat(40));
 
     const subtitleTooLong = await request(ctx.app)
       .post(`/api/admin/polls/${poll._id}/publish`)
       .set("Cookie", cookie)
-      .send({ subtitle: "s".repeat(31) });
+      .send({ subtitle: "s".repeat(41) });
     expect(subtitleTooLong.status).toBe(400);
-    expect(subtitleTooLong.body.error).toContain("at most 30");
+    expect(subtitleTooLong.body.error).toContain("at most 40");
   });
 
   it("012: publish carries the choice list — replaces the active list with fresh ids in save order (FR-001/002/006)", async () => {
@@ -363,15 +363,29 @@ describe("Admin poll CRUD (US4)", () => {
     expect(tooMany.status).toBe(400);
   });
 
-  it("012: publish carries the choice list — rejects a label over 100 characters and duplicate labels after trimming (FR-004/005)", async () => {
+  it("publish keeps a stored label over 35 characters that the save repeats, beside a new short one", async () => {
+    const cookie = await adminCookie();
+    const long = "L".repeat(72);
+    const poll = makePoll({ choices: [{ id: "c1", label: long, position: 0 }, { id: "c2", label: "Short", position: 1 }] });
+    await polls(ctx).insertOne(poll);
+    const res = await request(ctx.app)
+      .post(`/api/admin/polls/${poll._id}/publish`)
+      .set("Cookie", cookie)
+      .send({ labels: [long, "Short", "Fresh"] });
+    expect(res.status).toBe(200);
+    expect(res.body.choices.map((c: { label: string }) => c.label)).toEqual([long, "Short", "Fresh"]);
+  });
+
+  it("012: publish carries the choice list — rejects a new label over 35 characters and duplicate labels after trimming (FR-004/005)", async () => {
     const cookie = await adminCookie();
     const poll = makePoll();
     await polls(ctx).insertOne(poll);
     const tooLong = await request(ctx.app)
       .post(`/api/admin/polls/${poll._id}/publish`)
       .set("Cookie", cookie)
-      .send({ labels: ["A", "x".repeat(101)] });
+      .send({ labels: ["A", "x".repeat(36)] });
     expect(tooLong.status).toBe(400);
+    expect(tooLong.body.error).toBe("Choice label must be at most 35 characters.");
     const dup = await request(ctx.app)
       .post(`/api/admin/polls/${poll._id}/publish`)
       .set("Cookie", cookie)

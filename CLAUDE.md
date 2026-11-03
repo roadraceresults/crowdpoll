@@ -6,6 +6,22 @@ The full description, every earlier feature's decisions and the settings table a
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261102-154952-FIELD-LENGTH-LIMITS/plan.md` (research R1–R9, `data-model.md` — changed validation rules only,
+no schema change — the HTTP contracts `contracts/api.md` A1–A4, the UI contracts `contracts/ui-contracts.md` C1–C5, and
+the quickstart live alongside it in `specs/20261102-154952-FIELD-LENGTH-LIMITS/`). The requirements report is
+`requirements/20261102-154952-field-length-limits/requirements-report.md`: 3 diagrams and 6 findings, all resolved.
+Decisions that are easy to get wrong:
+- **`TITLE_MAX` 60, `SUBTITLE_MAX` 40, `CHOICE_LABEL_MAX` 35** in `src/polls/service.ts`; `WIZARD_CHOICE_MAX` is gone
+  and `validateAddedChoice` uses `CHOICE_LABEL_MAX` (R1).
+- **A stored label is exempt**: `replaceChoices` / `mergeChoices` refuse a label over 35 only when its trimmed text is
+  not a stored label of the poll (`labelTooLong`), so labels saved at up to 100 keep their ids and votes (R2).
+- **The wizard's box keeps stored lines whole** (`sanitizeChoicesText` `storedLabels`), and cuts a stored line to 35
+  the moment its text changes (R3, clarification Q1).
+- **`/api/config` sends `choiceLabelMax`**, not `wizardChoiceMax`; browser fallbacks are 35 (R4).
+- **The `adminCard.js` copies equal the server's**, checked by `tests/field-limits.test.ts`; migration 007 keeps its own
+  50 and 30 (R5, R8).
+No migration, route, setting or dependency change.
+The preceding feature is
 `specs/20261102-134601-SITE-SETTINGS/plan.md` (research R1–R13, `data-model.md` — one `user` column,
 `color_scheme`, added by migration `016-color-scheme`, the `localStorage` copy and the `data-theme` states; the HTTP
 contracts `contracts/api.md` A1–A3, the UI contracts `contracts/ui-contracts.md` C1–C6, and the quickstart live
@@ -24,23 +40,6 @@ Decisions that are easy to get wrong:
   Administration a new checklist `ADMIN_GLYPH` (R10).
 - **Every page is contrast-audited in both schemes** (FR-011a, clarification Q2; R11).
 One additive migration, no new dependency or setting; one page route, one head script, one card module, one stylesheet.
-The preceding feature is
-`specs/20261101-181626-USER-ADD-CHOICES/plan.md` (research R1–R12, `data-model.md` — one `polls` column,
-`voters_add_choices`, added by migration `015-voters-add-choices`, and `Choice.addedBy`; the HTTP contracts
-`contracts/api.md` A1–A5, the UI contracts `contracts/ui-contracts.md` C1–C5, and the quickstart live alongside it in
-`specs/20261101-181626-USER-ADD-CHOICES/`). The requirements report is
-`requirements/20261101-181626-user-add-choices/requirements-report.md`: 4 diagrams and 16 findings, all resolved.
-Decisions that are easy to get wrong:
-- **Voters add through `POST /api/polls/:pid/choices`**, shed as `vote`, with its own bucket
-  (`enforceFloor("vote", "choice")`) so a vote right after an addition is not too soon (R2, R3, clarification Q2).
-- **Only while the raw `pollState` is OPEN with no `pending_update`**, checked under the row lock in `appendChoice`;
-  the projection's OPEN-while-EDITING is not enough (R5, R7).
-- **The limit is `WIZARD_CHOICE_MAX` (40)**, moved to `src/polls/service.ts` and sent as `wizardChoiceMax`;
-  duplicates compare ignoring case and spacing; screening runs in the request, never via `pending_update` (R6, R8).
-- **`addedBy` is admin-only**: never in `PollProjection`; not recorded on anonymous polls; cleared on account deletion
-  and when a poll turns anonymous (R9, clarification Q1).
-- **The creator's save sends `baseChoiceIds`**, and stored choices not listed are kept (R10).
-One additive migration, no new dependency or setting; one route, one browser module, one stylesheet.
 <!-- SPECKIT END -->
 
 ## Project Overview

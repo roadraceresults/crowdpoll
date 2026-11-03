@@ -163,9 +163,18 @@ describe("replaceChoices (006-poll-choices-editor FR-004-008)", () => {
     expectAdminError(() => replaceChoices(poll, labels, CHOICE_BOUNDS), 400);
   });
 
-  it("rejects a label over 100 characters", () => {
+  it("rejects a new label over 35 characters", () => {
     const poll = makePoll();
-    expectAdminError(() => replaceChoices(poll, ["A", "x".repeat(101)], CHOICE_BOUNDS), 400);
+    expectAdminError(() => replaceChoices(poll, ["A", "x".repeat(36)], CHOICE_BOUNDS), 400);
+  });
+
+  it("keeps a stored label over 35 characters, repeated with or without spaces, beside a new one", () => {
+    const long = "L".repeat(72);
+    const poll = makePoll({ choices: [{ id: "c1", label: long, position: 0 }, { id: "c2", label: "Short", position: 1 }] });
+    expect(replaceChoices(poll, [`  ${long} `, "Short", "x".repeat(30)], CHOICE_BOUNDS).map((c) => c.label))
+      .toEqual([long, "Short", "x".repeat(30)]);
+    const again = makePoll({ choices: [{ id: "c1", label: long, position: 0 }, { id: "c2", label: "Short", position: 1 }] });
+    expectAdminError(() => replaceChoices(again, [long, "x".repeat(36)], CHOICE_BOUNDS), 400);
   });
 
   it("rejects two identical labels after trimming", () => {

@@ -44,7 +44,7 @@ delivery network.
   the new counts at once. On a very busy site the card may say your vote is *queued*; it has
   been counted and will be stored within moments.
 - **Add Choice** — on a Private poll whose creator lets voters add choices, the voting side of
-  the card has an **Add Choice** button while the poll is open. Type a choice of up to 40
+  the card has an **Add Choice** button while the poll is open. Type a choice of up to 35
   characters and press **Save**: it appears last on the card at once, for every voter, and can be
   voted for straight away. A choice the poll already has (ignoring capitals and spaces), a full
   poll, or language that isn't allowed is refused with the reason in the dialog. On a Final-Vote

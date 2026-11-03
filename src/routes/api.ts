@@ -18,7 +18,7 @@ import {
 import type { SessionCache } from "../auth/sessionCache.js";
 import type { Cache } from "../cache/cache.js";
 import type { Db } from "../db/client.js";
-import { effectivePermissions, isAdminEmail, WIZARD_CHOICE_MAX, type Caller } from "../polls/service.js";
+import { CHOICE_LABEL_MAX, effectivePermissions, isAdminEmail, type Caller } from "../polls/service.js";
 import { bumpContentVersion } from "../polls/versions.js";
 import { BAR_PALETTE } from "../polls/barPalette.js";
 import * as mailer from "../email/mailer.js";
@@ -167,7 +167,7 @@ export function createApiRouter({ auth, db, cache, config, sessions, pageLoads }
       // same reason as the voter limit above.
       minChoices: config.minChoices,
       maxChoices: config.maxChoices,
-      wizardChoiceMax: WIZARD_CHOICE_MAX,
+      choiceLabelMax: CHOICE_LABEL_MAX,
       // The maximized view's line graph reads its share threshold and refresh
       // timer here; the interval is served post-clamp, usable verbatim.
       lineGraphMinVotePercentage: config.lineGraphMinVotePercentage,

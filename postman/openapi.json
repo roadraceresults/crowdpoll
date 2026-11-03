@@ -668,11 +668,11 @@
           },
           "title": {
             "type": "string",
-            "maxLength": 50
+            "maxLength": 60
           },
           "subtitle": {
             "type": "string",
-            "maxLength": 30
+            "maxLength": 40
           },
           "choiceMode": {
             "type": "string",
@@ -1074,11 +1074,11 @@
           },
           "title": {
             "type": "string",
-            "maxLength": 50
+            "maxLength": 60
           },
           "subtitle": {
             "type": "string",
-            "maxLength": 30
+            "maxLength": 40
           },
           "choiceMode": {
             "type": "string",
@@ -1667,9 +1667,9 @@
                       "type": "integer",
                       "description": "Line-graph refresh interval in milliseconds, already clamped to the live-refresh floor."
                     },
-                    "wizardChoiceMax": {
+                    "choiceLabelMax": {
                       "type": "integer",
-                      "description": "Longest choice, in characters, the new-poll wizard and the Add Choice dialog accept (40)"
+                      "description": "Longest new choice label, in characters, accepted anywhere a choice is entered (35)"
                     }
                   }
                 }
@@ -2770,11 +2770,11 @@
                 "properties": {
                   "title": {
                     "type": "string",
-                    "maxLength": 50
+                    "maxLength": 60
                   },
                   "subtitle": {
                     "type": "string",
-                    "maxLength": 30
+                    "maxLength": 40
                   },
                   "pollState": {
                     "type": "string",
@@ -3439,11 +3439,11 @@
                 "properties": {
                   "title": {
                     "type": "string",
-                    "maxLength": 50
+                    "maxLength": 60
                   },
                   "subtitle": {
                     "type": "string",
-                    "maxLength": 30
+                    "maxLength": 40
                   },
                   "keywords": {
                     "type": "string",
@@ -3515,7 +3515,8 @@
                     "type": "array",
                     "items": {
                       "type": "string",
-                      "maxLength": 100
+                      "maxLength": 35,
+                      "description": "A new label is at most 35 characters; a label equal (after trimming) to one already stored on the poll is accepted at its stored length."
                     },
                     "minItems": 2,
                     "maxItems": 50,
@@ -3688,12 +3689,12 @@
                 "properties": {
                   "title": {
                     "type": "string",
-                    "maxLength": 50,
+                    "maxLength": 60,
                     "description": "An empty title is ignored, so the stored title stays."
                   },
                   "subtitle": {
                     "type": "string",
-                    "maxLength": 30
+                    "maxLength": 40
                   },
                   "keywords": {
                     "type": "string",
@@ -3755,7 +3756,8 @@
                     "type": "array",
                     "items": {
                       "type": "string",
-                      "maxLength": 100
+                      "maxLength": 35,
+                      "description": "A new label is at most 35 characters; a label equal (after trimming) to one already stored on the poll is accepted at its stored length."
                     },
                     "minItems": 2,
                     "maxItems": 50,
@@ -6862,7 +6864,7 @@
                 "properties": {
                   "label": {
                     "type": "string",
-                    "maxLength": 40
+                    "maxLength": 35
                   }
                 }
               }
@@ -6896,7 +6898,7 @@
             }
           },
           "400": {
-            "description": "EMPTY_CHOICE \"Enter a choice.\", CHOICE_TOO_LONG \"A choice can be at most 40 characters.\" or CHOICE_CHARACTERS \"A choice can't contain line breaks, tabs or invisible characters.\"",
+            "description": "EMPTY_CHOICE \"Enter a choice.\", CHOICE_TOO_LONG \"A choice can be at most 35 characters.\" or CHOICE_CHARACTERS \"A choice can't contain line breaks, tabs or invisible characters.\"",
             "content": {
               "application/json": {
                 "schema": {

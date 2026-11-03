@@ -278,7 +278,7 @@ after an addition is not too soon. Unlike a vote it writes the poll row at once:
 2. the raw state on the row as read (`assertAddableState`: `EDITING`, `pending_update`, anything not `OPEN`) — the
    projection's OPEN-while-EDITING is not enough;
 3. `assertMayAddChoice` (setting on, then `assertEligible`; the creator skips both the eligibility checks and the
-   Final-Vote refusal) and `validateAddedChoice` (empty, 40 characters, control and invisible characters,
+   Final-Vote refusal) and `validateAddedChoice` (empty, 35 characters, control and invisible characters,
    duplicate ignoring case and spacing, `ENV_MAX_CHOICES`);
 4. screening in the request (`screenWithTimeout`), never through `pending_update`;
 5. `appendChoice`: `select … for update`, the state, duplicate and ceiling checks again, the choice appended with

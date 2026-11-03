@@ -7,7 +7,7 @@
   "use strict";
 
   const DEFAULT_CHOICE_LABELS = ["Choice 1", "Choice 2"];
-  const CHOICE_LABEL_MAX = 100;
+  const CHOICE_LABEL_MAX = 35;
   const HEARTBEAT_INTERVAL_MS = 10000;
   const DISCARD_HEADLINE = "Discard changes?";
   const DISCARD_TEXT = "Your edits will be lost.";
@@ -37,7 +37,7 @@
   // 014: minChoices / maxChoices are ENV_MIN_CHOICES / ENV_MAX_CHOICES, told to the
   // page by /api/config like the voter limit; the values here are only the fallback
   // until it answers.
-  const runtime = { privateVoterLimit: 100, participantsViewportSize: 10, maxInvitationsPerDay: 200, minChoices: 2, maxChoices: 50, wizardChoiceMax: 40, barPalette: [] };
+  const runtime = { privateVoterLimit: 100, participantsViewportSize: 10, maxInvitationsPerDay: 200, minChoices: 2, maxChoices: 50, choiceLabelMax: CHOICE_LABEL_MAX, barPalette: [] };
 
   function setRuntimeConfig(cfg) {
     if (Number.isInteger(cfg.maxPrivatePollVoters)) runtime.privateVoterLimit = cfg.maxPrivatePollVoters;
@@ -45,7 +45,7 @@
     if (Number.isInteger(cfg.maxInvitationsPerDay)) runtime.maxInvitationsPerDay = cfg.maxInvitationsPerDay;
     if (Number.isInteger(cfg.minChoices)) runtime.minChoices = cfg.minChoices;
     if (Number.isInteger(cfg.maxChoices)) runtime.maxChoices = cfg.maxChoices;
-    if (Number.isInteger(cfg.wizardChoiceMax)) runtime.wizardChoiceMax = cfg.wizardChoiceMax;
+    if (Number.isInteger(cfg.choiceLabelMax)) runtime.choiceLabelMax = cfg.choiceLabelMax;
     if (Array.isArray(cfg.barPalette)) runtime.barPalette = cfg.barPalette;
   }
 
@@ -230,7 +230,7 @@
     return value.lastIndexOf("\n", pos - 1) + 1;
   }
 
-  function sanitizeChoicesText(text, caret, { keepCaretLine = true, maxLabel = CHOICE_LABEL_MAX } = {}) {
+  function sanitizeChoicesText(text, caret, { keepCaretLine = true, maxLabel = CHOICE_LABEL_MAX, storedLabels = new Set() } = {}) {
     text = text.replace(/\r\n?/g, "\n");
     if (caret > text.length) caret = text.length;
 
@@ -244,7 +244,7 @@
     let droppedOverflow = false;
 
     lines = lines.map((line, i) => {
-      if (line.length <= maxLabel) return line;
+      if (line.length <= maxLabel || storedLabels.has(line.trim())) return line;
       truncated = true;
       if (i === caretLine) caretCol = Math.min(caretCol, maxLabel);
       return line.slice(0, maxLabel);
@@ -516,8 +516,8 @@
     };
 
     // Step 2's limits. Lengths count UTF-16 units, as the server does.
-    const TITLE_MAX = 50;
-    const SUBTITLE_MAX = 30;
+    const TITLE_MAX = 60;
+    const SUBTITLE_MAX = 40;
     const KEYWORDS_TOTAL_MAX = 200;   // every keyword plus one comma between each pair
     const DEFAULT_TITLE = /^New Poll \d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/;
 
@@ -1368,7 +1368,8 @@
         box.style.height = box.scrollHeight + "px";
       }
       function update() {
-        field.counter.textContent = choiceLines().length + " / " + runtime.maxChoices;
+        // Names its unit, so it is not read as the 35-character cap beside it.
+        field.counter.textContent = choiceLines().length + " / " + runtime.maxChoices + " choices";
         grow();
       }
       function problem() {
@@ -1405,8 +1406,8 @@
         insertPasted(text, box.selectionStart, box.selectionEnd);
       });
       wireChoicesBox(box, {
-        // An existing poll keeps the server's 100 characters, so its labels are not cut.
-        maxLabel: existing ? CHOICE_LABEL_MAX : runtime.wizardChoiceMax,
+        maxLabel: runtime.choiceLabelMax,
+        storedLabels: new Set(existing ? ((session && session.poll.choices) || []).map((c) => c.label.trim()) : []),
         setError,
         onInput: () => {
           wizard.choicesText = box.value;
@@ -2779,6 +2780,7 @@
     // what to do after input and on blur.
     function wireChoicesBox(box, hooks) {
       const maxLabel = hooks.maxLabel || CHOICE_LABEL_MAX;
+      const storedLabels = hooks.storedLabels;
       let keepDefaultSelection = false;
       box.addEventListener("focus", () => {
         if (!holdsOnlyDefaultChoices(box.value)) return;
@@ -2792,7 +2794,7 @@
       });
       box.addEventListener("blur", () => {
         keepDefaultSelection = false;
-        const result = sanitizeChoicesText(box.value, box.selectionStart, { keepCaretLine: false, maxLabel });
+        const result = sanitizeChoicesText(box.value, box.selectionStart, { keepCaretLine: false, maxLabel, storedLabels });
         if (result.text !== box.value) box.value = result.text;
         hooks.onBlur();
       });
@@ -2810,7 +2812,7 @@
         }
       });
       box.addEventListener("input", () => {
-        const result = sanitizeChoicesText(box.value, box.selectionStart, { maxLabel });
+        const result = sanitizeChoicesText(box.value, box.selectionStart, { maxLabel, storedLabels });
         if (result.text !== box.value) {
           box.value = result.text;
           box.setSelectionRange(result.caret, result.caret);

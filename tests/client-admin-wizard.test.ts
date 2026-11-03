@@ -362,14 +362,14 @@ describe("a new poll's wizard", () => {
       expect(p.document.querySelector(".m3-snackbar")!.textContent).toBe("Link copied");
     });
 
-    it("cuts a choice to 40 characters, refuses an empty line and drops pasted repeats", async () => {
+    it("cuts a choice to 35 characters, refuses an empty line and drops pasted repeats", async () => {
       const p = await open();
       await createPoll(p);
       await next(p);
       await next(p);
-      type(p, choicesBox(p), "x".repeat(41));
-      expect(choicesBox(p).value).toBe("x".repeat(40));
-      expect(wizardCard(p).textContent).toContain("Choices are capped at 40 characters.");
+      type(p, choicesBox(p), "x".repeat(36));
+      expect(choicesBox(p).value).toBe("x".repeat(35));
+      expect(wizardCard(p).textContent).toContain("Choices are capped at 35 characters.");
 
       type(p, choicesBox(p), "Cakes\n");
       choicesBox(p).setSelectionRange(6, 6);
@@ -384,6 +384,18 @@ describe("a new poll's wizard", () => {
       await p.settle();
       expect(choicesBox(p).value).toBe("Cakes\nCookies\nPies");
       expect(p.document.querySelector(".m3-snackbar")!.textContent).toBe("1 duplicate was removed.");
+    });
+
+    it("counts choices, not characters, under the Choices box (TWEAK01)", async () => {
+      const p = await open();
+      await createPoll(p);
+      await next(p);
+      await next(p);
+      type(p, choicesBox(p), "x".repeat(36));
+      const counter = wizardCard(p).querySelector(".m3-field--choices .m3-field-counter")!;
+      expect(counter.textContent).toBe("1 / 50 choices");
+      type(p, choicesBox(p), "Cakes\nPies");
+      expect(counter.textContent).toBe("2 / 50 choices");
     });
 
     it("pre-fills the dates, names the time zone, and blocks Publish for an end in the past", async () => {
@@ -588,6 +600,27 @@ describe("colors on an existing poll", () => {
     expect(heading(wizardCard(p))).toBe("Step 3 · Choices");
     expect(wizardCard(p).querySelector(".wizard-locked")).toBeNull();
     expect(choicesBox(p).disabled).toBe(false);
+  });
+
+  it("shows a stored choice over 35 characters whole, and cuts it to 35 once its text changes", async () => {
+    const long = "L".repeat(72);
+    const { p } = await openExisting("Long choice", true, {
+      choices: [{ id: "c1", label: long, position: 0 }, { id: "c2", label: "Right", position: 1 }]
+    });
+    (circles(wizardCard(p))[2]!.querySelector("button") as HTMLButtonElement).click();
+    await p.settle();
+    expect(choicesBox(p).value).toBe(`${long}\nRight`);
+
+    type(p, choicesBox(p), `${long}!\nRight`);
+    expect(choicesBox(p).value).toBe(`${"L".repeat(35)}\nRight`);
+    expect(wizardCard(p).textContent).toContain("Choices are capped at 35 characters.");
+  });
+
+  it("leaves lines in storedLabels whole and cuts every other line to 35", async () => {
+    const p = await open();
+    const long = "L".repeat(72);
+    const result = p.window.AdminCard.sanitizeChoicesText(`${long}\n${"x".repeat(40)}`, 0, { storedLabels: new Set([long]) });
+    expect(result.text).toBe(`${long}\n${"x".repeat(35)}`);
   });
 
   it("posts only to the colors route, with the session's guid, when colors are all that changed on a poll with votes", async () => {
@@ -1163,14 +1196,14 @@ describe("an existing poll in the wizard", () => {
     expect(links(card)).toEqual([]);
   });
 
-  it("caps the subtitle at 30 characters and the title at 50, on an existing poll as on a new one", async () => {
+  it("caps the subtitle at 40 characters and the title at 60, on an existing poll as on a new one", async () => {
     await seed(makePoll({ title: "Existing", subtitle: "Sub", pollState: "OPEN" }));
     const p = await open();
     link(cardWith(p, "Existing"), "Existing").click();
     await p.settle(50);
     const subtitle = wizardCard(p).querySelector<HTMLTextAreaElement>('[id^="pollSubtitle-"]')!;
-    expect(subtitle.maxLength).toBe(30);
-    expect(titleField(p).maxLength).toBe(50);
+    expect(subtitle.maxLength).toBe(40);
+    expect(titleField(p).maxLength).toBe(60);
   });
 
   it("lets only one card be edited at a time", async () => {
@@ -1720,13 +1753,13 @@ describe("voters may add choices (USER-ADD-CHOICES C5)", () => {
     expect(body.votersAddChoices).toBe(true);
   });
 
-  it("caps a new poll's choices at wizardChoiceMax from /api/config", async () => {
+  it("caps a new poll's choices at choiceLabelMax from /api/config", async () => {
     const p = await open();
     await createPoll(p);
     await next(p);
     await next(p);
-    type(p, choicesBox(p), "x".repeat(41));
-    expect(choicesBox(p).value).toHaveLength(40);
+    type(p, choicesBox(p), "x".repeat(36));
+    expect(choicesBox(p).value).toHaveLength(35);
   });
 
   it("sends baseChoiceIds, the session's choice ids, with the labels on Save and on Save changes", async () => {
