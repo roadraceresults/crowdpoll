@@ -91,3 +91,36 @@ export async function reachableMany(deps: AccessDeps, caller: Caller, rows: Acce
   const standing = await standingOf(deps.db, email, rows.filter(isInvitationOnly).map((row) => row.id));
   return new Set(rows.filter((row) => !isInvitationOnly(row) || reaches(row, caller.id, standing)).map((row) => row.id));
 }
+
+const INDEXABLE_STATES = ["OPEN", "CLOSED"];
+
+/**
+ * Whether search engines may index this poll: it is public, and open or closed (a poll under edit counts by the
+ * state it held before the edit). Anything else — private, not yet open, awaiting approval, rejected, archived — is not.
+ */
+export function isIndexable(row: Pick<PollRow, "poll_visibility" | "poll_state" | "poll_state_before_edit_update">): boolean {
+  if (row.poll_visibility !== "Public Poll") return false;
+  const state = row.poll_state === "EDITING" ? row.poll_state_before_edit_update : row.poll_state;
+  return state !== null && INDEXABLE_STATES.includes(state);
+}
+
+/** Every indexable poll, for the sitemap, in id order. */
+export async function indexablePolls(db: Db): Promise<{ id: string; closed_at: Date | null; launched_at: Date | null }[]> {
+  const rows = await db
+    .selectFrom("polls")
+    .select(["id", "closed_at", "launched_at"])
+    .where("poll_visibility", "=", "Public Poll")
+    .where((eb) =>
+      eb.or([
+        eb("poll_state", "in", INDEXABLE_STATES),
+        eb.and([eb("poll_state", "=", "EDITING"), eb("poll_state_before_edit_update", "in", INDEXABLE_STATES)])
+      ])
+    )
+    .orderBy("id")
+    .execute();
+  return rows.map((row) => ({
+    id: row.id,
+    closed_at: row.closed_at ? new Date(row.closed_at) : null,
+    launched_at: row.launched_at ? new Date(row.launched_at) : null
+  }));
+}

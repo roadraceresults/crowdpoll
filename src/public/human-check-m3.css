@@ -1,0 +1,39 @@
+/* Material 3 layout for the human check card on the sign-in pages:
+   https://m3.material.io/foundations/layout/understanding-layout/spacing */
+
+.human-check-card .card-shell-body{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:16px;
+  font-family:var(--md-sys-typescale-font);
+}
+
+/* The widget keeps its own width; it never pushes the card wider than the screen. */
+.human-check-card .human-check-widget{
+  display:flex;
+  justify-content:center;
+  max-width:100%;
+  min-height:64px;
+}
+
+.human-check-card .human-check-why{
+  margin:0;
+  text-align:center;
+  font-size:var(--md-sys-typescale-body-medium-size);
+  color:var(--md-sys-color-on-surface-variant);
+}
+
+.human-check-card .human-check-why a{
+  color:var(--md-sys-color-primary);
+}
+
+.human-check-card .human-check-status{
+  margin:0;
+  min-height:1lh;
+  text-align:center;
+}
+
+.human-check-card .human-check-retry[hidden]{
+  display:none;
+}

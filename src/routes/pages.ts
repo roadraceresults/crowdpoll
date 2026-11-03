@@ -20,6 +20,7 @@ import { findSignInToken, useToken } from "../invitations/tokens.js";
 import { emailKeyOf } from "../auth/emailKey.js";
 import { createAssetServing } from "./assets.js";
 import { hasAcceptedTerms, safeNext } from "../legal/termsGate.js";
+import { isIndexable } from "../polls/access.js";
 
 const publicDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "public");
 
@@ -40,6 +41,7 @@ export function createPagesRouter({ sessions, config, db, cache }: PageDeps): Ro
   const router = Router();
   const assets = createAssetServing(publicDir, config);
   const page = (name: string, status = 200, cacheControl?: string) => assets.sendPage(name, status, cacheControl);
+  const publicPage = (name: string, canonicalPath: string) => assets.sendPage(name, 200, undefined, canonicalPath);
   /**
    * 013 FR-042: the page routes answer a refusal with a page. The API router
    * builds its own instance from the same factory and keeps JSON (FR-045) —
@@ -72,12 +74,18 @@ export function createPagesRouter({ sessions, config, db, cache }: PageDeps): Ro
     wrap(async (req, res) => {
       const pid = parsePid(req.query.PID);
       if (!pid) {
-        page("index.html")(req, res, () => undefined);
+        publicPage("index.html", "/")(req, res, () => undefined);
         return;
       }
       const session = await sessions.getSession(req);
       if (!session) {
-        res.redirect(`/login?PID=${pid}`);
+        // A poll search engines may index has a page of its own a guest can read; any other needs a sign-in.
+        const row = await db
+          .selectFrom("polls")
+          .select(["poll_visibility", "poll_state", "poll_state_before_edit_update"])
+          .where("id", "=", pid)
+          .executeTakeFirst();
+        res.redirect(row && isIndexable(row) ? `/poll/${pid}` : `/login?PID=${pid}`);
         return;
       }
       const landing = await resolveSharedLink({ db, config, cache }, session.user as Caller, pid);
@@ -206,8 +214,8 @@ export function createPagesRouter({ sessions, config, db, cache }: PageDeps): Ro
     });
   });
 
-  router.get("/privacy", page("privacy.html"));
-  router.get("/terms", page("terms.html"));
+  router.get("/privacy", publicPage("privacy.html", "/privacy"));
+  router.get("/terms", publicPage("terms.html", "/terms"));
 
   router.get("/admin", requireCreator, page("admin.html"));
 

@@ -7,6 +7,7 @@ import { loadConfig, ConfigError, PROVIDER_NAMES, type AppConfig } from "./confi
 import { createAuth, type Auth } from "./auth/auth.js";
 import { logAppleSecretExpiry, startAppleSecretRefresh } from "./auth/appleSecret.js";
 import { allowlistStatus } from "./auth/allowlist.js";
+import { createHumanCheck, requireHumanCheck, type HumanCheck } from "./auth/humanCheck.js";
 import { createSessionCache, type SessionCache } from "./auth/sessionCache.js";
 import { createTermsGate } from "./legal/termsGate.js";
 import { createCache, type Cache } from "./cache/cache.js";
@@ -21,6 +22,8 @@ import { createApiRouter } from "./routes/api.js";
 import { createHealthRouter } from "./routes/healthz.js";
 import { createPagesRouter } from "./routes/pages.js";
 import { createPrototypesRouter } from "./routes/prototypes.js";
+import { createSeoRouter } from "./routes/seo.js";
+import { createFcaptchaDevProxy, isLocalOrigin } from "./routes/fcaptchaDevProxy.js";
 import { createPollsApiRouter, createVoteRouter } from "./routes/pollsApi.js";
 import { createTabsApiRouter } from "./routes/tabsApi.js";
 import { buildSweepSchedules, startSweeps } from "./polls/sweeps.js";
@@ -38,6 +41,8 @@ export interface AppDeps {
   db: Db;
   cache: Cache;
   config: AppConfig;
+  /** How the human check reaches FCaptcha; tests answer for it. */
+  humanCheckFetch?: typeof fetch;
 }
 
 export interface AppContext extends AppDeps {
@@ -46,7 +51,9 @@ export interface AppContext extends AppDeps {
   shedding: Shedding;
   floors: ReturnType<typeof createFloors>;
   pageLoads: ReturnType<typeof createPageLoadBucket>;
-  abuse: { ipVoteCap: number };
+  abuse: { ipVoteCap: number; humanCheckSkipped: number };
+  /** Verifies FCaptcha passes; null while the human check is off. */
+  humanCheck: HumanCheck | null;
   trendingPublisher: Publisher;
   newestPublisher: Publisher;
   search: Search;
@@ -78,7 +85,9 @@ export function createAppContext(deps: AppDeps): AppContext {
   const rosters = createRosterCache(deps.db, deps.cache);
   const consumer = createConsumer({ db: deps.db, cache: deps.cache, config: deps.config, consumerName: budget.instanceId });
   const live = createLiveRegistry({ db: deps.db, cache: deps.cache, config: deps.config, rosters });
-  return { ...deps, sessions, budget, shedding, floors, pageLoads, abuse: { ipVoteCap: 0 }, trendingPublisher, newestPublisher, search, rosters, consumer, live };
+  const humanCheck = deps.config.humanCheck ? createHumanCheck(deps.config.humanCheck, deps.config.publicOrigin, deps.humanCheckFetch) : null;
+  const abuse = { ipVoteCap: 0, humanCheckSkipped: 0 };
+  return { ...deps, sessions, budget, shedding, floors, pageLoads, abuse, humanCheck, trendingPublisher, newestPublisher, search, rosters, consumer, live };
 }
 
 export function createApp(context: AppContext): Express {
@@ -90,15 +99,18 @@ export function createApp(context: AppContext): Express {
   app.use(createHealthRouter({ cache, shedding, abuseCounts: () => ({ ...abuse }) }));
   app.use(compression());
   app.use(shedding.countInFlight);
+  if (config.humanCheck && isLocalOrigin(config.publicOrigin)) app.use(createFcaptchaDevProxy(config.humanCheck, context.humanCheckFetch));
 
   // The provider sign-in routes are the library's own handler, mounted path by path so the email routes
   // stay CrowdPoll's in both mode, and before the JSON parser, since it reads its own body (research R3).
   if (config.oauthSignin) {
     const handler = toNodeHandler(auth);
-    app.post("/api/auth/sign-in/social", handler);
+    // The check reads only its header, so the library's handler still reads an untouched body.
+    const humanCheck = requireHumanCheck(context, ["login", "create-account", "invite"]);
+    app.post("/api/auth/sign-in/social", humanCheck, handler);
     app.get("/api/auth/callback/:provider", handler);
     app.post("/api/auth/callback/:provider", handler);
-    app.post("/api/auth/sign-in/oauth2", handler);
+    app.post("/api/auth/sign-in/oauth2", humanCheck, handler);
     app.get("/api/auth/oauth2/callback/:providerId", handler);
   }
 
@@ -107,6 +119,7 @@ export function createApp(context: AppContext): Express {
   app.use(createTabsApiRouter(context));
   app.use(createVoteRouter(context));
   app.use(shedding.shedOther);
+  app.use(createSeoRouter(context));
   app.use(createPagesRouter(context));
   app.use(createApiRouter(context));
   app.use(createPollsApiRouter(context));

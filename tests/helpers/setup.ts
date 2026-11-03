@@ -66,7 +66,8 @@ async function createTestDatabase(): Promise<{ url: string; drop: () => Promise<
 }
 
 export async function startTestContext(
-  envOverrides: Record<string, string> = {}
+  envOverrides: Record<string, string> = {},
+  options: { humanCheckFetch?: typeof fetch } = {}
 ): Promise<TestContext> {
   const database = await createTestDatabase();
   const queries: string[] = [];
@@ -109,7 +110,7 @@ export async function startTestContext(
   const cache = new MemoryCache();
   await cache.xgroupCreate(VOTE_STREAM, VOTE_GROUP);
   const auth = createAuth(db, config, cache);
-  const context = createAppContext({ auth, db, cache, config });
+  const context = createAppContext({ auth, db, cache, config, humanCheckFetch: options.humanCheckFetch });
   const bindings = new Map<string, string>();
   const app = express();
   app.set("trust proxy", true);

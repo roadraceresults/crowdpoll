@@ -7,7 +7,7 @@ const PING_TIMEOUT_MS = 50;
 export interface HealthDeps {
   cache: Cache;
   shedding: Shedding;
-  abuseCounts: () => { ipVoteCap: number };
+  abuseCounts: () => { ipVoteCap: number; humanCheckSkipped: number };
 }
 
 export function createHealthRouter({ cache, shedding, abuseCounts }: HealthDeps): Router {

@@ -6,6 +6,7 @@
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
   <title>Privacy Policy · CrowdPoll</title>
+  <meta name="description" content="How CrowdPoll handles your information: what it keeps, why, and for how long.">
   <link rel="stylesheet" href="/fonts/fonts.css">
   <link rel="stylesheet" href="/m3-tokens.css">
   <link rel="stylesheet" href="/tabs.css">
@@ -38,6 +39,7 @@
             <li>We set one cookie to keep you signed in, a second one for 15 minutes while a sign-in link is waiting, and a third for 5 minutes while you sign in with Google, Apple, Microsoft or Amazon. Nothing else.</li>
             <li>We use your email address to sign you in, to send you the emails you ask for, and to show who voted on polls you take part in. Never for marketing.</li>
             <li>No tracking: no analytics, no advertising, no profiling, nothing that follows you to other sites.</li>
+            <li>Before you sign in, a quick <a href="#bot-check">bot check</a> on our own servers tells people from automated programs. It sets no cookie.</li>
             <li>We never sell your data or share it for anyone else's purposes.</li>
             <li>You can delete your account at any time from your Profile page.</li>
           </ul>
@@ -86,6 +88,24 @@
         <p>All of these are strictly necessary for the site to work, or only remember a choice you made.
           We set no advertising, analytics or third-party cookies, so we do not ask for consent.</p>
 
+        <section id="bot-check" aria-labelledby="bot-check-title">
+          <h3 id="bot-check-title">Bot check</h3>
+          <p>Before a sign-in starts, on the Login, Create Account and invitation pages, you tick a box that checks you
+            are a person and not an automated program.</p>
+          <ul>
+            <li><strong>What it measures</strong>: characteristics of your device and browser (such as how it draws
+              graphics, plays audio and measures fonts), the timing of your pointer, touch and typing on the page, and
+              details of your connection.</li>
+            <li><strong>Why</strong>: to tell people from automated programs before a sign-in starts, so that bots
+              cannot create accounts or send sign-in emails.</li>
+            <li><strong>Where</strong>: on CrowdPoll's own servers, using the open-source FCaptcha software. It is never
+              sent to or shared with a third party.</li>
+            <li><strong>How long</strong>: held in memory for at most one hour, then gone. It is not stored with your
+              account.</li>
+            <li><strong>Cookies</strong>: the check sets no cookie and stores nothing in your browser.</li>
+          </ul>
+        </section>
+
         <h2 id="processors">5. Who processes your data for us</h2>
         <p>We use these service providers. They process data only to provide their service to us.</p>
         <table class="legal-table">
@@ -114,6 +134,7 @@
             <tr><td>Sign-in sessions</td><td>until you sign out, or 30 days at most</td></tr>
             <tr><td>Sign-in and email-change links</td><td>15 minutes</td></tr>
             <tr><td>Rate-limit records (with your IP address)</td><td>15 minutes</td></tr>
+            <tr><td>Bot check measurements</td><td>in memory, one hour at most</td></tr>
             <tr><td>Polls and votes</td><td>as long as the poll exists; deleted with the poll or with your account</td></tr>
             <tr><td>The history of changed votes</td><td>12 months</td></tr>
             <tr><td>Bookmarks</td><td>6 months after the poll closes</td></tr>

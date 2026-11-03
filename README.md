@@ -38,6 +38,15 @@ delivery network.
     isn't available."
   - **Your Votes** — every poll you voted in, public and private.
   - **Watching** — only the polls you chose to watch.
+- **Human check before signing in** — **Login**, **Create Account** and an invitation open on a
+  "Vote protection" card: tick **I am not a Bot or AI Agent** (it follows your light or dark setting), and the page's own
+  card appears in its place. The check runs on CrowdPoll's own servers and sets no cookie; **What this
+  safeguard checks** leads to the Privacy Policy's *Bot check*. If it fails, the card says so and offers **Try
+  again**; if it cannot load within 10 seconds, the sign-in card appears without it. A link from a
+  sign-in email needs no check.
+- **A public poll's own page** — every public poll that is open or closed has an address of its own,
+  `/poll/<id>`, that search engines can read. A guest who opens it, or a shared link to it, sees the
+  poll's live card on Trending, maximized; a signed-in visitor goes to the poll as before.
 - **Search** — type words in the box and press Enter: titles match first, then subtitles, then
   choices; a misspelt title is still found. At most 200 results are shown.
 - **Vote** — press **Vote** on a card, pick your choice(s) and **Submit vote**. The card shows
@@ -414,11 +423,33 @@ The spec sets `NODE_ENV=production` at build and run time; the custom build comm
 prunes devDependencies itself at the end. `tsx` is a dependency, so `npm run reconcile` still works from the console. App Platform builds with
 the spec saved in the console, not `.do/app.yaml`: a change to either must be made in both.
 
+**The FCaptcha service.** A second service, `fcaptcha`, is built from `fcaptcha-server/` (FCaptcha
+`@webdecoy/fcaptcha` 1.46.1 in its standalone Node.js server mode, started by `start.js`), autoscaled 1–3 and
+health-checked at `/health`. The app's ingress sends `/fcaptcha/*` to it, prefix removed, and everything else to `web`,
+so the widget and its calls stay on the site's own domain. It keeps its short-lived state in the same Valkey, database 1.
+Its settings carry the `ENV_FCAPTCHA_` prefix, which `start.js` maps to FCaptcha's own names (FCaptcha's names set
+directly stop it). Set `ENV_FCAPTCHA_SECRET` (at least 32 random bytes, `openssl rand -hex 32`) and
+`ENV_FCAPTCHA_VERIFY_SECRET` on it, and the same `ENV_FCAPTCHA_VERIFY_SECRET` on `web`, all as encrypted variables;
+`ENV_FCAPTCHA_SITE_KEYS` must include `web`'s `ENV_FCAPTCHA_SITE_KEY`, `ENV_FCAPTCHA_ALLOWED_HOSTNAMES` names the
+production host and `ENV_FCAPTCHA_REDIS_URL` points at Valkey database 1. To run it locally:
+`cd fcaptcha-server && npm ci`, then `ENV_FCAPTCHA_INSECURE_DEV_MODE=1 ENV_FCAPTCHA_PORT=3001 npm start`, and set the four `ENV_FCAPTCHA_*`
+values (commented out in the launch templates); with `ENV_PUBLIC_ORIGIN` on `localhost` the web app forwards
+`/fcaptcha/*` to `ENV_FCAPTCHA_URL` itself, standing in for the ingress, so the widget appears locally. Passes are not yet tied to the visitor's address: that is turned on
+once the address header App Platform passes on has been confirmed on a deployed app.
+
+**Search engines.** `/robots.txt` lets crawlers read the home page, `/poll/*`, `/privacy` and `/terms` and keeps them off
+the API and the account pages, which also carry `noindex`. `/sitemap.xml` lists the home page and every public open or
+closed poll with its last change, rebuilt at most every 5 minutes and split into `/sitemap-<n>.xml` parts above 50,000
+addresses. Submit `https://crowdpoll.vote/sitemap.xml` in each search engine's webmaster console.
+
 Operational notes:
 
 - `/healthz` always answers `200` (so the load balancer never removes an overloaded instance)
-  and reports whether the cache answered, how many requests the instance shed by kind, and
-  how many votes were refused for exceeding the per-address cap.
+  and reports whether the cache answered, how many requests the instance shed by kind,
+  how many votes were refused for exceeding the per-address cap, and how many sign-ins went
+  ahead without a human check because FCaptcha could not be reached (`humanCheckSkipped`).
+- `[human-check]` log lines mark each refused sign-in start and each one let through while
+  FCaptcha was unreachable, with the address masked; a rising skip count means the service is down.
 - An instance that cannot reach the cache answers every vote, search, refresh and Live
   Results request with `503` and a `Retry-After`, keeps serving pages, and pauses its sweeps
   until the cache is back.
@@ -506,6 +537,16 @@ provider settings only with `oauth` or `both`, and administrator addresses are m
 | `ENV_MAX_BOOKMARKS_PER_USER` | `200` | Bookmarks per visitor |
 | `ENV_BOOKMARK_EXPIRY_MONTHS` | `6` | Months of closure or inactivity before a bookmark is removed |
 | `ENV_PAGE_LOADS_PER_MINUTE` | `120` | Page loads per session (or address) per minute before a notice |
+| `ENV_FCAPTCHA_ENABLED` | unset | `1` turns on the human check before sign-in (the self-hosted FCaptcha service); anything else leaves it off. When on, the three below are required |
+| `ENV_FCAPTCHA_URL` | unset | Where the web service reaches FCaptcha, server to server (`${fcaptcha.PRIVATE_URL}` in `.do/app.yaml`) |
+| `ENV_FCAPTCHA_SITE_KEY` | unset | The site key the widget is drawn with (public; one of the FCaptcha service's `ENV_FCAPTCHA_SITE_KEYS`) |
+| `ENV_FCAPTCHA_VERIFY_SECRET` | unset | The credential for FCaptcha's token check; the same name and value on the FCaptcha service. Production: an encrypted variable |
+| `ENV_FCAPTCHA_PORT` | unset | Set on the FCaptcha service, not on `web`: the port it listens on (`8080` in `.do/app.yaml`, `3001` locally) |
+| `ENV_FCAPTCHA_SECRET` | unset | FCaptcha service only: the key passes are signed with, at least 32 random bytes. Production: an encrypted variable |
+| `ENV_FCAPTCHA_SITE_KEYS` | unset | FCaptcha service only: comma-separated site keys it accepts (`crowdpoll`) |
+| `ENV_FCAPTCHA_ALLOWED_HOSTNAMES` | unset | FCaptcha service only: the page hosts passes may be minted for (`crowdpoll.vote`) |
+| `ENV_FCAPTCHA_REDIS_URL` | unset | FCaptcha service only: its shared state, Valkey database 1; unset → in memory, one instance |
+| `ENV_FCAPTCHA_INSECURE_DEV_MODE` | unset | FCaptcha service only: `1` signs with a public key so it starts without `ENV_FCAPTCHA_SECRET`; local use only |
 
 ## Poll visibility settings
 

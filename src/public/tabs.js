@@ -1065,16 +1065,17 @@
     };
   }
 
-  async function mountLinkedPoll(grid, pid) {
+  async function mountLinkedPoll(grid, pid, source) {
+    const url = source || "/api/me/polls/" + encodeURIComponent(pid);
     let res;
     try {
-      res = await fetch("/api/me/polls/" + encodeURIComponent(pid));
+      res = await fetch(url);
     } catch {
       notice("This poll could not be opened.", 4000);
       return;
     }
     if (!res.ok) {
-      notice(LANDING_NOTICES.unavailable, 4000);
+      notice(source ? "This poll could not be opened." : LANDING_NOTICES.unavailable, 4000);
       return;
     }
     const body = await res.json();
@@ -1083,6 +1084,25 @@
     state.counts.set(pid, body.counts);
     state.overlay.set(pid, body.overlay);
     grid.mountRetained(pid, window.DeltaClient.toPollDetail(state, pid));
+  }
+
+  /*
+    A public poll's own page (/poll/<pid>) arrives with a plain summary for crawlers. A guest gets the
+    live card in its place, maximized over Trending; if the card cannot be fetched the summary stays.
+  */
+  async function applyPollPage() {
+    const pid = document.body.dataset.pollPage || "";
+    if (!POLL_ID.test(pid) || isSignedIn()) return false;
+    await select("trending");
+    const grid = controllers.trending && controllers.trending.grid;
+    if (!grid) return true;
+    if (!grid.cardOf(pid)) await mountLinkedPoll(grid, pid, "/api/polls/" + encodeURIComponent(pid) + "/card");
+    if (grid.cardOf(pid)) {
+      grid.maximize(pid);
+      const summary = document.getElementById("poll-summary");
+      if (summary) summary.remove();
+    }
+    return true;
   }
 
   // Resolves true when the landing chose the tab, so the caller skips the default one.
@@ -1165,6 +1185,7 @@
     openChannel();
     window.addEventListener("focus", onReturnToWindow);
     document.addEventListener("visibilitychange", onReturnToWindow);
+    if (await applyPollPage()) return;
     if (await applyLanding(takeLanding())) return;
     // FIX013: arriving from another page's search box — the terms ride on the URL.
     const q = new URLSearchParams(location.search).get("q");

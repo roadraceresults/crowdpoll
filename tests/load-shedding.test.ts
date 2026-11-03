@@ -14,7 +14,7 @@ const releaseHeld = () => {
 beforeAll(async () => {
   ctx = await startTestContext({ ENV_INSTANCE_MAX_INFLIGHT: "10", ENV_SHED_RETRY_AFTER: "2000" });
   app = express();
-  app.use(createHealthRouter({ cache: ctx.cache, shedding: ctx.shedding, abuseCounts: () => ({ ipVoteCap: 0 }) }));
+  app.use(createHealthRouter({ cache: ctx.cache, shedding: ctx.shedding, abuseCounts: () => ({ ipVoteCap: 0, humanCheckSkipped: 0 }) }));
   app.use(ctx.shedding.countInFlight);
   for (const kind of ["search", "refresh", "live", "vote"] as const) {
     app.get(`/${kind}`, ctx.shedding.withKind(kind), (_req, res) => {

@@ -57,6 +57,14 @@ $env:ENV_OAUTH_MICROSOFT_CLIENT_SECRET = ""
 $env:ENV_OAUTH_AMAZON_CLIENT_ID = ""
 $env:ENV_OAUTH_AMAZON_CLIENT_SECRET = ""
 
+# Human check: off unless a local FCaptcha runs (fcaptcha-server: npm start with ENV_FCAPTCHA_PORT=3001)
+# $env:ENV_FCAPTCHA_ENABLED = "1"
+# $env:ENV_FCAPTCHA_URL = "http://localhost:3001"
+# $env:ENV_FCAPTCHA_SITE_KEY = "dev"
+# $env:ENV_FCAPTCHA_VERIFY_SECRET = ""
+# $env:ENV_FCAPTCHA_SECRET = ""
+
+
 # --- 4. Email: Amazon SES and the rate limit on the endpoints that send mail ---
 # Fill in the development sending key; development mail is real mail.
 $env:ENV_EMAIL_TRANSPORT = "ses"

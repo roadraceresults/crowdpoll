@@ -24,6 +24,7 @@ const LAYER_ORDER = [
   "discard-dialog-m3.css",
   "pollCard-m3.css",
   "card-shell-m3.css",
+  "human-check-m3.css",
   "profile-editor-m3.css",
   "admin-card-m3.css",
   "admin-search-m3.css",
@@ -53,13 +54,13 @@ const PAGES: Record<string, PageAssets> = {
   },
   "login.html": {
     sheets: ["tabs.css", "pollCard.css", "site.css"],
-    scripts: ["app.js", "headerFit.js", "fixedChrome.js", "cardShell.js", "loginCard.js", "backToTopFab.js"],
-    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "card-shell-m3.css", "footer-m3.css"]
+    scripts: ["app.js", "headerFit.js", "fixedChrome.js", "cardShell.js", "humanCheck.js", "loginCard.js", "backToTopFab.js"],
+    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "card-shell-m3.css", "human-check-m3.css", "footer-m3.css"]
   },
   "create-account.html": {
     sheets: ["tabs.css", "pollCard.css", "site.css"],
-    scripts: ["app.js", "headerFit.js", "fixedChrome.js", "cardShell.js", "createAccountCard.js", "backToTopFab.js"],
-    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "card-shell-m3.css", "footer-m3.css"]
+    scripts: ["app.js", "headerFit.js", "fixedChrome.js", "cardShell.js", "humanCheck.js", "createAccountCard.js", "backToTopFab.js"],
+    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "card-shell-m3.css", "human-check-m3.css", "footer-m3.css"]
   },
   "confirm-signin.html": {
     sheets: ["tabs.css", "pollCard.css", "site.css"],
@@ -68,8 +69,8 @@ const PAGES: Record<string, PageAssets> = {
   },
   "invite.html": {
     sheets: ["tabs.css", "pollCard.css", "site.css"],
-    scripts: ["app.js", "headerFit.js", "fixedChrome.js", "cardShell.js", "inviteCard.js", "backToTopFab.js"],
-    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "card-shell-m3.css", "footer-m3.css"]
+    scripts: ["app.js", "headerFit.js", "fixedChrome.js", "cardShell.js", "humanCheck.js", "inviteCard.js", "backToTopFab.js"],
+    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "card-shell-m3.css", "human-check-m3.css", "footer-m3.css"]
   },
   "not-authorized.html": {
     sheets: ["tabs.css", "pollCard.css", "site.css"],

@@ -9,8 +9,8 @@ const publicDir = path.resolve("src/public");
 export interface BrowserPage {
   window: JSDOM["window"];
   document: Document;
-  /** Every request the page made, in order. */
-  requests: { method: string; url: string }[];
+  /** Every request the page made, in order, with the headers the page set. */
+  requests: { method: string; url: string; headers: Record<string, string> }[];
   /** One entry per attempted navigation (jsdom reports it without the target URL). */
   navigations: string[];
   /** Runs the queued microtasks and timers the page is waiting on. */
@@ -53,14 +53,14 @@ export async function openPage(
   });
   const dom = new JSDOM(html, { url: options.url ?? "http://localhost/", runScripts: "outside-only", pretendToBeVisual: true, virtualConsole });
   const { window } = dom;
-  const requests: { method: string; url: string; status?: number }[] = [];
+  const requests: { method: string; url: string; headers: Record<string, string>; status?: number }[] = [];
   const etags = new Map<string, { etag: string; body: string; status: number; headers: Record<string, string> }>();
 
   window.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
     const method = (init?.method ?? "GET").toUpperCase();
     const pathname = url.startsWith("http") ? new URL(url).pathname + new URL(url).search : url;
-    const record: { method: string; url: string; status?: number } = { method, url: pathname };
+    const record: { method: string; url: string; headers: Record<string, string>; status?: number } = { method, url: pathname, headers: toHeaders(init) };
     requests.push(record);
     let req = request(ctx.app)[method.toLowerCase() as "get" | "post" | "delete" | "patch"](pathname);
     if (options.cookie) req = req.set("Cookie", options.cookie);

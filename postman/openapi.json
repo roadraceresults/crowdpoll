@@ -1043,6 +1043,10 @@
               "ipVoteCap": {
                 "type": "integer",
                 "description": "Votes refused past ENV_MAX_VOTES_PER_IP_PER_MINUTE since start"
+              },
+              "humanCheckSkipped": {
+                "type": "integer",
+                "description": "Sign-in starts let through without a human check because the FCaptcha service was unreachable, since start"
               }
             }
           }
@@ -1288,6 +1292,25 @@
             "description": "False on a CLOSED or ARCHIVED poll."
           }
         }
+      },
+      "ChallengeRequired": {
+        "type": "object",
+        "required": [
+          "error",
+          "code"
+        ],
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "Please complete the human check."
+          },
+          "code": {
+            "type": "string",
+            "enum": [
+              "challenge-required"
+            ]
+          }
+        }
       }
     },
     "responses": {
@@ -1373,6 +1396,17 @@
             }
           }
         }
+      }
+    },
+    "parameters": {
+      "HumanCheck": {
+        "name": "X-Human-Check",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "The pass from the human check (self-hosted FCaptcha widget), sent once. Required while ENV_FCAPTCHA_ENABLED is 1, unless the FCaptcha service is unreachable (the request then proceeds and /healthz abuse.humanCheckSkipped grows by one)."
       }
     }
   },
@@ -1662,6 +1696,34 @@
                     "wizardChoiceMax": {
                       "type": "integer",
                       "description": "Longest choice, in characters, the new-poll wizard and the Add Choice dialog accept (40)"
+                    },
+                    "humanCheck": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "siteKey",
+                            "endpoint"
+                          ],
+                          "properties": {
+                            "siteKey": {
+                              "type": "string",
+                              "description": "ENV_FCAPTCHA_SITE_KEY"
+                            },
+                            "endpoint": {
+                              "type": "string",
+                              "enum": [
+                                "/fcaptcha"
+                              ],
+                              "description": "Where the widget script and its calls are served, on this domain"
+                            }
+                          }
+                        }
+                      ],
+                      "description": "The human check before sign-in; null while ENV_FCAPTCHA_ENABLED is not 1"
                     }
                   }
                 }
@@ -1679,7 +1741,7 @@
         ],
         "operationId": "createAccount",
         "summary": "Create a pending account and auto-send the first login link",
-        "description": "The response is identical whether or not the address is already registered (account-existence privacy); an existing account receives a normal login link instead of a duplicate account. An address is matched to an existing account by its email key (plus-tag dropped; Gmail dots removed), so a variant of an existing address signs that account in. The request must carry the agreement to the current Terms of Service; the account records the version and the time. Token form: with `token` (the one-time link emailed to an address with no account), no `email` is sent; the server checks Origin, the token, the Terms (for an address still without an account), the rate limit and the allowlist, then creates the account, uses the token up and signs in at once, answering `{ redirect }` with the session cookie; no second email is sent.",
+        "description": "The response is identical whether or not the address is already registered (account-existence privacy); an existing account receives a normal login link instead of a duplicate account. An address is matched to an existing account by its email key (plus-tag dropped; Gmail dots removed), so a variant of an existing address signs that account in. The request must carry the agreement to the current Terms of Service; the account records the version and the time. Token form: with `token` (the one-time link emailed to an address with no account), no `email` is sent; the server checks Origin, the token, the Terms (for an address still without an account), the rate limit and the allowlist, then creates the account, uses the token up and signs in at once, answering `{ redirect }` with the session cookie; no second email is sent. While the human check is on, needs a pass from the create-account (only without token: finishing from an emailed link needs no pass) page in X-Human-Check.",
         "requestBody": {
           "required": true,
           "content": {
@@ -1771,7 +1833,7 @@
             }
           },
           "400": {
-            "description": "Invalid or oversized email address, or the Terms of Service not accepted (code terms-required: missing agreement, or another version); nothing is created and no rate limit is consumed; in the token form, code invalid-link when the token is unknown, used, superseded or expired (the card falls back to the address form)",
+            "description": "Invalid or oversized email address, or the Terms of Service not accepted (code terms-required: missing agreement, or another version); nothing is created and no rate limit is consumed; in the token form, code invalid-link when the token is unknown, used, superseded or expired (the card falls back to the address form); or code challenge-required: no good human-check pass, checked before anything else (nothing is sent and no rate limit is consumed)",
             "content": {
               "application/json": {
                 "schema": {
@@ -1781,6 +1843,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/TermsRequired"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ChallengeRequired"
                     }
                   ]
                 }
@@ -1816,7 +1881,12 @@
           "502": {
             "$ref": "#/components/responses/MailFailure"
           }
-        }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/HumanCheck"
+          }
+        ]
       }
     },
     "/api/auth/create-account/link-info": {
@@ -1885,7 +1955,7 @@
         ],
         "operationId": "requestLoginLink",
         "summary": "Request a one-time sign-in link",
-        "description": "Unknown addresses get an identical on-screen response but receive an invitation to create an account instead of a login link.",
+        "description": "Unknown addresses get an identical on-screen response but receive an invitation to create an account instead of a login link. While the human check is on, needs a pass from the login page in X-Human-Check.",
         "requestBody": {
           "required": true,
           "content": {
@@ -1940,11 +2010,18 @@
             }
           },
           "400": {
-            "description": "Invalid or oversized email address",
+            "description": "Invalid or oversized email address; or code challenge-required: no good human-check pass, checked before anything else (nothing is sent and no rate limit is consumed)",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ChallengeRequired"
+                    }
+                  ]
                 }
               }
             }
@@ -1961,7 +2038,12 @@
           "502": {
             "$ref": "#/components/responses/MailFailure"
           }
-        }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/HumanCheck"
+          }
+        ]
       }
     },
     "/api/auth/verify": {
@@ -5715,7 +5797,7 @@
         ],
         "operationId": "redeemInvitation",
         "summary": "Continue on the invitation confirmation card: sign the invited address in once",
-        "description": "Refused with 403 unless the Origin header is this site's own origin. A token that cannot sign in answers 200 with a redirect to /?PID=, so old links never dead-end. A new address must carry acceptedTerms and the current termsVersion. Counted against the email rate limit only after the token and Terms checks pass. The token is single-use; the address is confirmed and the session hooks run as for an emailed sign-in link.",
+        "description": "Refused with 403 unless the Origin header is this site's own origin. A token that cannot sign in answers 200 with a redirect to /?PID=, so old links never dead-end. A new address must carry acceptedTerms and the current termsVersion. Counted against the email rate limit only after the token and Terms checks pass. The token is single-use; the address is confirmed and the session hooks run as for an emailed sign-in link. While the human check is on, needs a pass from the invite page in X-Human-Check.",
         "requestBody": {
           "required": true,
           "content": {
@@ -5783,25 +5865,32 @@
             }
           },
           "400": {
-            "description": "Terms not accepted for a new address (code terms-required)",
+            "description": "Terms not accepted for a new address (code terms-required); or code challenge-required: no good human-check pass, checked before anything else (nothing is sent and no rate limit is consumed)",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "error"
-                  ],
-                  "properties": {
-                    "error": {
-                      "type": "string"
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "required": [
+                        "error"
+                      ],
+                      "properties": {
+                        "error": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "redirect": {
+                          "type": "string"
+                        }
+                      }
                     },
-                    "code": {
-                      "type": "string"
-                    },
-                    "redirect": {
-                      "type": "string"
+                    {
+                      "$ref": "#/components/schemas/ChallengeRequired"
                     }
-                  }
+                  ]
                 }
               }
             }
@@ -5895,7 +5984,12 @@
               }
             }
           }
-        }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/HumanCheck"
+          }
+        ]
       }
     },
     "/api/legal/accept-terms": {
@@ -6102,12 +6196,25 @@
             }
           },
           "400": {
-            "description": "Unknown or disabled provider, or a callbackURL on another origin"
+            "description": "Unknown or disabled provider, or a callbackURL on another origin; or code challenge-required: no good human-check pass, checked before anything else (nothing is sent and no rate limit is consumed)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChallengeRequired"
+                }
+              }
+            }
           },
           "404": {
             "description": "Not served in native mode"
           }
-        }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/HumanCheck"
+          }
+        ],
+        "description": "While the human check is on, needs a pass from the login, create-account or invite page in X-Human-Check."
       }
     },
     "/api/auth/sign-in/oauth2": {
@@ -6167,12 +6274,25 @@
             }
           },
           "400": {
-            "description": "Amazon is not enabled"
+            "description": "Amazon is not enabled; or code challenge-required: no good human-check pass, checked before anything else (nothing is sent and no rate limit is consumed)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChallengeRequired"
+                }
+              }
+            }
           },
           "404": {
             "description": "Not served in native mode"
           }
-        }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/HumanCheck"
+          }
+        ],
+        "description": "While the human check is on, needs a pass from the login, create-account or invite page in X-Human-Check."
       }
     },
     "/api/auth/callback/{provider}": {
@@ -6953,6 +7073,87 @@
           },
           "503": {
             "description": "busy (shed), or SCREENING_UNAVAILABLE \"Couldn't check this choice. Try again.\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/polls/{pid}/card": {
+      "get": {
+        "tags": [
+          "home"
+        ],
+        "operationId": "getPublicPollCard",
+        "summary": "One public poll for a guest, for the card its own page mounts",
+        "description": "No session needed. Answers only for a poll search engines may index: public, and open or closed (a poll under edit counts by its state before the edit). Shed as refresh.",
+        "parameters": [
+          {
+            "name": "pid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The poll, its counts and a guest overlay",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "poll",
+                    "counts",
+                    "overlay"
+                  ],
+                  "properties": {
+                    "poll": {
+                      "type": "object"
+                    },
+                    "counts": {
+                      "type": "object"
+                    },
+                    "overlay": {
+                      "type": "object",
+                      "properties": {
+                        "voted": {
+                          "type": "boolean",
+                          "enum": [
+                            false
+                          ]
+                        },
+                        "bookmarked": {
+                          "type": "boolean",
+                          "enum": [
+                            false
+                          ]
+                        },
+                        "mayWatch": {
+                          "type": "boolean",
+                          "enum": [
+                            false
+                          ]
+                        },
+                        "voteBlockedReason": {
+                          "type": "null"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Malformed id, unknown poll, or one that is private, not yet open, awaiting approval, rejected or archived — all the same answer",
             "content": {
               "application/json": {
                 "schema": {

@@ -1699,3 +1699,37 @@ describe("where a poll link landed, in a browser", () => {
     expect(activeTab(page)).toBe("shared-with-you");
   });
 });
+
+describe("a public poll's own page, for a guest", () => {
+  const onPollPage = (pid: string) =>
+    openPage(ctx, "index.html", {
+      url: `http://localhost/poll/${pid}`,
+      beforeScripts: (window) => {
+        window.document.body.dataset.pollPage = pid;
+        const summary = window.document.createElement("article");
+        summary.id = "poll-summary";
+        summary.textContent = "Summary for crawlers";
+        window.document.querySelector("main.all-markets")!.prepend(summary);
+      }
+    });
+
+  it("opens Trending on the poll's live card, maximized, in place of the summary", async () => {
+    const poll = makePoll({ _id: randomUUID(), title: "Indexed poll" });
+    await polls(ctx).insertOne(poll);
+    page = await onPollPage(poll._id);
+    await page.settle(300);
+    expect(page.document.querySelector("#tabBar .tab.is-active")!.getAttribute("data-tab")).toBe("trending");
+    expect(requestsTo(page, `/api/polls/${poll._id}/card`)).toHaveLength(1);
+    expect(page.cardTitles("trending")).toContain("Indexed poll");
+    expect(page.document.querySelector('.tab-panel[data-panel="trending"] .maximized-card-grid')!.hasAttribute("hidden")).toBe(false);
+    expect(page.document.getElementById("poll-summary")).toBeNull();
+  });
+
+  it("keeps the summary and says so when the card cannot be fetched", async () => {
+    const pid = randomUUID();
+    page = await onPollPage(pid);
+    await page.settle(300);
+    expect(page.document.getElementById("poll-summary")).not.toBeNull();
+    expect(page.document.getElementById("tabNotice")!.textContent).toBe("This poll could not be opened.");
+  });
+});
