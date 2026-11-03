@@ -6,6 +6,22 @@ The full description, every earlier feature's decisions and the settings table a
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261102-154952-FIELD-LENGTH-LIMITS/plan.md` (research R1–R9, `data-model.md` — changed validation rules only,
+no schema change — the HTTP contracts `contracts/api.md` A1–A4, the UI contracts `contracts/ui-contracts.md` C1–C5, and
+the quickstart live alongside it in `specs/20261102-154952-FIELD-LENGTH-LIMITS/`). The requirements report is
+`requirements/20261102-154952-field-length-limits/requirements-report.md`: 3 diagrams and 6 findings, all resolved.
+Decisions that are easy to get wrong:
+- **`TITLE_MAX` 60, `SUBTITLE_MAX` 40, `CHOICE_LABEL_MAX` 35** in `src/polls/service.ts`; `WIZARD_CHOICE_MAX` is gone
+  and `validateAddedChoice` uses `CHOICE_LABEL_MAX` (R1).
+- **A stored label is exempt**: `replaceChoices` / `mergeChoices` refuse a label over 35 only when its trimmed text is
+  not a stored label of the poll (`labelTooLong`), so labels saved at up to 100 keep their ids and votes (R2).
+- **The wizard's box keeps stored lines whole** (`sanitizeChoicesText` `storedLabels`), and cuts a stored line to 35
+  the moment its text changes (R3, clarification Q1).
+- **`/api/config` sends `choiceLabelMax`**, not `wizardChoiceMax`; browser fallbacks are 35 (R4).
+- **The `adminCard.js` copies equal the server's**, checked by `tests/field-limits.test.ts`; migration 007 keeps its own
+  50 and 30 (R5, R8).
+No migration, route, setting or dependency change.
+The preceding feature is
 `specs/20261101-181626-USER-ADD-CHOICES/plan.md` (research R1–R12, `data-model.md` — one `polls` column,
 `voters_add_choices`, added by migration `015-voters-add-choices`, and `Choice.addedBy`; the HTTP contracts
 `contracts/api.md` A1–A5, the UI contracts `contracts/ui-contracts.md` C1–C5, and the quickstart live alongside it in
@@ -16,26 +32,12 @@ Decisions that are easy to get wrong:
   (`enforceFloor("vote", "choice")`) so a vote right after an addition is not too soon (R2, R3, clarification Q2).
 - **Only while the raw `pollState` is OPEN with no `pending_update`**, checked under the row lock in `appendChoice`;
   the projection's OPEN-while-EDITING is not enough (R5, R7).
-- **The limit is `WIZARD_CHOICE_MAX` (40)**, moved to `src/polls/service.ts` and sent as `wizardChoiceMax`;
+- **A voter's choice is limited by `CHOICE_LABEL_MAX` (35)**, sent as `choiceLabelMax`;
   duplicates compare ignoring case and spacing; screening runs in the request, never via `pending_update` (R6, R8).
 - **`addedBy` is admin-only**: never in `PollProjection`; not recorded on anonymous polls; cleared on account deletion
   and when a poll turns anonymous (R9, clarification Q1).
 - **The creator's save sends `baseChoiceIds`**, and stored choices not listed are kept (R10).
 One additive migration, no new dependency or setting; one route, one browser module, one stylesheet.
-The preceding feature is
-`specs/20261101-150208-ADAPTIVE-Y-AXIS/plan.md` (research R1–R7, `data-model.md` — the axis top, step and mapping derived
-per draw, nothing stored — the UI contracts `contracts/ui-contracts.md` C1–C4, and the quickstart live alongside it in
-`specs/20261101-150208-ADAPTIVE-Y-AXIS/`). The requirements report is
-`requirements/20261101-150208-adaptive-y-axis/requirements-report.md`: 3 diagrams and 6 findings, all resolved.
-Decisions that are easy to get wrong:
-- **The top is chosen in the browser**, in `lineGraph.js` `renderSvg()`, from the drawn series of the scale shown
-  (`state.data.series`): the smallest of 25, 50, 75, 100 at or above the highest point; no line → 25 (R1, R2).
-- **Gridlines every 5, 10 or 15% for a 25, 50 or 75% top; every 25% for 100%**, so a 100% graph is unchanged (R3).
-- **No stored top**: every `renderSvg()` call (mount, scale switch, refresh, resize) derives it again (R4).
-- **One mapping**: `y` uses the top, and `view.y` carries it to the crosshair markers; tooltip and live region keep the
-  real percentages (R5).
-- **POLL-LINE-GRAPH contract C5 is amended** ("0% to 25, 50, 75 or 100%, … five or six gridlines") (R6).
-No server, route, configuration, data or migration change; no new dependency.
 <!-- SPECKIT END -->
 
 ## Project Overview

@@ -96,7 +96,7 @@ and 6 findings, all resolved. Decisions that are easy to get wrong:
 - **`subtitle` is required and goes to `polls.subtitle`** on create and on refresh (TWEAK01: renamed from
   `graph_subtitle`, which is no longer read); absent is `"subtitle" is missing`, `""` means empty, and a rerun with
   `""` clears it — the file is the source of truth on every run (R2, R3).
-- **`SUBTITLE_MAX` (30) is imported from `src/polls/service.ts`**, never copied; a non-string or over-long value is one
+- **`SUBTITLE_MAX` (40) is imported from `src/polls/service.ts`**, never copied; a non-string or over-long value is one
   `[populate] Error:` line and exit 1 before any write; the value is untrimmed, as `validateFieldLength` keeps it
   (R2, R4).
 - **No display change**: the poll card and the maximized view's line graph already render `subtitle` (R1).

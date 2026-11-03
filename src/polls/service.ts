@@ -28,11 +28,9 @@ import {
   type Db
 } from "./store.js";
 
-export const TITLE_MAX = 50;
-export const SUBTITLE_MAX = 30;
-export const CHOICE_LABEL_MAX = 100;
-/** The longest choice a new poll's wizard or a voter's addition may have. */
-export const WIZARD_CHOICE_MAX = 40;
+export const TITLE_MAX = 60;
+export const SUBTITLE_MAX = 40;
+export const CHOICE_LABEL_MAX = 35;
 export const EMAIL_MAX = 200;
 /** The whole stored keywords value: every keyword plus one comma between each pair. */
 export const KEYWORDS_MAX = 200;
@@ -972,8 +970,8 @@ export function validateAddedChoice(
 ): string {
   const label = typeof rawLabel === "string" ? rawLabel.trim() : "";
   if (label === "") throw new ChoiceError(400, "Enter a choice.", "EMPTY_CHOICE");
-  if (label.length > WIZARD_CHOICE_MAX) {
-    throw new ChoiceError(400, `A choice can be at most ${WIZARD_CHOICE_MAX} characters.`, "CHOICE_TOO_LONG");
+  if (label.length > CHOICE_LABEL_MAX) {
+    throw new ChoiceError(400, `A choice can be at most ${CHOICE_LABEL_MAX} characters.`, "CHOICE_TOO_LONG");
   }
   if (FORBIDDEN_CHOICE_CHARACTERS.test(label)) {
     throw new ChoiceError(400, "A choice can't contain line breaks, tabs or invisible characters.", "CHOICE_CHARACTERS");
@@ -1042,6 +1040,11 @@ export function validateFieldLength(value: unknown, max: number, fieldName: stri
   return value;
 }
 
+/** A label already stored on the poll keeps its length; only a new label is held to `CHOICE_LABEL_MAX`. */
+function labelTooLong(label: string, storedLabels: ReadonlySet<string>): boolean {
+  return label.length > CHOICE_LABEL_MAX && !storedLabels.has(label);
+}
+
 /**
  * 006-poll-choices-editor FR-006/007 (data-model.md): replaces the poll's entire active
  * choice set outright from a flat list of labels — no attempt to preserve an existing
@@ -1069,7 +1072,8 @@ export function replaceChoices(
   if (cleaned.length < config.minChoices || cleaned.length > config.maxChoices) {
     throw new AdminError(400, `A poll must have between ${config.minChoices} and ${config.maxChoices} choices.`);
   }
-  if (cleaned.some((label) => label.length > CHOICE_LABEL_MAX)) {
+  const storedLabels = new Set(poll.choices.map((c) => c.label.trim()));
+  if (cleaned.some((label) => labelTooLong(label, storedLabels))) {
     throw new AdminError(400, `Choice label must be at most ${CHOICE_LABEL_MAX} characters.`);
   }
   if (new Set(cleaned).size !== cleaned.length) {
@@ -1116,7 +1120,8 @@ export function mergeChoices(
   if (cleaned.length < config.minChoices || cleaned.length > config.maxChoices) {
     throw new AdminError(400, `A poll must have between ${config.minChoices} and ${config.maxChoices} choices.`);
   }
-  if (cleaned.some((label) => label.length > CHOICE_LABEL_MAX)) {
+  const storedLabels = new Set(poll.choices.map((c) => c.label.trim()));
+  if (cleaned.some((label) => labelTooLong(label, storedLabels))) {
     throw new AdminError(400, `Choice label must be at most ${CHOICE_LABEL_MAX} characters.`);
   }
   if (new Set(cleaned).size !== cleaned.length) {

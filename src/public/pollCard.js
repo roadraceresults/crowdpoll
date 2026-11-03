@@ -1498,7 +1498,7 @@ function initPollCard(viewport, opts){
     }
     if (!mayAddChoice() || !window.AddChoiceDialog) return;
     addChoiceBtn.focus();
-    window.AddChoiceDialog.open({ choices: poll.choices, maxLength: bounds.wizardChoiceMax || 40, onSave: saveChoice });
+    window.AddChoiceDialog.open({ choices: poll.choices, maxLength: bounds.choiceLabelMax || 35, onSave: saveChoice });
   });
 
   function holdVoteButton(ms){

@@ -54,8 +54,8 @@ describe("parsePollData", () => {
     expect(() => parsePollData(without, bounds)).toThrow(/"subtitle" is missing/);
   });
 
-  it("accepts a 30-character subtitle unchanged", () => {
-    const value = "x".repeat(30);
+  it("accepts a 40-character subtitle unchanged", () => {
+    const value = "x".repeat(40);
     expect(parsePollData({ ...fixture, subtitle: value }, bounds).subtitle).toBe(value);
   });
 
@@ -367,12 +367,12 @@ describe("parsePollData — input errors", () => {
     ["the old poll creator email key", { ...valid(), "poll_creator_email": undefined, "poll creator email": "creator@example.com" }, /"poll_creator_email" is missing or empty/],
     ["missing title", { ...valid(), title: undefined }, /title/],
     ["empty title", { ...valid(), title: "" }, /title/],
-    ["a 51-character title", { ...valid(), title: "x".repeat(51) }, /50/],
+    ["a 61-character title", { ...valid(), title: "x".repeat(61) }, /60/],
     ["missing subtitle", { ...valid(), subtitle: undefined }, /"subtitle" is missing/],
     ["a numeric subtitle", { ...valid(), subtitle: 7 }, /"subtitle" must be text/],
-    ["a 31-character subtitle", { ...valid(), subtitle: "x".repeat(31) }, /"subtitle" is longer than 30 characters/],
+    ["a 41-character subtitle", { ...valid(), subtitle: "x".repeat(41) }, /"subtitle" is longer than 40 characters/],
     ["an empty label", { ...valid(), choice_b: "" }, /choice_b/],
-    ["a 101-character label", { ...valid(), choice_b: "x".repeat(101) }, /choice_b/],
+    ["a 36-character label", { ...valid(), choice_b: "x".repeat(36) }, /choice_b.*1 to 35/],
     ["two equal labels", { ...valid(), choice_c: "Approve" }, /choice_a.*choice_c/],
     ["too few choices", { ...valid(), choice_b: undefined, choice_c: undefined }, /1.*2/],
     ["too many choices", { ...valid(), choice_d: "D" }, /4.*3/],

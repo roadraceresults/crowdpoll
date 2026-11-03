@@ -192,7 +192,7 @@
         choiceBounds: {
           minChoices: (config && config.minChoices) || 2,
           maxChoices: (config && config.maxChoices) || 50,
-          wizardChoiceMax: (config && config.wizardChoiceMax) || 40
+          choiceLabelMax: (config && config.choiceLabelMax) || 35
         }
       },
       cardOpts

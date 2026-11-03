@@ -15,7 +15,7 @@
 
   /* Resolves when the dialog closes. onSave(label) resolves { ok } or { error, status }. */
   function open(options) {
-    const maxLength = options.maxLength || 40;
+    const maxLength = options.maxLength || 35;
     const existing = new Set((options.choices || []).map((c) => keyOf(c.label)));
     const opener = document.activeElement;
     const id = "add-choice-" + ++counter;

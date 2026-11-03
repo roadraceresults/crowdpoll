@@ -177,7 +177,7 @@ describe("pressing Add Choice", () => {
     expect(card(page)!.querySelector(".poll-totals")!.textContent).toBe("1 vote");
     expect(dialog(page)).not.toBeNull();
     expect(page.document.activeElement).toBe(field(page));
-    expect(dialog(page)!.querySelector(".m3-field-counter")!.textContent).toBe("0 / 40");
+    expect(dialog(page)!.querySelector(".m3-field-counter")!.textContent).toBe("0 / 35");
   });
 
   it("says so, and opens nothing, when the choices cannot be loaded or the poll is full", async () => {
@@ -277,17 +277,17 @@ describe("the dialog", () => {
     expect(logged).toEqual([]);
   });
 
-  it("stops at 40 characters, and a paste is cut to fit with line breaks made spaces", async () => {
+  it("stops at 35 characters, and a paste is cut to fit with line breaks made spaces", async () => {
     const voter = await person();
     await seed(voter);
     page = await openShared(voter.cookie);
     await openDialog(page);
-    expect(field(page).maxLength).toBe(40);
+    expect(field(page).maxLength).toBe(35);
     const paste = new page.window.Event("paste", { bubbles: true, cancelable: true }) as Event & { clipboardData: unknown };
-    paste.clipboardData = { getData: () => "first line\nsecond line " + "x".repeat(40) };
+    paste.clipboardData = { getData: () => "first line\nsecond line " + "x".repeat(35) };
     field(page).dispatchEvent(paste);
-    expect(field(page).value).toBe(("first line second line " + "x".repeat(40)).slice(0, 40));
-    expect(dialog(page)!.querySelector(".m3-field-counter")!.textContent).toBe("40 / 40");
+    expect(field(page).value).toBe(("first line second line " + "x".repeat(35)).slice(0, 35));
+    expect(dialog(page)!.querySelector(".m3-field-counter")!.textContent).toBe("35 / 35");
   });
 
   it("refuses a listed choice as you type, ignoring case and spacing", async () => {

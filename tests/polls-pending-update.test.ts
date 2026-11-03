@@ -50,10 +50,20 @@ describe("mergeChoices (R3)", () => {
     expect(added.position).toBe(2);
   });
 
+  it("keeps a stored label over 35 characters by its text, and refuses it once changed", () => {
+    const long = "L".repeat(72);
+    const withLong = () =>
+      makePoll({ choices: [{ id: "a", label: long, position: 0 }, { id: "b", label: "Coffee", position: 1 }] });
+    const { choices, deletedIds } = mergeChoices(withLong(), [long, "Coffee", "Milk"], BOUNDS);
+    expect(deletedIds).toEqual([]);
+    expect(choices[0]).toEqual({ id: "a", label: long, position: 0 });
+    expect(() => mergeChoices(withLong(), [long + "!", "Coffee"], BOUNDS)).toThrowError(/at most 35/);
+  });
+
   it("refuses too few, too many, over-long and duplicate labels", () => {
     expect(() => mergeChoices(stored(), ["Tea"], BOUNDS)).toThrowError(/between 2 and 5/);
     expect(() => mergeChoices(stored(), ["1", "2", "3", "4", "5", "6"], BOUNDS)).toThrowError(/between 2 and 5/);
-    expect(() => mergeChoices(stored(), ["Tea", "x".repeat(101)], BOUNDS)).toThrowError(/at most 100/);
+    expect(() => mergeChoices(stored(), ["Tea", "x".repeat(36)], BOUNDS)).toThrowError(/at most 35/);
     expect(() => mergeChoices(stored(), ["Tea", " Tea "], BOUNDS)).toThrowError(/unique/);
   });
 });

@@ -235,9 +235,9 @@ describe("refused choices", () => {
     return res;
   };
 
-  it("accepts 40 characters and refuses 41", async () => {
-    expect((await refusedWith("x".repeat(40))).status).toBe(200);
-    expect((await refusedWith("x".repeat(41))).body).toEqual({ error: "A choice can be at most 40 characters.", code: "CHOICE_TOO_LONG" });
+  it("accepts 35 characters and refuses 36", async () => {
+    expect((await refusedWith("x".repeat(35))).status).toBe(200);
+    expect((await refusedWith("x".repeat(36))).body).toEqual({ error: "A choice can be at most 35 characters.", code: "CHOICE_TOO_LONG" });
   });
 
   it("refuses line breaks, tabs and invisible characters, and accepts emoji and other scripts", async () => {
