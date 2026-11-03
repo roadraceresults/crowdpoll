@@ -121,6 +121,7 @@
 
   .tab-bar .tab:hover:not(.is-active):not(:disabled):not([aria-disabled="true"]){ background:var(--paper-raised); }
 
+  .tab-bar .tab[hidden]{ display:none; }
   .tab-bar .tab:disabled{
     opacity:.45;
     cursor:not-allowed;

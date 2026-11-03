@@ -58,6 +58,8 @@ All runtime configuration comes from `ENV_*` environment variables:
 | `ENV_TRENDING_POLLS_RECOMPUTE_SWEEP_INTERVAL` | `60000` | How often TRENDING is recomputed and published (ms); also the browser copy's lifetime. The CDN `max-age`, and the wait before Refresh is offered, is the smaller of it and 10 s |
 | `ENV_MAX_NEWEST_POLLS` | `50` | Polls in the Newest tab; must not exceed `ENV_MAX_POLLS_SEARCH_RESULTS` |
 | `ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL` | `60000` | How often Newest is recomputed and published (ms; at least 1000); also the browser copy's lifetime. The CDN `max-age`, and the wait before Refresh is offered, is the smaller of it and 10 s |
+| `ENV_HOME_TAB_REFRESH_INTERVAL` | `7200000` | How long a user's Home list is reused before it is rebuilt (ms; at least 60000); a change to the user's own polls, votes, watches or invitations rebuilds it sooner |
+| `ENV_MAX_HOME_PAGE_POLLS` | `200` | How many of the user's eligible polls a Home rebuild considers, most recent relation first (at least 1) |
 | `ENV_LINE_GRAPH_MIN_VOTE_PERCENTAGE` | `1` | Current share (whole percent) a choice must hold to be drawn on the maximized view's line graph; `0` draws every choice |
 | `ENV_LINE_GRAPH_REFRESH_INTERVAL` | `60000` | How often an open line graph refetches its series (ms); also the server-side cache TTL per poll. Clamped up to `ENV_MIN_LIVE_REFRESH_INTERVAL` |
 | `ENV_MIN_LIVE_REFRESH_INTERVAL` | `2000` | Floor between two Live Results refreshes from one user (ms) |

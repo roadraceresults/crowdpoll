@@ -24,7 +24,7 @@ const item = (menu: HTMLElement) => menu.querySelector("a.avatar-menu-create-pol
 describe("the avatar menu's Create Poll item", () => {
   it("sits between Site Settings and Poll Administration and opens poll administration for an administrator", async () => {
     const { menu } = await menuFor(ADMINISTRATOR);
-    expect(labels(menu!)).toEqual(["Edit Profile", "Site Settings", "Create Poll", "Poll Administration", "Logout"]);
+    expect(labels(menu!)).toEqual(["Home", "Edit Profile", "Site Settings", "Create Poll", "Poll Administration", "Logout"]);
     expect(item(menu!).getAttribute("href")).toBe("/admin");
     expect(item(menu!).hasAttribute("aria-disabled")).toBe(false);
     expect(item(menu!).querySelector(".avatar-menu-create-poll-reason")).toBeNull();
@@ -39,7 +39,7 @@ describe("the avatar menu's Create Poll item", () => {
   it("is dimmed, focusable, inert and says why for a user who may not create polls", async () => {
     const { home, menu } = await menuFor(PLAIN_MEMBER);
     const link = item(menu!);
-    expect(labels(menu!)).toEqual(["Edit Profile", "Site Settings", "Create Poll", "Logout"]);
+    expect(labels(menu!)).toEqual(["Home", "Edit Profile", "Site Settings", "Create Poll", "Logout"]);
     expect(link.getAttribute("aria-disabled")).toBe("true");
     expect(link.getAttribute("href")).toBe("/admin");
     expect(link.title).toBe("You need permission to create polls");
@@ -82,13 +82,13 @@ describe("the avatar menu's icons", () => {
   it("gives every item an icon before its label, and Create Poll the header link's icon", async () => {
     const { menu } = await menuFor(ADMINISTRATOR);
     const links = Array.from(menu!.querySelectorAll("a"));
-    expect(links).toHaveLength(5);
+    expect(links).toHaveLength(6);
     for (const link of links) {
       expect(link.firstElementChild!.matches("svg.avatar-menu-icon[aria-hidden='true']")).toBe(true);
       expect(link.lastElementChild!.matches("span.avatar-menu-label")).toBe(true);
     }
     expect(item(menu!).querySelector(".avatar-menu-icon path")!.getAttribute("d")).toBe("M32 18v28M18 32h28");
-    expect(links[0]!.querySelector('.avatar-menu-icon circle[fill="#8093a7"]')).not.toBeNull();
+    expect(links[1]!.querySelector('.avatar-menu-icon circle[fill="#8093a7"]')).not.toBeNull();
   });
 
   it("keeps the disabled Create Poll item's reason under its label", async () => {

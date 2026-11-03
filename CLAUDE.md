@@ -6,6 +6,24 @@ The full description, every earlier feature's decisions and the settings table a
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261103-120521-HOME-TAB/plan.md` (research R1–R14, `data-model.md` — no migration; the `home:<emailKey>`
+membership, the five rules, the date windows and `ENV_HOME_TAB_REFRESH_INTERVAL`; the HTTP contracts `contracts/api.md`
+A1–A3, the UI contracts `contracts/ui-contracts.md` C1–C6, and the quickstart live alongside it in
+`specs/20261103-120521-HOME-TAB/`). The requirements report is
+`requirements/20261103-120521-home-tab/requirements-report.md`: 4 diagrams and 18 findings, all resolved.
+Decisions that are easy to get wrong:
+- **No sweep**: Home's membership is built on demand and cached per user as `home:<emailKey>` with the `tabs:v` list
+  version it was built under, TTL = the interval (2 h); a changed version (`forgetTabs`) rebuilds it (R1, R6).
+- **One candidate query** over `user_polls ⨝ polls`; first matching rule wins; caps 10/10/10/all/10; rule 5 is the
+  cached TRENDING listing's order, no database read (R2, R4).
+- **Date windows by state**: OPEN by `launched_at` ≤ 2 months, CLOSED by `closed_at` ≤ 7 days (closing clears
+  `launched_at`), WAITING TO OPEN always; drafts, rejected and archived never (R3).
+- **`keepOrder`**: after a vote or watch on a Home card the browser sends it until Home is next opened, so the card does
+  not jump; access is still re-checked on every refresh (R5, R6, clarification Q2).
+- **Hidden, not disabled, for guests**; Home is the signed-in landing tab and the avatar menu's first item;
+  `relations` adds `created` ("Your poll") and `trending` ("Trending") (R7, R9, R10, clarification Q1).
+No migration, dependency or sweep; one route, two settings (`ENV_HOME_TAB_REFRESH_INTERVAL`, `ENV_MAX_HOME_PAGE_POLLS`).
+The preceding feature is
 `specs/20261102-144053-FCAPTCHA-AND-SEO/plan.md` (research R1–R15, `data-model.md` — no migration; the pass, the
 `ENV_FCAPTCHA_*` settings, the indexable-poll rule and the sitemap cache; the HTTP contracts `contracts/api.md` A1–A6,
 the UI contracts `contracts/ui-contracts.md` C1–C5, and the quickstart live alongside it in
@@ -23,7 +41,7 @@ Decisions that are easy to get wrong:
 - **Indexable = public and OPEN or CLOSED** (EDITING by its stashed state); `/poll/:pid` serves `index.html` with
   escaped head tags and summary, then `tabs.js` mounts the live card via guest `GET /api/polls/:pid/card` (R9–R11).
 No migration; one dependency, only in `fcaptcha-server/`; four settings, off by default.
-The preceding feature is
+Before it came
 `specs/20261102-154952-FIELD-LENGTH-LIMITS/plan.md` (research R1–R9, `data-model.md` — changed validation rules only,
 no schema change — the HTTP contracts `contracts/api.md` A1–A4, the UI contracts `contracts/ui-contracts.md` C1–C5, and
 the quickstart live alongside it in `specs/20261102-154952-FIELD-LENGTH-LIMITS/`). The requirements report is
@@ -39,25 +57,6 @@ Decisions that are easy to get wrong:
 - **The `adminCard.js` copies equal the server's**, checked by `tests/field-limits.test.ts`; migration 007 keeps its own
   50 and 30 (R5, R8).
 No migration, route, setting or dependency change.
-Before it came
-`specs/20261102-134601-SITE-SETTINGS/plan.md` (research R1–R13, `data-model.md` — one `user` column,
-`color_scheme`, added by migration `016-color-scheme`, the `localStorage` copy and the `data-theme` states; the HTTP
-contracts `contracts/api.md` A1–A3, the UI contracts `contracts/ui-contracts.md` C1–C6, and the quickstart live
-alongside it in `specs/20261102-134601-SITE-SETTINGS/`). The requirements report is
-`requirements/20261102-134601-site-settings/requirements-report.md`: 3 diagrams and 13 findings, all resolved.
-Decisions that are easy to get wrong:
-- **Light is the default everywhere**: every `prefers-color-scheme` block is deleted; Dark exists only under
-  `:root[data-theme="dark"]`; the admin pages lose `data-theme="light"` (R8, NC1).
-- **`colorScheme.js` is a synchronous head script** on every page, before the stylesheets; it applies the
-  `localStorage.colorScheme` copy, and the `Session.subscribe` answer corrects it (a `401` → Light, copy removed)
-  (R3, R4, clarification Q1).
-- **`PATCH /api/me` takes `userName` and/or `colorScheme`**; a scheme-only save touches no poll; every PATCH calls
-  `forgetUserSessions` (R2).
-- **Saves are serialized** (one in flight, the latest queued); a failure reverts to `lastSaved` (R7).
-- **The line graph observes `<html data-theme>`**, not `matchMedia` (R9); the gear is `SETTINGS_GLYPH`, Poll
-  Administration a new checklist `ADMIN_GLYPH` (R10).
-- **Every page is contrast-audited in both schemes** (FR-011a, clarification Q2; R11).
-One additive migration, no new dependency or setting; one page route, one head script, one card module, one stylesheet.
 <!-- SPECKIT END -->
 
 ## Project Overview

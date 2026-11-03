@@ -1,5 +1,5 @@
 {
-    "requirements_directory": "requirements/20261102-144053-fcaptcha-and-seo",
+    "requirements_directory": "requirements/20261103-120521-home-tab",
     "last_written": {
         "requirements/20261019-153514-production-email/requirements.md": "e0bd2b0bf28c2fbd6699c99cdf364c1398d3b7aed8eb456198295f78d108ee08",
         "requirements/20261019-153514-production-email/requirements-report.md": "4f75f5e263fa092fc0fcedc4a7cdaa32128382e287f2ac0394e4957e8d8bd413",
@@ -50,6 +50,8 @@
         "requirements/20261102-154952-field-length-limits/requirements.md": "ed5e541ef6bec02a836c1dd353127f9328371a1436e631df0b3cf980e72886db",
         "requirements/20261102-154952-field-length-limits/requirements-report.md": "3d59a66f64297b5b127d15532b25e491bd003c548f89b197b90e251f4bb1c997",
         "requirements/20261102-144053-fcaptcha-and-seo/requirements.md": "a0b55caee66e31a2cefb16fbd38e8bc5b84ee27dba33f6444e74e50312801057",
-        "requirements/20261102-144053-fcaptcha-and-seo/requirements-report.md": "2e5de1e20e53d3e3340e242383a4bc55800d23f01f244ad55266acbb1696d2f7"
+        "requirements/20261102-144053-fcaptcha-and-seo/requirements-report.md": "2e5de1e20e53d3e3340e242383a4bc55800d23f01f244ad55266acbb1696d2f7",
+        "requirements/20261103-120521-home-tab/requirements.md": "744c4f3eb1be9c48c168ccb0f6296bd61f84a1fa64da42cda485ab00657919c7",
+        "requirements/20261103-120521-home-tab/requirements-report.md": "1e4733c41635443569b771a7d912d17a1391d2c196b37db5ab482bb215f7de42"
     }
 }

@@ -141,6 +141,10 @@ services:
         value: "50"
       - key: ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL
         value: "60000"
+      - key: ENV_HOME_TAB_REFRESH_INTERVAL
+        value: "7200000"
+      - key: ENV_MAX_HOME_PAGE_POLLS
+        value: "200"
       - key: ENV_LINE_GRAPH_MIN_VOTE_PERCENTAGE
         value: "1"
       - key: ENV_LINE_GRAPH_REFRESH_INTERVAL

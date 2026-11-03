@@ -85,6 +85,7 @@
   function buildTabMenu() {
     menu.textContent = "";
     tabBar.querySelectorAll(".tab").forEach((tab) => {
+      if (tab.hidden) return;
       const item = document.createElement("button");
       item.type = "button";
       item.className = "tab-menu-item";

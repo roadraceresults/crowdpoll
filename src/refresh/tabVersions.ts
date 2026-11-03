@@ -7,6 +7,8 @@ export const TAB_VERSION_KEY = (email: string) => `tabs:v:${emailKeyOf(email.toL
 export const TAB_SEEN_KEY = (email: string, tab: string) => `tabs:seen:${emailKeyOf(email.toLowerCase())}:${tab}`;
 export const TABS_FAST_KEY = "stats:tabs:fast";
 export const TABS_FULL_KEY = "stats:tabs:full";
+export const HOME_REBUILT_KEY = "stats:home:rebuilt";
+export const HOME_REUSED_KEY = "stats:home:reused";
 
 const VERSION_TTL_MS = 24 * 60 * 60 * 1000;
 const SEEN_TTL_MS = 5 * 60 * 1000;

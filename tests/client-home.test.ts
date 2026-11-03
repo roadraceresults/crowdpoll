@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { forgeSession, startTestContext, type TestContext } from "./helpers/setup.js";
 import { makePoll, polls } from "./helpers/poll-fixtures.js";
-import { LISTING_MAX_AGE_1S, openPage, type BrowserPage } from "./helpers/browser.js";
+import { LISTING_MAX_AGE_1S, openPage, type BrowserPage, ON_TRENDING } from "./helpers/browser.js";
 import { newestSweep, trendingSweep } from "../src/polls/sweeps.js";
 import { countVote } from "../src/polls/counters.js";
 import { addBookmark } from "../src/polls/bookmarks.js";
@@ -57,20 +57,21 @@ describe("the first tab render's session wait (TWEAK05)", () => {
 });
 
 describe("the home page in a browser", () => {
-  it("shows eight tabs in order with Title Case labels, Trending open and every other panel hidden", async () => {
+  it("shows nine tabs in order with Title Case labels, Home hidden for a guest, Trending open and every other panel hidden", async () => {
     page = await openPage(ctx, "index.html");
     const tabs = Array.from(page.document.querySelectorAll("#tabBar .tab"));
-    expect(tabs.map((t) => t.getAttribute("data-tab"))).toEqual(["your-polls", "shared-with-you", "your-votes", "trending", "newest", "watching", "live", "search"]);
-    expect(tabs.map((t) => t.textContent!.replace(/\u00a0/g, " ").trim())).toEqual(["Your Polls", "Shared With You", "Your Votes", "Trending", "Newest", "Watching", "Live Results", "Search"]);
-    expect(tabs[3]!.classList.contains("is-active")).toBe(true);
+    expect(tabs.map((t) => t.getAttribute("data-tab"))).toEqual(["home", "your-polls", "shared-with-you", "your-votes", "trending", "newest", "watching", "live", "search"]);
+    expect(tabs.map((t) => t.textContent!.replace(/\u00a0/g, " ").trim())).toEqual(["Home", "Your Polls", "Shared With You", "Your Votes", "Trending", "Newest", "Watching", "Live Results", "Search"]);
+    expect((tabs[0] as HTMLElement).hidden).toBe(true);
+    expect(tabs[4]!.classList.contains("is-active")).toBe(true);
     const panels = Array.from(page.document.querySelectorAll(".tab-panel"));
-    expect(panels.map((s) => s.getAttribute("data-panel"))).toEqual(["your-polls", "shared-with-you", "your-votes", "trending", "newest", "watching", "live", "search"]);
-    expect(panels.map((s) => s.hasAttribute("hidden"))).toEqual([true, true, true, false, true, true, true, true]);
+    expect(panels.map((s) => s.getAttribute("data-panel"))).toEqual(["home", "your-polls", "shared-with-you", "your-votes", "trending", "newest", "watching", "live", "search"]);
+    expect(panels.map((s) => s.hasAttribute("hidden"))).toEqual([true, true, true, true, false, true, true, true, true]);
   });
 
   it("each tab's icon is decorative and the label alone is the accessible name", async () => {
     page = await openPage(ctx, "index.html");
-    const labels = ["Your Polls", "Shared With You", "Your Votes", "Trending", "Newest", "Watching", "Live Results", "Search"];
+    const labels = ["Home", "Your Polls", "Shared With You", "Your Votes", "Trending", "Newest", "Watching", "Live Results", "Search"];
     const tabs = Array.from(page.document.querySelectorAll("#tabBar .tab"));
     tabs.forEach((tab, i) => {
       const icon = tab.firstElementChild!;
@@ -110,7 +111,7 @@ describe("the home page in a browser", () => {
     });
     await polls(ctx).insertOne(poll);
     await trendingSweep(ctx, ctx.config, ctx.trendingPublisher);
-    page = await openPage(ctx, "index.html", { cookie });
+    page = await openPage(ctx, "index.html", { cookie, url: ON_TRENDING });
     expect(page.cardTitles("trending")).toEqual(["Voted"]);
     expect(requestsTo(page, "/api/me/polls").length).toBe(1);
     expect(requestsTo(page, "/api/me").filter((r) => r.url === "/api/me").length).toBe(1);
@@ -131,7 +132,7 @@ describe("the home page in a browser", () => {
     await polls(ctx).insertOne(favourite);
     await addBookmark(ctx, me, favourite._id, 200);
     await trendingSweep(ctx, ctx.config, ctx.trendingPublisher);
-    return openPage(ctx, "index.html", { cookie });
+    return openPage(ctx, "index.html", { cookie, url: ON_TRENDING });
   }
 
   it("Refresh within the floor sends nothing; a switch back within the floor renders the copy and sends nothing", async () => {
@@ -237,7 +238,7 @@ describe("the Live Results bars and the guest (FR-011)", () => {
     expect(page.document.body.classList.contains("is-guest")).toBe(false);
 
     const { cookie } = await forgeSession(ctx, "member-bars@example.com");
-    const member = await openPage(ctx, "index.html", { cookie });
+    const member = await openPage(ctx, "index.html", { cookie, url: ON_TRENDING });
     try {
       await member.settle(50);
       expect(member.document.body.classList.contains("is-guest")).toBe(false);
@@ -256,8 +257,8 @@ describe("the Refresh control across the reordered bar (FR-003)", () => {
     await page.settle(100);
     const wrap = page.document.querySelector(".tab-bar-wrap")!;
     const tabs = Array.from(page.document.querySelectorAll("#tabBar .tab"));
-    expect(tabs[7]!.getAttribute("data-tab")).toBe("search");
-    expect(tabs[7]!.classList.contains("is-active")).toBe(true);
+    expect(tabs[8]!.getAttribute("data-tab")).toBe("search");
+    expect(tabs[8]!.classList.contains("is-active")).toBe(true);
     expect(wrap.getAttribute("data-active")).toBe("search");
     expect(page.document.getElementById("refreshBtn")).not.toBeNull();
 
@@ -266,7 +267,7 @@ describe("the Refresh control across the reordered bar (FR-003)", () => {
     expect(page.document.querySelector('.tab[data-tab="trending"]')!.classList.contains("is-active")).toBe(true);
 
     await page.click('.tab[data-tab="live"]');
-    expect(tabs[6]!.getAttribute("data-tab")).toBe("live");
+    expect(tabs[7]!.getAttribute("data-tab")).toBe("live");
     expect(wrap.getAttribute("data-active")).toBe("live");
   });
 });
@@ -392,7 +393,7 @@ describe("the Newest tab in a browser", () => {
     const { cookie } = await forgeSession(ctx, "newest-member@example.com");
     await countVote(ctx.cache, ids[1]!, ["c1"], [], true);
     await ctx.db.insertInto("votes").values({ poll_id: ids[1]!, email: "newest-member@example.com", user_name: "", choice_ids: ["c1"], voted_at: new Date() }).execute();
-    page = await openPage(ctx, "index.html", { cookie });
+    page = await openPage(ctx, "index.html", { cookie, url: ON_TRENDING });
     await page.settle(50);
     await page.click('.tab[data-tab="newest"]');
     expect(page.cardTitles("newest")).toEqual(["Second", "First"]);
@@ -476,7 +477,7 @@ describe("the Newest tab in a browser", () => {
   it("a vote cast from the Trending card is on the Newest card at once", async () => {
     const ids = await seedTwo();
     const { cookie } = await forgeSession(ctx, "cross-tab-voter@example.com");
-    page = await openPage(ctx, "index.html", { cookie });
+    page = await openPage(ctx, "index.html", { cookie, url: ON_TRENDING });
     await page.click('.tab[data-tab="newest"]');
     expect(page.cardTitles("newest")).toEqual(["Second", "First"]);
     await page.click('.tab[data-tab="trending"]');
@@ -551,7 +552,7 @@ describe("voting from a card in a browser", () => {
     const poll = makePoll({ title: "Vote here" });
     await polls(ctx).insertOne(poll);
     await trendingSweep(ctx, ctx.config, ctx.trendingPublisher);
-    page = await openPage(ctx, "index.html", { cookie });
+    page = await openPage(ctx, "index.html", { cookie, url: ON_TRENDING });
     expect(page.cardTitles("trending")).toEqual(["Vote here"]);
 
     await page.click('.tab-panel[data-panel="trending"] .vote-btn');
@@ -573,7 +574,7 @@ describe("voting from a card in a browser", () => {
     await polls(ctx).insertOne(poll);
     await trendingSweep(ctx, ctx.config, ctx.trendingPublisher);
     await ctx.cache.set("queue:lag", "9000", 60_000);
-    page = await openPage(ctx, "index.html", { cookie });
+    page = await openPage(ctx, "index.html", { cookie, url: ON_TRENDING });
     await page.click('.tab-panel[data-panel="trending"] .vote-btn');
     await page.click('.tab-panel[data-panel="trending"] .vote-row');
     await page.click('.tab-panel[data-panel="trending"] .submit-vote-btn');
@@ -595,7 +596,7 @@ describe("the Live Results tab in a browser", () => {
       const poll = makePoll({ title: "Watch me" });
       await polls(live).insertOne(poll);
       await trendingSweep(live, live.config, live.trendingPublisher);
-      livePage = await openPage(live, "index.html", { cookie });
+      livePage = await openPage(live, "index.html", { cookie, url: ON_TRENDING });
       await livePage.click('.tab-panel[data-panel="trending"] .live-link');
       expect(livePage.document.querySelector('.tab[data-tab="live"]')!.classList.contains("is-active")).toBe(true);
       expect(livePage.cardTitles("live")).toEqual(["Watch me"]);
@@ -641,7 +642,7 @@ describe("the Live Results tab in a browser", () => {
       const second = makePoll({ title: "Stop watching" });
       await polls(live).insertMany([first, second]);
       await trendingSweep(live, live.config, live.trendingPublisher);
-      livePage = await openPage(live, "index.html", { cookie });
+      livePage = await openPage(live, "index.html", { cookie, url: ON_TRENDING });
       const trendingLink = livePage.document.querySelector('.tab-panel[data-panel="trending"] .live-link') as HTMLAnchorElement;
       expect((trendingLink.querySelector(".live-bars") as HTMLElement).hidden).toBe(false);
       expect((trendingLink.querySelector(".live-x") as HTMLElement).hidden).toBe(true);
@@ -711,7 +712,7 @@ describe("the Live Results tab in a browser", () => {
       const poll = makePoll({ title: "Closes while watched" });
       await polls(live).insertMany([poll]);
       await trendingSweep(live, live.config, live.trendingPublisher);
-      livePage = await openPage(live, "index.html", { cookie });
+      livePage = await openPage(live, "index.html", { cookie, url: ON_TRENDING });
       const addPoll = (livePage.window as unknown as { LiveResults: { addPoll(pid: string): Promise<void> } }).LiveResults.addPoll;
       await addPoll(poll._id);
       await livePage.settle(300);
@@ -747,7 +748,7 @@ describe("the Live Results tab in a browser", () => {
         makePoll({ title: "Open kettle" })
       ]);
       await trendingSweep(live, live.config, live.trendingPublisher);
-      livePage = await openPage(live, "index.html", { cookie });
+      livePage = await openPage(live, "index.html", { cookie, url: ON_TRENDING });
       await livePage.submitForm("#siteSearch", { siteSearchBox: "kettle" });
       expect(livePage.cardTitles("search").sort()).toEqual(["Closed kettle", "Open kettle"]);
       const linkOfSearch = (title: string) => {
@@ -781,7 +782,7 @@ describe("the Live Results tab in a browser", () => {
       const three = makePoll({ title: "Third watched" });
       await polls(live).insertMany([one, two, three]);
       await trendingSweep(live, live.config, live.trendingPublisher);
-      livePage = await openPage(live, "index.html", { cookie });
+      livePage = await openPage(live, "index.html", { cookie, url: ON_TRENDING });
       const addPoll = (livePage.window as unknown as { LiveResults: { addPoll(pid: string): Promise<void> } }).LiveResults.addPoll;
       for (const poll of [one, two, three]) {
         await addPoll(poll._id);
@@ -830,7 +831,7 @@ describe("the Live Results tab in a browser", () => {
       const poll = makePoll({ title: "Added by keyboard" });
       await polls(live).insertMany([poll]);
       await trendingSweep(live, live.config, live.trendingPublisher);
-      livePage = await openPage(live, "index.html", { cookie });
+      livePage = await openPage(live, "index.html", { cookie, url: ON_TRENDING });
       const link = livePage.document.querySelector('.tab-panel[data-panel="trending"] .live-link') as HTMLAnchorElement;
       link.dispatchEvent(new livePage.window.KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
       await livePage.settle(300);
@@ -857,7 +858,7 @@ describe("the Live Results tab in a browser", () => {
       const second = makePoll({ title: "Refused" });
       await polls(live).insertMany([first, second]);
       await trendingSweep(live, live.config, live.trendingPublisher);
-      livePage = await openPage(live, "index.html", { cookie });
+      livePage = await openPage(live, "index.html", { cookie, url: ON_TRENDING });
       expect(livePage.document.querySelector('.tab-panel[data-panel="trending"] .live-link')!.getAttribute("title")).toBe("Add to Live Results");
       const addPoll = (livePage.window as unknown as { LiveResults: { addPoll(pid: string): Promise<void> } }).LiveResults.addPoll;
       await addPoll(first._id);
@@ -892,7 +893,7 @@ describe("the Live Results tab in a browser", () => {
       const poll = makePoll({ title: "Idle me" });
       await polls(live).insertOne(poll);
       await trendingSweep(live, live.config, live.trendingPublisher);
-      livePage = await openPage(live, "index.html", { cookie });
+      livePage = await openPage(live, "index.html", { cookie, url: ON_TRENDING });
       await livePage.click('.tab-panel[data-panel="trending"] .live-link');
       await livePage.settle(900);
       const prompt = livePage.document.querySelector(".live-idle-prompt");
@@ -1043,7 +1044,7 @@ describe("bookmarking from a card in a browser", () => {
     const poll = makePoll({ title: "Mark me" });
     await polls(ctx).insertOne(poll);
     await trendingSweep(ctx, ctx.config, ctx.trendingPublisher);
-    page = await openPage(ctx, "index.html", { cookie });
+    page = await openPage(ctx, "index.html", { cookie, url: ON_TRENDING });
     const button = () => page!.document.querySelector('.tab-panel[data-panel="trending"] .bookmark-btn') as HTMLButtonElement;
     expect(button().getAttribute("aria-label")).toBe("Watch");
     await page.settle(1250);
@@ -1072,7 +1073,7 @@ describe("the watch cap in a browser (FIX027)", () => {
       await polls(capped).insertMany([held, more]);
       await addBookmark(capped, me, held._id, 1);
       await trendingSweep(capped, capped.config, capped.trendingPublisher);
-      cappedPage = await openPage(capped, "index.html", { cookie });
+      cappedPage = await openPage(capped, "index.html", { cookie, url: ON_TRENDING });
       await cappedPage.settle(50);
       const card = Array.from(cappedPage.document.querySelectorAll('.tab-panel[data-panel="trending"] .card-viewport')).find(
         (c) => c.querySelector(".card-front .question")!.textContent === "One too many"
@@ -1102,7 +1103,7 @@ describe("a bookmark and the personal tabs in a browser", () => {
     const poll = makePoll({ title: "New favourite" });
     await polls(ctx).insertOne(poll);
     await trendingSweep(ctx, ctx.config, ctx.trendingPublisher);
-    page = await openPage(ctx, "index.html", { cookie });
+    page = await openPage(ctx, "index.html", { cookie, url: ON_TRENDING });
     await page.settle(1250);
     await page.click('.tab[data-tab="watching"]');
     expect(requestsTo(page, "/api/tabs/watching/refresh").length).toBe(1);
@@ -1143,7 +1144,7 @@ describe("a bookmark and the personal tabs in a browser", () => {
     await polls(ctx).insertOne(poll);
     await addBookmark(ctx, me, poll._id, 200);
     await trendingSweep(ctx, ctx.config, ctx.trendingPublisher);
-    page = await openPage(ctx, "index.html", { cookie });
+    page = await openPage(ctx, "index.html", { cookie, url: ON_TRENDING });
     await page.settle(1250);
     await page.click('.tab[data-tab="watching"]');
     expect(page.cardTitles("watching")).toEqual(["Voted and marked"]);
@@ -1164,7 +1165,7 @@ describe("a bookmark and the personal tabs in a browser", () => {
     await polls(ctx).insertOne(poll);
     await ctx.db.updateTable("polls").set({ created_by_id: userId }).where("id", "=", poll._id).execute();
     await trendingSweep(ctx, ctx.config, ctx.trendingPublisher);
-    page = await openPage(ctx, "index.html", { cookie });
+    page = await openPage(ctx, "index.html", { cookie, url: ON_TRENDING });
     await page.settle(1250);
     await page.click('.tab[data-tab="shared-with-you"]');
     expect(page.cardTitles("shared-with-you")).toEqual([]);
@@ -1221,13 +1222,13 @@ describe("a bookmark seen from another window (FIX04)", () => {
     await addBookmark(ctx, me, voted._id, 200);
     await trendingSweep(ctx, ctx.config, ctx.trendingPublisher);
     const beforeScripts = fakeChannels();
-    other = await openPage(ctx, "index.html", { cookie, beforeScripts });
+    other = await openPage(ctx, "index.html", { cookie, beforeScripts, url: ON_TRENDING });
     await other.settle(1250);
     await other.click('.tab[data-tab="watching"]');
     expect(other.cardTitles("watching")).toEqual(["Voted one"]);
     // The second window's overlay call meets the floor and is asked again (FIX06);
     // the bookmark below waits until that has settled too.
-    page = await openPage(ctx, "index.html", { cookie, beforeScripts });
+    page = await openPage(ctx, "index.html", { cookie, beforeScripts, url: ON_TRENDING });
     await page.settle(2600);
 
     const card = Array.from(page.document.querySelectorAll('.tab-panel[data-panel="trending"] .card-front')).find(
@@ -1260,7 +1261,7 @@ describe("a bookmark seen from another window (FIX04)", () => {
     const target = makePoll({ title: "Marked elsewhere" });
     await polls(ctx).insertOne(target);
     await trendingSweep(ctx, ctx.config, ctx.trendingPublisher);
-    page = await openPage(ctx, "index.html", { cookie });
+    page = await openPage(ctx, "index.html", { cookie, url: ON_TRENDING });
     await page.settle(1250);
     await page.click('.tab[data-tab="watching"]');
     expect(page.cardTitles("watching")).toEqual([]);
@@ -1297,14 +1298,14 @@ describe("the signed-in overlay on a page load (FIX06)", () => {
         .querySelector(".bookmark-btn")!
         .getAttribute("aria-pressed");
 
-    page = await openPage(ctx, "index.html", { cookie });
+    page = await openPage(ctx, "index.html", { cookie, url: ON_TRENDING });
     expect(marked(page)).toBe("true");
     const copy = page.window.sessionStorage.getItem("trending:copy")!;
     page.close();
 
     // F5 straight away: the stored copy renders, but the overlay call meets the floor
     // the first load's call took.
-    page = await openPage(ctx, "index.html", { cookie, sessionStorage: { "trending:copy": copy } });
+    page = await openPage(ctx, "index.html", { cookie, sessionStorage: { "trending:copy": copy }, url: ON_TRENDING });
     const overlayCalls = () => requestsTo(page!, "/api/me/polls").length;
     expect(overlayCalls()).toBe(1);
     expect(marked(page)).toBe("false");
@@ -1331,7 +1332,7 @@ describe("the burst allowance in a browser (FIX008)", () => {
     const target = makePoll({ title: "Quick mark" });
     await polls(burst).insertMany([makePoll({ title: "Other" }), target]);
     await trendingSweep(burst, burst.config, burst.trendingPublisher);
-    bp = await openPage(burst, "index.html", { cookie });
+    bp = await openPage(burst, "index.html", { cookie, url: ON_TRENDING });
     // Load spent one token (the overlay call); two are left.
     await bp.click('.tab[data-tab="watching"]');
     expect(requestsTo(bp, "/api/tabs/watching/refresh").length).toBe(1);
@@ -1368,7 +1369,7 @@ describe("the burst allowance in a browser (FIX008)", () => {
     await polls(burst).insertOne(target);
     await trendingSweep(burst, burst.config, burst.trendingPublisher);
     bp?.close();
-    bp = await openPage(burst, "index.html", { cookie });
+    bp = await openPage(burst, "index.html", { cookie, url: ON_TRENDING });
     const button = () => bp!.document.querySelector('.tab-panel[data-panel="trending"] .bookmark-btn') as HTMLButtonElement;
     const posts = () => bp!.requests.filter((r) => r.url === `/api/polls/${target._id}/bookmark`).length;
     await bp.click('.tab-panel[data-panel="trending"] .bookmark-btn');
@@ -1398,7 +1399,7 @@ describe("the Live Results tab's overlay (FIX011)", () => {
       await polls(live).insertOne(poll);
       await addBookmark(live, me, poll._id, 200);
       await trendingSweep(live, live.config, live.trendingPublisher);
-      livePage = await openPage(live, "index.html", { cookie });
+      livePage = await openPage(live, "index.html", { cookie, url: ON_TRENDING });
       const liveButton = () => livePage!.document.querySelector('.tab-panel[data-panel="live"] .bookmark-btn') as HTMLButtonElement;
       const trendingPressed = () => livePage!.document.querySelector('.tab-panel[data-panel="trending"] .bookmark-btn')?.getAttribute("aria-pressed");
       const deadline = Date.now() + 2000;
@@ -1458,14 +1459,14 @@ describe("the Live Results tab in another window or after a reload (FIX018)", ()
       await trendingSweep(live, live.config, live.trendingPublisher);
 
       // Nothing registered yet: opening the tab asks once and keeps the prompt.
-      second = await openPage(live, "index.html", { cookie });
+      second = await openPage(live, "index.html", { cookie, url: ON_TRENDING });
       await second.click('.tab[data-tab="live"]');
       expect(requestsTo(second, "/api/live/refresh").length).toBe(1);
       expect(second.cardTitles("live")).toEqual([]);
       expect(second.document.querySelector('.tab-panel[data-panel="live"] .tab-empty')!.hasAttribute("hidden")).toBe(false);
       expect(second.document.querySelector('.tab[data-tab="live"]')!.classList.contains("is-active")).toBe(true);
 
-      first = await openPage(live, "index.html", { cookie });
+      first = await openPage(live, "index.html", { cookie, url: ON_TRENDING });
       await first.click('.tab-panel[data-panel="trending"] .live-link');
       expect(first.cardTitles("live")).toEqual(["Watched elsewhere"]);
       // The first window goes to the background (its refreshes pause; the session's
@@ -1489,7 +1490,7 @@ describe("the Live Results tab in another window or after a reload (FIX018)", ()
       second.document.dispatchEvent(new second.window.Event("visibilitychange"));
       first.close();
       await second.settle(400);
-      first = await openPage(live, "index.html", { cookie });
+      first = await openPage(live, "index.html", { cookie, url: ON_TRENDING });
       await first.click('.tab[data-tab="live"]');
       await first.settle(100);
       expect(first.cardTitles("live")).toEqual(["Watched elsewhere"]);
@@ -1512,8 +1513,8 @@ describe("two visible windows on Live Results (FIX019)", () => {
       const two = makePoll({ title: "Second watched" });
       await polls(live).insertMany([one, two]);
       await trendingSweep(live, live.config, live.trendingPublisher);
-      a = await openPage(live, "index.html", { cookie });
-      b = await openPage(live, "index.html", { cookie });
+      a = await openPage(live, "index.html", { cookie, url: ON_TRENDING });
+      b = await openPage(live, "index.html", { cookie, url: ON_TRENDING });
       const addTo = (p: BrowserPage, pid: string) =>
         (p.window as unknown as { LiveResults: { addPoll(pid: string): Promise<void> } }).LiveResults.addPoll(pid);
 
@@ -1557,7 +1558,7 @@ describe("why a poll is listed in a personal tab (FIX020)", () => {
     await addBookmark(ctx, me, voted._id, 200);
     await addBookmark(ctx, me, marked._id, 200);
     await trendingSweep(ctx, ctx.config, ctx.trendingPublisher);
-    page = await openPage(ctx, "index.html", { cookie });
+    page = await openPage(ctx, "index.html", { cookie, url: ON_TRENDING });
     await page.settle(1250);
     await page.click('.tab[data-tab="watching"]');
     const cardOf = (title: string) =>
@@ -1590,7 +1591,7 @@ describe("the header's Create Poll link and the vote grant (025)", () => {
     if (permissions) {
       await ctx.db.updateTable("user").set({ permissions }).where("id", "=", forged.userId).execute();
     }
-    return openPage(ctx, "index.html", { cookie: forged.cookie });
+    return openPage(ctx, "index.html", { cookie: forged.cookie, url: ON_TRENDING });
   }
 
   const createPollLink = (p: BrowserPage) => p.document.querySelector(".header-nav-link") as HTMLAnchorElement | null;
@@ -1626,6 +1627,7 @@ describe("the header's Create Poll link and the vote grant (025)", () => {
       Array.from(p.document.querySelectorAll(".avatar-menu a")).map((a) => [a.querySelector(".avatar-menu-label")!.firstChild!.textContent, a.getAttribute("href")]);
     page = await signedInWith("menu-creator@example.com");
     expect(menuLinks(page)).toEqual([
+      ["Home", "/?tab=home"],
       ["Edit Profile", "/profile"],
       ["Site Settings", "/settings"],
       ["Create Poll", "/admin"],
@@ -1634,7 +1636,7 @@ describe("the header's Create Poll link and the vote grant (025)", () => {
     ]);
     page.close();
     page = await signedInWith("menu-no-create@example.com", ["View Polls", "Vote on Polls"]);
-    expect(menuLinks(page).map(([text]) => text)).toEqual(["Edit Profile", "Site Settings", "Create Poll", "Logout"]);
+    expect(menuLinks(page).map(([text]) => text)).toEqual(["Home", "Edit Profile", "Site Settings", "Create Poll", "Logout"]);
     expect(page.document.querySelector(".avatar-menu-create-poll")!.getAttribute("aria-disabled")).toBe("true");
   });
 
@@ -1683,12 +1685,12 @@ describe("where a poll link landed, in a browser", () => {
     expect(page.window.location.search).toBe("");
   });
 
-  it("says the poll is not available and stays on Trending", async () => {
+  it("says the poll is not available and lands a signed-in visitor on Home", async () => {
     const { cookie } = await forgeSession(ctx, "landing-unavailable@example.com");
     page = await arrive("?notice=unavailable", cookie);
     await page.settle(100);
     expect(page.document.getElementById("tabNotice")!.textContent).toBe("That poll isn't available.");
-    expect(activeTab(page)).toBe("trending");
+    expect(activeTab(page)).toBe("home");
     expect(page.window.location.search).toBe("");
   });
 

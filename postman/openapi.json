@@ -624,7 +624,8 @@
                 "invited",
                 "voted",
                 "bookmarked",
-                "linked"
+                "linked",
+                "trending"
               ]
             },
             "description": "FIX020: why the poll is listed in the personal tab; present on personal-tab cards"
@@ -4351,6 +4352,71 @@
             "$ref": "#/components/responses/Busy"
           }
         }
+      }
+    },
+    "/api/tabs/home/refresh": {
+      "post": {
+        "tags": [
+          "home"
+        ],
+        "operationId": "refreshHomeTab",
+        "summary": "Refresh the Home tab: polls shared with you, your polls, your votes, the polls you watch, then TRENDING",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/ClientVersions"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "keepOrder": {
+                        "type": "boolean",
+                        "description": "Sent after a vote, added choice or watch on a Home card until Home is next opened: reuse the stored membership so cards do not move."
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "What moved since the versions the client sent; personal-tab cards carry the overlay inline",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Delta"
+                }
+              }
+            }
+          },
+          "304": {
+            "$ref": "#/components/responses/NotModified"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/TermsRequired"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooSoon"
+          },
+          "503": {
+            "$ref": "#/components/responses/Busy"
+          }
+        },
+        "description": "Signed-in only. Home's membership is built on demand by five rules (first match wins; caps 10/10/10/all/10) and cached per user for ENV_HOME_TAB_REFRESH_INTERVAL; a changed tab version rebuilds it unless keepOrder is sent. Access is re-checked on every refresh. Never accepts an invitation."
       }
     },
     "/api/tabs/watching/refresh": {
