@@ -846,3 +846,39 @@ describe("defaultsUsedLines", () => {
     expect(defaultsUsedLines({ ...loadConfig(baseEnv()), defaultsUsed: [] })).toEqual([]);
   });
 });
+
+describe("human check settings", () => {
+  const on = {
+    ENV_FCAPTCHA_ENABLED: "1",
+    ENV_FCAPTCHA_URL: "http://fcaptcha:8080",
+    ENV_FCAPTCHA_SITE_KEY: "crowdpoll",
+    ENV_FCAPTCHA_VERIFY_SECRET: "verify-secret"
+  };
+
+  it("is off by default, and off for any value other than 1", () => {
+    expect(loadConfig(baseEnv()).humanCheck).toBeNull();
+    expect(loadConfig(baseEnv({ ...on, ENV_FCAPTCHA_ENABLED: "" })).humanCheck).toBeNull();
+    expect(loadConfig(baseEnv({ ...on, ENV_FCAPTCHA_ENABLED: "true" })).humanCheck).toBeNull();
+  });
+
+  it("reads the service, site key and verify secret when on", () => {
+    expect(loadConfig(baseEnv(on)).humanCheck).toEqual({
+      url: "http://fcaptcha:8080",
+      siteKey: "crowdpoll",
+      verifySecret: "verify-secret"
+    });
+  });
+
+  it("stops the app when on and a setting is missing, naming it", () => {
+    for (const name of ["ENV_FCAPTCHA_URL", "ENV_FCAPTCHA_SITE_KEY", "ENV_FCAPTCHA_VERIFY_SECRET"]) {
+      expect(() => loadConfig(baseEnv({ ...on, [name]: undefined }))).toThrow(ConfigError);
+      expect(() => loadConfig(baseEnv({ ...on, [name]: "" }))).toThrow(new RegExp(name));
+    }
+  });
+
+  it("refuses a service address that is not an origin", () => {
+    for (const bad of ["fcaptcha:8080", "ftp://fcaptcha", "http://fcaptcha:8080/api"]) {
+      expect(() => loadConfig(baseEnv({ ...on, ENV_FCAPTCHA_URL: bad }))).toThrow(/ENV_FCAPTCHA_URL/);
+    }
+  });
+});

@@ -46,6 +46,22 @@ describe("the Privacy Policy and Terms of Service pages (A1, A2)", () => {
     for (const id of ["cookies", "retention", "rights", "contact"]) expect(html).toContain(`id="${id}"`);
   });
 
+  it("says what the bot check measures, where, and for how long", async () => {
+    const html = (await request(ctx.app).get("/privacy")).text;
+    const section = /<section id="bot-check"[\s\S]*?<\/section>/.exec(html)![0].replace(/\s+/g, " ");
+    expect(section).toContain("Bot check");
+    for (const measured of ["graphics", "audio", "fonts", "pointer", "typing", "connection"]) expect(section).toContain(measured);
+    expect(section).toContain("at most one hour");
+    expect(section).toContain("never sent to or shared with a third party");
+    expect(section).toContain("sets no cookie");
+    expect(html).toMatch(/<li>[^<]*<a href="#bot-check">bot check<\/a>/);
+  });
+
+  it("lands a link to #bot-check with its title below the fixed header", () => {
+    expect(source("legal-m3.css")).toContain(".legal-doc section[id]{ scroll-margin-top:calc(var(--fixed-chrome-height, 0px) + 16px); }");
+    expect(source("privacy.html")).toContain('<section id="bot-check"');
+  });
+
   it("states every retention period, with nothing left to confirm", () => {
     const html = source("privacy.html");
     expect(html).not.toContain("[TO CONFIRM");

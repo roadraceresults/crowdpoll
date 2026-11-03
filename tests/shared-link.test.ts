@@ -36,18 +36,25 @@ async function seed(overrides: Parameters<typeof makePoll>[0]) {
 }
 
 describe("GET /?PID= for a guest", () => {
-  it("redirects to sign-in identically for an existing private poll, a public poll and an unknown id", async () => {
+  it("redirects to sign-in identically for an existing private poll, an unpublished public poll and an unknown id", async () => {
     const privatePoll = await seed({ pollVisibility: "Private Poll" });
-    const publicPoll = await seed({});
+    const waitingPoll = await seed({ pollState: "WAITING TO OPEN" });
     const unknown = randomUUID();
     const answers = [];
-    for (const pid of [privatePoll._id, publicPoll._id, unknown]) {
+    for (const pid of [privatePoll._id, waitingPoll._id, unknown]) {
       const res = await open(pid, null);
       expect(res.status).toBe(302);
       expect(res.headers.location).toBe(`/login?PID=${pid}`);
       answers.push({ status: res.status, text: res.text.replaceAll(pid, "<pid>") });
     }
     expect(new Set(answers.map((a) => a.text)).size).toBe(1);
+  });
+
+  it("sends a public open poll to its own page", async () => {
+    const publicPoll = await seed({});
+    const res = await open(publicPoll._id, null);
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toBe(`/poll/${publicPoll._id}`);
   });
 
   it("serves the home page when the id is not a UUID", async () => {

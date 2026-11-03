@@ -36,7 +36,7 @@
       })
       .then(function (r) {
         if (!r.res.ok) {
-          startForm(EXPIRED);
+          gatedForm(EXPIRED);
           return;
         }
         renderToken(card, r.body, token);
@@ -77,7 +77,7 @@
             return;
           }
           if (r.body && r.body.code === "invalid-link") {
-            startForm(EXPIRED);
+            gatedForm(EXPIRED);
             return;
           }
           if (r.res.status === 429 && r.body && r.body.nextAllowedAt) {
@@ -101,11 +101,30 @@
     sync();
   }
 
+  /* What the person had typed when the server asked for the human check again. */
+  var kept = null;
+
+  /* The human check stands before the form (humanCheck.js); without it the form is drawn at once.
+     Finishing from an emailed link needs no check. */
+  function gatedForm(notice) {
+    var draw = function () { startForm(notice); };
+    if (window.HumanCheck) window.HumanCheck.gate(main, "create-account", draw);
+    else draw();
+  }
+
+  function checkHeaders() {
+    return window.HumanCheck ? window.HumanCheck.headers() : {};
+  }
+
+  function refused(body) {
+    return Boolean(window.HumanCheck && window.HumanCheck.refused(body));
+  }
+
   function start() {
     if (!main) return;
     var token = new URLSearchParams(location.search).get("token");
     if (token) startToken(token);
-    else startForm(null);
+    else gatedForm(null);
   }
 
   function startForm(notice) {
@@ -147,7 +166,7 @@
         if (window.CardShell.sharedPid()) body.pid = window.CardShell.sharedPid();
         return fetch("/api/auth/create-account", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: Object.assign({ "Content-Type": "application/json" }, checkHeaders()),
           body: JSON.stringify(body)
         });
       })
@@ -162,6 +181,11 @@
               " — click the link we sent you to activate your account.";
             status.className = "card-shell-status";
             action.settle();
+            return;
+          }
+          if (refused(r.body)) {
+            kept = { email: input.value, terms: terms.checked };
+            gatedForm(notice);
             return;
           }
           if (r.res.status === 429 && r.body.nextAllowedAt) {
@@ -191,6 +215,11 @@
        submission is not something the person can attempt and be refused for. */
     function syncEnabled() {
       action.setEnabled(input.value.trim().length > 0 && terms.checked);
+    }
+    if (kept) {
+      input.value = kept.email;
+      terms.checked = kept.terms;
+      kept = null;
     }
     input.addEventListener("input", syncEnabled);
     syncEnabled();

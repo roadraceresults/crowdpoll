@@ -88,5 +88,17 @@ All runtime configuration comes from `ENV_*` environment variables:
 | `ENV_MAX_BOOKMARKS_PER_USER` | `200` | Bookmarks per user before `409 bookmark-cap` |
 | `ENV_BOOKMARK_EXPIRY_MONTHS` | `6` | Months after a poll closes, or after its last activity, before its bookmarks are removed |
 | `ENV_PAGE_LOADS_PER_MINUTE` | `120` | Page loads per session (or address, for guests) per minute before `429 too-many-loads` |
+| `ENV_FCAPTCHA_ENABLED` | unset | `1` → the human check (self-hosted FCaptcha) stands before `/login`, `/create-account` and `/invite`, and every sign-in start needs a pass; any other value, or none, turns it off. When on, the three below are required and a missing one stops the app |
+| `ENV_FCAPTCHA_URL` | unset | Where the web service reaches the FCaptcha service, server to server (`${fcaptcha.PRIVATE_URL}` in `.do/app.yaml`; `http://localhost:3001` for a local FCaptcha). Browsers reach it at `/fcaptcha` on the site's own domain |
+| `ENV_FCAPTCHA_SITE_KEY` | unset | The site key the widget is drawn with; published in `/api/config`. Must be in the FCaptcha service's `ENV_FCAPTCHA_SITE_KEYS` |
+| `ENV_FCAPTCHA_VERIFY_SECRET` | unset | The credential sent with each pass to FCaptcha's token check; the FCaptcha service reads the same name, with the same value. Production: an encrypted variable, never logged or published |
+| `ENV_FCAPTCHA_PORT` | unset | Read by the FCaptcha service (`fcaptcha-server/start.js`), not the web app: the port it listens on (`8080` in `.do/app.yaml`, `3001` locally); unset → FCaptcha's own `PORT`, else `3000` |
+| `ENV_FCAPTCHA_SECRET` | unset | FCaptcha service only: the signing key, at least 32 bytes with 8 distinct characters (`openssl rand -hex 32`), different from the verify secret. Production: an encrypted variable |
+| `ENV_FCAPTCHA_SITE_KEYS` | unset | FCaptcha service only: comma-separated site keys accepted (`crowdpoll` in `.do/app.yaml`, `dev` locally) |
+| `ENV_FCAPTCHA_ALLOWED_HOSTNAMES` | unset | FCaptcha service only: page hosts passes may be minted for (`crowdpoll.vote`, `localhost`) |
+| `ENV_FCAPTCHA_REDIS_URL` | unset | FCaptcha service only: Valkey URL for its shared state, database 1 (`${valkey-tor1-crowdpoll.DATABASE_URL}/1`); unset → in memory |
+| `ENV_FCAPTCHA_INSECURE_DEV_MODE` | unset | FCaptcha service only: `1` lets it start without `ENV_FCAPTCHA_SECRET`, signing with a public key; never on a network |
+
+The FCaptcha service's settings are mapped by `fcaptcha-server/start.js` to FCaptcha's own names (`FCAPTCHA_SECRET`, `FCAPTCHA_VERIFY_SECRET`, `FCAPTCHA_SITE_KEYS`, `FCAPTCHA_ALLOWED_HOSTNAMES`, `FCAPTCHA_INSECURE_DEV_MODE`, `REDIS_URL`); one of those set directly stops it.
 
 Dev defaults are set in `.vscode/launch.json` and `devScripts/launch-dev.ps1` — both are **git-ignored** by design; regenerate them locally rather than committing them.

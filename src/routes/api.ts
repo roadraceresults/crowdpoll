@@ -34,6 +34,7 @@ import { recordAgreement } from "../legal/recordAgreement.js";
 import { hasAcceptedTerms, safeNext } from "../legal/termsGate.js";
 import { deleteAccount } from "../legal/deleteAccount.js";
 import { maskIp } from "../auth/maskIp.js";
+import { requireHumanCheck, type HumanCheck } from "../auth/humanCheck.js";
 import { listingMaxAgeMs } from "../trending/publish.js";
 
 export interface ApiDeps {
@@ -43,6 +44,8 @@ export interface ApiDeps {
   config: AppConfig;
   sessions: SessionCache;
   pageLoads: RequestHandler;
+  humanCheck: HumanCheck | null;
+  abuse: { humanCheckSkipped: number };
 }
 
 const EMAIL_MAX = 200;
@@ -107,8 +110,15 @@ const wrap =
     fn(req, res).catch(next);
   };
 
-export function createApiRouter({ auth, db, cache, config, sessions, pageLoads }: ApiDeps): Router {
+export function createApiRouter(deps: ApiDeps): Router {
+  const { auth, db, cache, config, sessions, pageLoads } = deps;
   const router = Router();
+  const createAccountCheck = requireHumanCheck(deps, ["create-account"]);
+  // Finishing from an emailed create-account link starts no new sign-in, so it needs no human check.
+  const humanCheckUnlessLink: RequestHandler = (req, res, next) => {
+    if (typeof req.body?.token === "string" && req.body.token) next();
+    else createAccountCheck(req, res, next);
+  };
   const userIdByEmail = (email: string) =>
     db.selectFrom("user").select("id").where("email", "=", email).executeTakeFirst();
   const userByKey = (email: string, excludeUserId?: string) => {
@@ -173,7 +183,9 @@ export function createApiRouter({ auth, db, cache, config, sessions, pageLoads }
       lineGraphMinVotePercentage: config.lineGraphMinVotePercentage,
       lineGraphRefreshIntervalMs: config.lineGraphRefreshIntervalMs,
       barPalette: BAR_PALETTE,
-      termsVersion: TERMS_VERSION
+      termsVersion: TERMS_VERSION,
+      // The widget is served by the FCaptcha service on this domain; the site key is public.
+      humanCheck: config.humanCheck ? { siteKey: config.humanCheck.siteKey, endpoint: "/fcaptcha" } : null
     });
   });
 
@@ -305,6 +317,7 @@ export function createApiRouter({ auth, db, cache, config, sessions, pageLoads }
   router.post(
     "/api/auth/create-account",
     nativeOnly,
+    humanCheckUnlessLink,
     wrap(async (req, res) => {
       if (honeypotFilled(req)) {
         res.json({ message: "Check your inbox" });
@@ -369,6 +382,7 @@ export function createApiRouter({ auth, db, cache, config, sessions, pageLoads }
   router.post(
     "/api/auth/request-login-link",
     nativeOnly,
+    requireHumanCheck(deps, ["login"]),
     wrap(async (req, res) => {
       if (honeypotFilled(req)) {
         res.json({ message: "Check your inbox" });
@@ -600,6 +614,7 @@ export function createApiRouter({ auth, db, cache, config, sessions, pageLoads }
   router.post(
     "/api/invitations/redeem",
     nativeOnly,
+    requireHumanCheck(deps, ["invite"]),
     wrap(async (req, res) => {
       if (req.get("origin") !== requestOrigin(req)) {
         console.log("[invite] Redeem refused: foreign or missing Origin");

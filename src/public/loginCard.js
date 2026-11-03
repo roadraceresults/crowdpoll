@@ -52,13 +52,35 @@
     return Math.round((ms / MS_PER_HOUR) * 100) / 100 + " hours";
   }
 
+  var currentConfig = null;
+  /* What the person had typed when the server asked for the human check again. */
+  var kept = null;
+
+  /* The human check stands before the card (humanCheck.js); without it the card is drawn at once. */
+  function gated() {
+    var draw = function () { render(currentConfig); };
+    if (window.HumanCheck) window.HumanCheck.gate(main, "login", draw, currentConfig);
+    else draw();
+  }
+
+  function checkHeaders() {
+    return window.HumanCheck ? window.HumanCheck.headers() : {};
+  }
+
+  function refused(body) {
+    return Boolean(window.HumanCheck && window.HumanCheck.refused(body));
+  }
+
   function start() {
     if (!main) return;
 
     fetch("/api/config")
       .then(function (r) { return r.ok ? r.json() : { signinMethod: "native" }; })
       .catch(function () { return { signinMethod: "native" }; })
-      .then(render);
+      .then(function (config) {
+        currentConfig = config;
+        gated();
+      });
   }
 
   function render(config) {
@@ -115,12 +137,17 @@
     var amazon = provider === "amazon";
     return fetch(amazon ? "/api/auth/sign-in/oauth2" : "/api/auth/sign-in/social", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: Object.assign({ "Content-Type": "application/json" }, checkHeaders()),
       body: JSON.stringify(amazon
         ? { providerId: provider, callbackURL: callbackURL }
         : { provider: provider, callbackURL: callbackURL })
     }).then(function (res) {
       return res.json().then(function (body) {
+        if (refused(body)) {
+          var again = new Error("human check required");
+          again.refused = true;
+          throw again;
+        }
         if (!res.ok || !body || typeof body.url !== "string") throw new Error("start failed");
         return body.url;
       });
@@ -153,7 +180,11 @@
         status.className = "card-shell-status";
         startSignin(provider)
           .then(function (url) { location.href = url; })
-          .catch(function () {
+          .catch(function (err) {
+            if (err && err.refused) {
+              gated();
+              return;
+            }
             busy = false;
             button.classList.remove("is-busy");
             button.removeAttribute("aria-busy");
@@ -222,7 +253,7 @@
     action = card.addAction("Email a login link", function (status) {
       return fetch("/api/auth/request-login-link", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: Object.assign({ "Content-Type": "application/json" }, checkHeaders()),
         body: JSON.stringify(withSharedPid({ email: input.value, staySignedIn: stay.checked, homepage: homepage.value }))
       })
         .then(function (res) {
@@ -238,6 +269,11 @@
               " — click the link we sent you to sign in.";
             status.className = "card-shell-status";
             action.settle();
+            return;
+          }
+          if (refused(r.body)) {
+            kept = { email: input.value, stay: stay.checked };
+            gated();
             return;
           }
           if (r.res.status === 429 && r.body.nextAllowedAt) {
@@ -273,6 +309,11 @@
       action.setEnabled(hasAddress);
       stay.disabled = !hasAddress;
       stayLabel.classList.toggle("is-disabled", !hasAddress);
+    }
+    if (kept) {
+      input.value = kept.email;
+      stay.checked = kept.stay;
+      kept = null;
     }
     input.addEventListener("input", syncEnabled);
     syncEnabled();

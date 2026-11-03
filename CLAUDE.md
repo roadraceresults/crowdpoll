@@ -6,6 +6,24 @@ The full description, every earlier feature's decisions and the settings table a
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261102-144053-FCAPTCHA-AND-SEO/plan.md` (research R1–R15, `data-model.md` — no migration; the pass, the
+`ENV_FCAPTCHA_*` settings, the indexable-poll rule and the sitemap cache; the HTTP contracts `contracts/api.md` A1–A6,
+the UI contracts `contracts/ui-contracts.md` C1–C5, and the quickstart live alongside it in
+`specs/20261102-144053-FCAPTCHA-AND-SEO/`). The requirements report is
+`requirements/20261102-144053-fcaptcha-and-seo/requirements-report.md`: 4 diagrams and 17 findings, all resolved.
+Decisions that are easy to get wrong:
+- **FCaptcha is a second App Platform service**, `fcaptcha` (`fcaptcha-server/`, `@webdecoy/fcaptcha` pinned 1.46.1),
+  reached by browsers at `/fcaptcha` through ingress and by `web` at `${fcaptcha.PRIVATE_URL}`; Valkey db 1 (R1, R2).
+- **The check is one page with two views**: `humanCheck.js` gates `/login`, `/create-account` (not token mode) and
+  `/invite`; the pass lives in page memory only, no cookie or storage key (R7, clarification Q1).
+- **The pass travels in `X-Human-Check`**, verified by `requireHumanCheck` before honeypot, allowlist, rate limit and
+  email; its `action` is the page and must match the route (R3, R4, clarification Q2).
+- **Fail open only when FCaptcha is unreachable**, counted as `abuse.humanCheckSkipped`; a missing pass while it is
+  reachable is `400 challenge-required`; the page falls back after 10 s (R5, clarification Q3).
+- **Indexable = public and OPEN or CLOSED** (EDITING by its stashed state); `/poll/:pid` serves `index.html` with
+  escaped head tags and summary, then `tabs.js` mounts the live card via guest `GET /api/polls/:pid/card` (R9–R11).
+No migration; one dependency, only in `fcaptcha-server/`; four settings, off by default.
+The preceding feature is
 `specs/20261102-154952-FIELD-LENGTH-LIMITS/plan.md` (research R1–R9, `data-model.md` — changed validation rules only,
 no schema change — the HTTP contracts `contracts/api.md` A1–A4, the UI contracts `contracts/ui-contracts.md` C1–C5, and
 the quickstart live alongside it in `specs/20261102-154952-FIELD-LENGTH-LIMITS/`). The requirements report is
@@ -21,7 +39,7 @@ Decisions that are easy to get wrong:
 - **The `adminCard.js` copies equal the server's**, checked by `tests/field-limits.test.ts`; migration 007 keeps its own
   50 and 30 (R5, R8).
 No migration, route, setting or dependency change.
-The preceding feature is
+Before it came
 `specs/20261102-134601-SITE-SETTINGS/plan.md` (research R1–R13, `data-model.md` — one `user` column,
 `color_scheme`, added by migration `016-color-scheme`, the `localStorage` copy and the `data-theme` states; the HTTP
 contracts `contracts/api.md` A1–A3, the UI contracts `contracts/ui-contracts.md` C1–C6, and the quickstart live

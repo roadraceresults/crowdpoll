@@ -203,6 +203,75 @@ services:
         value: "6"
       - key: ENV_PAGE_LOADS_PER_MINUTE
         value: "120"
+      - key: ENV_FCAPTCHA_ENABLED
+        value: "1"
+      - key: ENV_FCAPTCHA_URL
+        scope: RUN_TIME
+        value: ${fcaptcha.PRIVATE_URL}
+      - key: ENV_FCAPTCHA_SITE_KEY
+        value: crowdpoll
+      - key: ENV_FCAPTCHA_VERIFY_SECRET
+        scope: RUN_TIME
+        type: SECRET
+        value: ""
+  # FCaptcha's standalone server (https://github.com/WebDecoy/FCaptcha), served on this domain under /fcaptcha.
+  - name: fcaptcha
+    github:
+      repo: roadraceresults/crowdpoll
+      branch: main
+      deploy_on_push: false
+    source_dir: fcaptcha-server
+    build_command: npm ci --omit=dev
+    run_command: npm start
+    environment_slug: node-js
+    http_port: 8080
+    instance_size_slug: apps-d-1vcpu-1gb
+    autoscaling:
+      min_instance_count: 1
+      max_instance_count: 3
+      metrics:
+        cpu:
+          percent: 70
+    health_check:
+      http_path: /health
+      initial_delay_seconds: 5
+      period_seconds: 10
+      timeout_seconds: 3
+      success_threshold: 1
+      failure_threshold: 3
+    envs:
+      - key: ENV_FCAPTCHA_PORT
+        value: "8080"
+      - key: ENV_FCAPTCHA_SECRET
+        scope: RUN_TIME
+        type: SECRET
+        value: ""
+      - key: ENV_FCAPTCHA_VERIFY_SECRET
+        scope: RUN_TIME
+        type: SECRET
+        value: ""
+      - key: ENV_FCAPTCHA_SITE_KEYS
+        value: crowdpoll
+      - key: ENV_FCAPTCHA_ALLOWED_HOSTNAMES
+        value: crowdpoll.vote
+      # Database 1 keeps FCaptcha's keys apart from the web service's (database 0).
+      - key: ENV_FCAPTCHA_REDIS_URL
+        scope: RUN_TIME
+        type: SECRET
+        value: ${valkey-tor1-crowdpoll.DATABASE_URL}/1
+ingress:
+  rules:
+    - match:
+        path:
+          prefix: /fcaptcha
+      component:
+        name: fcaptcha
+        preserve_path_prefix: false
+    - match:
+        path:
+          prefix: /
+      component:
+        name: web
 databases:
   - name: db-pgsql-tor1-crowdpoll
     engine: PG

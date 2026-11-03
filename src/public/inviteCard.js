@@ -32,24 +32,50 @@
     return img;
   }
 
+  /* The human check stands before the card (humanCheck.js); without it the card is drawn at once. */
+  function gated(draw) {
+    if (window.HumanCheck) window.HumanCheck.gate(main, "invite", draw);
+    else draw();
+  }
+
+  function checkHeaders() {
+    return window.HumanCheck ? window.HumanCheck.headers() : {};
+  }
+
+  function refused(body) {
+    return Boolean(window.HumanCheck && window.HumanCheck.refused(body));
+  }
+
+  function mountCard() {
+    return window.CardShell.mount(main, { title: "You're invited to a poll", signin: true, closeHref: "/" });
+  }
+
+  /* What the person had chosen when the server asked for the human check again. */
+  var kept = null;
+
   function startSignin(provider, pid) {
     var callbackURL = pid ? "/?PID=" + pid : "/";
     var amazon = provider === "amazon";
     return fetch(amazon ? "/api/auth/sign-in/oauth2" : "/api/auth/sign-in/social", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: Object.assign({ "Content-Type": "application/json" }, checkHeaders()),
       body: JSON.stringify(amazon
         ? { providerId: provider, callbackURL: callbackURL }
         : { provider: provider, callbackURL: callbackURL })
     }).then(function (res) {
       return res.json().then(function (body) {
+        if (refused(body)) {
+          var again = new Error("human check required");
+          again.refused = true;
+          throw again;
+        }
         if (!res.ok || !body || typeof body.url !== "string") throw new Error("start failed");
         return body.url;
       });
     });
   }
 
-  function renderProviders(card, enabled, pid) {
+  function renderProviders(card, enabled, pid, regate) {
     var wrap = el("div", "oauth-providers");
     var status = el("p", "card-shell-status");
     var busy = false;
@@ -69,7 +95,11 @@
         button.setAttribute("aria-busy", "true");
         startSignin(provider, pid)
           .then(function (url) { location.href = url; })
-          .catch(function () {
+          .catch(function (err) {
+            if (err && err.refused) {
+              regate();
+              return;
+            }
             busy = false;
             button.removeAttribute("aria-busy");
             status.textContent = "Sign-in with that provider failed. Please try again.";
@@ -112,6 +142,16 @@
     stay.checked = info.staySignedInDefault === true;
     stayLabel.append(stay, document.createTextNode(" Stay signed in on this device"));
     card.body.appendChild(stayLabel);
+    if (kept) {
+      stay.checked = kept.stay;
+      if (terms) terms.checked = kept.terms;
+      kept = null;
+    }
+
+    function regate() {
+      kept = { stay: stay.checked, terms: Boolean(terms && terms.checked) };
+      gated(function () { render(mountCard(), info, pid, token); });
+    }
 
     var action = card.addAction(
       switching ? "Sign out and continue as " + info.email : "Continue",
@@ -124,7 +164,7 @@
         if (switching) body.signOut = true;
         return fetch("/api/invitations/redeem", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: Object.assign({ "Content-Type": "application/json" }, checkHeaders()),
           body: JSON.stringify(body)
         })
           .then(function (res) {
@@ -137,6 +177,10 @@
             }
             if (r.res.ok && r.body && r.body.redirect) {
               location.href = r.body.redirect;
+              return;
+            }
+            if (refused(r.body)) {
+              regate();
               return;
             }
             status.textContent = (r.body && r.body.error) || "Could not continue, please try again.";
@@ -160,7 +204,7 @@
     }
     sync();
 
-    if (info.providers && info.providers.length > 0) renderProviders(card, info.providers, pid);
+    if (info.providers && info.providers.length > 0) renderProviders(card, info.providers, pid, regate);
   }
 
   function start() {
@@ -169,7 +213,7 @@
     var pid = window.CardShell.sharedPid();
     var token = params.get("token") || "";
 
-    var card = window.CardShell.mount(main, { title: "You're invited to a poll", signin: true, closeHref: "/" });
+    var card = mountCard();
     paragraph(card.body, "Checking your invitation…");
 
     fetch("/api/invitations/link-info?PID=" + encodeURIComponent(pid || "") + "&token=" + encodeURIComponent(token))
@@ -181,7 +225,7 @@
           location.href = (r.body && r.body.redirect) || "/";
           return;
         }
-        render(card, r.body, pid, token);
+        gated(function () { render(mountCard(), r.body, pid, token); });
       })
       .catch(function () {
         card.body.replaceChildren();

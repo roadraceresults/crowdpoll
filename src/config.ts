@@ -100,6 +100,8 @@ export interface AppConfig {
   emailAssetOrigin?: string;
   /** Email keys allowed to sign up and sign in before launch (ENV_ALLOWED_EMAILS); unset → everyone. */
   allowedEmailKeys?: Set<string>;
+  /** The self-hosted FCaptcha check before sign-in (ENV_FCAPTCHA_*); null → off. */
+  humanCheck: HumanCheckConfig | null;
   emailSendTimeoutMs: number;
   sessionCacheTtlMs: number;
   maxPollsSearchResults: number;
@@ -176,6 +178,12 @@ export interface RefreshFloors {
  * per interval; Live Results is timer-driven).
  */
 export type RefreshBursts = RefreshFloors;
+
+export interface HumanCheckConfig {
+  url: string;
+  siteKey: string;
+  verifySecret: string;
+}
 
 export class ConfigError extends Error {}
 
@@ -395,6 +403,8 @@ export function loadConfig(env: Env = process.env): AppConfig {
   if (emailAssetOrigin === undefined) read.none("ENV_EMAIL_ASSET_ORIGIN", "none (each link's own origin)");
   const allowedKeys = allowedEmailKeys(env);
   if (allowedKeys === undefined) read.none("ENV_ALLOWED_EMAILS", "none (allowlist off: everyone may sign in)");
+  const humanCheck = humanCheckConfig(env);
+  if (humanCheck === null) read.none("ENV_FCAPTCHA_ENABLED", "off (no human check before sign-in)");
   if (!env.ENV_STAY_SIGNED_IN?.trim()) read.none("ENV_STAY_SIGNED_IN", "0 (the Stay signed in box starts clear)");
   for (const name of ["ENV_SMTP_USER", "ENV_SMTP_PASS"]) {
     if (!env[name]) read.none(name, "none (emails logged to the console, not sent)");
@@ -444,6 +454,7 @@ export function loadConfig(env: Env = process.env): AppConfig {
     emailFrom: read.text("ENV_EMAIL_FROM", "CrowdPoll <no-reply@mail.crowdpoll.vote>"),
     emailAssetOrigin,
     allowedEmailKeys: allowedKeys,
+    humanCheck,
     emailSendTimeoutMs: read.int("ENV_EMAIL_SEND_TIMEOUT", 10_000),
     sessionCacheTtlMs: read.int("ENV_SESSION_CACHE_TTL", 300_000),
     maxPollsSearchResults,
@@ -502,6 +513,22 @@ function isLocalHost(host: string): boolean {
 function optionalVar(env: Env, name: string): string | undefined {
   const raw = env[name];
   return raw === undefined || raw === "" ? undefined : raw;
+}
+
+function humanCheckConfig(env: Env): HumanCheckConfig | null {
+  if (env.ENV_FCAPTCHA_ENABLED?.trim() !== "1") return null;
+  const url = originVar(env, "ENV_FCAPTCHA_URL");
+  const siteKey = optionalVar(env, "ENV_FCAPTCHA_SITE_KEY");
+  const verifySecret = optionalVar(env, "ENV_FCAPTCHA_VERIFY_SECRET");
+  const missing = [
+    url === undefined ? "ENV_FCAPTCHA_URL" : undefined,
+    siteKey === undefined ? "ENV_FCAPTCHA_SITE_KEY" : undefined,
+    verifySecret === undefined ? "ENV_FCAPTCHA_VERIFY_SECRET" : undefined
+  ].filter((name) => name !== undefined);
+  if (missing.length > 0) {
+    throw new ConfigError(`ENV_FCAPTCHA_ENABLED is 1, so ${missing.join(", ")} must be set too.`);
+  }
+  return { url: url!, siteKey: siteKey!, verifySecret: verifySecret! };
 }
 
 const SPACES_VARIABLES = [

@@ -24,7 +24,7 @@ import { holdsPermission, NO_VIEW_PERMISSION, NO_VOTE_PERMISSION, type Caller } 
 import { decideSharedLink, parsePid } from "../polls/sharedLink.js";
 import { adoptInvitations, markAccepted } from "../invitations/invitations.js";
 import { isPublished } from "../polls/store.js";
-import { ACCESS_COLUMNS, mayViewResults, mayWatchMany, reachableMany } from "../polls/access.js";
+import { ACCESS_COLUMNS, isIndexable, mayViewResults, mayWatchMany, reachableMany } from "../polls/access.js";
 import { serveLineGraph } from "../polls/lineGraph.js";
 import type { PersonalTab } from "../polls/userPolls.js";
 import type { RequestKind } from "../load/budget.js";
@@ -408,6 +408,28 @@ export function createTabsApiRouter(context: AppContext): Router {
       }
       res.setHeader("Cache-Control", "no-store");
       res.type("application/json").send(body);
+    })
+  );
+
+  // ---- One public poll for a guest, for the card its own page mounts ----
+
+  router.get(
+    "/api/polls/:pid/card",
+    shedding.withKind("refresh"),
+    countBudget("refresh"),
+    wrap(async (req, res) => {
+      const pid = parsePid(req.params.pid);
+      const row = pid ? await db.selectFrom("polls").selectAll().where("id", "=", pid).executeTakeFirst() : undefined;
+      if (!pid || !row || !isIndexable(row) || !(await mayViewResults({ db, config }, undefined, pid))) {
+        res.status(404).json({ error: "Not found" });
+        return;
+      }
+      const counts = await readOrRebuildCounts({ db, cache }, [pid]);
+      res.json({
+        poll: projectPoll(row),
+        counts: counts.get(pid) ?? { voteCount: 0, choiceCounts: {}, countsVersion: 0 },
+        overlay: { voted: false, bookmarked: false, mayWatch: false, voteBlockedReason: null }
+      });
     })
   );
 

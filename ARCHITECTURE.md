@@ -21,8 +21,12 @@ flowchart LR
   VK[("Managed Valkey<br/>sessions, floors, budget, counters,<br/>registry, vote stream")]
   OS[("Managed OpenSearch<br/>home search index")]
   Mail["Amazon SES ca-central-1<br/>HTTPS API (production and development)"]
+  FC["fcaptcha service, 1–3 instances<br/>FCaptcha standalone server"]
 
   Browser -- "pages, /api/*" --> LB --> W1 & W2 & Wn
+  Browser -- "/fcaptcha/* (ingress, prefix removed)" --> FC
+  W1 & W2 & Wn -- "token check, private URL" --> FC
+  FC -- "database 1" --> VK
   Browser -- "GET, conditional" --> CDN
   W1 & W2 & Wn -- "Kysely / pg" --> PG
   W1 & W2 & Wn -- "iovalkey" --> VK
@@ -1192,6 +1196,53 @@ are all set. BetterAuth's `baseURL` and only trusted origin is `ENV_PUBLIC_ORIGI
   instance); no page loads anything from another origin. `maskIp` masks the IP in the rate-limit and abuse log lines.
 - **"Ever voted"** (which freezes a poll's fields) reads `polls.ever_voted`, set by every `vote_history` insert, so
   the retention sweep can drop old history partitions.
+
+## Human check before sign-in
+
+- **Where it runs**: FCaptcha's standalone server is a second App Platform service, `fcaptcha` (`fcaptcha-server/`,
+  `@webdecoy/fcaptcha` and `@webdecoy/fcaptcha-client` pinned at 1.46.1; `start.js` points it at the client package's
+  widget and calls its `start()`). Ingress routes `/fcaptcha/*` to it with the prefix removed, so the widget script
+  (`/fcaptcha/fcaptcha.js`) and its challenge and verify calls are same-origin; no page talks to a third party. Its
+  challenges and spent tokens live in Valkey database 1, shared by its instances. On a local run (`ENV_PUBLIC_ORIGIN` on
+  `localhost`, check on) there is no ingress, so `src/routes/fcaptchaDevProxy.ts` forwards `/fcaptcha/*` to
+  `ENV_FCAPTCHA_URL` with the prefix removed; on any other origin it is not mounted.
+- **In the browser**: `humanCheck.js` (`window.HumanCheck`) stands in front of the login, create-account (address form
+  only) and invitation cards. When `/api/config` carries `humanCheck`, `gate` mounts a "Vote protection" card
+  (`CardShell`, `human-check-m3.css`), loads the widget once, points it at `/fcaptcha` with `FCaptcha.configure` (the checkbox
+  widget ignores render's `serverUrl`) and draws it with `FCaptcha.render` (checkbox mode, theme `dark` or `light`
+  from `<html data-theme>` and redrawn while unticked when it changes, the page as `action`, label "I am not a Bot or AI Agent"; the widget's maker name is removed). On success it keeps the token in a closure and draws the page's
+  own card; `headers()` hands it out once as `X-Human-Check`. A `400 challenge-required` answer shows the check again
+  with the typed values kept. If the widget has not loaded in 10 s, or fails to, the card is drawn without a token.
+- **On the server**: `requireHumanCheck` (`src/auth/humanCheck.ts`) runs first on `request-login-link`
+  (`login`), `create-account` without a link token (`create-account`), `invitations/redeem` (`invite`) and BetterAuth's
+  `sign-in/social` and `sign-in/oauth2` (any of the three; mounted ahead of the library's handler, reading only the
+  header). It posts the token and verify secret to FCaptcha's `/api/token/verify` (3 s timeout) and accepts it when
+  FCaptcha vouches for it, its hostname is `ENV_PUBLIC_ORIGIN`'s and its action, when it has one, fits the route — the
+  1.46.1 checkbox widget mints passes without an action. Anything else is `400 challenge-required`, logged as
+  `[human-check] Refused <route> (<masked ip>)`.
+- **Failing open**: a verify call that errors, times out or gets a 5xx, or a request without a pass while
+  `/health` does not answer within 1 s, goes on under the route's own limits; `abuse.humanCheckSkipped` grows and
+  `/healthz` reports it. A pass FCaptcha refuses is refused whatever its health.
+- **Client address**: `clientAddressOf` reads App Platform's `do-connecting-ip`, else `req.ip`. It is logged masked and
+  not yet sent to FCaptcha (`bindToClientAddress`), so passes are not bound to an address until the header is confirmed
+  on a deployed app.
+
+## Search engines
+
+- `src/routes/seo.ts`, mounted after shedding and before the page routes, serves `/robots.txt`, `/sitemap.xml` and
+  `/sitemap-<n>.xml`, and `/poll/:pid`.
+- **Indexable polls** are decided once, in `src/polls/access.ts` (`isIndexable`, `indexablePolls`): public, and OPEN or
+  CLOSED, or EDITING from one of those. The sitemap is one query on `polls`, cached 5 minutes under `seo:sitemap`
+  (and `seo:sitemap:<n>` per part above 50,000 addresses); `lastmod` is `closed_at`, else `launched_at`.
+- **The poll page**: for a guest and an indexable poll, `renderPollPage` (`src/seo/pollPage.ts`) serves `index.html`
+  with the poll's title, description, canonical, Open Graph and JSON-LD `Question` tags, `data-poll-page` on `<body>`
+  and an escaped `#poll-summary` at the start of `<main>`, with the published percentages from the live counters. In
+  the browser, `tabs.js` opens Trending, fetches `GET /api/polls/:pid/card` (guest, shed as refresh), mounts and
+  maximizes the card and removes the summary. A signed-in visitor is redirected to `/?PID=<pid>`; a guest opening
+  `/?PID=` for an indexable poll is redirected to `/poll/<pid>`, and for any other poll to sign in as before. Anything
+  not indexable is `404 Not found`, the same answer as an unknown id.
+- **Head tags**: `sendPage(…, canonicalPath)` adds the canonical link to `/`, `/privacy` and `/terms`; those pages carry
+  descriptions, and the sign-in, account and admin pages carry `noindex`.
 
 ## Site icon
 

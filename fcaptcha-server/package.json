@@ -1,0 +1,16 @@
+{
+  "name": "crowdpoll-fcaptcha-server",
+  "private": true,
+  "version": "1.0.0",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@webdecoy/fcaptcha": "1.46.1",
+    "@webdecoy/fcaptcha-client": "1.46.1"
+  },
+  "scripts": {
+    "start": "node start.js"
+  }
+}
