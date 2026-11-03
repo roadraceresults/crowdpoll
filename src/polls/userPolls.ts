@@ -4,6 +4,9 @@ import { upsertUserPolls } from "./store.js";
 
 type Executor = Kysely<Database> | Transaction<Database>;
 
+/** Why a poll is listed: a relation the user holds to it, or, on Home only, that it is trending. */
+export type HomeReason = UserPollRelation | "trending";
+
 export async function upsertRelation(
   trx: Executor,
   email: string,
@@ -18,7 +21,7 @@ export interface PersonalTab {
   rows: PollRow[];
   membershipVersion: string | null;
   /** FIX020: why each poll is listed — the relations the user holds to it. */
-  relations: Map<string, UserPollRelation[]>;
+  relations: Map<string, HomeReason[]>;
 }
 
 type PersonalTabQuery = ReturnType<typeof personalTabQuery>;
@@ -120,7 +123,7 @@ export interface OverlayEntry {
   /** False when the user may not watch the poll, so the card hides the control. */
   mayWatch?: boolean;
   /** Personal tabs only (FIX020): the relations that put the poll in the tab. */
-  relations?: UserPollRelation[];
+  relations?: HomeReason[];
   /** The caller created the poll. */
   ownPoll?: true;
 }

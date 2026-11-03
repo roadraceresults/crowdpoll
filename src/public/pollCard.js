@@ -1080,7 +1080,7 @@ function initPollCard(viewport, opts){
     }
     const because = viewport.querySelector('.poll-listed-because');
     if (because){
-      const words = { invited: 'You were invited', linked: 'You opened the link', bookmarked: 'You are watching' };
+      const words = { invited: 'You were invited', linked: 'You opened the link', created: 'Your poll', bookmarked: 'You are watching', trending: 'Trending' };
       const parts = reasons.map((r) => words[r]).filter(Boolean);
       because.textContent = parts.join(' · ');
       because.hidden = parts.length === 0;

@@ -26,6 +26,7 @@ import { adoptInvitations, markAccepted } from "../invitations/invitations.js";
 import { isPublished } from "../polls/store.js";
 import { ACCESS_COLUMNS, isIndexable, mayViewResults, mayWatchMany, reachableMany } from "../polls/access.js";
 import { serveLineGraph } from "../polls/lineGraph.js";
+import { homeTabListing } from "../polls/homeTab.js";
 import type { PersonalTab } from "../polls/userPolls.js";
 import type { RequestKind } from "../load/budget.js";
 
@@ -290,6 +291,42 @@ export function createTabsApiRouter(context: AppContext): Router {
     "watching",
     (db, email, _userId, cap) => watchingTab(db, email, cap),
     async (tab, caller) => narrowTo(tab, await mayWatchMany({ db, config }, caller, tab.rows))
+  );
+
+  // Home never accepts an invitation: only opening Shared With You or the poll does.
+  router.post(
+    "/api/tabs/home/refresh",
+    requireSession,
+    ...dynamic("refresh"),
+    wrap(async (req, res) => {
+      const request = parseClientVersions(req.body);
+      if (!holdsPermission(callerOf(res), "View Polls", config)) {
+        sendDelta(res, computeDelta(request, await personalListing(res, { rows: [], membershipVersion: null, relations: new Map() })));
+        return;
+      }
+      const email = emailOf(res);
+      const fast = await shortcut(email, "home", request);
+      if (fast) {
+        await count(TABS_FAST_KEY);
+        sendDelta(res, fast);
+        return;
+      }
+      const version = await ensureVersion(cache, email).catch(() => null);
+      const keepOrder = req.body?.keepOrder === true;
+      const home = await homeTabListing({ db, cache, config }, callerOf(res), email, userIdOf(res), version, keepOrder, new Date());
+      await writeProjections(home.rows);
+      const listing = await personalListing(res, home);
+      if (home.v !== null) {
+        await recordSeen(cache, email, "home", {
+          v: home.v,
+          membershipVersion: listing.membershipVersion,
+          order: listing.order,
+          rows: home.rows.map((row) => [row.id, row.content_version, listing.projections.get(row.id)?.contentVersion ?? 0])
+        }).catch((err: unknown) => console.error("[tabs] Could not record the home answer:", err));
+      }
+      await count(TABS_FULL_KEY);
+      sendDelta(res, computeDelta(request, listing));
+    })
   );
 
   // ---- Search ----

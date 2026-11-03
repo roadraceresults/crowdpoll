@@ -44,7 +44,8 @@ export interface StubbedHome {
 
 function stubTabBarLayout(window: JSDOM["window"], layout: TabBarLayout, state: { scroll: number }) {
   const bar = window.document.getElementById("tabBar") as HTMLElement;
-  const tabs = Array.from(bar.querySelectorAll<HTMLElement>(".tab"));
+  // A hidden tab (Home, for a guest) takes no room in the row.
+  const tabs = Array.from(bar.querySelectorAll<HTMLElement>(".tab")).filter((tab) => !tab.hidden);
   const scrollWidth = tabs.length * layout.tabWidth;
   const maxScroll = () => Math.max(0, scrollWidth - layout.barWidth);
   Object.defineProperty(bar, "scrollLeft", {

@@ -18,7 +18,7 @@ let avatarSvg = "";
 let pollCardCss = "";
 let headerM3Css = "";
 
-const TAB_ORDER = ["your-polls", "shared-with-you", "your-votes", "trending", "newest", "watching", "live", "search"];
+const TAB_ORDER = ["home", "your-polls", "shared-with-you", "your-votes", "trending", "newest", "watching", "live", "search"];
 
 function tabButton(name: string): string {
   const match = index.match(new RegExp(`<button class="tab[^"]*" type="button" data-tab="${name}"[^>]*>[\\s\\S]*?</button>`));
@@ -59,7 +59,7 @@ describe("the tab bar's icons", () => {
       expect(firstChild, name).toContain('aria-hidden="true"');
       if (firstChild.startsWith("<svg")) expect(firstChild, name).toContain('focusable="false"');
     }
-    expect(index.match(/<button class="tab[^"]*" type="button" data-tab=[^>]*>\s*<(svg|span) class="tab-icon/g)!.length).toBe(8);
+    expect(index.match(/<button class="tab[^"]*" type="button" data-tab=[^>]*>\s*<(svg|span) class="tab-icon/g)!.length).toBe(9);
     expect(tabsCss).toMatch(/\.tab-icon\s*\{[^}]*width:\s*16px[^}]*height:\s*16px/);
     expect(tabsCss).toMatch(/\.tab-bar \.tab\s*\{[^}]*display:\s*inline-flex[^}]*gap:\s*6px/);
   });
