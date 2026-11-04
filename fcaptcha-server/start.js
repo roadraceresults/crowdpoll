@@ -23,7 +23,18 @@ for (const [name, fcaptchaName] of Object.entries(RENAMED)) {
 // FCaptcha listens on PORT; ENV_FCAPTCHA_PORT keeps it apart from the web app's settings.
 if (process.env.ENV_FCAPTCHA_PORT) process.env.PORT = process.env.ENV_FCAPTCHA_PORT;
 
-require("@webdecoy/fcaptcha/server").start().catch((err) => {
+// FCaptcha's start() listens through app.listen; the server is built here instead, so that each request's address
+// headers are set (clientAddress.js) before FCaptcha reads them.
+const http = require("node:http");
+const { useEdgeAddress } = require("./clientAddress");
+const fcaptcha = require("@webdecoy/fcaptcha/server");
+fcaptcha.app.listen = (...args) =>
+  http.createServer((req, res) => {
+    useEdgeAddress(req);
+    fcaptcha.app(req, res);
+  }).listen(...args);
+
+fcaptcha.start().catch((err) => {
   console.error(`FCaptcha failed to start: ${err.message}`);
   process.exit(1);
 });

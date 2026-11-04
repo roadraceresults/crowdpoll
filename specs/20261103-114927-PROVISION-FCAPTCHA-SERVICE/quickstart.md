@@ -31,8 +31,23 @@ The runbook and its validation scenarios. Names and settings are in `contracts/i
    `infra/secrets.auto.tfvars` out of cloud-synced folders (FR-016).
 6. **Check** (scenarios 4–8 below).
 7. **Revoke** the old SES access key and the old Spaces key pair once scenario 7 passes (FR-021). Then replace the
-   all-buckets Spaces key with one limited to the `crowdpoll` bucket, set it in `infra/secrets.auto.tfvars`,
+   all-buckets Spaces key with one limited to the `crowdpoll-cdn` bucket, set it in `infra/secrets.auto.tfvars`,
    `terraform apply`, and revoke the all-buckets key (FR-017).
+
+## Releasing a later change
+
+Autodeploy is off, so the command depends on what changed. A `terraform apply` that changes the app spec redeploys the
+commit already deployed, with the new settings; it does not fetch `main` again (seen 2026-11-04: the apply rebuilt
+`83ce186` though `main` was ahead). Only `deploy-app.ts` builds `main`'s latest commit.
+
+| Changed | Run |
+|---|---|
+| Only `infra/*.tf` (settings, sizes, secrets file) | `terraform apply` in `infra/` |
+| Only code, pushed to `main` | `npx tsx devScripts/deploy-app.ts` from the repository root |
+| Both | `terraform apply`, then `npx tsx devScripts/deploy-app.ts` |
+
+Both commands need `$env:DIGITALOCEAN_TOKEN` in the session. Check the build log's `Checking out commit "<sha>"` line
+names the commit you pushed.
 
 ## Validation scenarios
 

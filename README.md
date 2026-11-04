@@ -420,7 +420,7 @@ They share one branded layout (`src/email/templates.ts`), come from
 The hosting is described in one place, the Terraform configuration under `infra/`: the app `crowdpoll` (the `web` and
 `fcaptcha` services, the `/fcaptcha` ingress and the `crowdpoll.vote` domain), the PostgreSQL 18 cluster
 `db-pgsql-tor1-crowdpoll` and the Valkey 9 cluster `valkey-tor1-crowdpoll` (each open only to the app), and the Spaces
-bucket `crowdpoll` with its CDN, all in `tor1`. The plugins are pinned exactly (`digitalocean/digitalocean` 2.106.0,
+bucket `crowdpoll-cdn` with its CDN, all in `tor1`. The plugins are pinned exactly (`digitalocean/digitalocean` 2.106.0,
 `hashicorp/random` 3.9.1) and `infra/.terraform.lock.hcl` is committed, so every plan uses the same ones.
 
 `web` runs on dedicated 1 vCPU / 2 GiB instances, health-checked at `/healthz`, with a 30-second termination grace
@@ -458,7 +458,7 @@ the plan; in the console delete the old app, the two clusters, the bucket's CDN 
 and remove any A/AAAA or CNAME record the old app left in the `crowdpoll.vote` zone (keep the SES records); run
 `terraform apply`, fixing and applying again after a failure; check the site, the human check, a sign-in email and the
 CDN assets; then revoke the old SES and Spaces keys and replace the all-buckets Spaces key with one limited to the
-`crowdpoll` bucket. The old data is not kept.
+`crowdpoll-cdn` bucket. The old data is not kept.
 
 **Releasing a new version.** Autodeploy is off on both services: pushing `main` deploys nothing. Merge to `main`, then
 run `npx tsx devScripts/deploy-app.ts` (`--app <name>` for another app) with `DIGITALOCEAN_TOKEN` set. It starts a
