@@ -445,7 +445,7 @@ validation guide live alongside it in `specs/20261021-143942-PRELAUNCH-SIGNUP-AL
 `requirements/20261021-143942-prelaunch-signup-allowlist/requirements-report.md`: 4 diagrams and 13 findings, all resolved.
 Decisions that are easy to get wrong:
 - **`ENV_ALLOWED_EMAILS` unset or empty means off**, exactly today's behaviour; an invalid entry stops the app; startup logs the
-  count, never an address. In production it is an encrypted console variable, never in `.do/app.yaml` (R1, R7).
+  count, never an address. In production it comes from the git-ignored `infra/secrets.auto.tfvars`, never from a committed file (R1, R7).
 - **One rule, `isAllowed` (`src/auth/allowlist.ts`)**: listed by email key (a TypeScript `emailKeyOf` twin of the SQL
   `emailKey`, tested to agree), or an `ENV_ADMINS` address (R2).
 - **Checked after the honeypot, validation and rate limit, before anything is created or sent**: create-account,
@@ -465,7 +465,7 @@ live alongside it in `specs/20261019-153514-PRODUCTION-EMAIL/`). The requirement
 hand-done SES, DNS, forwarding and alarm setup (RS8, RS10, RS17). Decisions that are easy to get wrong:
 - **`ENV_EMAIL_TRANSPORT=ses` is the production signal.** It needs `ENV_SES_REGION`, `ENV_SES_ACCESS_KEY_ID` and
   `ENV_SES_SECRET_ACCESS_KEY`, or `loadConfig` refuses to start; it never falls back to the console. The code default `smtp` keeps
-  Mailtrap, or the console without credentials, for reference only; the development templates set `ses` too (TWEAKS01), from `us-east-1` as `no-reply@dev.mail.crowdpoll.vote`, in the sandbox (TWEAKS03, quickstart §6). A test checks that `.do/app.yaml` sets `ses` (R2).
+  Mailtrap, or the console without credentials, for reference only; the development templates set `ses` too (TWEAKS01), from `us-east-1` as `no-reply@dev.mail.crowdpoll.vote`, in the sandbox (TWEAKS03, quickstart §6). A test checks that `infra/app.tf` sets `ses` (R2).
 - **nodemailer's own SES transport** over `@aws-sdk/client-sesv2` (HTTPS), so `send()` and the tests' `setTransport` are
   unchanged. `ENV_EMAIL_FROM` replaces `ENV_SMTP_FROM`; `ENV_EMAIL_SEND_TIMEOUT` (10 s) bounds every send by a race (R1, R3, R4).
 - **Logs mask recipients** (`j•••@gmail.com`) and carry the message id; never a full address, link or token (R5).
@@ -831,7 +831,7 @@ Sessions persist via a single `session_token` cookie (httpOnly, secure, sameSite
 section `/privacy#cookies`) and the Terms of Service (`/terms`) are linked from a footer on every page; an account must accept
 the current Terms (`TERMS_VERSION`) before it can be used, and a user can delete their account from the Profile page.
 
-**Target deployment**: DigitalOcean App Platform (one autoscaled Web Service, 4–12 dedicated instances, spec in `.do/app.yaml`) with Managed PostgreSQL, Managed Valkey, Managed OpenSearch and Spaces + CDN, deployed from the `main` branch of `https://github.com/roadraceresults/crowdpoll`. Autodeploy is off (`deploy_on_push: false`): pushing `main` deploys nothing, and each build and deploy is started by hand from the App Platform console's "Actions" dropdown. Development needs PostgreSQL only: the in-process cache/queue, PostgreSQL full-text search and instance-served TRENDING stand in for the other services.
+**Target deployment**: DigitalOcean App Platform (one autoscaled Web Service, described by the Terraform configuration in `infra/`) with Managed PostgreSQL, Managed Valkey, Managed OpenSearch and Spaces + CDN, deployed from the `main` branch of `https://github.com/roadraceresults/crowdpoll`. Autodeploy is off (`deploy_on_push = false`): pushing `main` deploys nothing, and each build and deploy is started with `npx tsx devScripts/deploy-app.ts`. Development needs PostgreSQL only: the in-process cache/queue, PostgreSQL full-text search and instance-served TRENDING stand in for the other services.
 
 ## Current State
 
@@ -904,7 +904,7 @@ All runtime configuration comes from `ENV_*` environment variables:
 | Variable | Dev default | Description |
 |---|---|---|
 | `ENV_PORT` | `8080` | HTTP port for the web app |
-| `ENV_PUBLIC_ORIGIN` | `http://localhost:8080` (templates) | The one origin the site is reached at, no path (`https://crowdpoll.vote` in `.do/app.yaml`); required — the app refuses to start without it. Every sign-in provider redirect URI is built from it |
+| `ENV_PUBLIC_ORIGIN` | `http://localhost:8080` (templates) | The one origin the site is reached at, no path (`https://crowdpoll.vote` in `infra/app.tf`); required — the app refuses to start without it. Every sign-in provider redirect URI is built from it |
 | `ENV_DATABASE_URL` | `postgres://localhost:5432/app01` | PostgreSQL connection string (the managed pool's URL in production) |
 | `ENV_DATABASE_CA_CERT` | unset | PEM of the CA that signed the database server's certificate (DigitalOcean: the database component's `CA_CERT`). Set → the connection is verified against it and `sslmode` is dropped from the URL; unset → `pg` verifies against the system roots, which fails against a managed database. `\n` pairs are read as line breaks |
 | `ENV_VALKEY_URL` | unset | Valkey URL; unset → the in-process cache/queue/registry (development and tests). A remote host beside a `localhost` `ENV_DATABASE_URL` stops the app: a local server on a shared Valkey would trade votes and counter flushes with production and drop them |
@@ -918,7 +918,7 @@ All runtime configuration comes from `ENV_*` environment variables:
 | `ENV_OAUTH_GOOGLE_CLIENT_ID`, `ENV_OAUTH_GOOGLE_CLIENT_SECRET` | unset | Sign in with Google (secrets). A provider is on only when all its values are set; some but not all stops the app, naming the missing one |
 | `ENV_OAUTH_APPLE_CLIENT_ID`, `ENV_OAUTH_APPLE_TEAM_ID`, `ENV_OAUTH_APPLE_KEY_ID`, `ENV_OAUTH_APPLE_PRIVATE_KEY` | unset | Sign in with Apple: the Services ID, team, key id and the `.p8` key's PEM (`\n` pairs read as line breaks); the app signs Apple's client secret itself and renews it every 30 days |
 | `ENV_OAUTH_MICROSOFT_CLIENT_ID`, `ENV_OAUTH_MICROSOFT_CLIENT_SECRET` | unset | Sign in with Microsoft (personal, work and school accounts) |
-| `ENV_OAUTH_AMAZON_CLIENT_ID`, `ENV_OAUTH_AMAZON_CLIENT_SECRET` | unset | Login with Amazon. Production: all `ENV_OAUTH_*` values are encrypted console variables, never in `.do/app.yaml` (`contracts/provider-setup.md`) |
+| `ENV_OAUTH_AMAZON_CLIENT_ID`, `ENV_OAUTH_AMAZON_CLIENT_SECRET` | unset | Login with Amazon. Production: all `ENV_OAUTH_*` values come from the git-ignored `infra/secrets.auto.tfvars`, never from a committed file (`contracts/provider-setup.md`) |
 | `ENV_SCREENING_CALL_TIMEOUT` | `10000` | Bound on one Acceptability Screening call (ms) |
 | `ENV_POLL_APPROVAL_SWEEP_INTERVAL` | `5000` | How often polls awaiting approval are swept (ms) |
 | `ENV_POLL_DATE_CHECK_SWEEP_INTERVAL` | `60000` | How often poll schedules are re-evaluated (ms) |
@@ -933,7 +933,7 @@ All runtime configuration comes from `ENV_*` environment variables:
 | `ENV_EMAIL_FROM` | `CrowdPoll <no-reply@mail.crowdpoll.vote>` | Sender of every message (replaces `ENV_SMTP_FROM`, which is no longer read); the development templates use `no-reply@dev.mail.crowdpoll.vote` |
 | `ENV_EMAIL_SEND_TIMEOUT` | `10000` | Longest one send may take (ms) before it counts as failed |
 | `ENV_EMAIL_ASSET_ORIGIN` | unset | Origin the email logo is loaded from, no path; unset → the link's origin. The development templates set `https://crowdpoll.vote`, because a mail app's image proxy cannot reach `localhost` |
-| `ENV_ALLOWED_EMAILS` | unset | Pre-launch allowlist: comma-separated addresses allowed to create an account and sign in, compared by email key; `ENV_ADMINS` addresses always are. Unset or empty → off (everyone). An invalid entry stops the app; startup logs only the count. Production: an encrypted App Platform variable set in the console, never in `.do/app.yaml`; the templates carry it empty |
+| `ENV_ALLOWED_EMAILS` | unset | Pre-launch allowlist: comma-separated addresses allowed to create an account and sign in, compared by email key; `ENV_ADMINS` addresses always are. Unset or empty → off (everyone). An invalid entry stops the app; startup logs only the count. Production: `allowed_emails` in the git-ignored `infra/secrets.auto.tfvars`, never in a committed file; the templates carry it empty |
 | `ENV_EMAIL_RATE_LIMIT_WINDOW_MINUTES` | `15` | Rate-limit window for email-sending endpoints, in **minutes** (not ms or seconds, unlike the intervals above) |
 | `ENV_EMAIL_RATE_LIMIT_MAX_REQUESTS_PER_WINDOW` | `2` | Requests allowed per client in that window. Lower the window and raise this while testing sign-in — the defaults lock you out for 15 minutes after two login links |
 | `ENV_MAX_INVITATIONS_PER_DAY` | `200` | Invitation and reminder emails one poll creator may send in any rolling 24 hours, counted across all their polls; what does not fit waits as `Not sent yet` and goes as the window frees up. Lower it (e.g. `3`) to see the limit while testing |

@@ -1204,7 +1204,11 @@
     // letters, digits and spaces; no duplicates; 200 characters in total.
     function m3KeywordsField() {
       const id = "pollKeywords-" + current.pid;
-      const field = m3Field("Keywords", id, "Comma separates keywords (keyword1, keyword 2). Letters, numbers and spaces. Used for search.");
+      const field = m3Field(
+        "Keywords",
+        id,
+        "Keywords are used by Search to help users find your poll.\nComma separates keywords (keyword1, keyword 2).\nCan include letters, numbers and spaces."
+      );
       field.wrap.classList.add("m3-field--chips");
       const chips = el("div", "m3-chip-row");
       const input = el("input", "m3-field-input m3-chip-input");

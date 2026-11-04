@@ -6,6 +6,22 @@ The full description, every earlier feature's decisions and the settings table a
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261103-114927-PROVISION-FCAPTCHA-SERVICE/plan.md` (research R1–R14, `data-model.md` — no migration; the
+Terraform resources, inputs, git-ignored files and the switch-over states; the contracts `contracts/infra-config.md`
+C1–C5 and `contracts/deploy-command.md` D1–D3, and the quickstart runbook live alongside it in
+`specs/20261103-114927-PROVISION-FCAPTCHA-SERVICE/`). The requirements report is
+`requirements/20261103-114927-provision-fcaptcha-service/requirements-report.md`: 3 diagrams and 27 findings, all resolved.
+Decisions that are easy to get wrong:
+- **`infra/` (Terraform) is the only description of the hosting**; `.do/app.yaml` is deleted; plugins pinned exactly
+  (`digitalocean/digitalocean` 2.106.0, `hashicorp/random` 3.9.1), lock file committed (R1, IN5).
+- **A fresh stack with today's names**, after the old one is deleted once in the console; test data is not kept (UA9, UA10).
+- **App Platform bindings are escaped** in HCL: `"$${valkey-tor1-crowdpoll.DATABASE_URL}/1"`, never `"${...}"` (R3).
+- **Secrets**: outside values in the git-ignored `infra/secrets.auto.tfvars` (validated non-empty at plan time);
+  FCaptcha's two secrets are `random_password`, the verify secret shared by `web` and `fcaptcha`; the local state
+  holds them in plain text (R4, UA7).
+- **Releases** use `npx tsx devScripts/deploy-app.ts` (`DIGITALOCEAN_TOKEN`, API, no `doctl`); autodeploy stays off (R11).
+No migration and no npm dependency; Terraform and two plugins, only in `infra/`.
+The preceding feature is
 `specs/20261102-144053-FCAPTCHA-AND-SEO/plan.md` (research R1–R15, `data-model.md` — no migration; the pass, the
 `ENV_FCAPTCHA_*` settings, the indexable-poll rule and the sitemap cache; the HTTP contracts `contracts/api.md` A1–A6,
 the UI contracts `contracts/ui-contracts.md` C1–C5, and the quickstart live alongside it in
@@ -23,7 +39,7 @@ Decisions that are easy to get wrong:
 - **Indexable = public and OPEN or CLOSED** (EDITING by its stashed state); `/poll/:pid` serves `index.html` with
   escaped head tags and summary, then `tabs.js` mounts the live card via guest `GET /api/polls/:pid/card` (R9–R11).
 No migration; one dependency, only in `fcaptcha-server/`; four settings, off by default.
-The preceding feature is
+Before it came
 `specs/20261102-154952-FIELD-LENGTH-LIMITS/plan.md` (research R1–R9, `data-model.md` — changed validation rules only,
 no schema change — the HTTP contracts `contracts/api.md` A1–A4, the UI contracts `contracts/ui-contracts.md` C1–C5, and
 the quickstart live alongside it in `specs/20261102-154952-FIELD-LENGTH-LIMITS/`). The requirements report is
@@ -39,25 +55,6 @@ Decisions that are easy to get wrong:
 - **The `adminCard.js` copies equal the server's**, checked by `tests/field-limits.test.ts`; migration 007 keeps its own
   50 and 30 (R5, R8).
 No migration, route, setting or dependency change.
-Before it came
-`specs/20261102-134601-SITE-SETTINGS/plan.md` (research R1–R13, `data-model.md` — one `user` column,
-`color_scheme`, added by migration `016-color-scheme`, the `localStorage` copy and the `data-theme` states; the HTTP
-contracts `contracts/api.md` A1–A3, the UI contracts `contracts/ui-contracts.md` C1–C6, and the quickstart live
-alongside it in `specs/20261102-134601-SITE-SETTINGS/`). The requirements report is
-`requirements/20261102-134601-site-settings/requirements-report.md`: 3 diagrams and 13 findings, all resolved.
-Decisions that are easy to get wrong:
-- **Light is the default everywhere**: every `prefers-color-scheme` block is deleted; Dark exists only under
-  `:root[data-theme="dark"]`; the admin pages lose `data-theme="light"` (R8, NC1).
-- **`colorScheme.js` is a synchronous head script** on every page, before the stylesheets; it applies the
-  `localStorage.colorScheme` copy, and the `Session.subscribe` answer corrects it (a `401` → Light, copy removed)
-  (R3, R4, clarification Q1).
-- **`PATCH /api/me` takes `userName` and/or `colorScheme`**; a scheme-only save touches no poll; every PATCH calls
-  `forgetUserSessions` (R2).
-- **Saves are serialized** (one in flight, the latest queued); a failure reverts to `lastSaved` (R7).
-- **The line graph observes `<html data-theme>`**, not `matchMedia` (R9); the gear is `SETTINGS_GLYPH`, Poll
-  Administration a new checklist `ADMIN_GLYPH` (R10).
-- **Every page is contrast-audited in both schemes** (FR-011a, clarification Q2; R11).
-One additive migration, no new dependency or setting; one page route, one head script, one card module, one stylesheet.
 <!-- SPECKIT END -->
 
 ## Project Overview
@@ -71,9 +68,9 @@ behaviour; `ARCHITECTURE.md` the deployment and the request, vote and refresh pa
 - **Sessions**: one `session_token` cookie (httpOnly, secure, sameSite=lax, up to 30 days). The only other cookies are
   `signin_binding` (`Path=/api/auth`, 15 min) and `oauth_state` (5 min). An account must accept the current Terms
   (`TERMS_VERSION`) before use; `/privacy` and `/terms` are linked from every page.
-- **Deployment**: DigitalOcean App Platform (one autoscaled Web Service, `.do/app.yaml`) with Managed PostgreSQL, Valkey,
-  OpenSearch and Spaces + CDN, from `main` of `https://github.com/roadraceresults/crowdpoll`; autodeploy is off, each
-  deploy is started by hand. Development needs PostgreSQL only: in-process cache/queue, PostgreSQL full-text search
+- **Deployment**: DigitalOcean App Platform (`web` and `fcaptcha`) with Managed PostgreSQL, Valkey and Spaces + CDN,
+  described by Terraform in `infra/` (no `.do/app.yaml`), from `main` of `https://github.com/roadraceresults/crowdpoll`;
+  autodeploy is off, each release is started with `npx tsx devScripts/deploy-app.ts`. Development needs PostgreSQL only: in-process cache/queue, PostgreSQL full-text search
   and instance-served TRENDING stand in for the rest.
 
 ## Layout
@@ -108,7 +105,8 @@ npx vitest run -t "name of the test"   # tests matching a name
 - Intervals are in ms, except `ENV_EMAIL_RATE_LIMIT_WINDOW_MINUTES`.
 - The development templates (`.vscode/launch.json`, `devScripts/launch-dev.ps1`) are git-ignored; regenerate them from
   the `.example` files rather than committing them.
-- Production secrets (`ENV_OAUTH_*`, `ENV_ALLOWED_EMAILS`, keys) are encrypted console variables, never in `.do/app.yaml`.
+- Production secrets (`ENV_OAUTH_*`, `ENV_ALLOWED_EMAILS`, keys) are in the git-ignored `infra/secrets.auto.tfvars`, never in a
+  committed file.
 - The full table is in `.claude/rules/environment.md`.
 
 ## Cross-feature invariants

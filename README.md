@@ -379,8 +379,9 @@ They share one branded layout (`src/email/templates.ts`), come from
 - A sign-in link signs in at once only in the browser that asked for it (a short-lived `signin_binding` cookie);
   opened anywhere else, a page names the account and asks for one click to confirm.
 - Before launch, `ENV_ALLOWED_EMAILS` limits account creation and sign-in to the listed addresses (and the administrators);
-  anyone else is told CrowdPoll hasn't launched yet, and nothing is sent. In production it is an encrypted App Platform
-  variable set in the console; remove it at launch.
+  anyone else is told CrowdPoll hasn't launched yet, and nothing is sent. In production it comes from `allowed_emails` in the
+  git-ignored `infra/secrets.auto.tfvars`, as an encrypted variable, and is required there; at launch, remove its check from
+  `infra/variables.tf` and leave it empty.
 - The three forms that send email carry a hidden field; a request that fills it sends nothing.
 - `privacy@crowdpoll.vote` is an ImprovMX alias set up by hand, like `support@`.
 - A new account or email change that is a `+tag` (or, for Gmail, dotted) variant of an existing address creates no
@@ -407,36 +408,70 @@ They share one branded layout (`src/email/templates.ts`), come from
 
 ## Deploying to DigitalOcean App Platform
 
-`.do/app.yaml` describes the app: one web service on dedicated 1 vCPU / 2 GiB instances,
-autoscaling between 4 and 12 on 70 % CPU, health-checked at `/healthz`, with a 30-second
-termination grace period so a retiring instance finishes writing the votes it holds. Attach:
+The hosting is described in one place, the Terraform configuration under `infra/`: the app `crowdpoll` (the `web` and
+`fcaptcha` services, the `/fcaptcha` ingress and the `crowdpoll.vote` domain), the PostgreSQL 18 cluster
+`db-pgsql-tor1-crowdpoll` and the Valkey 9 cluster `valkey-tor1-crowdpoll` (each open only to the app), and the Spaces
+bucket `crowdpoll` with its CDN, all in `tor1`. The plugins are pinned exactly (`digitalocean/digitalocean` 2.106.0,
+`hashicorp/random` 3.9.1) and `infra/.terraform.lock.hcl` is committed, so every plan uses the same ones.
 
-1. **Managed PostgreSQL 16** → `ENV_DATABASE_URL` (use the connection pool's URL).
-2. **Managed Valkey** → `ENV_VALKEY_URL`. Shared by the fleet for sessions, refresh floors,
-   the request budget, live vote counters, the Live Results registry and the vote queue.
-3. **Managed OpenSearch** → `ENV_OPENSEARCH_URL`. Serves the home search; the app falls back
-   to PostgreSQL full-text search whenever the cluster is unhealthy.
-4. **Spaces + CDN** → the five `ENV_SPACES_*` variables. The trending and newest sweeps each
-   publish two objects there every minute and `npm run publish-assets` uploads the static
-   assets; the pages then reference all of them through the CDN.
+`web` runs on dedicated 1 vCPU / 2 GiB instances, health-checked at `/healthz`, with a 30-second termination grace
+period so a retiring instance finishes writing the votes it holds. Its Valkey is shared by the fleet for sessions,
+refresh floors, the request budget, live vote counters, the Live Results registry and the vote queue. The trending and
+newest sweeps each publish two objects to the bucket every minute and `npm run publish-assets` uploads the static
+assets; the pages then reference all of them through the CDN. OpenSearch is not provisioned: the home search uses
+PostgreSQL full-text search.
 
-Set `ENV_BETTER_AUTH_SECRET`, `ENV_ADMINS`, `ENV_SES_ACCESS_KEY_ID` and `ENV_SES_SECRET_ACCESS_KEY` as secrets (and the
-`ENV_OAUTH_*` values of each sign-in provider, once `ENV_SIGNIN_METHOD` is `oauth` or `both`). The spec sets
-`ENV_PUBLIC_ORIGIN=https://crowdpoll.vote` and `ENV_EMAIL_TRANSPORT=ses`, so the app refuses to start without the SES values (see *Email* below).
-A deploy, started by hand from the console, builds the `main` branch with `npm ci --include=dev && npm run build && npm run publish-assets && npm prune --omit=dev` and runs `npm start`.
-The spec sets `NODE_ENV=production` at build and run time; the custom build command runs after the buildpack's own install and prune, so it
-prunes devDependencies itself at the end. `tsx` is a dependency, so `npm run reconcile` still works from the console. App Platform builds with
-the spec saved in the console, not `.do/app.yaml`: a change to either must be made in both.
+**What you need.**
 
-**The FCaptcha service.** A second service, `fcaptcha`, is built from `fcaptcha-server/` (FCaptcha
+- Terraform ≥ 1.6, or OpenTofu ≥ 1.6 if Windows Application Control blocks `terraform.exe`; `terraform version` must
+  print a version.
+- A DigitalOcean custom-scoped token with create, read, update and delete on apps, databases, CDN and domains, expiring
+  in 30 days, set in the session only: `$env:DIGITALOCEAN_TOKEN = "<token>"` (PowerShell). Never write it to a file.
+- A Spaces key pair and an SES access key for the sending user.
+
+**The secrets file.** Copy `infra/secrets.auto.tfvars.example` to `infra/secrets.auto.tfvars` (git-ignored) and fill in
+`better_auth_secret` (`openssl rand -hex 32`), the SES key, the Spaces key pair and `allowed_emails`; a sign-in
+provider's `oauth_*` values are set together or left empty, and an empty one adds no setting. A required value left
+empty stops `terraform plan` with `<name> must be set in infra/secrets.auto.tfvars.` FCaptcha's two secrets are
+generated by Terraform. The cluster sizes default to `db-s-1vcpu-1gb` and can be set in the same file.
+
+**Plan and apply.** In `infra/`: `terraform init`, `terraform fmt -check`, `terraform validate`, then `terraform plan`
+to review every change (secrets show as `(sensitive value)`), and `terraform apply` to make them. A second `plan` right
+after an apply should report `No changes.` A change to the hosting is a change to `infra/`, reviewed in a plan; nothing
+is changed in the console.
+
+**The state.** Terraform keeps its record of the resources in `infra/terraform.tfstate` (git-ignored). It holds every
+secret in plain text: back it up in encrypted form (for example as a password-manager attachment) after each apply, and
+keep it and `infra/secrets.auto.tfvars` out of cloud-synced folders. A lost state is restored from that backup.
+
+**The one-time switch-over** from the hand-made stack: note the old clusters' sizes; fill the secrets file and check
+the plan; in the console delete the old app, the two clusters, the bucket's CDN endpoint and then the emptied bucket,
+and remove any A/AAAA or CNAME record the old app left in the `crowdpoll.vote` zone (keep the SES records); run
+`terraform apply`, fixing and applying again after a failure; check the site, the human check, a sign-in email and the
+CDN assets; then revoke the old SES and Spaces keys and replace the all-buckets Spaces key with one limited to the
+`crowdpoll` bucket. The old data is not kept.
+
+**Releasing a new version.** Autodeploy is off on both services: pushing `main` deploys nothing. Merge to `main`, then
+run `npx tsx devScripts/deploy-app.ts` (`--app <name>` for another app) with `DIGITALOCEAN_TOKEN` set. It starts a
+deployment of the branch's latest commit, prints each phase, and exits 0 when it is `ACTIVE`, 1 when it ends in
+`ERROR` (naming the failed step), `CANCELED` or `SUPERSEDED`, after 30 minutes, or on an API error, and 2 without a
+token. The build runs `npm ci --include=dev && npm run build && npm run publish-assets && npm prune --omit=dev` and
+then `npm start`; `NODE_ENV=production` is set at build and run time, and the custom build command prunes
+devDependencies itself at the end. `tsx` is a dependency, so `npm run reconcile` still works from the console.
+
+**A second plan that is not clean.** App Platform returns secret settings encrypted. If a `plan` right after an apply
+keeps showing changes limited to the secret settings, that is a gap in the provider, not a change: it is recorded here,
+and any other difference is a real one. Recorded outcome: not yet checked against the live app.
+
+**The FCaptcha service.** The second service, `fcaptcha`, is built from `fcaptcha-server/` (FCaptcha
 `@webdecoy/fcaptcha` 1.46.1 in its standalone Node.js server mode, started by `start.js`), autoscaled 1–3 and
 health-checked at `/health`. The app's ingress sends `/fcaptcha/*` to it, prefix removed, and everything else to `web`,
 so the widget and its calls stay on the site's own domain. It keeps its short-lived state in the same Valkey, database 1.
 Its settings carry the `ENV_FCAPTCHA_` prefix, which `start.js` maps to FCaptcha's own names (FCaptcha's names set
-directly stop it). Set `ENV_FCAPTCHA_SECRET` (at least 32 random bytes, `openssl rand -hex 32`) and
-`ENV_FCAPTCHA_VERIFY_SECRET` on it, and the same `ENV_FCAPTCHA_VERIFY_SECRET` on `web`, all as encrypted variables;
-`ENV_FCAPTCHA_SITE_KEYS` must include `web`'s `ENV_FCAPTCHA_SITE_KEY`, `ENV_FCAPTCHA_ALLOWED_HOSTNAMES` names the
-production host and `ENV_FCAPTCHA_REDIS_URL` points at Valkey database 1. To run it locally:
+directly stop it). Terraform generates `ENV_FCAPTCHA_SECRET` and `ENV_FCAPTCHA_VERIFY_SECRET` (64 random characters
+each) and gives the verify secret to both services; `ENV_FCAPTCHA_SITE_KEYS` includes `web`'s `ENV_FCAPTCHA_SITE_KEY`,
+`ENV_FCAPTCHA_ALLOWED_HOSTNAMES` is built from the app's domains, `ENV_FCAPTCHA_REDIS_URL` points at Valkey
+database 1 and `ENV_FCAPTCHA_TRUSTED_PROXIES` adds App Platform's proxy range, so FCaptcha sees each visitor's address. The human check is on in production (`ENV_FCAPTCHA_ENABLED=1`). To run it locally:
 `cd fcaptcha-server && npm ci`, then `ENV_FCAPTCHA_INSECURE_DEV_MODE=1 ENV_FCAPTCHA_PORT=3001 npm start`, and set the four `ENV_FCAPTCHA_*`
 values (commented out in the launch templates); with `ENV_PUBLIC_ORIGIN` on `localhost` the web app forwards
 `/fcaptcha/*` to `ENV_FCAPTCHA_URL` itself, standing in for the ingress, so the widget appears locally. Passes are not yet tied to the visitor's address: that is turned on
@@ -491,7 +526,7 @@ provider settings only with `oauth` or `both`, and administrator addresses are m
 | `ENV_EMAIL_FROM` | `CrowdPoll <no-reply@mail.crowdpoll.vote>` | Sender of every message |
 | `ENV_EMAIL_SEND_TIMEOUT` | `10000` | Longest one send may take before it counts as failed |
 | `ENV_EMAIL_ASSET_ORIGIN` | unset | Origin the email logo is loaded from (development: `https://crowdpoll.vote`, since mail apps cannot reach `localhost`); unset → the link's origin |
-| `ENV_ALLOWED_EMAILS` | unset | Comma-separated addresses allowed to create an account and sign in before launch; administrators always are. Unset or empty: everyone. An invalid entry stops the app. Production: an encrypted console variable, never in `.do/app.yaml` |
+| `ENV_ALLOWED_EMAILS` | unset | Comma-separated addresses allowed to create an account and sign in before launch; administrators always are. Unset or empty: everyone. An invalid entry stops the app. Production: `allowed_emails` in the git-ignored `infra/secrets.auto.tfvars`, set as an encrypted variable |
 | `ENV_OAUTH_GOOGLE_*`, `ENV_OAUTH_MICROSOFT_*`, `ENV_OAUTH_AMAZON_*` (`CLIENT_ID`, `CLIENT_SECRET`) | — | Sign-in provider credentials; a provider is on when both are set |
 | `ENV_OAUTH_APPLE_CLIENT_ID` / `_TEAM_ID` / `_KEY_ID` / `_PRIVATE_KEY` | — | Sign in with Apple: the Services ID, team, key id and the key's PEM (`\n` pairs read as line breaks) |
 | `ENV_EMAIL_RATE_LIMIT_WINDOW_MINUTES` / `ENV_EMAIL_RATE_LIMIT_MAX_REQUESTS_PER_WINDOW` | `15` / `2` | Email-sending rate limit (window in **minutes**) |
@@ -543,14 +578,15 @@ provider settings only with `oauth` or `both`, and administrator addresses are m
 | `ENV_BOOKMARK_EXPIRY_MONTHS` | `6` | Months of closure or inactivity before a bookmark is removed |
 | `ENV_PAGE_LOADS_PER_MINUTE` | `120` | Page loads per session (or address) per minute before a notice |
 | `ENV_FCAPTCHA_ENABLED` | unset | `1` turns on the human check before sign-in (the self-hosted FCaptcha service); anything else leaves it off. When on, the three below are required |
-| `ENV_FCAPTCHA_URL` | unset | Where the web service reaches FCaptcha, server to server (`${fcaptcha.PRIVATE_URL}` in `.do/app.yaml`) |
+| `ENV_FCAPTCHA_URL` | unset | Where the web service reaches FCaptcha, server to server (`${fcaptcha.PRIVATE_URL}` in `infra/app.tf`) |
 | `ENV_FCAPTCHA_SITE_KEY` | unset | The site key the widget is drawn with (public; one of the FCaptcha service's `ENV_FCAPTCHA_SITE_KEYS`) |
 | `ENV_FCAPTCHA_VERIFY_SECRET` | unset | The credential for FCaptcha's token check; the same name and value on the FCaptcha service. Production: an encrypted variable |
-| `ENV_FCAPTCHA_PORT` | unset | Set on the FCaptcha service, not on `web`: the port it listens on (`8080` in `.do/app.yaml`, `3001` locally) |
+| `ENV_FCAPTCHA_PORT` | unset | Set on the FCaptcha service, not on `web`: the port it listens on (`8080` in `infra/app.tf`, `3001` locally) |
 | `ENV_FCAPTCHA_SECRET` | unset | FCaptcha service only: the key passes are signed with, at least 32 random bytes. Production: an encrypted variable |
 | `ENV_FCAPTCHA_SITE_KEYS` | unset | FCaptcha service only: comma-separated site keys it accepts (`crowdpoll`) |
 | `ENV_FCAPTCHA_ALLOWED_HOSTNAMES` | unset | FCaptcha service only: the page hosts passes may be minted for (`crowdpoll.vote`) |
 | `ENV_FCAPTCHA_REDIS_URL` | unset | FCaptcha service only: its shared state, Valkey database 1; unset → in memory, one instance |
+| `ENV_FCAPTCHA_TRUSTED_PROXIES` | unset | FCaptcha service only: CIDRs whose forwarding headers are believed; production adds App Platform's `100.64.0.0/10`; unset → loopback and private ranges |
 | `ENV_FCAPTCHA_INSECURE_DEV_MODE` | unset | FCaptcha service only: `1` signs with a public key so it starts without `ENV_FCAPTCHA_SECRET`; local use only |
 
 ## Poll visibility settings

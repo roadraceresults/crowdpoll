@@ -390,7 +390,7 @@
 .m3-field-box { display: flex; flex-direction: column; gap: 6px; padding: 0 0 6px; }
 .m3-field-input { display: block; box-sizing: border-box; width: 100%; margin: 0; padding: 0; resize: none; overflow: hidden; }
 .m3-field-below { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 6px 0 0; }
-.m3-field-support { margin: 0; }
+.m3-field-support { margin: 0; white-space: pre-line; }
 .m3-field-counter { flex: 0 0 auto; }
 .m3-field--choices .m3-field-input { min-height: calc(4 * 1.4em); }
 .m3-chip-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }

@@ -68,7 +68,7 @@ Then take step 2 when `CLAUDE_COMPLETE.md` does not exist, otherwise step 3.
    ---
    paths:
      - "src/config.ts"
-     - ".do/app.yaml"
+     - "infra/**"
      - "launch.json.example"
      - "devScripts.example/**"
      - "tests/config.test.ts"
@@ -182,7 +182,7 @@ Spec Kit uses the PowerShell scripts (`.specify/scripts/powershell/`).
   developer's and operator's commands stay in `CLAUDE_COMPLETE.md`.
 - **Configuration rules**: a few lines: every setting is an `ENV_*` variable validated once by `loadConfig`
   (`src/config.ts`); intervals are in ms except the one setting in minutes; the development templates are git-ignored;
-  production secrets are console variables, never in `.do/app.yaml`; the full table is in
+  production secrets are in the git-ignored `infra/secrets.auto.tfvars`, never in a committed file; the full table is in
   `.claude/rules/environment.md`.
 - **Cross-feature invariants**: see below.
 - **Architecture Notes**: today's notes, condensed (cookie policy and its Cookie Use test, `postman/openapi.json`

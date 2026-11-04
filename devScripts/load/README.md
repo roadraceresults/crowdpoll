@@ -27,5 +27,5 @@ The defaults of `ENV_SERVER_MAX_REQUESTS_PER_INSTANCE_PER_SECOND`, `ENV_INSTANCE
 `ENV_INSTANCE_MAX_EVENT_LOOP_LAG` and the app spec's CPU target were chosen from
 estimates. After a run, read the served rate per instance from `budget.js`'s summary
 and the instance CPU from the App Platform metrics, and change the defaults in
-`src/config.ts`, `CLAUDE.md`, the launch templates and `.do/app.yaml` together when
+`src/config.ts`, `CLAUDE.md`, the launch templates and `infra/app.tf` together when
 the measured values differ.

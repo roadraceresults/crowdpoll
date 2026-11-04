@@ -140,23 +140,29 @@ describe("Email transport, sender and timeout", () => {
     expect(loadConfig(baseEnv({ ENV_EMAIL_FROM: "App <a@example.com>" })).emailFrom).toBe("App <a@example.com>");
   });
 
-  it("is configured for SES in the deployment spec", () => {
-    const appYaml = readFileSync(new URL("../.do/app.yaml", import.meta.url), "utf8");
-    const entry = (key: string) => new RegExp(`- key: ${key}\\r?\\n((?: {8}.*\\r?\\n)*)`).exec(appYaml)?.[1] ?? "";
-    expect(entry("ENV_EMAIL_TRANSPORT")).toMatch(/value: "?ses"?/);
-    expect(entry("ENV_SES_REGION")).toMatch(/value: "?ca-central-1"?/);
-    expect(entry("ENV_SES_ACCESS_KEY_ID")).toContain("type: SECRET");
-    expect(entry("ENV_SES_SECRET_ACCESS_KEY")).toContain("type: SECRET");
+  it("is configured for SES in the deployment configuration", () => {
+    const appTf = readFileSync(new URL("../infra/app.tf", import.meta.url), "utf8");
+    const envBlock = (key: string) => new RegExp(`key\\s*=\\s*"${key}"\\r?\\n((?:\\s+\\w+\\s*=.*\\r?\\n)*)`).exec(appTf)?.[1] ?? "";
+    expect(appTf).toMatch(/^\s*ENV_EMAIL_TRANSPORT\s*=\s*"ses"\s*$/m);
+    expect(appTf).toMatch(/web_run_time_settings\s*=\s*\[[^\]]*"ENV_EMAIL_TRANSPORT"/);
+    expect(appTf).toMatch(/^\s*ENV_SES_REGION\s*=\s*"ca-central-1"\s*$/m);
+    expect(envBlock("ENV_SES_ACCESS_KEY_ID")).toMatch(/type\s*=\s*"SECRET"/);
+    expect(envBlock("ENV_SES_SECRET_ACCESS_KEY")).toMatch(/type\s*=\s*"SECRET"/);
   });
 
-  it("prunes devDependencies after the build in the deployment spec, keeping tsx", () => {
-    const appYaml = readFileSync(new URL("../.do/app.yaml", import.meta.url), "utf8");
-    const entry = (key: string) => new RegExp(`- key: ${key}\\r?\\n((?: {8}.*\\r?\\n)*)`).exec(appYaml)?.[1] ?? "";
-    expect(entry("NODE_ENV")).toMatch(/value: "?production"?/);
-    expect(entry("NODE_ENV")).toContain("scope: RUN_AND_BUILD_TIME");
-    expect(appYaml).toMatch(/build_command: npm ci --include=dev && .* && npm prune --omit=dev$/m);
+  it("prunes devDependencies after the build in the deployment configuration, keeping tsx", () => {
+    const appTf = readFileSync(new URL("../infra/app.tf", import.meta.url), "utf8");
+    expect(appTf).toMatch(/^\s*NODE_ENV\s*=\s*"production"\s*$/m);
+    expect(appTf).not.toMatch(/web_run_time_settings\s*=\s*\[[^\]]*"NODE_ENV"/);
+    expect(appTf).toMatch(/build_command\s*=\s*"npm ci --include=dev && .* && npm prune --omit=dev"$/m);
     const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
     expect(pkg.dependencies.tsx).toBeDefined();
+  });
+
+  it("reads the sign-in method and the human check switch only at run time in the deployment configuration, where their secrets are", () => {
+    const appTf = readFileSync(new URL("../infra/app.tf", import.meta.url), "utf8");
+    expect(appTf).toMatch(/web_run_time_settings\s*=\s*\[[^\]]*"ENV_SIGNIN_METHOD"/);
+    expect(appTf).toMatch(/web_run_time_settings\s*=\s*\[[^\]]*"ENV_FCAPTCHA_ENABLED"/);
   });
 
   it("reads ENV_EMAIL_ASSET_ORIGIN as an origin, unset by default", () => {

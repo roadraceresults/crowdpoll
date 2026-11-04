@@ -4,7 +4,7 @@ description: "Put the session in file-remote mode: every reply shown at the cons
 argument-hint: "[IN=<input-path-to-file>] [OUT=<output-path-to-file>]  (defaults: fileRemote/in.md, fileRemote/out.md)"
 allowed-tools: Read, Write, Bash
 user-invocable: true
-disable-model-invocation: true
+disable-model-invocation: false
 metadata:
     - author: "David Brooks"
 ---

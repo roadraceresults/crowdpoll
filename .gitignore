@@ -19,6 +19,7 @@ devScripts/*
 !devScripts/render-invitation-email.ts
 !devScripts/serve-prototypes.ts
 !devScripts/fix-migrations.ts
+!devScripts/deploy-app.ts
 !devScripts/MIGRATIONS-HOWTO.md
 !devScripts/load/
 !devScripts/populate/
@@ -38,3 +39,9 @@ fileRemote/
 /manifests/
 /scratchPad/
 polldata/
+# Terraform: downloaded plugins, the state (every secret in plain text) and the secrets file
+infra/.terraform/
+infra/*.tfstate
+infra/*.tfstate.*
+infra/secrets.auto.tfvars
+infra/*.plan

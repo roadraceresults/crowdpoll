@@ -17,9 +17,9 @@ flowchart LR
     W2["Web instance"]
     Wn["… 4–12, autoscaled on CPU"]
   end
-  PG[("Managed PostgreSQL 16<br/>polls, votes, history, relations, auth")]
-  VK[("Managed Valkey<br/>sessions, floors, budget, counters,<br/>registry, vote stream")]
-  OS[("Managed OpenSearch<br/>home search index")]
+  PG[("Managed PostgreSQL 18<br/>polls, votes, history, relations, auth")]
+  VK[("Managed Valkey 9<br/>sessions, floors, budget, counters,<br/>registry, vote stream")]
+  OS[("Managed OpenSearch, optional<br/>home search index (not provisioned)")]
   Mail["Amazon SES ca-central-1<br/>HTTPS API (production and development)"]
   FC["fcaptcha service, 1–3 instances<br/>FCaptcha standalone server"]
 
@@ -42,6 +42,15 @@ them the instances answer searches from PostgreSQL full-text search and serve th
 objects and assets themselves. Development needs PostgreSQL alone; the cache and queue are an
 in-process implementation of the same interface. Configuration arrives entirely through
 `ENV_*` variables, validated once at start-up.
+
+The hosting is described by the Terraform configuration in `infra/`: the app `crowdpoll` (`web`, `fcaptcha`, the
+ingress and the `crowdpoll.vote` domain), the PostgreSQL 18 and Valkey 9 clusters with a firewall rule admitting only
+the app, the Spaces bucket and its CDN, and FCaptcha's two generated secrets. App Platform bindings such as
+`${valkey-tor1-crowdpoll.DATABASE_URL}` are written escaped (`$${...}`) so Terraform passes them to App Platform as
+text. Outside secrets come from the git-ignored `infra/secrets.auto.tfvars`, the state stays local and git-ignored, and
+OpenSearch is not provisioned, so search runs on PostgreSQL full-text search. Releases are started by
+`devScripts/deploy-app.ts`, which asks the App Platform API for a deployment of `main` and follows its phases;
+autodeploy is off.
 
 ## Start-up and shutdown
 
