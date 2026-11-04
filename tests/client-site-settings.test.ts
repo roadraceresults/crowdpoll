@@ -132,7 +132,7 @@ describe("the avatar menu (C1)", () => {
 
   it("offers Site Settings after Edit Profile to a user without permissions", async () => {
     home = await openStubbedHome({ scripts: ["app.js"], user: PLAIN });
-    expect(items(home)).toEqual(["Edit Profile", "Site Settings", "Create Poll", "Logout"]);
+    expect(items(home)).toEqual(["Home", "Edit Profile", "Site Settings", "Create Poll", "Logout"]);
     const settings = link(home, "Site Settings");
     expect(settings.getAttribute("href")).toBe("/settings");
     expect(settings.hasAttribute("aria-disabled")).toBe(false);
@@ -140,7 +140,7 @@ describe("the avatar menu (C1)", () => {
 
   it("lists Poll Administration before Logout for a creator", async () => {
     home = await openStubbedHome({ scripts: ["app.js"], user: CREATOR });
-    expect(items(home)).toEqual(["Edit Profile", "Site Settings", "Create Poll", "Poll Administration", "Logout"]);
+    expect(items(home)).toEqual(["Home", "Edit Profile", "Site Settings", "Create Poll", "Poll Administration", "Logout"]);
   });
 
   it("is not there for a guest", async () => {

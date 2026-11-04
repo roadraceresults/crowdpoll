@@ -2,7 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { randomUUID } from "node:crypto";
 import { forgeSession, startTestContext, type TestContext } from "./helpers/setup.js";
 import { makePoll, polls } from "./helpers/poll-fixtures.js";
-import { openPage, type BrowserPage } from "./helpers/browser.js";
+import { openPage, type BrowserPage, ON_TRENDING } from "./helpers/browser.js";
 import { upsertRelation } from "../src/polls/userPolls.js";
 import { countVote, flushDirty } from "../src/polls/counters.js";
 import request from "supertest";
@@ -60,7 +60,7 @@ let shownTab = "shared-with-you";
 
 async function openShared(cookie: string, tab = "shared-with-you"): Promise<BrowserPage> {
   shownTab = tab;
-  const opened = await openPage(ctx, "index.html", { cookie, scripts: SCRIPTS });
+  const opened = await openPage(ctx, "index.html", { cookie, url: ON_TRENDING, scripts: SCRIPTS });
   await opened.click(`.tab[data-tab="${tab}"]`);
   await opened.settle(50);
   return opened;

@@ -1,8 +1,8 @@
 # CrowdPoll
 
 A real-time opinion-poll site with passwordless sign-in, built in TypeScript with Express,
-PostgreSQL and [BetterAuth](https://better-auth.com). Visitors browse polls on a six-tab
-home page (Your Polls, Shared With You, Your Votes, Trending, Newest, Watching, Live Results,
+PostgreSQL and [BetterAuth](https://better-auth.com). Visitors browse polls on a
+nine-tab home page (Home, Your Polls, Shared With You, Your Votes, Trending, Newest, Watching, Live Results,
 Search — each tab with its own icon, under a rule that runs the full width of the window), vote
 once per poll (or change their vote on a poll that allows it), watch the polls they care about,
 and follow up to five polls update live. Administrators create, edit, screen, moderate and export polls. Sign-in emails a
@@ -18,6 +18,15 @@ delivery network.
 
 ## For end users
 
+- **Home** — where a signed-in visitor lands: one list gathering, in this order, the polls shared
+  with you (10 at most), your own polls (10), the polls you voted in (10), every poll you watch, and
+  ten from Trending, each poll once, at its first place. Open polls appear for two months after
+  they opened, closed polls for a week after they closed, and polls waiting to open always; drafts,
+  rejected and archived polls never do. Each card says why it is listed ("You were invited",
+  "Your poll", "You voted", "You are watching", "Trending"). The list is rebuilt when something
+  you did changes it, and at least every two hours; voting on or watching a card on Home does not
+  move it until you next open Home. Guests do not see the tab, and the avatar menu's first item,
+  **Home**, opens it from any page.
 - **Trending** — the polls with the most recent votes, first on every visit. Nothing on it
   changes until you press **Refresh**, which is offered once a newer list can exist (10 seconds
   after the last one at most); while it waits, its tooltip says how long is left.

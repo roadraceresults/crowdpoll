@@ -48,6 +48,10 @@
           <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><path fill="currentColor" d="M9.41 7.41L8 6l-6 6 6 6 1.41-1.41L4.83 12z M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
         </button>
         <div class="tab-bar" id="tabBar" role="tablist" aria-label="Poll tabs">
+          <button class="tab" type="button" data-tab="home" role="tab" id="tab-home" aria-controls="panel-home" aria-selected="false" tabindex="-1" hidden>
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 9v11h14V9"></path><path d="M10 20v-6h4v6"></path></svg>
+            Home
+          </button>
           <button class="tab" type="button" data-tab="your-polls" role="tab" id="tab-your-polls" aria-controls="panel-your-polls" aria-selected="false" tabindex="-1">
             <svg class="tab-icon" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><circle cx="32" cy="32" r="32" fill="#8093a7"/><circle cx="32" cy="25" r="11" fill="#e8edf2"/><path d="M32 40c-11 0-19 6.5-19 14.5V64h38v-9.5C51 46.5 43 40 32 40z" fill="#e8edf2"/></svg>
             Your Polls
@@ -106,6 +110,7 @@
       <p class="tab-notice" id="tabNotice" hidden></p>
 
       <main class="all-markets">
+        <section class="tab-panel" data-panel="home" role="tabpanel" id="panel-home" aria-labelledby="tab-home" hidden><div class="card-grid"></div><p class="tab-empty" hidden></p></section>
         <section class="tab-panel" data-panel="your-polls" role="tabpanel" id="panel-your-polls" aria-labelledby="tab-your-polls" hidden><div class="card-grid"></div><p class="tab-empty" hidden></p></section>
         <section class="tab-panel" data-panel="shared-with-you" role="tabpanel" id="panel-shared-with-you" aria-labelledby="tab-shared-with-you" hidden><div class="card-grid"></div><p class="tab-empty" hidden></p></section>
         <section class="tab-panel" data-panel="your-votes" role="tabpanel" id="panel-your-votes" aria-labelledby="tab-your-votes" hidden><div class="card-grid"></div><p class="tab-empty" hidden></p></section>

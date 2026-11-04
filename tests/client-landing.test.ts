@@ -93,11 +93,11 @@ describe("a landing that names a poll always shows it maximized (C2)", () => {
 });
 
 describe("a landing with values the page does not know", () => {
-  it("ignores them, stays on Trending, shows nothing and tidies the address", async () => {
+  it("ignores them, lands a signed-in visitor on Home, shows nothing and tidies the address", async () => {
     const { cookie } = await forgeSession(ctx, "landing-unknown@example.com");
     page = await arrive("?open=not-an-id&tab=admin&notice=constructor&q=", cookie);
     await page.settle(200);
-    expect(activeTab(page)).toBe("trending");
+    expect(activeTab(page)).toBe("home");
     expect(page.document.getElementById("tabNotice")!.hidden).toBe(true);
     expect(page.window.location.search).not.toMatch(/open|tab=|notice/);
   });

@@ -41,6 +41,8 @@ locals {
     ENV_TRENDING_POLLS_RECOMPUTE_SWEEP_INTERVAL     = "60000"
     ENV_MAX_NEWEST_POLLS                            = "50"
     ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL       = "60000"
+    ENV_HOME_TAB_REFRESH_INTERVAL                   = "7200000"
+    ENV_MAX_HOME_PAGE_POLLS                         = "200"
     ENV_LINE_GRAPH_MIN_VOTE_PERCENTAGE              = "1"
     ENV_LINE_GRAPH_REFRESH_INTERVAL                 = "60000"
     ENV_MIN_LIVE_REFRESH_INTERVAL                   = "2000"

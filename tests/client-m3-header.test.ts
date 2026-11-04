@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { forgeSession, startTestContext, type TestContext } from "./helpers/setup.js";
 import { makePoll, polls } from "./helpers/poll-fixtures.js";
-import { openPage, type BrowserPage } from "./helpers/browser.js";
+import { openPage, type BrowserPage, ON_TRENDING } from "./helpers/browser.js";
 import { trendingSweep } from "../src/polls/sweeps.js";
 
 let ctx: TestContext;
@@ -35,6 +35,7 @@ function keydown(p: BrowserPage, target: EventTarget, key: string, shiftKey = fa
 async function scrollableHome(context: TestContext, cookie?: string): Promise<BrowserPage> {
   const opened = await openPage(context, "index.html", {
     cookie,
+    url: ON_TRENDING,
     beforeScripts: (window) => {
       Object.defineProperty(window, "scrollY", { value: 0, writable: true, configurable: true });
       window.scrollTo = (() => {}) as typeof window.scrollTo;

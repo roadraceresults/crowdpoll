@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { forgeSession, startTestContext, type TestContext } from "./helpers/setup.js";
 import { makePoll, polls } from "./helpers/poll-fixtures.js";
-import { LISTING_MAX_AGE_1S, openPage, type BrowserPage } from "./helpers/browser.js";
+import { LISTING_MAX_AGE_1S, openPage, type BrowserPage, ON_TRENDING } from "./helpers/browser.js";
 import { newestSweep, trendingSweep } from "../src/polls/sweeps.js";
 import type { Poll } from "../src/polls/store.js";
 import { countVote } from "../src/polls/counters.js";
@@ -49,6 +49,7 @@ const WITH_FIXED_CHROME = ["app.js", "fixedChrome.js", ...DEFAULT_SCRIPTS.slice(
 async function open(cookie?: string, scripts: string[] = DEFAULT_SCRIPTS): Promise<BrowserPage> {
   const opened = await openPage(ctx, "index.html", {
     cookie,
+    url: ON_TRENDING,
     scripts,
     beforeScripts: (window) => {
       const scrollable = window as unknown as ScrollWindow;

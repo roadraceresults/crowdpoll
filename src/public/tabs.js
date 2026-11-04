@@ -1,5 +1,5 @@
 /*
-  TABS — the eight-tab home page. Each tab holds its own copy of what it last
+  TABS — the nine-tab home page. Each tab holds its own copy of what it last
   received and re-renders that copy on a click; a request leaves only when the
   copy is older than the manual floor, when nothing is held, when Refresh is
   pressed while the kind's burst allowance has a token, or when the user's own
@@ -10,7 +10,7 @@
 (function () {
   "use strict";
 
-  const PERSONAL_TABS = ["your-polls", "shared-with-you", "your-votes", "watching", "live"];
+  const PERSONAL_TABS = ["home", "your-polls", "shared-with-you", "your-votes", "watching", "live"];
   const controllers = {};
   const nextAllowedAt = {};
   let activeTab = "trending";
@@ -125,6 +125,7 @@
   }
 
   const EMPTY_LINES = {
+    home: "Nothing here yet. Polls shared with you, your polls, your votes, the polls you watch and what's trending will appear here.",
     "your-polls": "You haven't created any polls yet.",
     "shared-with-you": "Nothing has been shared with you yet.",
     "your-votes": "You haven't voted in any polls yet.",
@@ -184,7 +185,7 @@
       {
         isSignedIn: isSignedIn,
         onVoted: (pid, outcome) => applyVote(cardOpts.tab, pid, outcome),
-        onChoicesAdded: (pid, answer) => applyAddedChoices(pid, answer),
+        onChoicesAdded: (pid, answer) => applyAddedChoices(cardOpts.tab, pid, answer),
         onLive: (pid) => { if (window.LiveResults) window.LiveResults.addPoll(pid); },
         onBookmark: (pid, bookmarked) => toggleBookmark(pid, bookmarked),
         onMaximize: (pid) => maximize(pid),
@@ -414,7 +415,7 @@
     the same allowance from a bucket of its own. Live Results and votes hold one
     token, which is the plain floor.
   */
-  const KIND_OF = { "your-polls": "refresh", "shared-with-you": "refresh", "your-votes": "refresh", watching: "refresh", "live-membership": "refresh", search: "refresh", live: "live", trending: "trending", newest: "newest" };
+  const KIND_OF = { home: "refresh", "your-polls": "refresh", "shared-with-you": "refresh", "your-votes": "refresh", watching: "refresh", "live-membership": "refresh", search: "refresh", live: "live", trending: "trending", newest: "newest" };
   const buckets = {};
 
   function kindOf(name) {
@@ -655,6 +656,9 @@
     // old copy: the copy is shown but is confirmed at the first allowed moment.
     let due = false;
     let dueTimer = null;
+    // Home only: set once the user acts on one of its cards, so the server keeps the list as it was
+    // shown until Home is next opened, and the card the user acted on does not move.
+    let keepOrder = false;
 
     async function request() {
       if (!canRequest(name)) {
@@ -665,7 +669,11 @@
       const served = await dynamicRequest(
         name,
         url,
-        { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(window.DeltaClient.versionsOf(state)) },
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(Object.assign(window.DeltaClient.versionsOf(state), keepOrder ? { keepOrder: true } : {}))
+        },
         async (body) => {
           if (body) {
             const changed = window.DeltaClient.apply(state, body);
@@ -737,6 +745,12 @@
         due = true;
         if (activeTab === name) request();
       },
+      holdOrder() {
+        keepOrder = true;
+      },
+      releaseOrder() {
+        keepOrder = false;
+      },
       confirmIfStale() {
         if (requested && Date.now() - state.receivedAt > manualFloorMs()) this.markDue();
       },
@@ -751,6 +765,7 @@
         state.receivedAt = 0;
         requested = false;
         due = false;
+        keepOrder = false;
         grid.clear();
       }
     };
@@ -805,6 +820,7 @@
     if (bookmarked && held && target.placeFirst) target.placeFirst(pid, held.card, held.counts, held.overlay);
     if (!bookmarked && target.remove) target.remove(pid);
     target.markDue();
+    if (controllers.home) controllers.home.markDue();
   }
 
   function waitNotice(ms) {
@@ -847,6 +863,7 @@
     }
     if (!res.ok) return;
     settle("refresh", body.nextRefreshMs);
+    if (activeTab === "home" && controllers.home) controllers.home.holdOrder();
     updateOverlayEverywhere(pid, { bookmarked: Boolean(body.bookmarked) });
     placeBookmark(pid, Boolean(body.bookmarked));
     tellOtherWindows({ type: "bookmark", pid: pid, bookmarked: Boolean(body.bookmarked) });
@@ -916,11 +933,21 @@
     if (maximized) maximized.grid.patchRetained(pid, { outcome: outcome });
     const owner = controllers[name];
     if (owner && owner.onVoted) owner.onVoted(pid);
+    holdHomeOrderOrMarkDue(name);
+  }
+
+  /* An action on a Home card keeps Home's order until Home is next opened; one on another tab's card
+     may change what Home lists, so Home confirms its list when next shown. */
+  function holdHomeOrderOrMarkDue(name) {
+    const home = controllers.home;
+    if (!home) return;
+    if (name === "home") home.holdOrder();
+    else home.markDue();
   }
 
   /* A voter's added choice goes into every tab's copy of the poll, so a later rebuild
      (a vote, a refresh at the same version) keeps it. */
-  function applyAddedChoices(pid, answer) {
+  function applyAddedChoices(name, pid, answer) {
     Object.keys(controllers).forEach((name) => {
       const controller = controllers[name];
       if (!controller.state || !controller.grid || !controller.state.cards.has(pid)) return;
@@ -929,6 +956,7 @@
       controller.grid.reapply(controller.state, pid);
     });
     if (maximized) maximized.grid.patchRetained(pid, { added: answer });
+    if (name === "home" && controllers.home) controllers.home.holdOrder();
   }
 
   // ---- Selection ----
@@ -962,7 +990,7 @@
   function moveTabFocus(event) {
     const keys = { ArrowRight: 1, ArrowLeft: -1, Home: 0, End: 0 };
     if (!(event.key in keys)) return;
-    const tabs = Array.from(tabBar().querySelectorAll(".tab"));
+    const tabs = Array.from(tabBar().querySelectorAll(".tab")).filter((btn) => !btn.hidden);
     const at = tabs.indexOf(document.activeElement);
     if (at === -1) return;
     let next = at;
@@ -989,10 +1017,16 @@
     const controller = controllers[name];
     if (!controller) return;
     closeMaximized({ quiet: true });
+    if (name === "home" && !isSignedIn()) {
+      await select("trending");
+      return;
+    }
     if (!controller.guestsAllowed && !isSignedIn()) {
       location.href = "/login";
       return;
     }
+    // Opening Home lets the server show its current list; choosing it again while it is showing does not.
+    if (name === "home" && activeTab !== "home" && controller.releaseOrder) controller.releaseOrder();
     activeTab = name;
     setActiveButton(name);
     showPanel(name);
@@ -1004,9 +1038,11 @@
     const signedIn = isSignedIn();
     const bar = tabBar();
     if (!bar) return;
+    const homeBtn = bar.querySelector('.tab[data-tab="home"]');
+    if (homeBtn) homeBtn.hidden = !signedIn;
     PERSONAL_TABS.forEach((name) => {
       const btn = bar.querySelector('.tab[data-tab="' + name + '"]');
-      if (!btn) return;
+      if (!btn || name === "home") return;
       if (signedIn) btn.removeAttribute("aria-disabled");
       else btn.setAttribute("aria-disabled", "true");
       btn.title = signedIn ? "" : "Sign in to use this tab";
@@ -1042,7 +1078,7 @@
     here with a landing in the address. Only the fixed values below are honoured.
   */
   const POLL_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  const LANDING_TABS = ["your-polls", "shared-with-you", "trending"];
+  const LANDING_TABS = ["home", "your-polls", "shared-with-you", "trending"];
   const LANDING_NOTICES = {
     unavailable: "That poll isn't available.",
     unpublished: "This poll hasn't been published yet. It's waiting in Shared With You, and you can vote once it's published."
@@ -1127,7 +1163,7 @@
     const noticeEl = document.getElementById("tabNotice");
     if (noticeEl) noticeEl.setAttribute("role", "status");
 
-    ["your-polls", "shared-with-you", "your-votes", "watching"].forEach((name) => {
+    ["home", "your-polls", "shared-with-you", "your-votes", "watching"].forEach((name) => {
       controllers[name] = createDeltaTab(name, "/api/tabs/" + name + "/refresh", { showVote: true, showLive: true, tab: name });
     });
 
@@ -1194,7 +1230,7 @@
       await window.SearchTab.submit(q.trim());
       return;
     }
-    await select("trending");
+    await select(isSignedIn() ? "home" : "trending");
   }
 
   window.Tabs = {
@@ -1202,6 +1238,7 @@
       controllers[name] = controller;
     },
     applyVote: applyVote,
+    applyAddedChoices: applyAddedChoices,
     select: select,
     active: () => activeTab,
     config: loadConfig,

@@ -464,6 +464,19 @@ describe("017 storage, cache and load settings", () => {
     expect(loadConfig(baseEnv({ ENV_MAX_NEWEST_POLLS: "200" })).maxNewestPolls).toBe(200);
   });
 
+  it("reads the Home tab's interval (at least a minute) and candidate limit (at least one poll)", () => {
+    const defaults = loadConfig(baseEnv());
+    expect(defaults.homeTabRefreshIntervalMs).toBe(7_200_000);
+    expect(defaults.maxHomePagePolls).toBe(200);
+    expect(loadConfig(baseEnv({ ENV_HOME_TAB_REFRESH_INTERVAL: "60000" })).homeTabRefreshIntervalMs).toBe(60_000);
+    expect(loadConfig(baseEnv({ ENV_MAX_HOME_PAGE_POLLS: "3" })).maxHomePagePolls).toBe(3);
+    expect(() => loadConfig(baseEnv({ ENV_HOME_TAB_REFRESH_INTERVAL: "59999" }))).toThrow(
+      new ConfigError("Invalid ENV_HOME_TAB_REFRESH_INTERVAL: 59999 — must be at least 60000.")
+    );
+    expect(() => loadConfig(baseEnv({ ENV_HOME_TAB_REFRESH_INTERVAL: "1.5h" }))).toThrow(/ENV_HOME_TAB_REFRESH_INTERVAL/);
+    expect(() => loadConfig(baseEnv({ ENV_MAX_HOME_PAGE_POLLS: "0" }))).toThrow(/ENV_MAX_HOME_PAGE_POLLS/);
+  });
+
   it("rejects a non-positive or non-integer value, naming the setting", () => {
     for (const [name] of SETTINGS) {
       for (const bad of ["0", "-1", "abc", "1.5"]) {

@@ -110,6 +110,10 @@ export interface AppConfig {
   trendingPollsRecomputeSweepIntervalMs: number;
   maxNewestPolls: number;
   newestPollsRecomputeSweepIntervalMs: number;
+  /** How long a user's Home list is reused before it is rebuilt. */
+  homeTabRefreshIntervalMs: number;
+  /** How many of the user's eligible polls a Home rebuild considers, most recent relation first. */
+  maxHomePagePolls: number;
   floors: RefreshFloors;
   bursts: RefreshBursts;
   /** Whole-percent share a choice must exceed to be drawn on the line graph; 0 disables the filter. */
@@ -372,6 +376,10 @@ export function loadConfig(env: Env = process.env): AppConfig {
       `Invalid ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL: ${newestPollsRecomputeSweepIntervalMs} — must be at least 1000.`
     );
   }
+  const homeTabRefreshIntervalMs = read.int("ENV_HOME_TAB_REFRESH_INTERVAL", 7_200_000);
+  if (homeTabRefreshIntervalMs < 60_000) {
+    throw new ConfigError(`Invalid ENV_HOME_TAB_REFRESH_INTERVAL: ${homeTabRefreshIntervalMs} — must be at least 60000.`);
+  }
 
   const serverMaxRequestsPerInstancePerSecond = read.int("ENV_SERVER_MAX_REQUESTS_PER_INSTANCE_PER_SECOND", 1_250);
   const serverMaxRequestsPerSecond = read.int("ENV_SERVER_MAX_REQUESTS_PER_SECOND", 15_000);
@@ -463,6 +471,8 @@ export function loadConfig(env: Env = process.env): AppConfig {
     trendingPollsRecomputeSweepIntervalMs: read.int("ENV_TRENDING_POLLS_RECOMPUTE_SWEEP_INTERVAL", 60_000),
     maxNewestPolls,
     newestPollsRecomputeSweepIntervalMs,
+    homeTabRefreshIntervalMs,
+    maxHomePagePolls: read.int("ENV_MAX_HOME_PAGE_POLLS", 200),
     floors,
     bursts,
     lineGraphMinVotePercentage: read.nonNegativeInt("ENV_LINE_GRAPH_MIN_VOTE_PERCENTAGE", 1),

@@ -84,7 +84,7 @@ a fresh connection — the process never sees it as an uncaught exception.
 flowchart TB
   subgraph Client["src/public"]
     App["app.js<br/>session snapshot, header, one /api/config"]
-    Tabs["tabs.js<br/>eight tabs, held copies, floors, 429/503, retry, the maximized view, the poll-link landing"]
+    Tabs["tabs.js<br/>nine tabs, held copies, floors, 429/503, retry, the maximized view, the poll-link landing"]
     Trending["trending.js / newest.js<br/>two objects each, sessionStorage copy, overlay"]
     SearchTab["searchTab.js"]
     Live["liveResults.js<br/>LRU, timer, hidden pause, idle prompt"]
@@ -236,6 +236,7 @@ Kysely's migration lock until the check passes (`devScripts/MIGRATIONS-HOWTO.md`
 |---|---|---|
 | `sess:<sha256(token)>` | a session, bounded by its own expiry | session cache-aside; deleted on logout, rename, sign-in elsewhere |
 | `floor:<kind>:<session\|ip>` | that kind's token bucket, refilled once per floor (× k for search and refresh) | every dynamic request |
+| `home:<emailKey>` | Home's membership: order, rules, reasons, the `tabs:v` it was built under (`ENV_HOME_TAB_REFRESH_INTERVAL`) | a Home refresh whose version changed (without `keepOrder`) or whose entry expired |
 | `tabs:v:<emailKey>`, `tabs:seen:<emailKey>:<tab>` | the user's list version (24 h); a personal tab's last full answer (5 min) | a full personal-tab answer; the version is deleted after commit by every write to the user's relations, invitations or bans |
 | `stats:tabs:fast`, `stats:tabs:full`, `stats:floor:stretched` | counts since the last `[controller]` line (10 min) | the personal-tab routes and the floors; read and cleared by the controller |
 | `budget:<sec>`, `budget:live:<sec>`, `search-budget:<sec>` | requests, live requests and engine queries per second | every dynamic request |
@@ -436,7 +437,7 @@ browser empties its bucket for that long.
 
 ### The personal-tab shortcut
 
-An unchanged personal tab (Your Polls, Shared With You, Your Votes, Watching) is answered from
+An unchanged personal tab (Home, Your Polls, Shared With You, Your Votes, Watching) is answered from
 the cache without touching PostgreSQL:
 
 - `tabs:v:<emailKey>` is the user's list version (an opaque value, 24 h), created on a full
@@ -507,6 +508,25 @@ its invite list); Your Votes `voted`; Watching `bookmarked`, narrowed by `mayWat
 user can no longer reach is neither sent nor deleted. A poll that has not launched is sent to
 anyone but its creator as a redacted placeholder (the sharer's name only), built before any
 projection or count is read. The Live Results tab reads `poll:<pid>` and `cnt:<pid>` only.
+
+### Home
+
+Home (`POST /api/tabs/home/refresh`, `src/polls/homeTab.ts`) is a personal tab whose membership is
+built on demand, never by a sweep. One candidate query over `user_polls ⨝ polls` (the caller's
+relations with their dates, at most `ENV_MAX_HOME_PAGE_POLLS` polls, newest relation first) keeps
+only polls in a Home window — by the stashed state while EDITING: WAITING TO OPEN always, OPEN with
+`launched_at` within two months, CLOSED with `closed_at` within seven days. Five rules then place
+each poll at its first match: shared with you (`invited`/`linked`, kept as Shared With You keeps
+them, 10), created (10), voted (reachable, 10), bookmarked (`mayWatch`, no cap), and ten from the
+cached TRENDING listing's order with no database read. The result — order, the rule of each poll and
+its reasons (`relations`, adding `trending`) — is cached as `home:<emailKey>` with the `tabs:v`
+version it was built under, for `ENV_HOME_TAB_REFRESH_INTERVAL` (2 h; the TRENDING interval until
+TRENDING is ready). A refresh reuses it while the version is unchanged, or whatever the version when
+the browser sends `keepOrder` (after a vote, added choice or watch on a Home card, until Home is next
+opened); otherwise it rebuilds (`stats:home:rebuilt` / `stats:home:reused`). Publication and access
+(reachable, Shared With You's rule, `mayWatch`) are re-checked on every refresh, and the answer then
+goes through the same shortcut, projections and delta as the other personal tabs. Home never accepts
+an invitation.
 
 A poll link, `/?PID=<uuid>`, is decided on the server while the home page is served
 (`decideSharedLink`, then `resolveSharedLink` records the view as a `linked` relation, at most
@@ -741,7 +761,7 @@ flowchart TB
   underneath it. `backToTopFab.js` injects one button, shown past 600px of scroll and hidden again
   below 400px, that returns the page to the top (instantly under reduced motion).
 
-The tab bar itself is eight buttons in `index.html` — Your Polls, Shared With You, Your Votes,
+The tab bar itself is nine buttons in `index.html` — Home (hidden, not disabled, for a guest), Your Polls, Shared With You, Your Votes,
 Trending, Newest, Watching, Live Results, Search — each with an inline SVG icon before its label
 (the eye is a `<symbol>` defined once in the page and also used by the card's Watch control; the
 animated bars and the magnifying glass are the same glyphs the card and header use; the Your

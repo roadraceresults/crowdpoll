@@ -10,7 +10,7 @@ export interface BrowserPage {
   window: JSDOM["window"];
   document: Document;
   /** Every request the page made, in order, with the headers the page set. */
-  requests: { method: string; url: string; headers: Record<string, string> }[];
+  requests: { method: string; url: string; headers: Record<string, string>; body?: unknown }[];
   /** One entry per attempted navigation (jsdom reports it without the target URL). */
   navigations: string[];
   /** Runs the queued microtasks and timers the page is waiting on. */
@@ -53,21 +53,22 @@ export async function openPage(
   });
   const dom = new JSDOM(html, { url: options.url ?? "http://localhost/", runScripts: "outside-only", pretendToBeVisual: true, virtualConsole });
   const { window } = dom;
-  const requests: { method: string; url: string; headers: Record<string, string>; status?: number }[] = [];
+  const requests: { method: string; url: string; headers: Record<string, string>; body?: unknown; status?: number }[] = [];
   const etags = new Map<string, { etag: string; body: string; status: number; headers: Record<string, string> }>();
 
   window.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
     const method = (init?.method ?? "GET").toUpperCase();
     const pathname = url.startsWith("http") ? new URL(url).pathname + new URL(url).search : url;
-    const record: { method: string; url: string; headers: Record<string, string>; status?: number } = { method, url: pathname, headers: toHeaders(init) };
+    const body = typeof init?.body === "string" ? JSON.parse(init.body) : init?.body;
+    const record: { method: string; url: string; headers: Record<string, string>; body?: unknown; status?: number } = { method, url: pathname, headers: toHeaders(init), body };
     requests.push(record);
     let req = request(ctx.app)[method.toLowerCase() as "get" | "post" | "delete" | "patch"](pathname);
     if (options.cookie) req = req.set("Cookie", options.cookie);
     for (const [k, v] of Object.entries(toHeaders(init))) req = req.set(k, v);
     const cached = etags.get(pathname);
     if (cached && method === "GET") req = req.set("If-None-Match", cached.etag);
-    if (init?.body) req = req.send(typeof init.body === "string" ? JSON.parse(init.body) : init.body);
+    if (init?.body) req = req.send(body);
     const res = await req;
     const headers = new Map(Object.entries(res.headers as Record<string, string>));
     let status = res.status;
@@ -154,3 +155,6 @@ export async function openPage(
  * take a 1 s interval, so the max-age is 1 s.
  */
 export const LISTING_MAX_AGE_1S = { ENV_TRENDING_POLLS_RECOMPUTE_SWEEP_INTERVAL: "1000", ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL: "1000" };
+
+/** The home page's address for a signed-in visitor who should start on Trending rather than land on Home. */
+export const ON_TRENDING = "http://localhost/?tab=trending";

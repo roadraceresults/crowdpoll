@@ -270,6 +270,8 @@
         <div class="header-actions" id="header-actions"></div>
 `;
 
+  // A house outline: roof, walls and door, drawn like the Home tab's icon.
+  const HOME_GLYPH = `<circle cx="32" cy="32" r="32" fill="currentColor"/><path d="M17.6 29.6 32 17.6l14.4 12M20.8 27.2v17.6h22.4V27.2M28.8 44.8v-9.6h6.4v9.6" fill="none" stroke="var(--paper)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`;
   const CREATE_POLL_GLYPH = `<circle cx="32" cy="32" r="32" fill="currentColor"/><path d="M32 18v28M18 32h28" fill="none" stroke="var(--paper)" stroke-width="6" stroke-linecap="round"/>`;
   const PROFILE_GLYPH = `<circle cx="32" cy="32" r="32" fill="#8093a7"/><circle cx="32" cy="25" r="11" fill="#e8edf2"/><path d="M32 40c-11 0-19 6.5-19 14.5V64h38v-9.5C51 46.5 43 40 32 40z" fill="#e8edf2"/>`;
   const SETTINGS_GLYPH = `<circle cx="32" cy="32" r="32" fill="currentColor"/><circle cx="32" cy="32" r="18" fill="none" stroke="var(--paper)" stroke-width="8" pathLength="16" stroke-dasharray="1 1"/><circle cx="32" cy="32" r="14" fill="var(--paper)"/><circle cx="32" cy="32" r="6" fill="currentColor"/>`;
@@ -342,6 +344,19 @@
       const menu = document.createElement("div");
       menu.className = "avatar-menu";
       menu.hidden = true;
+
+      // Home comes first for every signed-in user. On the home page it selects the tab in place.
+      const homeLink = document.createElement("a");
+      homeLink.href = "/?tab=home";
+      fillMenuItem(homeLink, HOME_GLYPH, "Home");
+      homeLink.addEventListener("click", (event) => {
+        if (!window.Tabs || !window.Tabs.select) return;
+        event.preventDefault();
+        setMenuOpen(false);
+        window.Tabs.select("home");
+      });
+      menu.appendChild(homeLink);
+
       const editLink = document.createElement("a");
       editLink.href = "/profile";
       fillMenuItem(editLink, PROFILE_GLYPH, "Edit Profile");

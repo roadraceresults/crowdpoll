@@ -4,7 +4,7 @@ import path from "node:path";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { forgeSession, startTestContext, type TestContext } from "./helpers/setup.js";
 import { makePoll, polls } from "./helpers/poll-fixtures.js";
-import { openPage, type BrowserPage } from "./helpers/browser.js";
+import { openPage, type BrowserPage, ON_TRENDING } from "./helpers/browser.js";
 import { updatePoll } from "../src/polls/store.js";
 import { upsertRelation } from "../src/polls/userPolls.js";
 import { recordVote } from "../src/polls/store.js";
@@ -33,7 +33,7 @@ afterEach(() => {
 
 async function signedIn(email: string): Promise<BrowserPage> {
   const { cookie } = await forgeSession(ctx, email);
-  const opened = await openPage(ctx, "index.html", { cookie });
+  const opened = await openPage(ctx, "index.html", { cookie, url: ON_TRENDING });
   await opened.settle(1250);
   return opened;
 }
@@ -65,16 +65,16 @@ async function open(context: TestContext, email?: string, permissions?: string[]
     cookie = forged.cookie;
     if (permissions) await context.db.updateTable("user").set({ permissions }).where("id", "=", forged.userId).execute();
   }
-  const opened = await openPage(context, "index.html", { cookie });
+  const opened = await openPage(context, "index.html", { cookie, url: ON_TRENDING });
   await opened.settle(100);
   return opened;
 }
 
 describe("the tab bar", () => {
-  it("shows the eight tabs in order with Trending active", async () => {
+  it("shows the nine tabs in order, Home first, with Trending active after a landing on it", async () => {
     page = await open(fast, "tabs026-order@example.com");
     const tabs = Array.from(page.document.querySelectorAll("#tabBar .tab"));
-    expect(tabs.map((t) => t.getAttribute("data-tab"))).toEqual(["your-polls", "shared-with-you", "your-votes", "trending", "newest", "watching", "live", "search"]);
+    expect(tabs.map((t) => t.getAttribute("data-tab"))).toEqual(["home", "your-polls", "shared-with-you", "your-votes", "trending", "newest", "watching", "live", "search"]);
     expect(tabs.filter((t) => t.classList.contains("is-active")).map((t) => t.getAttribute("data-tab"))).toEqual(["trending"]);
   });
 
@@ -211,7 +211,7 @@ describe("Your Polls cards", () => {
     const forged = await forgeSession(fast, me);
     await ownPoll(forged, me, { title: "Waiting one", pollState: "AWAITING APPROVAL" });
     await ownPoll(forged, me, { title: "Rejected one", pollState: "REJECTED", pollRejectionReason: "Not acceptable" });
-    const opened = await openPage(fast, "index.html", { cookie: forged.cookie });
+    const opened = await openPage(fast, "index.html", { cookie: forged.cookie, url: ON_TRENDING });
     page = opened;
     await page.settle(100);
     await page.click('.tab[data-tab="your-polls"]');
@@ -232,7 +232,7 @@ describe("Your Polls cards", () => {
     const forged = await forgeSession(fast, me);
     const poll = await ownPoll(forged, me, { title: "Archived one", pollState: "ARCHIVED" });
     await recordVote(fast, poll._id, { emailAddress: me, userName: "", choiceIds: ["c1"], votedAt: new Date() });
-    page = await openPage(fast, "index.html", { cookie: forged.cookie });
+    page = await openPage(fast, "index.html", { cookie: forged.cookie, url: ON_TRENDING });
     await page.settle(100);
     await page.click('.tab[data-tab="your-polls"]');
     await page.settle(200);
@@ -356,11 +356,11 @@ describe("the tab bar as M3 scrollable tabs", () => {
     press(page, "End");
     expect(page.document.activeElement!.id).toBe("tab-search");
     press(page, "ArrowRight");
-    expect(page.document.activeElement!.id).toBe("tab-your-polls");
+    expect(page.document.activeElement!.id).toBe("tab-home");
     press(page, "ArrowLeft");
     expect(page.document.activeElement!.id).toBe("tab-search");
     press(page, "Home");
-    expect(page.document.activeElement!.id).toBe("tab-your-polls");
+    expect(page.document.activeElement!.id).toBe("tab-home");
     expect(tabs(page).filter((t) => t.getAttribute("aria-selected") === "true").map((t) => t.dataset.tab)).toEqual(["trending"]);
     expect(scrolled).toHaveLength(5);
     expect(page.requests.length).toBe(requestsBefore);
