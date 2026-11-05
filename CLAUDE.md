@@ -6,6 +6,22 @@ The full description, every earlier feature's decisions and the settings table a
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261104-180032-LEGAL-PAGE-UPDATES/plan.md` (research R1–R8, `data-model.md` — no migration; the shared policy
+version and the `history.state.legalDepth` step count; the UI contracts `contracts/ui-contracts.md` C1–C6, and the
+quickstart live alongside it in `specs/20261104-180032-LEGAL-PAGE-UPDATES/`). The requirements report is
+`requirements/20261104-180032-legal-page-updates/requirements-report.md`: 3 diagrams and 10 findings, all resolved.
+Decisions that are easy to get wrong:
+- **The section is "Bot and AI Agent Detection"** but keeps `id="bot-check"`, which `humanCheck.js` links to; "In short"
+  and the retention row are renamed; "Bot check" appears nowhere (C1, UA1).
+- **A new `TERMS_VERSION`** (the release date) on both pages; every account accepts once; no 30-day email (R8, NC1).
+- **The Back arrow shows only for a same-origin `document.referrer` and `history.length > 1`** (no arrow in a new tab),
+  decided once at load; it goes `history.go(-(legalDepth + 1))`, past in-page anchor steps (R1, R2, clarification Q1).
+- **Fixed under the header in line with the logo** (a wrapper built like `#site-header`), text gutter
+  `max(0px, calc(56px - (100% - 72ch) / 2))` on narrow screens; the look is `back-arrow-m3.css`, shared with the admin
+  link (`admin-back-link back-arrow`) (R3–R5, clarification Q2).
+- **The Up arrow is centred on every page** (`left:0; right:0; margin-inline:auto`), not only the legal pages (R7, AM1).
+No migration, route, setting or dependency; one constant, one script, one sheet.
+The preceding feature is
 `specs/20261103-114927-PROVISION-FCAPTCHA-SERVICE/plan.md` (research R1–R14, `data-model.md` — no migration; the
 Terraform resources, inputs, git-ignored files and the switch-over states; the contracts `contracts/infra-config.md`
 C1–C5 and `contracts/deploy-command.md` D1–D3, and the quickstart runbook live alongside it in
@@ -21,7 +37,7 @@ Decisions that are easy to get wrong:
   holds them in plain text (R4, UA7).
 - **Releases** use `npx tsx devScripts/deploy-app.ts` (`DIGITALOCEAN_TOKEN`, API, no `doctl`); autodeploy stays off (R11).
 No migration and no npm dependency; Terraform and two plugins, only in `infra/`.
-The preceding feature is
+Before it came
 `specs/20261103-120521-HOME-TAB/plan.md` (research R1–R14, `data-model.md` — no migration; the `home:<emailKey>`
 membership, the five rules, the date windows and `ENV_HOME_TAB_REFRESH_INTERVAL`; the HTTP contracts `contracts/api.md`
 A1–A3, the UI contracts `contracts/ui-contracts.md` C1–C6, and the quickstart live alongside it in
@@ -39,7 +55,7 @@ Decisions that are easy to get wrong:
 - **Hidden, not disabled, for guests**; Home is the signed-in landing tab and the avatar menu's first item;
   `relations` adds `created` ("Your poll") and `trending` ("Trending") (R7, R9, R10, clarification Q1).
 No migration, dependency or sweep; one route, two settings (`ENV_HOME_TAB_REFRESH_INTERVAL`, `ENV_MAX_HOME_PAGE_POLLS`).
-Before it came
+And before that
 `specs/20261102-144053-FCAPTCHA-AND-SEO/plan.md` (research R1–R15, `data-model.md` — no migration; the pass, the
 `ENV_FCAPTCHA_*` settings, the indexable-poll rule and the sitemap cache; the HTTP contracts `contracts/api.md` A1–A6,
 the UI contracts `contracts/ui-contracts.md` C1–C5, and the quickstart live alongside it in
@@ -57,22 +73,6 @@ Decisions that are easy to get wrong:
 - **Indexable = public and OPEN or CLOSED** (EDITING by its stashed state); `/poll/:pid` serves `index.html` with
   escaped head tags and summary, then `tabs.js` mounts the live card via guest `GET /api/polls/:pid/card` (R9–R11).
 No migration; one dependency, only in `fcaptcha-server/`; four settings, off by default.
-And before that
-`specs/20261102-154952-FIELD-LENGTH-LIMITS/plan.md` (research R1–R9, `data-model.md` — changed validation rules only,
-no schema change — the HTTP contracts `contracts/api.md` A1–A4, the UI contracts `contracts/ui-contracts.md` C1–C5, and
-the quickstart live alongside it in `specs/20261102-154952-FIELD-LENGTH-LIMITS/`). The requirements report is
-`requirements/20261102-154952-field-length-limits/requirements-report.md`: 3 diagrams and 6 findings, all resolved.
-Decisions that are easy to get wrong:
-- **`TITLE_MAX` 60, `SUBTITLE_MAX` 40, `CHOICE_LABEL_MAX` 35** in `src/polls/service.ts`; `WIZARD_CHOICE_MAX` is gone
-  and `validateAddedChoice` uses `CHOICE_LABEL_MAX` (R1).
-- **A stored label is exempt**: `replaceChoices` / `mergeChoices` refuse a label over 35 only when its trimmed text is
-  not a stored label of the poll (`labelTooLong`), so labels saved at up to 100 keep their ids and votes (R2).
-- **The wizard's box keeps stored lines whole** (`sanitizeChoicesText` `storedLabels`), and cuts a stored line to 35
-  the moment its text changes (R3, clarification Q1).
-- **`/api/config` sends `choiceLabelMax`**, not `wizardChoiceMax`; browser fallbacks are 35 (R4).
-- **The `adminCard.js` copies equal the server's**, checked by `tests/field-limits.test.ts`; migration 007 keeps its own
-  50 and 30 (R5, R8).
-No migration, route, setting or dependency change.
 <!-- SPECKIT END -->
 
 ## Project Overview
