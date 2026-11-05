@@ -12,7 +12,21 @@ The runbook and its validation scenarios. Names and settings are in `contracts/i
   A permanent install is still the operator's step.
 - A DigitalOcean custom-scoped token (apps, databases, CDN, domains; 30 days), set in the session:
   `$env:DIGITALOCEAN_TOKEN = "<token>"` (PowerShell). Never written to a file.
-- A new Spaces key pair, and a new SES access key for the existing IAM user.
+- A new Spaces key pair (see "Creating a Spaces key" below), and a new SES access key for the existing IAM user.
+
+### Creating a Spaces key
+
+1. In the DigitalOcean console, open **Spaces Object Storage** in the left menu, then the **Access Keys** tab.
+2. Click **Create Access Key**.
+3. **Access scope**: **Full Access** (all buckets) for the first apply, since a key limited to one bucket cannot create
+   a bucket that does not exist yet. For Runbook 7, once the bucket exists: **Limited Access**, the `crowdpoll-cdn`
+   bucket, with read, write and delete.
+4. **Name**: a label only, e.g. `crowdpoll-prod`; it does not go in the secrets file.
+5. Click **Create Access Key**. Copy both values with their copy buttons (double-click selection stops at `+` and `/`):
+   - **Access Key ID**, about 20 characters, starting with `DO` → `spaces_access_id`;
+   - **Secret Key**, about 43 characters, shown only this once → `spaces_secret_key`.
+6. Save `infra/secrets.auto.tfvars` and run `terraform apply` in `infra/`. A lost secret cannot be shown again:
+   delete the key and create another.
 
 ## Runbook
 
@@ -31,7 +45,7 @@ The runbook and its validation scenarios. Names and settings are in `contracts/i
    `infra/secrets.auto.tfvars` out of cloud-synced folders (FR-016).
 6. **Check** (scenarios 4–8 below).
 7. **Revoke** the old SES access key and the old Spaces key pair once scenario 7 passes (FR-021). Then replace the
-   all-buckets Spaces key with one limited to the `crowdpoll-cdn` bucket, set it in `infra/secrets.auto.tfvars`,
+   all-buckets Spaces key with one limited to the `crowdpoll-cdn` bucket ("Creating a Spaces key", step 3), set it in `infra/secrets.auto.tfvars`,
    `terraform apply`, and revoke the all-buckets key (FR-017).
 
 ## Releasing a later change
