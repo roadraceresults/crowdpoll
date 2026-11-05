@@ -30,7 +30,7 @@ Three changes to the browser pages, no server change beyond one constant:
 
 **Constraints**: no third-party request; no cookie or browser storage key; M3 layers hold only M3 tokens; the page works at 320 px wide.
 
-**Scale/Scope**: 2 pages get the Back arrow, 13 pages move the Up arrow, 1 constant, about 8 files changed and 3 added.
+**Scale/Scope**: 2 pages get the Back arrow, 13 pages move the Up arrow, 1 constant, about 8 files changed and 4 added.
 
 ## Constitution Check
 

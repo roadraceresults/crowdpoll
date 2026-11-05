@@ -76,6 +76,7 @@ None: the three stories touch separate files, except `privacy.html`, which US1 a
   - a press with no anchor step calls `history.go(-1)`;
   - after two `hashchange` steps (`location.hash` set twice), a press calls `history.go(-3)`;
   - after a `popstate` back to the first anchor step's entry, a press calls `history.go(-2)`;
+  - one anchor step that fires both `popstate` and `hashchange` counts once: a press then calls `history.go(-2)`;
   - an entry that already carries `legalDepth` (a reload) keeps its number;
   - other keys in `history.state` are kept;
   - nothing is written to the browser console (research R1, R2, contracts C3)
@@ -88,12 +89,12 @@ None: the three stories touch separate files, except `privacy.html`, which US1 a
 - [ ] T014 [P] [US2] Create `src/public/backArrow.js`, an IIFE in the style of `backToTopFab.js`, with single-purpose functions (research R1, R2, R6):
   - `cameFromThisSite()`: `document.referrer` parses (inside `try`) to a URL whose `origin` is `location.origin`, and `history.length > 1`;
   - `numberEntry()`: at load, keep a numeric `history.state.legalDepth` or write 0 with `history.replaceState({ ...history.state, legalDepth: 0 }, "")`;
-  - on `popstate` and `hashchange`: adopt the entry's number, or write the last known number plus one;
+  - on `popstate` and `hashchange`: adopt the entry's number, or write the last known number plus one; one anchor step fires both events, so the first numbers the entry and the second adopts that number;
   - build the bar and button of contracts C3 (the admin link's SVG paths), insert the bar with `document.getElementById("site-header").after(bar)`, and on click call `history.go(-(legalDepth + 1))`;
   - do nothing at all when `cameFromThisSite()` is false; log nothing
 - [ ] T015 [US2] In `src/public/privacy.html` and `src/public/terms.html`, add `<link rel="stylesheet" href="/back-arrow-m3.css">` directly after `back-to-top-m3.css`, and `<script src="/backArrow.js" defer></script>` directly after `fixedChrome.js` (after T013, T014)
 - [ ] T016 [US2] In `src/public/legal-m3.css`, add `box-sizing:border-box; padding-inline-start:max(0px, calc(56px - (100% - 72ch) / 2));` to the existing `.legal-doc{ … }` rule, written so the T012 check matches (research R4, contracts C5)
-- [ ] T017 [US2] In `src/public/admin.html`, add `<link rel="stylesheet" href="/back-arrow-m3.css">` directly after `back-to-top-m3.css` and change the link to `class="admin-back-link back-arrow"`; in `src/public/admin.css`, remove the look now in `back-arrow-m3.css` from `.admin-back-link` and its `::before`, `:hover`, `:focus-visible`, `:active` and `svg` rules, keeping `margin-bottom:10px` and the `.admin-toolbar` placement rules, and the comment above it only where it still describes the remaining rule (after T013; research R5)
+- [ ] T017 [US2] In `src/public/admin.html`, add `<link rel="stylesheet" href="/back-arrow-m3.css">` directly after `back-to-top-m3.css` and change the link to `class="admin-back-link back-arrow"`; in `src/public/admin.css`, remove the look now in `back-arrow-m3.css` from `.admin-back-link` and its `::before`, `:hover`, `:focus-visible`, `:active` and `svg` rules, keeping `margin-bottom:10px` and the `.admin-toolbar` placement rules; remove the `013 FR-040` comment above the link in `admin.html` and the two comments above `.admin-back-link` in `admin.css` ("Back to /admin — plain link …" and "The home page's Refresh treatment …"), since none points to external documentation (constitution Principle VI) (after T013; research R5)
 - [ ] T018 [US2] Run `npx vitest run tests/client-back-arrow.test.ts tests/back-arrow-sheet.test.ts tests/m3-assets.test.ts tests/legal-pages.test.ts tests/client-admin-discard.test.ts tests/polls-editing-eligibility.test.ts tests/client-m3-tooltip.test.ts` and fix what fails
 
 **Checkpoint**: US2 works on its own; quickstart 5–11 and 14 pass.

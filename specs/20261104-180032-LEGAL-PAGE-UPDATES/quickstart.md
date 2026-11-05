@@ -24,7 +24,7 @@ npm test
 | 3 | US1 | Look at the top of `/privacy` and `/terms` | Both: `Version <release date>`; `/privacy`'s Last updated is the release date, `/terms`' is 22 October 2026 |
 | 4 | US1 | Signed in with the earlier acceptance, open `/` | Sent to `/accept-terms` once; after accepting, not again (SC-006) |
 | 5 | US2 | From `/login`, follow the Privacy Policy link | Back arrow under the header, left edge level with the logo |
-| 6 | US2 | On `/privacy`, follow "bot check" in "In short" and then `#cookies`; press the arrow | Back on `/login`, in one press (SC-002) |
+| 6 | US2 | On `/privacy`, follow "check" in "In short" and then `#cookies`; press the arrow | Back on `/login`, in one press (SC-002) |
 | 7 | US2 | From `/privacy` follow the Terms link; press the arrow on `/terms` | Back on `/privacy`, arrow shown again |
 | 8 | US2 | Type `/privacy` in the address bar; open it from a bookmark; middle-click the footer link | No arrow in each case, no gap where it would be (SC-003) |
 | 9 | US2 | Reload `/privacy` after scenario 5 | Arrow still shown |

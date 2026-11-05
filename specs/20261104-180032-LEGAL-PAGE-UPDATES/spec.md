@@ -86,7 +86,7 @@ When it appears, how it disappears, what it does and how it moves above the cook
 - **The previous page is no longer kept by the browser**: Back reloads it, as the browser's own Back button would.
 - **A previous page that needed the human check**: when the browser keeps the page as it was left, a check already passed is still passed; otherwise the check is shown again, as on any fresh visit.
 - **Arriving at an anchor** (for example `/privacy#bot-check` from the human check): Back returns to the page the visitor came from, not to the top of the policy.
-- **Both arrows at once**: on a narrow screen the Back arrow (top left) and the Up arrow (bottom centre) never overlap each other or the text.
+- **Both arrows at once**: on a narrow screen the Back arrow (top left) and the Up arrow (bottom centre) never overlap each other; the Back arrow never covers the text, and the Up arrow floats over the content while it shows.
 - **Signed-out visitors and accounts that have not yet accepted the new version** can read both pages, with the Back arrow, as they can today.
 
 ## Requirements *(mandatory)*
@@ -142,7 +142,7 @@ When it appears, how it disappears, what it does and how it moves above the cook
 - **SC-001**: The Privacy Policy's section, summary line and retention row read exactly as FR-001 to FR-006, and the old name "Bot check" appears nowhere on the page.
 - **SC-002**: From each of the CrowdPoll pages that link to the legal pages (the footer of any page, the sign-in cards, the human check, the cookie notice, Profile, and each legal page to the other), one press of Back returns to that page in 100% of tries, whatever in-page links were followed first.
 - **SC-003**: A legal page opened from outside the site, by a typed address, a bookmark or in a new tab shows no Back arrow in 100% of tries.
-- **SC-004**: At every width from 320 px up, neither arrow covers any of the legal pages' text.
+- **SC-004**: At every width from 320 px up, the Back arrow covers none of the legal pages' text; the Up arrow floats over the content while it shows, as on every page.
 - **SC-005**: On every page that has the Up arrow, its centre is within 1 px of the window's horizontal centre.
 - **SC-006**: Every account that accepted the previous version is asked to accept the new one on its next visit, and none is asked twice.
 - **SC-007**: A keyboard-only visitor can reach and press the Back arrow, and a screen reader announces it as "Back".
