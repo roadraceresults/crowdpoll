@@ -17,6 +17,8 @@
     "populate-all-polls": "tsx devScripts/populate/populate-all-polls.ts",
     "fix-migrations": "tsx devScripts/fix-migrations.ts",
     "publish-assets": "tsx devScripts/publish-assets.ts",
+    "deploy": "tsx devScripts/deploy-app.ts",
+    "fcaptcha": "tsx devScripts/fcaptcha-dev.ts",
     "file-manifest": "tsx devScripts/file-manifest.ts",
     "prototypes": "tsx devScripts/serve-prototypes.ts"
   },

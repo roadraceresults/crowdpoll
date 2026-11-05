@@ -285,6 +285,8 @@ npm run build        # compiles to dist/ and writes fingerprinted copies of the 
 npm start            # node dist/server.js
 npm run reconcile    # recomputes every poll's vote counters from the stored votes
 npm run publish-assets   # uploads the fingerprinted assets to the Spaces bucket (after build; needs ENV_SPACES_*)
+npm run fcaptcha     # runs the FCaptcha server locally on port 3001, for the human check (see The FCaptcha service)
+npm run deploy       # starts a production deployment of main and follows it (needs DIGITALOCEAN_TOKEN)
 npm run file-manifest -- <project>   # writes a file manifest of a git project (see File manifest below)
 npx tsx devScripts/favicon-ico.ts    # regenerates src/public/favicon.ico from favicon.svg (see Site icon below)
 ```
@@ -464,7 +466,7 @@ CDN assets; then revoke the old SES and Spaces keys. The Spaces key has Full Acc
 own settings when it plans, which a key limited to the bucket may not do. The old data is not kept.
 
 **Releasing a new version.** Autodeploy is off on both services: pushing `main` deploys nothing. Merge to `main`, then
-run `npx tsx devScripts/deploy-app.ts` (`--app <name>` for another app) with `DIGITALOCEAN_TOKEN` set. It starts a
+run `npm run deploy` (`npm run deploy -- --app <name>` for another app) with `DIGITALOCEAN_TOKEN` set. It starts a
 deployment of the branch's latest commit, prints each phase, and exits 0 when it is `ACTIVE`, 1 when it ends in
 `ERROR` (naming the failed step), `CANCELED` or `SUPERSEDED`, after 30 minutes, or on an API error, and 2 without a
 token. The build runs `npm ci --include=dev && npm run build && npm run publish-assets && npm prune --omit=dev` and
@@ -476,7 +478,7 @@ keeps showing changes limited to the secret settings, that is a gap in the provi
 and any other difference is a real one. Recorded outcome: not yet checked against the live app.
 
 **The FCaptcha service.** The second service, `fcaptcha`, is built from `fcaptcha-server/` (FCaptcha
-`@webdecoy/fcaptcha` 1.46.1 in its standalone Node.js server mode, started by `start.js`), autoscaled 1–3 and
+`@webdecoy/fcaptcha` 1.46.1 in its standalone Node.js server mode, started by `start.js`), one instance (autoscaling 1–1) and
 health-checked at `/health`. The app's ingress sends `/fcaptcha/*` to it, prefix removed, and everything else to `web`,
 so the widget and its calls stay on the site's own domain. It keeps its short-lived state in the same Valkey, database 1.
 Its settings carry the `ENV_FCAPTCHA_` prefix, which `start.js` maps to FCaptcha's own names (FCaptcha's names set
@@ -484,8 +486,9 @@ directly stop it). Terraform generates `ENV_FCAPTCHA_SECRET` and `ENV_FCAPTCHA_V
 each) and gives the verify secret to both services; `ENV_FCAPTCHA_SITE_KEYS` includes `web`'s `ENV_FCAPTCHA_SITE_KEY`,
 `ENV_FCAPTCHA_ALLOWED_HOSTNAMES` is built from the app's domains, `ENV_FCAPTCHA_REDIS_URL` points at Valkey
 database 1 and `ENV_FCAPTCHA_TRUSTED_PROXIES` adds App Platform's proxy range, so FCaptcha sees each visitor's address. The human check is on in production (`ENV_FCAPTCHA_ENABLED=1`). To run it locally:
-`cd fcaptcha-server && npm ci`, then `ENV_FCAPTCHA_INSECURE_DEV_MODE=1 ENV_FCAPTCHA_PORT=3001 npm start`, and set the four `ENV_FCAPTCHA_*`
-values (commented out in the launch templates); with `ENV_PUBLIC_ORIGIN` on `localhost` the web app forwards
+`npm run fcaptcha` from the repository root (it installs `fcaptcha-server/`'s packages on first use, serves site key `dev`
+for `localhost` on port 3001, and prints a verify secret unless `ENV_FCAPTCHA_VERIFY_SECRET` is already set), and set the four
+`ENV_FCAPTCHA_*` values (commented out in the launch templates) with that verify secret; with `ENV_PUBLIC_ORIGIN` on `localhost` the web app forwards
 `/fcaptcha/*` to `ENV_FCAPTCHA_URL` itself, standing in for the ingress, so the widget appears locally. Passes are not yet tied to the visitor's address: that is turned on
 once the address header App Platform passes on has been confirmed on a deployed app.
 

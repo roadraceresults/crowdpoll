@@ -58,8 +58,8 @@ commit already deployed, with the new settings; it does not fetch `main` again (
 | Changed | Run |
 |---|---|
 | Only `infra/*.tf` (settings, sizes, secrets file) | `terraform apply` in `infra/` |
-| Only code, pushed to `main` | `npx tsx devScripts/deploy-app.ts` from the repository root |
-| Both | `terraform apply`, then `npx tsx devScripts/deploy-app.ts` |
+| Only code, pushed to `main` | `npm run deploy` from the repository root |
+| Both | `terraform apply`, then `npm run deploy` |
 
 Both commands need `$env:DIGITALOCEAN_TOKEN` in the session. Check the build log's `Checking out commit "<sha>"` line
 names the commit you pushed.
@@ -77,7 +77,7 @@ names the commit you pushed.
 | 7 | US1 | Request a sign-in email for an allowed address | The email arrives; the home page's assets load from the CDN address |
 | 8 | US1 | With a Valkey client on the new cluster: `SELECT 1`, `DBSIZE` after scenario 6 | Greater than 0 (FR-022) |
 | 9 | US1 | Change one non-secret setting, `terraform plan` | Exactly that one change |
-| 10 | US3 | Merge a visible change to `main`, `npx tsx devScripts/deploy-app.ts` | Phases printed, `ACTIVE`, exit 0, change live |
+| 10 | US3 | Merge a visible change to `main`, `npm run deploy` | Phases printed, `ACTIVE`, exit 0, change live |
 | 11 | US3 | Unset `DIGITALOCEAN_TOKEN`, run the deploy command | Exit 2 with a message naming the variable |
 | 12 | US2 | `git ls-files` and a search of committed files for each secret value | None found; `git check-ignore infra/secrets.auto.tfvars infra/terraform.tfstate` lists both (SC-003) |
 | 13 | US4 | `Test-Path .do/app.yaml`; search docs for `.do/app.yaml` | `False`; no current reference |
@@ -120,3 +120,26 @@ Meanwhile, /speckit-implement finished. Every task that doesn't need DigitalOcea
   - git grep ".do/app.yaml" outside specs/ and requirements/ still finds old mentions in architecture/, prototypes/ and research/. They're feature history, so I left them.
 
   Still to do (operator, against DigitalOcean): T001 (install), T008 (fill in the secrets file), T016 (real plan, commit the lock file), T017–T021 (the switch-over), T025, T032. The runbook is in specs/20261103-114927-PROVISION-FCAPTCHA-SERVICE/quickstart.md. Nothing has been committed.
+
+  Outputs:
+
+app_id = "21bdc06e-9134-4be0-8920-8fca4110bf4d"
+cdn_endpoint = "crowdpoll-cdn.tor1.cdn.digitaloceanspaces.com"
+default_ingress = "https://crowdpoll-lze8s.ondigitalocean.app"
+live_url = "https://crowdpoll.vote"
+
+set env var
+DIGITALOCEAN_TOKEN
+
+dir env:
+
+to provision
+terraform plan
+terraform apply
+
+to deploy
+npm run deploy
+
+to launch dev fcaptcha
+npm run fcaptcha
+

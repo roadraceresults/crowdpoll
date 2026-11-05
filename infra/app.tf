@@ -100,7 +100,7 @@ locals {
 resource "digitalocean_app" "crowdpoll" {
   spec {
     name   = "crowdpoll"
-    region = "tor1"
+    region = "tor"
 
     dynamic "domain" {
       for_each = local.domains
@@ -278,7 +278,7 @@ resource "digitalocean_app" "crowdpoll" {
 
       autoscaling {
         min_instance_count = 1
-        max_instance_count = 3
+        max_instance_count = 1
         metrics {
           cpu {
             percent = 70

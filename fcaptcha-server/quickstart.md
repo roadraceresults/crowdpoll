@@ -20,7 +20,9 @@ The two secrets are random strings, generated rather than typed, and different f
   unset). Keeping it apart means a leaked verify secret cannot mint passes. The app's `ENV_FCAPTCHA_VERIFY_SECRET`, and
   the integration test's `FCAPTCHA_TEST_VERIFY_SECRET`, must equal it.
 
-1. Start the server, from the repository root, in one terminal:
+1. Start the server, from the repository root, in one terminal. The shortest way is `npm run fcaptcha`: it installs the
+   packages on first use, generates the signing secret, and prints a verify secret unless `ENV_FCAPTCHA_VERIFY_SECRET` is
+   already set. By hand:
 
    Git Bash:
 

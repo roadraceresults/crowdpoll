@@ -20,6 +20,7 @@ devScripts/*
 !devScripts/serve-prototypes.ts
 !devScripts/fix-migrations.ts
 !devScripts/deploy-app.ts
+!devScripts/fcaptcha-dev.ts
 !devScripts/MIGRATIONS-HOWTO.md
 !devScripts/load/
 !devScripts/populate/

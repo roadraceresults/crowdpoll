@@ -57,7 +57,7 @@ $env:ENV_OAUTH_MICROSOFT_CLIENT_SECRET = ""
 $env:ENV_OAUTH_AMAZON_CLIENT_ID = ""
 $env:ENV_OAUTH_AMAZON_CLIENT_SECRET = ""
 
-# Human check: off unless a local FCaptcha runs (fcaptcha-server: npm start with ENV_FCAPTCHA_PORT=3001)
+# Human check: off unless a local FCaptcha runs (npm run fcaptcha, in another terminal; use the verify secret it prints)
 # $env:ENV_FCAPTCHA_ENABLED = "1"
 # $env:ENV_FCAPTCHA_URL = "http://localhost:3001"
 # $env:ENV_FCAPTCHA_SITE_KEY = "dev"

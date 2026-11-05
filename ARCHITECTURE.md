@@ -21,7 +21,7 @@ flowchart LR
   VK[("Managed Valkey 9<br/>sessions, floors, budget, counters,<br/>registry, vote stream")]
   OS[("Managed OpenSearch, optional<br/>home search index (not provisioned)")]
   Mail["Amazon SES ca-central-1<br/>HTTPS API (production and development)"]
-  FC["fcaptcha service, 1–3 instances<br/>FCaptcha standalone server"]
+  FC["fcaptcha service, 1 instance<br/>FCaptcha standalone server"]
 
   Browser -- "pages, /api/*" --> LB --> W1 & W2 & Wn
   Browser -- "/fcaptcha/* (ingress, prefix removed)" --> FC

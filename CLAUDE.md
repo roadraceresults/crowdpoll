@@ -35,7 +35,7 @@ Decisions that are easy to get wrong:
 - **Secrets**: outside values in the git-ignored `infra/secrets.auto.tfvars` (validated non-empty at plan time);
   FCaptcha's two secrets are `random_password`, the verify secret shared by `web` and `fcaptcha`; the local state
   holds them in plain text (R4, UA7).
-- **Releases** use `npx tsx devScripts/deploy-app.ts` (`DIGITALOCEAN_TOKEN`, API, no `doctl`); autodeploy stays off (R11).
+- **Releases** use `npm run deploy` (`devScripts/deploy-app.ts`; `DIGITALOCEAN_TOKEN`, API, no `doctl`); autodeploy stays off (R11).
 No migration and no npm dependency; Terraform and two plugins, only in `infra/`.
 Before it came
 `specs/20261103-120521-HOME-TAB/plan.md` (research R1–R14, `data-model.md` — no migration; the `home:<emailKey>`
@@ -88,7 +88,7 @@ behaviour; `ARCHITECTURE.md` the deployment and the request, vote and refresh pa
   (`TERMS_VERSION`) before use; `/privacy` and `/terms` are linked from every page.
 - **Deployment**: DigitalOcean App Platform (`web` and `fcaptcha`) with Managed PostgreSQL, Valkey and Spaces + CDN,
   described by Terraform in `infra/` (no `.do/app.yaml`), from `main` of `https://github.com/roadraceresults/crowdpoll`;
-  autodeploy is off, each release is started with `npx tsx devScripts/deploy-app.ts`. Development needs PostgreSQL only: in-process cache/queue, PostgreSQL full-text search
+  autodeploy is off, each release is started with `npm run deploy`. Development needs PostgreSQL only: in-process cache/queue, PostgreSQL full-text search
   and instance-served TRENDING stand in for the rest.
 
 ## Layout
