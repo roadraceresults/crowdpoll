@@ -17,6 +17,7 @@ const LAYER_ORDER = [
   "header-single-row-m3.css",
   "header-fixed-m3.css",
   "back-to-top-m3.css",
+  "back-arrow-m3.css",
   "tabs-modal-m3.css",
   "add-choice-m3.css",
   "live-idle-prompt-m3.css",
@@ -85,13 +86,13 @@ const PAGES: Record<string, PageAssets> = {
   },
   "privacy.html": {
     sheets: ["tabs.css", "pollCard.css", "site.css"],
-    scripts: ["app.js", "headerFit.js", "fixedChrome.js", "backToTopFab.js"],
-    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "legal-m3.css", "footer-m3.css"]
+    scripts: ["app.js", "headerFit.js", "fixedChrome.js", "backArrow.js", "backToTopFab.js"],
+    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "back-arrow-m3.css", "legal-m3.css", "footer-m3.css"]
   },
   "terms.html": {
     sheets: ["tabs.css", "pollCard.css", "site.css"],
-    scripts: ["app.js", "headerFit.js", "fixedChrome.js", "backToTopFab.js"],
-    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "legal-m3.css", "footer-m3.css"]
+    scripts: ["app.js", "headerFit.js", "fixedChrome.js", "backArrow.js", "backToTopFab.js"],
+    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "back-arrow-m3.css", "legal-m3.css", "footer-m3.css"]
   },
   "accept-terms.html": {
     sheets: ["tabs.css", "pollCard.css", "site.css"],
@@ -101,7 +102,7 @@ const PAGES: Record<string, PageAssets> = {
   "admin.html": {
     sheets: ["styles.css", "tabs.css", "pollCard.css", "admin.css", "site.css"],
     scripts: ["app.js", "headerFit.js", "fixedChrome.js", "adminCard.js", "adminList.js", "backToTopFab.js"],
-    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "tabs-modal-m3.css", "discard-dialog-m3.css", "admin-card-m3.css", "admin-search-m3.css", "footer-m3.css"]
+    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "back-arrow-m3.css", "tabs-modal-m3.css", "discard-dialog-m3.css", "admin-card-m3.css", "admin-search-m3.css", "footer-m3.css"]
   },
   "admin-results.html": {
     sheets: ["styles.css", "tabs.css", "pollCard.css", "admin.css", "site.css"],

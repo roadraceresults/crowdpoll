@@ -50,7 +50,7 @@ delivery network.
 - **Human check before signing in** — **Login**, **Create Account** and an invitation open on a
   "Vote protection" card: tick **I am not a Bot or AI Agent** (it follows your Color Scheme in Site Settings), and the page's own
   card appears in its place. The check runs on CrowdPoll's own servers and sets no cookie; **What this
-  safeguard checks** leads to the Privacy Policy's *Bot check*. If it fails, the card says so and offers **Try
+  safeguard checks** leads to the Privacy Policy's *Bot and AI Agent Detection*. If it fails, the card says so and offers **Try
   again**; if it cannot load within 10 seconds, the sign-in card appears without it. A link from a
   sign-in email needs no check.
 - **A public poll's own page** — every public poll that is open or closed has an address of its own,
@@ -129,8 +129,8 @@ delivery network.
   view (at once if your device asks for reduced motion). With a mouse, drag the row or turn the wheel
   over it to move it sideways. Refresh sits under the bar at the left and the All tabs menu at the right, each
   flush with the edge of the poll cards below.
-- **Back to top** — once you have scrolled a good way down any page, a button appears near the
-  bottom-right corner; press it (or reach it with the keyboard) to return to the top at once.
+- **Back to top** — once you have scrolled a good way down any page, a button appears at the
+  bottom centre; press it (or reach it with the keyboard) to return to the top at once.
 - Guests can browse Trending and Newest, search, and open any poll maximized; everything else
   asks you to sign in.
 - **Privacy Policy and Terms of Service** — every page ends with a footer linking the Privacy Policy
@@ -138,6 +138,9 @@ delivery network.
   `privacy@crowdpoll.vote` for privacy questions and `support@crowdpoll.vote` for everything else.
   Creating an account needs the "I agree to the Terms of Service" box ticked; when the Terms change,
   you are asked to accept them again on your next visit before you can do anything else.
+  Opened from another CrowdPoll page in the same tab, the Privacy Policy and the Terms show a **Back**
+  arrow under the header, in line with the logo; it returns to that page, past any section links
+  you followed. Opened in a new tab or from another site, they show no arrow.
 - **Your data** — the Profile page's Your Data section explains how to get a copy of your data and
   lets you delete your account: type DELETE to confirm. Your account, sessions, bookmarks and the
   polls you created go at once; your votes on other people's polls stay counted, shown as

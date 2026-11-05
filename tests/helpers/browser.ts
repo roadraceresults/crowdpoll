@@ -40,6 +40,8 @@ export async function openPage(
     scripts?: string[];
     /** The page's own address; jsdom ignores a navigation to the address it is already at. */
     url?: string;
+    /** The address of the page the browser came from, as `document.referrer` reports it. */
+    referrer?: string;
     sessionStorage?: Record<string, string>;
     /** Runs against the window before the page's scripts, e.g. to install a browser API jsdom lacks. */
     beforeScripts?: (window: JSDOM["window"]) => void;
@@ -51,7 +53,7 @@ export async function openPage(
   virtualConsole.on("jsdomError", (error) => {
     if (/navigation/i.test(error.message)) navigations.push(error.message);
   });
-  const dom = new JSDOM(html, { url: options.url ?? "http://localhost/", runScripts: "outside-only", pretendToBeVisual: true, virtualConsole });
+  const dom = new JSDOM(html, { url: options.url ?? "http://localhost/", referrer: options.referrer, runScripts: "outside-only", pretendToBeVisual: true, virtualConsole });
   const { window } = dom;
   const requests: { method: string; url: string; headers: Record<string, string>; body?: unknown; status?: number }[] = [];
   const etags = new Map<string, { etag: string; body: string; status: number; headers: Record<string, string> }>();

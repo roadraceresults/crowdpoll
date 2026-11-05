@@ -5,6 +5,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261104-180032-LEGAL-PAGE-UPDATES/plan.md` (research R1–R8, `data-model.md` — no migration; the shared policy
+version and the `history.state.legalDepth` step count; the UI contracts `contracts/ui-contracts.md` C1–C6, and the
+quickstart live alongside it in `specs/20261104-180032-LEGAL-PAGE-UPDATES/`). The requirements report is
+`requirements/20261104-180032-legal-page-updates/requirements-report.md`: 3 diagrams and 10 findings, all resolved.
+Decisions that are easy to get wrong:
+- **The section is "Bot and AI Agent Detection"** but keeps `id="bot-check"`, which `humanCheck.js` links to; "In short"
+  and the retention row are renamed; "Bot check" appears nowhere (C1, UA1).
+- **A new `TERMS_VERSION`** (`2026-11-04`, the release date) on both pages; `/privacy`'s Last updated follows it,
+  `/terms`' stays 22 October 2026; every account accepts once; no 30-day email (R8, NC1).
+- **The Back arrow shows only for a same-origin `document.referrer` and `history.length > 1`** (no arrow in a new tab),
+  decided once at load; it goes `history.go(-(legalDepth + 1))`, past in-page anchor steps; an entry that already
+  carries `legalDepth` keeps it (R1, R2, clarification Q1).
+- **Fixed under the header in line with the logo** (`.back-arrow-bar`, built like `#site-header`), text gutter
+  `max(0px, calc(56px - (100% - 72ch) / 2))` on narrow screens, after `.legal-doc`'s `padding` shorthand; the look is
+  `back-arrow-m3.css`, shared with the admin link (`admin-back-link back-arrow`), `admin.css` keeps only its margin
+  (R3–R5, clarification Q2).
+- **The Up arrow is centred on every page** (`left:0; right:0; margin-inline:auto`), not only the legal pages (R7, AM1).
+No migration, route, setting or dependency; one constant, one script, one sheet.
+The preceding feature recorded here is
 `specs/20261102-134601-SITE-SETTINGS/plan.md` (research R1–R13, `data-model.md` — one `user` column,
 `color_scheme`, added by migration `016-color-scheme`, the `localStorage` copy and the `data-theme` states; the HTTP
 contracts `contracts/api.md` A1–A3, the UI contracts `contracts/ui-contracts.md` C1–C6, and the quickstart live

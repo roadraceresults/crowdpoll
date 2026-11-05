@@ -6,9 +6,12 @@ const sheet = readFileSync(path.resolve("src/public/back-to-top-m3.css"), "utf8"
 const flat = (css: string) => css.replace(/\s+/g, " ");
 
 describe("the back-to-top sheet", () => {
-  it("fixes the button near the bottom-right corner, above the cookie banner", () => {
+  it("fixes the button at the bottom centre, above the cookie banner", () => {
     expect(sheet).toContain("position:fixed;");
-    expect(sheet).toContain("right:20px;");
+    expect(sheet).toContain("left:0;");
+    expect(sheet).toContain("right:0;");
+    expect(sheet).toContain("margin-inline:auto;");
+    expect(sheet).not.toContain("right:20px;");
     expect(sheet).toContain("bottom:calc(20px + var(--cookie-banner-offset,0px));");
     expect(sheet).toContain("z-index:40;");
   });

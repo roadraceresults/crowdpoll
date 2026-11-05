@@ -716,7 +716,7 @@ The look is Material 3, added as layers over the production stylesheets rather t
 flowchart TB
   tokens["m3-tokens.css (first on every page)<br/>colour roles light and dark, type scale,<br/>shape, state, elevation, motion, ripple rules"]
   prod["production sheets, unchanged look in light<br/>styles.css · tabs.css · pollCard.css · admin.css · site.css"]
-  layers["area layers (last)<br/>tooltip · header-tab-bar · header-fixed · back-to-top · tabs-modal · live-idle-prompt ·<br/>empty-tab-line · discard-dialog · pollCard · card-shell · profile-editor ·<br/>admin-card"]
+  layers["area layers (last)<br/>tooltip · header-tab-bar · header-fixed · back-to-top · back-arrow · tabs-modal · live-idle-prompt ·<br/>empty-tab-line · discard-dialog · pollCard · card-shell · profile-editor ·<br/>admin-card"]
   ripple["m3-ripple.js (first script)<br/>window.M3Ripple.add(selector)"]
   tooltip["tooltip-m3.js<br/>title → data-tooltip"]
   scripts["app.js · tabs.js · liveResults.js · pollCard.js · adminCard.js"]
@@ -758,8 +758,18 @@ flowchart TB
   `--fixed-chrome-height`) that `header-fixed-m3.css` uses to pin both to the top of the viewport
   and to reserve matching space in `.container`'s padding; `window.FixedChrome.height()` lets
   `floatingActions.js` and `tabs.js` keep the guest buttons and a maximized card from landing
-  underneath it. `backToTopFab.js` injects one button, shown past 600px of scroll and hidden again
-  below 400px, that returns the page to the top (instantly under reduced motion).
+  underneath it. `backToTopFab.js` injects one button, centred at the bottom of the viewport, shown
+  past 600px of scroll and hidden again below 400px, that returns the page to the top (instantly
+  under reduced motion).
+- **Back arrow.** On `/privacy` and `/terms`, `backArrow.js` decides once at load whether to show a
+  Back arrow: only when `document.referrer` has the page's own origin and `history.length > 1`, so a
+  page opened in a new tab or from another site gets none. It numbers each history entry it lands
+  on as `history.state.legalDepth` (0 at load, one more per in-page anchor step, kept on a reload or
+  when going back to an entry), and a press calls `history.go(-(legalDepth + 1))`, back past the
+  anchor steps to the page the reader came from. The arrow sits in a fixed `.back-arrow-bar` built
+  like `#site-header`, so it lines up with the logo; on a narrow screen `legal-m3.css` widens the
+  text's start padding so the arrow never covers it. Its look, in `back-arrow-m3.css`, is shared with
+  the admin page's back link.
 
 The tab bar itself is nine buttons in `index.html` — Home (hidden, not disabled, for a guest), Your Polls, Shared With You, Your Votes,
 Trending, Newest, Watching, Live Results, Search — each with an inline SVG icon before its label

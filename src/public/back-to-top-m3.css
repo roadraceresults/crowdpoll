@@ -1,6 +1,8 @@
 .back-to-top-fab{
   position:fixed;
-  right:20px;
+  left:0;
+  right:0;
+  margin-inline:auto;
   bottom:calc(20px + var(--cookie-banner-offset,0px));
   z-index:40;
   display:flex;

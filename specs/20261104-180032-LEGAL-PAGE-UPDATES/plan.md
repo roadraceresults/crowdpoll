@@ -81,6 +81,7 @@ src/
     └── legal-m3.css               # narrow-screen gutter
 
 tests/
+├── helpers/browser.ts             # openPage: referrer option
 ├── client-back-arrow.test.ts      # new: shown/hidden, depth, press
 ├── back-arrow-sheet.test.ts       # new: the sheet's rules
 ├── back-to-top-sheet.test.ts      # centred, not right:20px

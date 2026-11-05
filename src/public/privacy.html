@@ -19,6 +19,7 @@
   <link rel="stylesheet" href="/header-single-row-m3.css">
   <link rel="stylesheet" href="/header-fixed-m3.css">
   <link rel="stylesheet" href="/back-to-top-m3.css">
+  <link rel="stylesheet" href="/back-arrow-m3.css">
   <link rel="stylesheet" href="/legal-m3.css">
   <link rel="stylesheet" href="/footer-m3.css">
 </head>
@@ -32,7 +33,7 @@
       <header id="site-header" class="site-header"></header>
       <main class="legal-doc">
         <h1>Privacy Policy</h1>
-        <p class="legal-version">Version 2026-11-01 · Last updated 22 October 2026</p>
+        <p class="legal-version">Version 2026-11-04 · Last updated 4 November 2026</p>
 
         <section class="legal-summary" aria-labelledby="in-short">
           <h2 id="in-short">In short</h2>
@@ -40,7 +41,7 @@
             <li>We set one cookie to keep you signed in, a second one for 15 minutes while a sign-in link is waiting, and a third for 5 minutes while you sign in with Google, Apple, Microsoft or Amazon. Nothing else.</li>
             <li>We use your email address to sign you in, to send you the emails you ask for, and to show who voted on polls you take part in. Never for marketing.</li>
             <li>No tracking: no analytics, no advertising, no profiling, nothing that follows you to other sites.</li>
-            <li>Before you sign in, a quick <a href="#bot-check">bot check</a> on our own servers tells people from automated programs. It sets no cookie.</li>
+            <li>Before you sign in, a quick <a href="#bot-check">check</a> on our own servers detects bots and AI agents. It sets no cookie.</li>
             <li>We never sell your data or share it for anyone else's purposes.</li>
             <li>You can delete your account at any time from your Profile page.</li>
           </ul>
@@ -91,15 +92,15 @@
           We set no advertising, analytics or third-party cookies, so we do not ask for consent.</p>
 
         <section id="bot-check" aria-labelledby="bot-check-title">
-          <h3 id="bot-check-title">Bot check</h3>
+          <h3 id="bot-check-title">Bot and AI Agent Detection</h3>
           <p>Before a sign-in starts, on the Login, Create Account and invitation pages, you tick a box that checks you
-            are a person and not an automated program.</p>
+            are not a bot or an AI agent.</p>
           <ul>
             <li><strong>What it measures</strong>: characteristics of your device and browser (such as how it draws
               graphics, plays audio and measures fonts), the timing of your pointer, touch and typing on the page, and
               details of your connection.</li>
-            <li><strong>Why</strong>: to tell people from automated programs before a sign-in starts, so that bots
-              cannot create accounts or send sign-in emails.</li>
+            <li><strong>Why</strong>: to prevent bots and AI agents from creating accounts, sending sign-in emails,
+              and voting on polls.</li>
             <li><strong>Where</strong>: on CrowdPoll's own servers, using the open-source FCaptcha software. It is never
               sent to or shared with a third party.</li>
             <li><strong>How long</strong>: held in memory for at most one hour, then gone. It is not stored with your
@@ -136,7 +137,7 @@
             <tr><td>Sign-in sessions</td><td>until you sign out, or 30 days at most</td></tr>
             <tr><td>Sign-in and email-change links</td><td>15 minutes</td></tr>
             <tr><td>Rate-limit records (with your IP address)</td><td>15 minutes</td></tr>
-            <tr><td>Bot check measurements</td><td>in memory, one hour at most</td></tr>
+            <tr><td>Bot and AI agent detection measurements</td><td>in memory, one hour at most</td></tr>
             <tr><td>Polls and votes</td><td>as long as the poll exists; deleted with the poll or with your account</td></tr>
             <tr><td>The history of changed votes</td><td>12 months</td></tr>
             <tr><td>Bookmarks</td><td>6 months after the poll closes</td></tr>
@@ -175,6 +176,7 @@
 <script src="/app.js" defer></script>
 <script src="/headerFit.js" defer></script>
 <script src="/fixedChrome.js" defer></script>
+<script src="/backArrow.js" defer></script>
 <script src="/backToTopFab.js" defer></script>
 </body>
 </html>

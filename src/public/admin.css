@@ -24,26 +24,7 @@
    without this the disabled button renders identically to a live one. */
 .admin-create-btn:disabled{ opacity:0.5; cursor:default; box-shadow:none; }
 
-/* Back to /admin — plain link (not History.back()) so the poll list always
-   re-fetches fresh data on return, placed above the Title field. */
-/* The home page's Refresh treatment: a 40px filled tonal icon button with M3 state layers. */
-.admin-back-link{
-  position:relative; overflow:hidden;
-  display:inline-flex; align-items:center; justify-content:center;
-  width:40px; height:40px; margin-bottom:10px;
-  border-radius:var(--md-sys-shape-corner-full);
-  background:var(--md-sys-color-secondary-container);
-  color:var(--md-sys-color-on-secondary-container);
-}
-.admin-back-link::before{
-  content:''; position:absolute; inset:0; border-radius:inherit;
-  background:currentColor; opacity:0; pointer-events:none; transition:opacity 0.15s ease;
-}
-.admin-back-link:hover::before{ opacity:var(--md-sys-state-hover-state-layer-opacity); }
-.admin-back-link:focus-visible::before{ opacity:var(--md-sys-state-focus-state-layer-opacity); }
-.admin-back-link:active::before{ opacity:var(--md-sys-state-pressed-state-layer-opacity); }
-.admin-back-link:focus-visible{ outline:3px solid var(--md-sys-color-secondary); outline-offset:2px; }
-.admin-back-link svg{ width:26px; height:26px; }
+.admin-back-link{ margin-bottom:10px; }
 
 /* 012: tightened so the fields read as one form rather than a stack of
    separate blocks. */
