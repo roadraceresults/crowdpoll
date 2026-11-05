@@ -457,8 +457,8 @@ keep it and `infra/secrets.auto.tfvars` out of cloud-synced folders. A lost stat
 the plan; in the console delete the old app, the two clusters, the bucket's CDN endpoint and then the emptied bucket,
 and remove any A/AAAA or CNAME record the old app left in the `crowdpoll.vote` zone (keep the SES records); run
 `terraform apply`, fixing and applying again after a failure; check the site, the human check, a sign-in email and the
-CDN assets; then revoke the old SES and Spaces keys and replace the all-buckets Spaces key with one limited to the
-`crowdpoll-cdn` bucket. The old data is not kept.
+CDN assets; then revoke the old SES and Spaces keys. The Spaces key has Full Access (all buckets): Terraform reads the bucket's
+own settings when it plans, which a key limited to the bucket may not do. The old data is not kept.
 
 **Releasing a new version.** Autodeploy is off on both services: pushing `main` deploys nothing. Merge to `main`, then
 run `npx tsx devScripts/deploy-app.ts` (`--app <name>` for another app) with `DIGITALOCEAN_TOKEN` set. It starts a
