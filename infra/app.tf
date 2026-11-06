@@ -82,7 +82,7 @@ locals {
   # Read only at run time: the build (publish-assets) runs loadConfig without the RUN_TIME secrets they depend on.
   web_run_time_settings = ["ENV_EMAIL_TRANSPORT", "ENV_SIGNIN_METHOD", "ENV_FCAPTCHA_ENABLED", "ENV_DEVICE_EVENTS_ENABLED"]
 
-  # A sign-in provider's env is added only when its value is set.
+  # A login provider's env is added only when its value is set.
   oauth_settings = {
     ENV_OAUTH_GOOGLE_CLIENT_ID        = var.oauth_google_client_id
     ENV_OAUTH_GOOGLE_CLIENT_SECRET    = var.oauth_google_client_secret

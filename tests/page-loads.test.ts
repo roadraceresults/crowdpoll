@@ -24,7 +24,7 @@ afterAll(async () => {
 });
 
 describe("the page-load bucket", () => {
-  it("keys guests by address and signed-in visitors by session, answering 429 past the limit", async () => {
+  it("keys guests by address and logged-in visitors by session, answering 429 past the limit", async () => {
     const guest = (ip: string) => request(ctx.app).get("/api/me").set("X-Forwarded-For", ip);
     for (let i = 0; i < 3; i++) expect((await guest("198.51.100.50")).status).toBe(401);
     const limited = await guest("198.51.100.50");

@@ -5,8 +5,8 @@
  * Mounted rather than hand-written so the close control comes from the shell
  * and cannot drift into the admin pages' .admin-back-link.
  *
- * One card serves a guest and a signed-in non-administrator alike. The
- * subtitle names neither, so the page does not disclose whether signing in
+ * One card serves a guest and a logged-in non-administrator alike. The
+ * subtitle names neither, so the page does not disclose whether logging in
  * would help (FR-044).
  */
 (function () {

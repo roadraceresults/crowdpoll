@@ -5,7 +5,7 @@ import { openPage, type BrowserPage } from "./helpers/browser.js";
 
 let ctx: TestContext;
 let page: BrowserPage | null = null;
-const LINE = "Sign in to see the poll that was shared with you.";
+const LINE = "Log in to see the poll that was shared with you.";
 
 beforeAll(async () => {
   ctx = await startTestContext();
@@ -70,11 +70,11 @@ describe("the login card with a shared poll link", () => {
     page = await login(`?error=invalid-link&PID=${pid}`);
     await page.settle(100);
     expect(page.document.querySelector(".shared-poll-line")).not.toBeNull();
-    expect(page.document.body.textContent).toContain("That sign-in link is no longer valid.");
+    expect(page.document.body.textContent).toContain("That login link is no longer valid.");
     expect(await sentBody(page, "#login-form", "/api/auth/request-login-link")).toMatchObject({ pid });
   });
 
-  it("carries the pid on the provider sign-in in oauth mode", async () => {
+  it("carries the pid on the provider login in oauth mode", async () => {
     const oauth = await startTestContext({ ENV_SIGNIN_METHOD: "oauth", ENV_OAUTH_GOOGLE_CLIENT_ID: "google-client", ENV_OAUTH_GOOGLE_CLIENT_SECRET: "google-secret" });
     try {
       const pid = randomUUID();
@@ -88,7 +88,7 @@ describe("the login card with a shared poll link", () => {
       }) as typeof page.window.fetch;
       page.document.querySelector<HTMLButtonElement>(".oauth-providers button")!.click();
       await page.settle(100);
-      expect(sent.map((body) => JSON.parse(body).callbackURL)).toEqual([`/?PID=${pid}`]);
+      expect(sent.map((body) => JSON.parse(body).callbackURL)).toEqual([`/?PID=${pid}&signedIn=1`]);
     } finally {
       page?.close();
       page = null;

@@ -14,7 +14,7 @@ All runtime configuration comes from `ENV_*` environment variables:
 | Variable | Dev default | Description |
 |---|---|---|
 | `ENV_PORT` | `8080` | HTTP port for the web app |
-| `ENV_PUBLIC_ORIGIN` | `http://localhost:8080` (templates) | The one origin the site is reached at, no path (`https://crowdpoll.vote` in `infra/app.tf`); required — the app refuses to start without it. Every sign-in provider redirect URI is built from it |
+| `ENV_PUBLIC_ORIGIN` | `http://localhost:8080` (templates) | The one origin the site is reached at, no path (`https://crowdpoll.vote` in `infra/app.tf`); required — the app refuses to start without it. Every login provider redirect URI is built from it |
 | `ENV_DATABASE_URL` | `postgres://localhost:5432/app01` | PostgreSQL connection string (the managed pool's URL in production) |
 | `ENV_DATABASE_CA_CERT` | unset | PEM of the CA that signed the database server's certificate (DigitalOcean: the database component's `CA_CERT`). Set → the connection is verified against it and `sslmode` is dropped from the URL; unset → `pg` verifies against the system roots, which fails against a managed database. `\n` pairs are read as line breaks |
 | `ENV_VALKEY_URL` | unset | Valkey URL; unset → the in-process cache/queue/registry (development and tests). A remote host beside a `localhost` `ENV_DATABASE_URL` stops the app: a local server on a shared Valkey would trade votes and counter flushes with production and drop them |
@@ -22,9 +22,9 @@ All runtime configuration comes from `ENV_*` environment variables:
 | `ENV_SPACES_BUCKET`, `ENV_SPACES_REGION`, `ENV_SPACES_KEY`, `ENV_SPACES_SECRET`, `ENV_SPACES_CDN_URL` | unset | Where the TRENDING objects and static assets are published; all five or none; unset → served from the instance |
 | `ENV_ADMINS` | `roadraceresults@gmail.com` | Comma-separated identifiers allowed on admin pages |
 | `ENV_PROTOTYPES` | unset | Comma-separated folders of `prototypes/` served, unlisted and `noindex`, at `/prototypes/<name>/` (temporary). Unset → none, and those addresses answer `404`. Letters, digits, `_` and `-` only |
-| `ENV_MAX_SIGNIN_COOKIE_DURATION` | `2592000000` | Max stay-signed-in duration (ms; 30 days); the login card shows it as whole days (hours below a day) |
-| `ENV_STAY_SIGNED_IN` | `0` | `1` → the login page's "Stay signed in on this device" box starts ticked; any other value, or none, leaves it clear |
-| `ENV_SIGNIN_METHOD` | `native` | `native` (email magic link), `oauth` (the sign-in providers only) or `both`; `oauth` and `both` need at least one provider below |
+| `ENV_MAX_SIGNIN_COOKIE_DURATION` | `2592000000` | Max stay-logged-in duration (ms; 30 days); the login card shows it as whole days (hours below a day) |
+| `ENV_STAY_SIGNED_IN` | `0` | `1` → the login page's "Stay logged in on this device" box starts ticked; any other value, or none, leaves it clear |
+| `ENV_SIGNIN_METHOD` | `native` | `native` (email magic link), `oauth` (the login providers only) or `both`; `oauth` and `both` need at least one provider below |
 | `ENV_OAUTH_GOOGLE_CLIENT_ID`, `ENV_OAUTH_GOOGLE_CLIENT_SECRET` | unset | Sign in with Google (secrets). A provider is on only when all its values are set; some but not all stops the app, naming the missing one |
 | `ENV_OAUTH_APPLE_CLIENT_ID`, `ENV_OAUTH_APPLE_TEAM_ID`, `ENV_OAUTH_APPLE_KEY_ID`, `ENV_OAUTH_APPLE_PRIVATE_KEY` | unset | Sign in with Apple: the Services ID, team, key id and the `.p8` key's PEM (`\n` pairs read as line breaks); the app signs Apple's client secret itself and renews it every 30 days |
 | `ENV_OAUTH_MICROSOFT_CLIENT_ID`, `ENV_OAUTH_MICROSOFT_CLIENT_SECRET` | unset | Sign in with Microsoft (personal, work and school accounts) |
@@ -43,9 +43,9 @@ All runtime configuration comes from `ENV_*` environment variables:
 | `ENV_EMAIL_FROM` | `CrowdPoll <no-reply@mail.crowdpoll.vote>` | Sender of every message (replaces `ENV_SMTP_FROM`, which is no longer read); the development templates use `no-reply@dev.mail.crowdpoll.vote` |
 | `ENV_EMAIL_SEND_TIMEOUT` | `10000` | Longest one send may take (ms) before it counts as failed |
 | `ENV_EMAIL_ASSET_ORIGIN` | unset | Origin the email logo is loaded from, no path; unset → the link's origin. The development templates set `https://crowdpoll.vote`, because a mail app's image proxy cannot reach `localhost` |
-| `ENV_ALLOWED_EMAILS` | unset | Pre-launch allowlist: comma-separated addresses allowed to create an account and sign in, compared by email key; `ENV_ADMINS` addresses always are. Unset or empty → off (everyone). An invalid entry stops the app; startup logs only the count. Production: `allowed_emails` in the git-ignored `infra/secrets.auto.tfvars`, never in a committed file; the templates carry it empty |
+| `ENV_ALLOWED_EMAILS` | unset | Pre-launch allowlist: comma-separated addresses allowed to create an account and log in, compared by email key; `ENV_ADMINS` addresses always are. Unset or empty → off (everyone). An invalid entry stops the app; startup logs only the count. Production: `allowed_emails` in the git-ignored `infra/secrets.auto.tfvars`, never in a committed file; the templates carry it empty |
 | `ENV_EMAIL_RATE_LIMIT_WINDOW_MINUTES` | `15` | Rate-limit window for email-sending endpoints, in **minutes** (not ms or seconds, unlike the intervals above) |
-| `ENV_EMAIL_RATE_LIMIT_MAX_REQUESTS_PER_WINDOW` | `2` | Requests allowed per client in that window. Lower the window and raise this while testing sign-in — the defaults lock you out for 15 minutes after two login links |
+| `ENV_EMAIL_RATE_LIMIT_MAX_REQUESTS_PER_WINDOW` | `2` | Requests allowed per client in that window. Lower the window and raise this while testing login — the defaults lock you out for 15 minutes after two login links |
 | `ENV_MAX_INVITATIONS_PER_DAY` | `200` | Invitation and reminder emails one poll creator may send in any rolling 24 hours, counted across all their polls; what does not fit waits as `Not sent yet` and goes as the window frees up. Lower it (e.g. `3`) to see the limit while testing |
 | `ENV_MAX_PRIVATE_POLL_VOTERS` | `100` | Voter ceiling on a private poll — both the limit a blank field means and the largest value enterable. Lower it (e.g. `10`) to fill a test poll in a few votes |
 | `ENV_PARTICIPANTS_VIEWPORT_SIZE` | `10` | Rows per page in the poll card's `Participants` and `Banned Voter List` sections. Lower it (e.g. `3`) to make paging visible with a handful of participants |
@@ -90,7 +90,7 @@ All runtime configuration comes from `ENV_*` environment variables:
 | `ENV_MAX_BOOKMARKS_PER_USER` | `200` | Bookmarks per user before `409 bookmark-cap` |
 | `ENV_BOOKMARK_EXPIRY_MONTHS` | `6` | Months after a poll closes, or after its last activity, before its bookmarks are removed |
 | `ENV_PAGE_LOADS_PER_MINUTE` | `120` | Page loads per session (or address, for guests) per minute before `429 too-many-loads` |
-| `ENV_FCAPTCHA_ENABLED` | unset | `1` → the human check (self-hosted FCaptcha) stands before `/login`, `/create-account` and `/invite`, and every sign-in start needs a pass; any other value, or none, turns it off. When on, the three below are required and a missing one stops the app |
+| `ENV_FCAPTCHA_ENABLED` | unset | `1` → the human check (self-hosted FCaptcha) stands before `/login`, `/create-account` and `/invite`, and every login start needs a pass; any other value, or none, turns it off. When on, the three below are required and a missing one stops the app |
 | `ENV_FCAPTCHA_URL` | unset | Where the web service reaches the FCaptcha service, server to server (`${fcaptcha.PRIVATE_URL}` in `infra/app.tf`; `http://localhost:3001` for a local FCaptcha). Browsers reach it at `/fcaptcha` on the site's own domain |
 | `ENV_FCAPTCHA_SITE_KEY` | unset | The site key the widget is drawn with; published in `/api/config`. Must be in the FCaptcha service's `ENV_FCAPTCHA_SITE_KEYS` |
 | `ENV_FCAPTCHA_VERIFY_SECRET` | unset | The credential sent with each pass to FCaptcha's token check; the FCaptcha service reads the same name, with the same value. Production: an encrypted variable, never logged or published |
@@ -101,7 +101,7 @@ All runtime configuration comes from `ENV_*` environment variables:
 | `ENV_FCAPTCHA_REDIS_URL` | unset | FCaptcha service only: Valkey URL for its shared state, database 1 (`${valkey-tor1-crowdpoll.DATABASE_URL}/1`); unset → in memory |
 | `ENV_FCAPTCHA_TRUSTED_PROXIES` | unset | FCaptcha service only: comma-separated CIDRs whose forwarding headers are believed (FCaptcha's `TRUSTED_PROXIES`); production adds App Platform's `100.64.0.0/10` to the default; unset → loopback and private ranges |
 | `ENV_FCAPTCHA_INSECURE_DEV_MODE` | unset | FCaptcha service only: `1` lets it start without `ENV_FCAPTCHA_SECRET`, signing with a public key; never on a network |
-| `ENV_DEVICE_EVENTS_ENABLED` | `false` | `true` → a device fingerprint is recorded at each sign-in and vote, once the current Terms are accepted; any value but `true` or `false` stops the app. Nothing refuses or warns on a fingerprint |
+| `ENV_DEVICE_EVENTS_ENABLED` | `false` | `true` → a device fingerprint is recorded at each login and vote, once the current Terms are accepted; any value but `true` or `false` stops the app. Nothing refuses or warns on a fingerprint |
 | `ENV_DEVICE_EVENTS_KEY` | unset | The key the fingerprints are hashed with, required with at least 32 characters when collection is on. Replacing it means bumping `DEVICE_FINGERPRINT_VERSION`. Production: an encrypted variable, never logged or published |
 
 The FCaptcha service's settings are mapped by `fcaptcha-server/start.js` to FCaptcha's own names (`FCAPTCHA_SECRET`, `FCAPTCHA_VERIFY_SECRET`, `FCAPTCHA_SITE_KEYS`, `FCAPTCHA_ALLOWED_HOSTNAMES`, `FCAPTCHA_INSECURE_DEV_MODE`, `REDIS_URL`); one of those set directly stops it.

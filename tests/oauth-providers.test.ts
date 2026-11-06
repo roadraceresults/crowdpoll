@@ -1,6 +1,6 @@
 /**
- * Provider sign-in end to end, with each provider's token and profile calls stubbed (research R3–R8;
- * contracts/api.md A2, A3): signing in, refusals, linking by email key, Apple's form_post and Amazon.
+ * Provider login end to end, with each provider's token and profile calls stubbed (research R3–R8;
+ * contracts/api.md A2, A3): logging in, refusals, linking by email key, Apple's form_post and Amazon.
  * The refusal of an address the pre-launch allowlist does not hold is in allowlist.test.ts (T033).
  */
 import { generateKeyPairSync } from "node:crypto";
@@ -43,20 +43,20 @@ function stubFetch(answer: (url: string) => Response | undefined): void {
 let ctx: TestContext;
 let client = 0;
 
-/** Each start comes from its own address: BetterAuth allows three sign-in starts per address per 10 seconds. */
-async function start(provider: SocialProvider | "amazon") {
+/** Each start comes from its own address: BetterAuth allows three login starts per address per 10 seconds. */
+async function start(provider: SocialProvider | "amazon", extra: object = {}) {
   const res =
     provider === "amazon"
-      ? await request(ctx.app).post("/api/auth/sign-in/oauth2").set("X-Forwarded-For", `198.51.100.${++client}`).send({ providerId: "amazon", callbackURL: "/" })
-      : await request(ctx.app).post("/api/auth/sign-in/social").set("X-Forwarded-For", `198.51.100.${++client}`).send({ provider, callbackURL: "/" });
+      ? await request(ctx.app).post("/api/auth/sign-in/oauth2").set("X-Forwarded-For", `198.51.100.${++client}`).send({ providerId: "amazon", callbackURL: "/", ...extra })
+      : await request(ctx.app).post("/api/auth/sign-in/social").set("X-Forwarded-For", `198.51.100.${++client}`).send({ provider, callbackURL: "/", ...extra });
   expect(res.status).toBe(200);
   const url = new URL(res.body.url);
   return { url, state: url.searchParams.get("state")!, cookie: cookiesOf(res), res };
 }
 
 async function signIn(provider: SocialProvider, claims: object, token: () => Response = () =>
-  json({ access_token: "access", token_type: "Bearer", id_token: idToken(claims) })) {
-  const { state, cookie } = await start(provider);
+  json({ access_token: "access", token_type: "Bearer", id_token: idToken(claims) }), extra: object = {}) {
+  const { state, cookie } = await start(provider, extra);
   stubFetch((url) => (url === TOKEN_URLS[provider] ? token() : undefined));
   return request(ctx.app)
     .get(`/api/auth/callback/${provider}?code=code&state=${encodeURIComponent(state)}`)
@@ -64,8 +64,8 @@ async function signIn(provider: SocialProvider, claims: object, token: () => Res
     .redirects(0);
 }
 
-async function amazonSignIn(profile: object) {
-  const { state, cookie } = await start("amazon");
+async function amazonSignIn(profile: object, extra: object = {}) {
+  const { state, cookie } = await start("amazon", extra);
   stubFetch((url) => {
     if (url === "https://api.amazon.com/auth/o2/token") return json({ access_token: "Atza|test", token_type: "bearer" });
     if (url === "https://api.amazon.com/user/profile") return json(profile);
@@ -107,7 +107,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("signing in (US1)", () => {
+describe("logging in (US1), in a suite with no store", () => {
   it("sends Google the redirect URI built from ENV_PUBLIC_ORIGIN, asking for identity only", async () => {
     const { url, res } = await start("google");
     expect(url.origin + url.pathname).toBe("https://accounts.google.com/o/oauth2/v2/auth");
@@ -159,6 +159,41 @@ describe("signing in (US1)", () => {
   });
 });
 
+describe("Stay logged in on a provider login (C11)", () => {
+  const THIRTY_DAYS_MS = 2_592_000_000;
+  const STAY = { additionalData: { staySignedIn: true } };
+  const finalCookie = (res: request.Response) =>
+    [res.headers["set-cookie"] ?? []].flat().map(String).filter((cookie) => cookie.startsWith("session_token=")).at(-1)!;
+  const sessionMsLeft = async (email: string) => {
+    const user = await userByEmail(email);
+    const row = await ctx.db.selectFrom("session").select("expiresAt").where("userId", "=", user!.id).executeTakeFirstOrThrow();
+    return new Date(row.expiresAt).getTime() - Date.now();
+  };
+  const google = (email: string, extra: object = {}) =>
+    signIn("google", { sub: email, email, email_verified: true, name: "Stay" }, undefined, extra);
+
+  it("lasts 30 days when the box is ticked, with Google", async () => {
+    const res = await google("stay.google@example.com", STAY);
+    expect(res.status).toBe(302);
+    expect(finalCookie(res)).toMatch(/Max-Age=2592000/i);
+    expect(await sessionMsLeft("stay.google@example.com")).toBeGreaterThan(THIRTY_DAYS_MS - 60_000);
+  });
+
+  it("lasts 30 days when the box is ticked, with Amazon", async () => {
+    const res = await amazonSignIn({ user_id: "amzn1.account.STAY", name: "Stay", email: "stay.amazon@example.com" }, STAY);
+    expect(res.status).toBe(302);
+    expect(finalCookie(res)).toMatch(/Max-Age=2592000/i);
+    expect(await sessionMsLeft("stay.amazon@example.com")).toBeGreaterThan(THIRTY_DAYS_MS - 60_000);
+  });
+
+  it("is a browser-session cookie and a 24-hour session when the box is clear", async () => {
+    const res = await google("no.stay@example.com");
+    expect(res.status).toBe(302);
+    expect(finalCookie(res)).not.toMatch(/Max-Age|Expires/i);
+    expect(await sessionMsLeft("no.stay@example.com")).toBeLessThanOrEqual(24 * 60 * 60 * 1000);
+  });
+});
+
 describe("linking to an existing account (US2)", () => {
   it("links Google to the account with the same email key", async () => {
     const { userId } = await forgeSession(ctx, "john.smith@gmail.com");
@@ -180,7 +215,7 @@ describe("linking to an existing account (US2)", () => {
     expect(await accountsOf(pat.userId)).toContainEqual({ providerId: "amazon", accountId: "amzn1.account.PAT" });
   });
 
-  it("refuses to link an account that never signed in", async () => {
+  it("refuses to link an account that never logged in", async () => {
     const authCtx = await ctx.auth.$context;
     const pending = await authCtx.internalAdapter.createUser({ email: "pending@example.com", name: "", emailVerified: false });
     const res = await signIn("google", { sub: "g-pending", email: "pending@example.com", email_verified: true, name: "P" });

@@ -27,7 +27,7 @@ import { createFcaptchaDevProxy, isLocalOrigin } from "./routes/fcaptchaDevProxy
 import { createPollsApiRouter, createVoteRouter } from "./routes/pollsApi.js";
 import { createTabsApiRouter } from "./routes/tabsApi.js";
 import { buildSweepSchedules, startSweeps } from "./polls/sweeps.js";
-import { createListingPublisher, createSpacesStore, NEWEST_OBJECTS, TRENDING_OBJECTS, type Publisher } from "./trending/publish.js";
+import { createListingPublisher, createSpacesStore, NEWEST_OBJECTS, TRENDING_OBJECTS, type ObjectStore, type Publisher } from "./trending/publish.js";
 import { createSearch, type Search } from "./search/search.js";
 import { createRosterCache, type RosterCache } from "./votes/rosterCache.js";
 import { createConsumer, type Consumer } from "./votes/consumer.js";
@@ -41,6 +41,8 @@ export interface AppDeps {
   db: Db;
   cache: Cache;
   config: AppConfig;
+  /** Spaces, or null when it is not configured. */
+  objectStore: ObjectStore | null;
   /** How the human check reaches FCaptcha; tests answer for it. */
   humanCheckFetch?: typeof fetch;
 }
@@ -73,9 +75,8 @@ export function createAppContext(deps: AppDeps): AppContext {
   const shedding = createShedding({ config: deps.config, cache: deps.cache, budget });
   const floors = createFloors({ config: deps.config, cache: deps.cache, sessions, budget });
   const pageLoads = createPageLoadBucket({ config: deps.config, cache: deps.cache, sessions });
-  const store = deps.config.spaces ? createSpacesStore(deps.config.spaces) : null;
-  const trendingPublisher = createListingPublisher(store, deps.config.trendingPollsRecomputeSweepIntervalMs, TRENDING_OBJECTS);
-  const newestPublisher = createListingPublisher(store, deps.config.newestPollsRecomputeSweepIntervalMs, NEWEST_OBJECTS);
+  const trendingPublisher = createListingPublisher(deps.objectStore, deps.config.trendingPollsRecomputeSweepIntervalMs, TRENDING_OBJECTS);
+  const newestPublisher = createListingPublisher(deps.objectStore, deps.config.newestPollsRecomputeSweepIntervalMs, NEWEST_OBJECTS);
   const search = createSearch({
     db: deps.db,
     cache: deps.cache,
@@ -101,7 +102,7 @@ export function createApp(context: AppContext): Express {
   app.use(shedding.countInFlight);
   if (config.humanCheck && isLocalOrigin(config.publicOrigin)) app.use(createFcaptchaDevProxy(config.humanCheck, context.humanCheckFetch));
 
-  // The provider sign-in routes are the library's own handler, mounted path by path so the email routes
+  // The provider login routes are the library's own handler, mounted path by path so the email routes
   // stay CrowdPoll's in both mode, and before the JSON parser, since it reads its own body (research R3).
   if (config.oauthSignin) {
     const handler = toNodeHandler(auth);
@@ -173,8 +174,8 @@ export async function startServer(): Promise<void> {
   }
 
   for (const line of defaultsUsedLines(config)) console.log(line);
-  console.log(`[server] Starting in ${config.signinMethod} sign-in mode`);
-  console.log(`[auth] Sign-in method: ${config.signinMethod}; providers: ${providerList(config)}`);
+  console.log(`[server] Starting in ${config.signinMethod} login mode`);
+  console.log(`[auth] Login method: ${config.signinMethod}; providers: ${providerList(config)}`);
   console.log(allowlistStatus(config));
   console.log(
     config.databaseCaCert
@@ -206,14 +207,15 @@ export async function startServer(): Promise<void> {
   await cache.xgroupCreate(VOTE_STREAM, VOTE_GROUP);
 
   initMailer(config);
-  const auth = createAuth(db, config, cache);
+  const objectStore = config.spaces ? createSpacesStore(config.spaces) : null;
+  const auth = createAuth(db, config, cache, objectStore);
   const apple = config.oauthProviders.apple;
   let stopAppleRefresh = () => {};
   if (apple) {
     logAppleSecretExpiry();
     stopAppleRefresh = startAppleSecretRefresh(auth.options.socialProviders.apple!, apple);
   }
-  const context = createAppContext({ auth, db, cache, config });
+  const context = createAppContext({ auth, db, cache, config, objectStore });
   if (context.search.openSearch) {
     try {
       await context.search.openSearch.ensureIndex();

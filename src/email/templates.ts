@@ -91,14 +91,14 @@ function originOf(url: string): string {
 
 export function loginLinkMessage(url: string, logoOrigin?: string): EmailMessage {
   return {
-    subject: "Your CrowdPoll sign-in link",
+    subject: "Your CrowdPoll login link",
     ...layout({
       origin: logoOrigin ?? originOf(url),
-      preheader: "Use this link within 15 minutes to sign in to CrowdPoll.",
-      heading: "Sign in to CrowdPoll",
-      paragraphs: ["Use the button below to sign in. The link works once, for 15 minutes."],
-      action: { label: "Sign in", url },
-      closing: ["If you didn't ask to sign in, you can ignore this email; nobody can sign in without this link."]
+      preheader: "Use this link within 15 minutes to log in to CrowdPoll.",
+      heading: "Log in to CrowdPoll",
+      paragraphs: ["Use the button below to log in. The link works once, for 15 minutes."],
+      action: { label: "Log in", url },
+      closing: ["If you didn't ask to log in, you can ignore this email; nobody can log in without this link."]
     })
   };
 }
@@ -108,10 +108,10 @@ export function createAccountMessage(url: string, logoOrigin?: string): EmailMes
     subject: "Finish creating your CrowdPoll account",
     ...layout({
       origin: logoOrigin ?? originOf(url),
-      preheader: "Someone asked to sign in to CrowdPoll with this address, but it has no account yet.",
+      preheader: "Someone asked to log in to CrowdPoll with this address, but it has no account yet.",
       heading: "Create your CrowdPoll account",
       paragraphs: [
-        "Someone asked to sign in to CrowdPoll with this address, but there's no account for it yet. If it was you, create your account to continue. The button works once, for 15 minutes."
+        "Someone asked to log in to CrowdPoll with this address, but there's no account for it yet. If it was you, create your account to continue. The button works once, for 15 minutes."
       ],
       action: { label: "Create account", url },
       closing: ["If it wasn't you, you can ignore this email; no account is created unless you finish."]
@@ -159,7 +159,7 @@ export function emailChangeNoticeMessage(origin: string, newEmail: string): Emai
       preheader: "Your CrowdPoll account now uses a different email address.",
       heading: "Your email address was changed",
       paragraphs: [
-        `The email address on your CrowdPoll account was changed to ${newEmail}. This address no longer receives sign-in links.`,
+        `The email address on your CrowdPoll account was changed to ${newEmail}. This address no longer receives login links.`,
         `If you didn't make this change, write to ${SUPPORT} straight away.`
       ]
     })

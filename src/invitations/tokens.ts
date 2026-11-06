@@ -4,7 +4,7 @@ import { hashToken } from "../auth/auth.js";
 
 const TOKEN_LIFE_MS = 30 * 24 * 3_600_000;
 
-/** Issues the invitation's newest sign-in token and returns it; only its hash is stored. */
+/** Issues the invitation's newest login token and returns it; only its hash is stored. */
 export async function issueInvitationToken(
   db: Db,
   pid: string,
@@ -24,7 +24,7 @@ export async function issueInvitationToken(
   return token;
 }
 
-/** The invited address when the token can sign in (data-model "can a token sign in?"), else null. */
+/** The invited address when the token can log in (data-model "can a token log in?"), else null. */
 export async function findSignInToken(db: Db, pid: string, token: string): Promise<{ email: string } | null> {
   if (!token) return null;
   const row = await db

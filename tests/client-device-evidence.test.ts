@@ -205,7 +205,7 @@ describe("the real vendored library (R2, SC-005)", () => {
 });
 
 describe("reporting a sign-in (C2)", () => {
-  const reports = (p: BrowserPage) => p.requests.filter((r) => r.url === "/api/me/device-sign-in");
+  const reports = (p: BrowserPage) => p.requests.filter((r) => r.url === "/api/me/device-login");
   const PROFILE = ["app.js", "deviceEvidence.js"];
 
   it("posts once when due, with the header, and a later page does neither", async () => {
@@ -250,7 +250,7 @@ describe("reporting a sign-in (C2)", () => {
         window.addEventListener("unhandledrejection", (event) => failures.push(event));
         const send = window.fetch;
         window.fetch = ((input: RequestInfo | URL, init?: RequestInit) =>
-          String(input) === "/api/me/device-sign-in" ? Promise.reject(new Error("offline")) : send(input, init)) as typeof fetch;
+          String(input) === "/api/me/device-login" ? Promise.reject(new Error("offline")) : send(input, init)) as typeof fetch;
       }
     });
     await page.settle(IDLE_MS);
@@ -268,7 +268,7 @@ describe("reporting a sign-in (C2)", () => {
     });
     await page.settle(IDLE_MS);
     expect(notified).toBe(1);
-    expect(page.requests.some((r) => r.url === "/api/me/device-sign-in")).toBe(true);
+    expect(page.requests.some((r) => r.url === "/api/me/device-login")).toBe(true);
     await session.refresh();
     expect(Object.keys(session.getSession()).sort()).toEqual(fields);
   });

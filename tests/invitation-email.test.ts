@@ -74,7 +74,7 @@ describe("M1", () => {
   });
 });
 
-describe("sign-in sentence (M1)", () => {
+describe("login sentence (M1)", () => {
   const SENTENCE = "This button signs you in to CrowdPoll as maria.chen@gmail.com. Please don't forward this email.";
   const message = invitationMessage({
     ...BASE,

@@ -388,7 +388,7 @@ export class VoteError extends Error {
 
 /**
  * FR-017/030: whether `callerEmail` (undefined for a guest) may even view
- * this poll. PUBLIC_POLL is always viewable; private modes require sign-in,
+ * this poll. PUBLIC_POLL is always viewable; private modes require login,
  * and invitation-only additionally requires being on the invited list.
  */
 export function checkViewEligibility(
@@ -397,7 +397,7 @@ export function checkViewEligibility(
 ): { status: number; error: string } | null {
   if (isPublicVisibility(poll.pollVisibility)) return null;
   if (!callerEmail) {
-    return { status: 403, error: "Sign in to view this poll." };
+    return { status: 403, error: "Log in to view this poll." };
   }
   if (isInvitationOnly(poll) && !poll.invitedVoterList.includes(callerEmail)) {
     return { status: 403, error: "You are not invited to this poll." };

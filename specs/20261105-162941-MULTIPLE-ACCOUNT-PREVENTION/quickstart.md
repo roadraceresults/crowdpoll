@@ -26,7 +26,7 @@ npm test
 
 | # | Do | Expect |
 |---|---|---|
-| Q1 | Account A signs in by email link; load several pages and a second tab | Exactly one `sign-in` row; later page loads send no `POST /api/me/device-sign-in` |
+| Q1 | Account A signs in by email link; load several pages and a second tab | Exactly one `sign-in` row; later page loads send no `POST /api/me/device-login` |
 | Q2 | A votes and changes the vote on a Dynamic-Vote poll | Two `vote` rows with the poll and a time, and nothing about choices; the vote response is as before (the vote route refuses an empty vote, so there is no clear to record) |
 | Q3 | A votes in Chrome and in Firefox on one computer | Different `b`; the same `h` is hoped for and should be noted either way (R3); this is the check of the hardware value on real browsers |
 | Q4 | Sign out, then B signs in and votes in the same Chrome | B's `b` equals A's Chrome `b` |
@@ -37,7 +37,7 @@ npm test
 | Q9 | In DevTools > Application, after the fingerprint is computed | No new cookie, Local Storage or Session Storage key |
 | Q10 | A signed-in account that accepted the old Terms loads a page | `/accept-terms` first, with no row and no fingerprint request; one `sign-in` row after accepting |
 | Q11 | Load a page signed out | The library file is not requested |
-| Q12 | Start with `ENV_DEVICE_EVENTS_ENABLED=false`, sign in and vote | The library file is not requested; no row; `/api/me` has no `X-Device-Sign-In-Due` |
+| Q12 | Start with `ENV_DEVICE_EVENTS_ENABLED=false`, sign in and vote | The library file is not requested; no row; `/api/me` has no `X-Device-Login-Due` |
 | Q13 | Start with the setting on and no key | The app stops with a `ConfigError` |
 | Q14 | Delete a poll with vote events | Its vote rows are gone; other rows remain |
 | Q15 | Delete account A | No row for A remains |

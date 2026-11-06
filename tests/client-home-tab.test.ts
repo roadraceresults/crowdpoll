@@ -1,5 +1,5 @@
 /**
- * The Home tab in a browser: the landing tab of a signed-in visitor, hidden from guests, its reason lines,
+ * The Home tab in a browser: the landing tab of a logged-in visitor, hidden from guests, its reason lines,
  * and `keepOrder`, which holds Home's list while the user acts on its cards until Home is next opened.
  */
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -67,7 +67,7 @@ const votedOf = (card: Element) => {
 };
 
 describe("landing", () => {
-  it("lands a signed-in visitor on Home, first in the bar, with why each poll is listed", async () => {
+  it("lands a logged-in visitor on Home, first in the bar, with why each poll is listed", async () => {
     const me = await visitor();
     const shared = makePoll({ title: "Shared and watched", pollVisibility: "Private Poll", pollSharingMode: "Invitation Only", invitedVoterList: [me.email] });
     await insertPoll(ctx, shared, { id: "someone", name: "Someone", email: "someone@example.com" });
@@ -139,7 +139,7 @@ describe("guests", () => {
     expect(page.document.activeElement!.id).toBe("tab-your-polls");
   });
 
-  it("hides Home and opens Trending on sign-out, and shows it again on sign-in without leaving the tab", async () => {
+  it("hides Home and opens Trending on sign-out, and shows it again on login without leaving the tab", async () => {
     const me = await visitor();
     page = await open(me.options);
     expect(activeTab(page)).toBe("home");

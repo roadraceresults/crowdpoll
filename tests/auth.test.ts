@@ -115,7 +115,7 @@ describe("POST /api/auth/request-login-link", () => {
 
     const mail = ctx.sent.at(-1)!;
     expect(mail.to).toBe("nobody@example.com");
-    // Invitation, not a sign-in credential.
+    // Invitation, not a login credential.
     expect(mail.text).not.toContain("/api/auth/verify?token=");
     expect(extractLink(mail)).toContain("/create-account?token=");
     // No account and no session may result.

@@ -273,7 +273,7 @@ describe("GET /api/me exposes isAdmin (012 US7)", () => {
     expect(res.body.isAdmin).toBe(true);
   });
 
-  it("is false for a signed-in user who is not on the list", async () => {
+  it("is false for a logged-in user who is not on the list", async () => {
     const { cookie } = await forgeSession(adminCtx, "nobody@example.com");
     const res = await request(adminCtx.app).get("/api/me").set("Cookie", cookie);
     expect(res.status).toBe(200);

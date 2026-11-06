@@ -4,7 +4,7 @@
  * - magic-link plugin, hashed token storage, 15-minute expiry (FR-004)
  * - Kysely/PostgreSQL adapter owns the user/session/verification/rateLimit tables
  *   (https://www.better-auth.com/docs/adapters/postgresql); session.cookieCache stays
- *   off, so besides the session cookie only the sign-in binding cookie is set (api.ts)
+ *   off, so besides the session cookie only the login binding cookie is set (api.ts)
  * - session cookie named exactly `session_token`, httpOnly/secure/lax (FR-008/009)
  * - single-active-session + pending→active flip via session.create hook (FR-001, FR-007a)
  * - built-in rate limiter, database-backed, per-client per-endpoint custom
@@ -12,7 +12,8 @@
  */
 import { betterAuth } from "better-auth";
 import { genericOAuth, magicLink } from "better-auth/plugins";
-import { APIError } from "better-auth/api";
+import { APIError, createAuthMiddleware, getOAuthState } from "better-auth/api";
+import { setSessionCookie } from "better-auth/cookies";
 import { createHash, randomUUID } from "node:crypto";
 import { sql } from "kysely";
 import type { Cache } from "../cache/cache.js";
@@ -25,13 +26,14 @@ import { isAllowed, logRefusal } from "./allowlist.js";
 import { appleClientSecret } from "./appleSecret.js";
 import { emailKey } from "./emailKey.js";
 import { adoptInvitations } from "../invitations/invitations.js";
+import type { ObjectStore } from "../trending/publish.js";
+import { DEFAULT_AVATAR, refreshProfilePicture } from "./profilePicture.js";
 
 function refuseNotLaunched(email: string): never {
   logRefusal("session", email);
   throw new APIError("FORBIDDEN", { message: "not-launched", code: "not-launched" });
 }
 
-export const DEFAULT_AVATAR = "/avatar-default.svg";
 export const LINK_EXPIRY_SECONDS = 15 * 60;
 export const NON_PERSISTENT_SESSION_SECONDS = 24 * 60 * 60;
 
@@ -65,7 +67,7 @@ export const RATE_LIMITED = {
   redeemInvitation: "/redeem-invitation"
 } as const;
 
-/** Sign-in tokens minted for server-side consumption, keyed by the mint id that requested them. */
+/** Login tokens minted for server-side consumption, keyed by the mint id that requested them. */
 export const mintedTokens = new Map<string, string>();
 
 export type Auth = ReturnType<typeof createAuth>;
@@ -166,7 +168,7 @@ function amazonSignin(db: Db, config: AppConfig) {
   ];
 }
 
-export function createAuth(db: Db, config: AppConfig, cache?: Cache) {
+export function createAuth(db: Db, config: AppConfig, cache?: Cache, store: ObjectStore | null = null) {
   const auth = betterAuth({
     appName: "NativeAuthOAuth",
     baseURL: config.publicOrigin,
@@ -175,8 +177,8 @@ export function createAuth(db: Db, config: AppConfig, cache?: Cache) {
     database: { db, type: "postgres" },
     account: { accountLinking: { enabled: true } },
     session: {
-      // Server-side lifetime when "stay signed in" is NOT chosen; the
-      // verify route extends stay-signed-in sessions to the configured max.
+      // Server-side lifetime when "stay logged in" is NOT chosen; the
+      // verify route extends stay-logged-in sessions to the configured max.
       expiresIn: NON_PERSISTENT_SESSION_SECONDS
     },
     user: {
@@ -193,8 +195,7 @@ export function createAuth(db: Db, config: AppConfig, cache?: Cache) {
         create: {
           // Fill profile defaults (FR-011/012): system-assigned clientId /
           // clientSecret, unique userName from the email local-part (or the
-          // provider-supplied name in the OAuth phase), default avatar. A provider's
-          // picture is not kept: the pages load nothing from other websites.
+          // provider-supplied name in the OAuth phase), default avatar.
           before: async (user) => {
             const record = user as Record<string, unknown>;
             if (typeof record.email === "string" && !isAllowed(record.email, config)) refuseNotLaunched(record.email);
@@ -217,8 +218,8 @@ export function createAuth(db: Db, config: AppConfig, cache?: Cache) {
       },
       session: {
         create: {
-          // Single active session (FR-007a): a new sign-in — native or OAuth —
-          // revokes every other session first. First successful sign-in also
+          // Single active session (FR-007a): a new login — native or OAuth —
+          // revokes every other session first. First successful login also
           // activates a pending account (FR-001).
           before: async (session) => {
             const userId = String(session.userId);
@@ -239,7 +240,7 @@ export function createAuth(db: Db, config: AppConfig, cache?: Cache) {
               .execute();
             return { data: { ...session, ipAddress: null, userAgent: null } };
           },
-          // R2: the signed-in address adopts every invitation with the same email key.
+          // R2: the logged-in address adopts every invitation with the same email key.
           after: async (session) => {
             const owner = await db.selectFrom("user").select("email").where("id", "=", String(session.userId)).executeTakeFirst();
             if (owner) await adoptInvitations({ db, cache }, owner.email);
@@ -262,7 +263,7 @@ export function createAuth(db: Db, config: AppConfig, cache?: Cache) {
           }
           // Build the emailed link ourselves so it carries the requesting
           // origin (https custom domain on DigitalOcean, localhost in dev)
-          // and the stay-signed-in choice (FR-006).
+          // and the stay-logged-in choice (FR-006).
           const origin = String(metadata?.origin ?? `http://localhost:${config.port}`);
           const stay = metadata?.stay ? "1" : "0";
           const pid = typeof metadata?.pid === "string" ? metadata.pid : "";
@@ -274,6 +275,34 @@ export function createAuth(db: Db, config: AppConfig, cache?: Cache) {
       ...amazonSignin(db, config)
     ],
     socialProviders: socialProviders(db, config),
+    // https://www.better-auth.com/docs/concepts/hooks
+    hooks: {
+      after: createAuthMiddleware(async (ctx) => {
+        if (ctx.path !== "/callback/:id" && ctx.path !== "/oauth2/callback/:providerId") return;
+        const signedIn = ctx.context.newSession;
+        if (!signedIn) return;
+        // The Stay logged in box, as the emailed link's route shapes it. A failure leaves BetterAuth's
+        // 24-hour session and never stops the login.
+        try {
+          const stay = (await getOAuthState())?.staySignedIn === true;
+          if (stay) {
+            await db
+              .updateTable("session")
+              .set({ expiresAt: new Date(Date.now() + config.maxSigninCookieDurationMs) })
+              .where("token", "=", signedIn.session.token)
+              .execute();
+          }
+          await setSessionCookie(ctx, signedIn, false, {
+            maxAge: stay ? Math.floor(config.maxSigninCookieDurationMs / 1000) : undefined
+          });
+        } catch (err) {
+          console.warn(`[auth] Kept the default session length: ${err instanceof Error ? err.name : "unknown failure"}`);
+        }
+        if (!store || ctx.params?.id !== "google") return;
+        const changed = await refreshProfilePicture({ db, store }, signedIn.user.id);
+        if (changed) await cache?.del(sessionKey(signedIn.session.token)).catch(() => undefined);
+      })
+    },
     onAPIError: config.oauthSignin ? { errorURL: "/login" } : undefined,
     rateLimit: {
       enabled: true,
@@ -296,7 +325,7 @@ export function createAuth(db: Db, config: AppConfig, cache?: Cache) {
           name: "session_token",
           attributes: { httpOnly: true, secure: true, sameSite: "lax" }
         },
-        // The 5-minute forgery check on a provider sign-in, strictly necessary (research R11).
+        // The 5-minute forgery check on a provider login, strictly necessary (research R11).
         state: {
           name: "oauth_state",
           attributes: { httpOnly: true, secure: true, sameSite: "lax" }

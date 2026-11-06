@@ -19,7 +19,7 @@
       if (res.status === 429) window.TooManyLoads = true;
       if (!res.ok) return null;
       // Beside the snapshot, not in it: the snapshot is compared by value on every refresh.
-      window.DeviceSignInDue = res.headers?.get("X-Device-Sign-In-Due") === "1";
+      window.DeviceSignInDue = res.headers?.get("X-Device-Login-Due") === "1";
       const me = await res.json();
       if (me && me.termsAccepted === false) sendToAcceptTerms();
       return me;
@@ -57,7 +57,7 @@
      itself, so the header and the grid's gating cannot disagree.
      ================================================================== */
 
-  /** The page's current view of who is signed in. */
+  /** The page's current view of who is logged in. */
   let snapshot = null;
   let snapshotLoaded = false;
   const subscribers = [];
@@ -96,9 +96,9 @@
   /* ------------------------------------------------------------------
      Cross-window transport (FR-012, FR-016; research R6).
 
-     On the channel the payload is the snapshot itself, never a "signed in"
+     On the channel the payload is the snapshot itself, never a "logged in"
      flag — an email change and a name change alter the body without altering
-     signed-in-ness. The localStorage fallback is the opposite: it carries no
+     logged-in-ness. The localStorage fallback is the opposite: it carries no
      session data at all, because localStorage outlives the session and a
      stored snapshot would put an address on the device and create a value
      that could be mistaken for a cache. It is write-and-notify only.
@@ -273,6 +273,7 @@
 `;
 
   // A house outline: roof, walls and door, drawn like the Home tab's icon.
+  const AVATAR_CHEVRON = `<svg class="avatar-btn-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m6 9 6 6 6-6"/></svg>`;
   const HOME_GLYPH = `<circle cx="32" cy="32" r="32" fill="currentColor"/><path d="M17.6 29.6 32 17.6l14.4 12M20.8 27.2v17.6h22.4V27.2M28.8 44.8v-9.6h6.4v9.6" fill="none" stroke="var(--paper)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`;
   const CREATE_POLL_GLYPH = `<circle cx="32" cy="32" r="32" fill="currentColor"/><path d="M32 18v28M18 32h28" fill="none" stroke="var(--paper)" stroke-width="6" stroke-linecap="round"/>`;
   const PROFILE_GLYPH = `<circle cx="32" cy="32" r="32" fill="#8093a7"/><circle cx="32" cy="25" r="11" fill="#e8edf2"/><path d="M32 40c-11 0-19 6.5-19 14.5V64h38v-9.5C51 46.5 43 40 32 40z" fill="#e8edf2"/>`;
@@ -342,12 +343,13 @@
       avatarBtn.setAttribute("aria-haspopup", "menu");
       avatarBtn.setAttribute("aria-expanded", "false");
       avatarBtn.appendChild(avatar);
+      avatarBtn.insertAdjacentHTML("beforeend", AVATAR_CHEVRON);
 
       const menu = document.createElement("div");
       menu.className = "avatar-menu";
       menu.hidden = true;
 
-      // Home comes first for every signed-in user. On the home page it selects the tab in place.
+      // Home comes first for every logged-in user. On the home page it selects the tab in place.
       const homeLink = document.createElement("a");
       homeLink.href = "/?tab=home";
       fillMenuItem(homeLink, HOME_GLYPH, "Home");
@@ -364,7 +366,7 @@
       fillMenuItem(editLink, PROFILE_GLYPH, "Edit Profile");
       menu.appendChild(editLink);
 
-      // Every signed-in user may change their own settings, whatever their permissions.
+      // Every logged-in user may change their own settings, whatever their permissions.
       const settingsLink = document.createElement("a");
       settingsLink.href = "/settings";
       fillMenuItem(settingsLink, SETTINGS_GLYPH, "Site Settings");
@@ -474,8 +476,8 @@
 
     const text = document.createElement("span");
     text.textContent =
-      "This app uses a strictly necessary session cookie to keep you signed in, " +
-      "and a short-lived security cookie while a sign-in link is waiting to be used. " +
+      "This app uses a strictly necessary session cookie to keep you logged in, " +
+      "and a short-lived security cookie while a login link is waiting to be used. " +
       "No other cookies are set.";
 
     const button = document.createElement("button");
@@ -510,6 +512,11 @@
     const nav = document.createElement("nav");
     nav.setAttribute("aria-label", "Legal");
     nav.append(link("/privacy", "Privacy Policy"), " · ", link("/terms", "Terms of Service"), " · ", link("/privacy#cookies", "Cookie Use"));
+    const deleteAccount = document.createElement("span");
+    deleteAccount.className = "site-footer-delete-account";
+    deleteAccount.hidden = true;
+    deleteAccount.append(" · ", link("/profile#delete-account", "Delete Account"));
+    nav.append(deleteAccount);
     const contact = document.createElement("p");
     contact.append(
       "Privacy: ", link("mailto:privacy@crowdpoll.vote", "privacy@crowdpoll.vote"),
@@ -519,6 +526,11 @@
     copyright.textContent = "© " + new Date().getFullYear() + " CrowdPoll";
     footer.append(nav, contact, copyright);
     document.body.appendChild(footer);
+  }
+
+  function showFooterDeleteAccount(me) {
+    const item = document.querySelector(".site-footer-delete-account");
+    if (item) item.hidden = !me;
   }
 
   function raiseSnackbarsAbove(banner) {
@@ -597,6 +609,32 @@
   window.SiteGlyphs = { settings: SETTINGS_GLYPH };
 
 
+  const SIGN_IN_NOTICE_MS = 6000;
+
+  /* A provider login's callbackURL carries the mark; it goes at once, so a reload shows nothing. */
+  function takeSignInMark() {
+    const params = new URLSearchParams(location.search);
+    const mark = params.get("signedIn");
+    if (mark === null) return false;
+    params.delete("signedIn");
+    const query = params.toString();
+    history.replaceState(history.state, "", location.pathname + (query ? "?" + query : "") + location.hash);
+    return mark === "1";
+  }
+
+  function showSignInNotice(me) {
+    if (!takeSignInMark() || !me || me.termsAccepted === false || !me.emailAddress) return;
+    const bar = document.createElement("div");
+    bar.className = "m3-snackbar m3-snackbar--top";
+    bar.setAttribute("role", "status");
+    document.body.appendChild(bar);
+    requestAnimationFrame(() => {
+      bar.textContent = "Logged in as " + me.emailAddress;
+      bar.classList.add("is-shown");
+      setTimeout(() => bar.classList.remove("is-shown"), SIGN_IN_NOTICE_MS);
+    });
+  }
+
   async function init() {
     renderSiteFooter();
     renderCookieBanner();
@@ -608,8 +646,10 @@
       renderSiteHeader(next);
       renderContent(next);
       applyNavigationRule(next);
+      showFooterDeleteAccount(next);
     });
     adopt(me, true);
+    showSignInNotice(me);
 
     /* FR-010: refresh when the window is seen again — visibilitychange for an
        ordinary return, pageshow for a back/forward-cache restore, which fires

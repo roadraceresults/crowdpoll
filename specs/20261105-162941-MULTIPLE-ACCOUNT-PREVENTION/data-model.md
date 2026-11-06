@@ -1,6 +1,6 @@
 # Data Model: Multiple Account Prevention
 
-## New table: `device_events` (migration `017-device-events`)
+## New table: `device_events` (migration `018-device-events`)
 
 Partitioned by range on `at`, one child per calendar month, named `device_events_YYYY_MM`.
 

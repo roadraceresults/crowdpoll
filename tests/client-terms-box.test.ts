@@ -79,7 +79,7 @@ describe("the Login card (C4)", () => {
     await page.settle();
     const line = page.document.querySelector(".login-terms-line")!;
     expect([...line.childNodes].map((n) => (n.nodeName === "BR" ? "\n" : n.textContent)).join("")).toBe(
-      "By signing in you agree to the Terms of Service\nand Privacy Policy."
+      "By logging in you agree to the Terms of Service\nand Privacy Policy."
     );
     expect([...line.querySelectorAll("a")].map((a) => a.getAttribute("href"))).toEqual(["/terms", "/privacy"]);
   });
@@ -93,7 +93,7 @@ describe("the Login card (C4)", () => {
       await oauthCtx.stop();
     });
 
-    it("has no Terms box: agreement comes after the sign-in, on the Accept Terms card", async () => {
+    it("has no Terms box: agreement comes after the login, on the Accept Terms card", async () => {
       page = await openPage(oauthCtx, "login.html", { url: "http://localhost/login", scripts: ["app.js", "cardShell.js", "loginCard.js"] });
       await page.settle();
       const providers = [...page.document.querySelectorAll(".oauth-providers button")];
@@ -117,13 +117,55 @@ describe("the accept page (C5)", () => {
     const accept = actionButton(page, "Accept");
     expect(accept.getAttribute("aria-disabled") === "true" || accept.disabled).toBe(true);
     expect(accept.classList.contains("btn-text")).toBe(false);
-    expect(actionButton(page, "Sign Out").classList.contains("btn-text")).toBe(true);
+    expect(actionButton(page, "Log Out").classList.contains("btn-text")).toBe(true);
     tick(page);
     expect(accept.getAttribute("aria-disabled") === "true" || accept.disabled).toBe(false);
     const sent = capture(page, "/api/legal/accept-terms");
     accept.click();
     await page.settle(100);
     expect(JSON.parse(sent[0]!)).toEqual({ termsVersion: TERMS_VERSION, next: "/profile" });
+  });
+
+  it("names Cookie Use in the box, with a link, and shows the address in bold", async () => {
+    const { cookie, userId } = await forgeSession(ctx, "accept-wording@example.org");
+    await withoutAgreement(ctx, userId);
+    page = await openPage(ctx, "accept-terms.html", {
+      cookie,
+      url: "http://localhost/accept-terms?next=%2F",
+      scripts: ["app.js", "cardShell.js", "acceptTermsCard.js"]
+    });
+    await page.settle();
+    const sentence = page.document.querySelector(".terms-box-text")!;
+    expect([...sentence.childNodes].map((n) => (n.nodeName === "BR" ? "\n" : n.textContent)).join("")).toBe(
+      "I agree to the Terms of Service\nand have read the Privacy Policy and Cookie Use."
+    );
+    expect([...sentence.querySelectorAll("a")].map((a) => a.getAttribute("href"))).toEqual(["/terms", "/privacy", "/privacy#cookies"]);
+    expect(page.document.querySelector(".accept-terms-account strong")?.textContent).toBe("accept-wording@example.org");
+  });
+
+  it("posts the server's version even when the browser holds an older /api/config", async () => {
+    const { cookie, userId } = await forgeSession(ctx, "accept-stale@example.org");
+    await withoutAgreement(ctx, userId);
+    page = await openPage(ctx, "accept-terms.html", {
+      cookie,
+      url: "http://localhost/accept-terms?next=%2Fprofile",
+      scripts: ["app.js", "cardShell.js", "acceptTermsCard.js"],
+      beforeScripts: (window) => {
+        const real = window.fetch;
+        window.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+          const res = await real(input, init);
+          if (String(input) !== "/api/config" || init?.cache === "no-cache") return res;
+          const body = await res.json();
+          return { ...res, ok: true, status: 200, json: async () => ({ ...body, termsVersion: "2000-01-01" }) } as unknown as Response;
+        }) as typeof window.fetch;
+      }
+    });
+    await page.settle();
+    tick(page);
+    const sent = capture(page, "/api/legal/accept-terms");
+    actionButton(page, "Accept").click();
+    await page.settle(100);
+    expect(JSON.parse(sent[0]!).termsVersion).toBe(TERMS_VERSION);
   });
 
   it("greets an account that has never accepted the Terms", async () => {
@@ -140,7 +182,7 @@ describe("the accept page (C5)", () => {
     expect(page.document.querySelector(".card-shell-badge")).not.toBeNull();
   });
 
-  it("tells an account that accepted an earlier version the Terms were updated", async () => {
+  it("tells an account that accepted a much earlier version both documents were updated", async () => {
     const { cookie, userId } = await forgeSession(ctx, "accept-older@example.org");
     await ctx.db.updateTable("user").set({ terms_version: "2000-01-01" }).where("id", "=", userId).execute();
     await ctx.sessions.forgetUserSessions(userId);
@@ -150,7 +192,7 @@ describe("the accept page (C5)", () => {
       scripts: ["app.js", "cardShell.js", "acceptTermsCard.js"]
     });
     await page.settle();
-    expect(page.document.querySelector("h1")?.textContent).toBe("Updated Terms of Service");
-    expect(page.document.querySelector(".card-shell-subtitle")?.textContent).toBe("Please read and accept the Terms of Service to continue.");
+    expect(page.document.querySelector("h1")?.textContent).toBe("Updated Terms of Service and Privacy Policy");
+    expect(page.document.querySelector(".card-shell-subtitle")?.textContent).toBe("Please read and accept the Terms of Service and Privacy Policy to continue.");
   });
 });

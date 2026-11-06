@@ -6,7 +6,7 @@ laptop — and check the bounds the server promises. Each script reads:
 | Variable | Meaning | Default |
 |---|---|---|
 | `BASE_URL` | The deployment's origin | `http://localhost:8080` |
-| `COOKIES` | Comma-separated `session_token=…` cookies of signed-in test accounts (one per virtual user, reused round-robin) | none (guest traffic) |
+| `COOKIES` | Comma-separated `session_token=…` cookies of logged-in test accounts (one per virtual user, reused round-robin) | none (guest traffic) |
 | `PIDS` | Comma-separated poll ids to vote on / watch | required by `vote-burst.js` and `live-surge.js` |
 | `SEARCH_TERMS` | Comma-separated search words: a distinctive title word, a common word and a misspelling | `budget.js` |
 

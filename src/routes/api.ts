@@ -1,7 +1,7 @@
 /**
  * /api/* endpoints (contracts/api-endpoints.md). Express routes wrap the
  * BetterAuth server API: validation, account-existence privacy, per-client
- * rate-limit consumption, and stay-signed-in cookie shaping live here.
+ * rate-limit consumption, and stay-logged-in cookie shaping live here.
  */
 import { Router, type Request, type RequestHandler, type Response } from "express";
 import { parsePid } from "../polls/sharedLink.js";
@@ -29,11 +29,12 @@ import { findSignInToken, useToken } from "../invitations/tokens.js";
 import { findCreateAccountToken, issueCreateAccountToken, useCreateAccountToken } from "../auth/createAccountLinks.js";
 import { NOT_LAUNCHED, isAllowed, logRefusal } from "../auth/allowlist.js";
 import { sql } from "kysely";
-import { TERMS_VERSION } from "../legal/version.js";
+import { PRIVACY_UPDATED, TERMS_UPDATED, TERMS_VERSION } from "../legal/version.js";
 import { recordAgreement } from "../legal/recordAgreement.js";
 import { hasAcceptedTerms, safeNext } from "../legal/termsGate.js";
 import { deleteAccount } from "../legal/deleteAccount.js";
 import { maskIp } from "../auth/maskIp.js";
+import { avatarUrl } from "../auth/profilePicture.js";
 import { requireHumanCheck, type HumanCheck } from "../auth/humanCheck.js";
 import { listingMaxAgeMs } from "../trending/publish.js";
 import { isSignInDue, keyedDeviceHashes, recordSignInEvent } from "../votes/deviceEvents.js";
@@ -78,7 +79,7 @@ function respondRateLimited(res: Response, nextAllowedAt: Date): void {
 }
 
 const BINDING_COOKIE = "signin_binding";
-const INVALID_LINK = "This sign-in link is invalid or has expired.";
+const INVALID_LINK = "This login link is invalid or has expired.";
 
 function bindingCookie(value: string, maxAgeSeconds: number): string {
   return `${BINDING_COOKIE}=${value}; Path=/api/auth; Max-Age=${maxAgeSeconds}; HttpOnly; Secure; SameSite=Lax`;
@@ -115,7 +116,7 @@ export function createApiRouter(deps: ApiDeps): Router {
   const { auth, db, cache, config, sessions, pageLoads } = deps;
   const router = Router();
   const createAccountCheck = requireHumanCheck(deps, ["create-account"]);
-  // Finishing from an emailed create-account link starts no new sign-in, so it needs no human check.
+  // Finishing from an emailed create-account link starts no new login, so it needs no human check.
   const humanCheckUnlessLink: RequestHandler = (req, res, next) => {
     if (typeof req.body?.token === "string" && req.body.token) next();
     else createAccountCheck(req, res, next);
@@ -146,13 +147,13 @@ export function createApiRouter(deps: ApiDeps): Router {
     next();
   };
 
-  // GET /api/config — the sign-in mode drives client rendering (FR-015/019).
+  // GET /api/config — the login mode drives client rendering (FR-015/019).
   router.get("/api/config", (_req, res) => {
     res.setHeader("Cache-Control", "public, max-age=300");
     res.json({
       signinMethod: config.signinMethod,
       oauthProviders: Object.keys(config.oauthProviders),
-      // The login card says how long "stay signed in" lasts, from the same setting that enforces it.
+      // The login card says how long "stay logged in" lasts, from the same setting that enforces it.
       maxSigninCookieDurationMs: config.maxSigninCookieDurationMs,
       deviceEventsEnabled: config.deviceEvents.enabled,
       staySignedInDefault: config.staySignedInDefault,
@@ -213,7 +214,7 @@ export function createApiRouter(deps: ApiDeps): Router {
     res.append("Set-Cookie", bindingCookie(binding, LINK_EXPIRY_SECONDS));
   }
 
-  /** Mints a sign-in token for server-side consumption; no email, no binding cookie (R5). */
+  /** Mints a login token for server-side consumption; no email, no binding cookie (R5). */
   async function mintLoginToken(email: string): Promise<string> {
     await supersedeLoginLinks(db, email);
     const mint = randomBytes(18).toString("base64url");
@@ -223,7 +224,7 @@ export function createApiRouter(deps: ApiDeps): Router {
         headers: new Headers()
       });
       const token = mintedTokens.get(mint);
-      if (!token) throw new Error("No sign-in token was minted");
+      if (!token) throw new Error("No login token was minted");
       return token;
     } finally {
       mintedTokens.delete(mint);
@@ -232,7 +233,7 @@ export function createApiRouter(deps: ApiDeps): Router {
 
   /**
    * The token form of create-account: the one-time link emailed to an address
-   * with no account creates it and signs in, with no second email.
+   * with no account creates it and logs in, with no second email.
    */
   async function createAccountFromLink(req: Request, res: Response, token: string): Promise<void> {
     if (req.get("origin") !== requestOrigin(req)) {
@@ -252,7 +253,7 @@ export function createApiRouter(deps: ApiDeps): Router {
       res.status(400).json({
         error:
           req.body?.acceptedTerms === true
-            ? "The Terms of Service have changed. Reload the page and accept them again."
+            ? "The Terms of Service or Privacy Policy have changed. Reload the page and accept them again."
             : "Please accept the Terms of Service to create an account.",
         code: "terms-required"
       });
@@ -287,7 +288,7 @@ export function createApiRouter(deps: ApiDeps): Router {
       target = null;
     }
     if (!target) {
-      console.log(`[auth] Create-account sign-in could not be completed for ${mailer.maskAddress(link.email)}`);
+      console.log(`[auth] Create-account login could not be completed for ${mailer.maskAddress(link.email)}`);
       res.status(500).json({ error: "Something went wrong, please try again later" });
       return;
     }
@@ -338,7 +339,7 @@ export function createApiRouter(deps: ApiDeps): Router {
         console.log("[legal] Create-account refused: terms not accepted");
         res.status(400).json({
           error: req.body?.acceptedTerms === true
-            ? "The Terms of Service have changed. Reload the page and accept them again."
+            ? "The Terms of Service or Privacy Policy have changed. Reload the page and accept them again."
             : "Please accept the Terms of Service to create an account.",
           code: "terms-required"
         });
@@ -435,7 +436,7 @@ export function createApiRouter(deps: ApiDeps): Router {
   );
 
   /**
-   * Consume a sign-in token and shape the session cookie (FR-003/004, FR-006, FR-007a).
+   * Consume a login token and shape the session cookie (FR-003/004, FR-006, FR-007a).
    * Shared by the verify link's fast path and the confirmation page (R9).
    */
   async function completeSignIn(
@@ -462,7 +463,7 @@ export function createApiRouter(deps: ApiDeps): Router {
       return null;
     }
 
-    // Shape persistence to the user's stay-signed-in choice (FR-006):
+    // Shape persistence to the user's stay-logged-in choice (FR-006):
     // persistent cookie + extended server expiry when chosen, otherwise a
     // browser-session cookie backed by the 24h server-side session.
     const attrs = sessionCookie
@@ -482,11 +483,11 @@ export function createApiRouter(deps: ApiDeps): Router {
         .execute();
     }
     res.setHeader("Set-Cookie", [attrs.join("; "), bindingCookie("", 0)]);
-    console.log(`[auth] Sign-in completed (staySignedIn=${stay})`);
+    console.log(`[auth] Login completed (staySignedIn=${stay})`);
     return pid ? `/?PID=${pid}` : "/";
   }
 
-  /** The account and request time of an unused, unexpired sign-in link; reads only (A5). */
+  /** The account and request time of an unused, unexpired login link; reads only (A5). */
   async function pendingLink(token: string): Promise<{ email: string; requestedAt: Date } | null> {
     if (!token) return null;
     const row = await db
@@ -627,7 +628,7 @@ export function createApiRouter(deps: ApiDeps): Router {
       const token = typeof req.body?.token === "string" ? req.body.token : "";
       const link = pid ? await findSignInToken(db, pid, token) : null;
       if (!pid || !link) {
-        console.log("[invite] Redeem of a link that cannot sign in");
+        console.log("[invite] Redeem of a link that cannot log in");
         res.json({ redirect: pid ? `/?PID=${pid}` : "/" });
         return;
       }
@@ -637,7 +638,7 @@ export function createApiRouter(deps: ApiDeps): Router {
         res.status(400).json({
           error:
             req.body?.acceptedTerms === true
-              ? "The Terms of Service have changed. Reload the page and accept them again."
+              ? "The Terms of Service or Privacy Policy have changed. Reload the page and accept them again."
               : "Please accept the Terms of Service to create an account.",
           code: "terms-required"
         });
@@ -657,8 +658,8 @@ export function createApiRouter(deps: ApiDeps): Router {
       const session = await sessions.getSession(req);
       if (session && emailKeyOf(session.user.email) !== emailKeyOf(link.email)) {
         if (req.body?.signOut !== true) {
-          console.log("[invite] Redeem refused: signed in as another account");
-          res.status(409).json({ error: "Signed in as another account.", code: "other-account" });
+          console.log("[invite] Redeem refused: logged in as another account");
+          res.status(409).json({ error: "Logged in as another account.", code: "other-account" });
           return;
         }
         await sessions.endSession(req);
@@ -672,18 +673,18 @@ export function createApiRouter(deps: ApiDeps): Router {
       try {
         minted = await mintLoginToken(account?.email ?? link.email);
       } catch {
-        console.log(`[invite] Sign-in could not be completed for ${mailer.maskAddress(link.email)}`);
+        console.log(`[invite] Login could not be completed for ${mailer.maskAddress(link.email)}`);
         res.status(500).json({ error: "Something went wrong, please try again later" });
         return;
       }
       if (!(await useToken(db, pid, token))) {
-        console.log("[invite] Redeem of a link that cannot sign in");
+        console.log("[invite] Redeem of a link that cannot log in");
         res.json({ redirect: `/?PID=${pid}` });
         return;
       }
       const target = await completeSignIn(req, res, minted, req.body?.stay === true, pid);
       if (!target) {
-        console.log(`[invite] Sign-in could not be completed for ${mailer.maskAddress(link.email)}`);
+        console.log(`[invite] Login could not be completed for ${mailer.maskAddress(link.email)}`);
         res.status(500).json({ error: "Something went wrong, please try again later" });
         return;
       }
@@ -698,7 +699,7 @@ export function createApiRouter(deps: ApiDeps): Router {
     wrap(async (req, res) => {
       const session = await sessions.getSession(req);
       if (!session) {
-        res.status(401).json({ error: "Not signed in" });
+        res.status(401).json({ error: "Not logged in" });
         return;
       }
       const clearCookie = await sessions.endSession(req);
@@ -715,7 +716,7 @@ export function createApiRouter(deps: ApiDeps): Router {
     wrap(async (req, res) => {
       const session = await sessions.getSession(req);
       if (!session) {
-        res.status(401).json({ error: "Not signed in" });
+        res.status(401).json({ error: "Not logged in" });
         return;
       }
       const user = session.user as typeof session.user & {
@@ -726,13 +727,14 @@ export function createApiRouter(deps: ApiDeps): Router {
       if (config.deviceEvents.enabled && hasAcceptedTerms(session)) {
         // A 304 leaves a browser's stored headers in place, so a stored copy would keep saying due after the report.
         res.setHeader("Cache-Control", "no-store");
-        if (await isSignInDue(cache, session.session.id)) res.setHeader("X-Device-Sign-In-Due", "1");
+        if (await isSignInDue(cache, session.session.id)) res.setHeader("X-Device-Login-Due", "1");
       }
+      const acceptedVersion = (session.user as { termsVersion?: string | null }).termsVersion ?? "";
       res.json({
         userName: user.userName,
         // OAuth mode: provider-supplied, read-only (not editable via PATCH).
         emailAddress: user.email,
-        profileAvatar: user.profileAvatar,
+        profileAvatar: avatarUrl(user.profileAvatar, config),
         status: user.status,
         // 012 T081 (FR-049/FR-052): a rendering hint for the avatar menu, produced by
         // the same predicate that gates every admin route — never an authorization
@@ -741,15 +743,17 @@ export function createApiRouter(deps: ApiDeps): Router {
         isAdmin: isAdminEmail(user.email, config),
         permissions: effectivePermissions(user as Caller, config),
         termsAccepted: hasAcceptedTerms(session),
-        termsFirstAcceptance: !(session.user as { termsVersion?: string | null }).termsVersion,
+        termsFirstAcceptance: !acceptedVersion,
+        termsUpdated: acceptedVersion < TERMS_UPDATED,
+        privacyUpdated: acceptedVersion < PRIVACY_UPDATED,
         colorScheme: colorSchemeOf(session.user)
       });
     })
   );
 
-  // POST /api/me/device-sign-in (A4); the terms gate refuses it before acceptance.
+  // POST /api/me/device-login (A4); the terms gate refuses it before acceptance.
   router.post(
-    "/api/me/device-sign-in",
+    "/api/me/device-login",
     pageLoads,
     wrap(async (req, res) => {
       const session = await sessions.getSession(req);
@@ -783,7 +787,7 @@ export function createApiRouter(deps: ApiDeps): Router {
       }
       const session = await sessions.getSession(req);
       if (!session) {
-        res.status(401).json({ error: "Not signed in" });
+        res.status(401).json({ error: "Not logged in" });
         return;
       }
       if (req.body?.confirm !== "DELETE") {
@@ -823,11 +827,11 @@ export function createApiRouter(deps: ApiDeps): Router {
       }
       const session = await sessions.getSession(req);
       if (!session) {
-        res.status(401).json({ error: "Not signed in" });
+        res.status(401).json({ error: "Not logged in" });
         return;
       }
       if (req.body?.termsVersion !== TERMS_VERSION) {
-        res.status(400).json({ error: "The Terms of Service have changed. Reload the page and accept them again.", code: "terms-required" });
+        res.status(400).json({ error: "The Terms of Service or Privacy Policy have changed. Reload the page and accept them again.", code: "terms-required" });
         return;
       }
       await recordAgreement(db, sessions, session.user.id);
@@ -842,7 +846,7 @@ export function createApiRouter(deps: ApiDeps): Router {
     wrap(async (req, res) => {
       const session = await sessions.getSession(req);
       if (!session) {
-        res.status(401).json({ error: "Not signed in" });
+        res.status(401).json({ error: "Not logged in" });
         return;
       }
       const body = (req.body ?? {}) as Record<string, unknown>;
@@ -905,7 +909,7 @@ export function createApiRouter(deps: ApiDeps): Router {
       res.json({
         userName: renaming ? userName : user.userName,
         emailAddress: user.email,
-        profileAvatar: user.profileAvatar,
+        profileAvatar: avatarUrl(user.profileAvatar, config),
         status: user.status,
         colorScheme: choosingScheme ? colorScheme : colorSchemeOf(session.user)
       });
@@ -923,7 +927,7 @@ export function createApiRouter(deps: ApiDeps): Router {
       }
       const session = await sessions.getSession(req);
       if (!session) {
-        res.status(401).json({ error: "Not signed in" });
+        res.status(401).json({ error: "Not logged in" });
         return;
       }
       if (honeypotFilled(req)) {

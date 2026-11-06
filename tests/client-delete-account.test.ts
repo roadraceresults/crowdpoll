@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { clearPolls, forgeSession, startTestContext, type TestContext } from "./helpers/setup.js";
 import { openPage, type BrowserPage } from "./helpers/browser.js";
@@ -18,11 +19,11 @@ afterEach(() => {
   page = null;
 });
 
-async function profile(email: string): Promise<BrowserPage> {
+async function profile(email: string, hash = ""): Promise<BrowserPage> {
   const { cookie } = await forgeSession(ctx, email);
   const opened = await openPage(ctx, "profile.html", {
     cookie,
-    url: "http://localhost/profile",
+    url: `http://localhost/profile${hash}`,
     scripts: ["app.js", "cardShell.js", "profileCard.js"],
     beforeScripts: (window) => {
       const sameOrigin = window.fetch;
@@ -43,22 +44,43 @@ function type(p: BrowserPage, field: HTMLInputElement, value: string): void {
   field.dispatchEvent(new p.window.Event("input", { bubbles: true }));
 }
 
-describe("the Your Data section (C6)", () => {
-  it("offers Delete Account, explains how to get a copy and links the policy", async () => {
+describe("reaching the delete dialog", () => {
+  it("has no Your Data section on the Profile card, and no dialog until it is asked for", async () => {
     page = await profile("your-data@example.org");
-    const section = page.document.querySelector(".profile-your-data")!;
-    expect(section.querySelector("h2, h3")?.textContent).toBe("Your Data");
-    expect(section.textContent).toContain("privacy@crowdpoll.vote");
-    expect(section.textContent).toContain("within 30 days");
-    expect(section.querySelector('a[href="/privacy"]')).not.toBeNull();
-    expect(button(page, "Delete Account", section)).toBeDefined();
+    expect(page.document.querySelector(".profile-your-data")).toBeNull();
+    expect(page.document.body.textContent).not.toContain("Your Data");
+    expect(button(page, "Delete Account")).toBeUndefined();
+    expect(page.document.querySelector('[role="dialog"]')).toBeNull();
+  });
+
+  it("opens from the Privacy Policy's link, and a reload does not open it again", async () => {
+    page = await profile("from-policy@example.org", "#delete-account");
+    expect(page.document.querySelector('[role="dialog"]')).not.toBeNull();
+    expect(page.window.location.hash).toBe("");
+    expect(page.window.location.pathname).toBe("/profile");
+  });
+
+  it("opens from the footer's link while already on the Profile page", async () => {
+    page = await profile("from-footer@example.org");
+    expect(page.document.querySelector('[role="dialog"]')).toBeNull();
+    page.window.location.hash = "#delete-account";
+    await page.settle();
+    expect(page.document.querySelector('[role="dialog"]')).not.toBeNull();
+    expect(page.window.location.hash).toBe("");
+  });
+
+  it("is linked from the Privacy Policy's Delete your account", () => {
+    const html = readFileSync("src/public/privacy.html", "utf8");
+    expect(html).toContain('<strong><a href="/profile#delete-account">Delete your account</a></strong>: This deletes');
+    expect(html).not.toContain("under Your Data");
+    const unlinked = html.replace(/<a href="\/profile#delete-account">delete your account<\/a>/gi, "");
+    expect(unlinked).not.toMatch(/delete your account/i);
   });
 });
 
 describe("the delete dialog (C7)", () => {
   it("is modal, enables Delete only for DELETE, and closes on Escape", async () => {
-    page = await profile("dialog@example.org");
-    button(page, "Delete Account", page.document.querySelector(".profile-your-data")!).click();
+    page = await profile("dialog@example.org", "#delete-account");
     const dialog = page.document.querySelector('[role="dialog"]') as HTMLElement;
     expect(dialog.getAttribute("aria-modal")).toBe("true");
     expect(dialog.textContent).toContain("This cannot be undone.");
@@ -71,11 +93,11 @@ describe("the delete dialog (C7)", () => {
     expect(confirm.disabled).toBe(false);
     page.document.dispatchEvent(new page.window.KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
     expect(page.document.querySelector('[role="dialog"]')).toBeNull();
+    expect(page.document.activeElement?.tagName).toBe("INPUT");
   });
 
   it("deletes the account and goes home", async () => {
-    page = await profile("goodbye@example.org");
-    button(page, "Delete Account", page.document.querySelector(".profile-your-data")!).click();
+    page = await profile("goodbye@example.org", "#delete-account");
     const dialog = page.document.querySelector('[role="dialog"]') as HTMLElement;
     type(page, dialog.querySelector("input") as HTMLInputElement, "DELETE");
     button(page, "Delete Account", dialog).click();

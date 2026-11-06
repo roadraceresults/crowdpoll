@@ -1,5 +1,5 @@
 /**
- * The three sign-in modes (research R2, R3; contracts/api.md A1, A4): `native` keeps the provider routes
+ * The three login modes (research R2, R3; contracts/api.md A1, A4): `native` keeps the provider routes
  * absent, `oauth` keeps the email routes absent, and `both` serves each from its own handler.
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -129,7 +129,7 @@ describe("both mode", () => {
     expect((await request(ctx.app).get("/confirm-signin")).status).toBe(200);
   });
 
-  it("creates an account, signs in by email link and changes the address exactly as in native (SC-004)", async () => {
+  it("creates an account, logs in by email link and changes the address exactly as in native (SC-004)", async () => {
     const created = await request(ctx.app)
       .post("/api/auth/create-account")
       .set("x-forwarded-for", "10.9.0.1")

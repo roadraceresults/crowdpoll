@@ -75,6 +75,7 @@ describe("TRENDING recompute", () => {
     await vote(b._id, 1);
     const puts: { key: string; cacheControl: string; contentEncoding?: string }[] = [];
     const store: ObjectStore = {
+      delete: async () => {},
       put: async (key, _body, headers) => {
         puts.push({ key, cacheControl: headers.cacheControl, contentEncoding: headers.contentEncoding });
       }
@@ -100,6 +101,7 @@ describe("TRENDING recompute", () => {
   it("publishes with the smaller of the recompute interval and 10 s as max-age, and sends both lifetimes in /api/config", async () => {
     const puts: string[] = [];
     const store: ObjectStore = {
+      delete: async () => {},
       put: async (_key, _body, headers) => {
         puts.push(headers.cacheControl);
       }
@@ -119,7 +121,7 @@ describe("TRENDING recompute", () => {
     const a = makePoll({ title: "before" });
     await polls(ctx).insertOne(a);
     const puts: string[] = [];
-    const store: ObjectStore = { put: async (key) => { puts.push(key); } };
+    const store: ObjectStore = { delete: async () => {}, put: async (key) => { puts.push(key); } };
     const publisher = createListingPublisher(store, ctx.config.trendingPollsRecomputeSweepIntervalMs, TRENDING_OBJECTS);
 
     const first = await recomputeTrending(ctx);

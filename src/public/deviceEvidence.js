@@ -1,8 +1,8 @@
 /*
-  DEVICE EVIDENCE — computes this browser's fingerprint for a signed-in user, at
+  DEVICE EVIDENCE — computes this browser's fingerprint for a logged-in user, at
   idle and at most once per page, and keeps it in page memory. Votes carry it when
   it is ready and never wait for it; any failure leaves them without it, silently.
-  A session not yet reported sends its one sign-in event, with or without a value.
+  A session not yet reported sends its one login event, with or without a value.
 */
 (function () {
   "use strict";
@@ -57,7 +57,7 @@
 
   async function reportSignIn() {
     try {
-      await fetch("/api/me/device-sign-in", { method: "POST", headers: headers() });
+      await fetch("/api/me/device-login", { method: "POST", headers: headers() });
     } catch {
       // A later page reports instead, since the session is still due.
     }

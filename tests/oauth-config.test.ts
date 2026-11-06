@@ -1,5 +1,5 @@
 /**
- * Social sign-in settings (research R1, R2, R4; FR-003): one public origin, three sign-in modes, and a
+ * Social login settings (research R1, R2, R4; FR-003): one public origin, three login modes, and a
  * provider that is on only when every one of its settings is set.
  */
 import { describe, expect, it } from "vitest";
@@ -61,7 +61,7 @@ describe("ENV_SIGNIN_METHOD (R2)", () => {
   });
 });
 
-describe("sign-in providers (R4, FR-003)", () => {
+describe("login providers (R4, FR-003)", () => {
   it("are off in native mode, even when set", () => {
     expect(loadConfig(env(GOOGLE)).oauthProviders).toEqual({});
   });
@@ -90,15 +90,15 @@ describe("sign-in providers (R4, FR-003)", () => {
     const partial = { ...APPLE, ENV_OAUTH_APPLE_KEY_ID: undefined };
     expect(() => loadConfig(env({ ENV_SIGNIN_METHOD: "oauth", ...GOOGLE, ...partial }))).toThrow(ConfigError);
     expect(() => loadConfig(env({ ENV_SIGNIN_METHOD: "oauth", ...GOOGLE, ...partial }))).toThrow(
-      "Incomplete Apple sign-in settings: ENV_OAUTH_APPLE_KEY_ID is not set."
+      "Incomplete Apple login settings: ENV_OAUTH_APPLE_KEY_ID is not set."
     );
     expect(() =>
       loadConfig(env({ ENV_SIGNIN_METHOD: "both", ENV_OAUTH_MICROSOFT_CLIENT_ID: "m-id" }))
-    ).toThrow("Incomplete Microsoft sign-in settings: ENV_OAUTH_MICROSOFT_CLIENT_SECRET is not set.");
+    ).toThrow("Incomplete Microsoft login settings: ENV_OAUTH_MICROSOFT_CLIENT_SECRET is not set.");
   });
 
   it("refuses oauth or both with no provider on", () => {
-    expect(() => loadConfig(env({ ENV_SIGNIN_METHOD: "oauth" }))).toThrow(/no sign-in provider/);
+    expect(() => loadConfig(env({ ENV_SIGNIN_METHOD: "oauth" }))).toThrow(/no login provider/);
     expect(() => loadConfig(env({ ENV_SIGNIN_METHOD: "both" }))).toThrow(ConfigError);
   });
 
@@ -115,7 +115,7 @@ describe("sign-in providers (R4, FR-003)", () => {
     );
     expect(Object.keys(config.oauthProviders)).toEqual(["google"]);
     expect(() => loadConfig(env({ ENV_SIGNIN_METHOD: "oauth", ENV_OAUTH_GITHUB_CLIENT_ID: "h", ENV_OAUTH_GITHUB_CLIENT_SECRET: "h" }))).toThrow(
-      /no sign-in provider/
+      /no login provider/
     );
   });
 });

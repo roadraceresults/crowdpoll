@@ -25,7 +25,7 @@ import { evaluateSchedule, correctInvertedSchedule } from "./service.js";
 import { screenWithTimeout, localScreener, type Screener } from "./screening.js";
 import { dirtyDayKey, flushDirty, reconcile } from "./counters.js";
 import { recomputeNewest, recomputeTrending } from "../trending/recompute.js";
-import type { Publisher } from "../trending/publish.js";
+import type { ObjectStore, Publisher } from "../trending/publish.js";
 import { drainOutbox } from "../search/outbox.js";
 import type { Search } from "../search/search.js";
 import { controllerTick } from "../load/controller.js";
@@ -62,7 +62,8 @@ export const SWEEP_LOCKS = {
   staleEdit: 9,
   newest: 10,
   retention: 11,
-  invitations: 12
+  invitations: 12,
+  avatarRemovals: 13
 } as const;
 
 /**
@@ -451,15 +452,48 @@ export async function newestSweep(
   return listing.order.length;
 }
 
+const AVATAR_REMOVAL_INTERVAL_MS = 5 * 60 * 1000;
+const AVATAR_REMOVALS_PER_TICK = 100;
+
+export async function removeAvatarObjects({ db }: Pick<SweepDeps, "db">, store: ObjectStore): Promise<number> {
+  const queued = await db.selectFrom("avatar_removals").select("key").orderBy("queued_at").limit(AVATAR_REMOVALS_PER_TICK).execute();
+  let removed = 0;
+  let failed = 0;
+  for (const { key } of queued) {
+    try {
+      await store.delete(key);
+      await db.deleteFrom("avatar_removals").where("key", "=", key).execute();
+      removed++;
+    } catch {
+      failed++;
+    }
+  }
+  if (failed > 0) console.error(`[sweeps] Could not remove ${failed} avatar object(s); they stay queued`);
+  if (removed > 0) console.log(`[sweeps] Removed ${removed} avatar object(s)`);
+  return removed;
+}
+
 export interface SweepServices {
   trendingPublisher: Publisher;
   newestPublisher: Publisher;
   search: Search;
   budget: Budget;
+  objectStore: ObjectStore | null;
 }
 
 export function buildSweepSchedules(config: AppConfig, services: SweepServices): SweepSchedule[] {
+  const { objectStore } = services;
   return [
+    ...(objectStore
+      ? [
+          {
+            name: "avatarRemovalSweep",
+            intervalMs: AVATAR_REMOVAL_INTERVAL_MS,
+            lockId: SWEEP_LOCKS.avatarRemovals,
+            tick: (deps: SweepDeps) => removeAvatarObjects(deps, objectStore)
+          }
+        ]
+      : []),
     {
       name: "staleEditUpdateSweep",
       intervalMs: config.pollEditHeartbeatIntervalMs * 2,

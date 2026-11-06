@@ -12,7 +12,7 @@ At page idle (`requestIdleCallback`, or a timeout where that is absent), it comp
 
 1. `SiteConfig.deviceEventsEnabled` is true;
 2. the session snapshot is signed in, with the Terms accepted;
-3. the page can vote, or `/api/me` answered `X-Device-Sign-In-Due: 1`.
+3. the page can vote, or `/api/me` answered `X-Device-Login-Due: 1`.
 
 It computes at most once per page load, injects `/vendor/fingerprintjs-5.3.0.min.js`, calls `FingerprintJS.load({ monitoring: false })`, and builds the value of contract A1 as `research.md` R3 describes.
 
@@ -22,7 +22,7 @@ It writes no cookie or storage key of its own, and its value stays in page memor
 
 ## C2. Reporting a sign-in
 
-When `/api/me` answered `X-Device-Sign-In-Due: 1`, then once the value is ready or computing has failed, the page sends one `POST /api/me/device-sign-in` with `headers()`.
+When `/api/me` answered `X-Device-Login-Due: 1`, then once the value is ready or computing has failed, the page sends one `POST /api/me/device-login` with `headers()`.
 A failure of that request is ignored.
 
 `app.js`'s `fetchMe` makes the header available to the script, for example as `window.DeviceSignInDue`. The session snapshot, and so `sameSnapshot`, does not change.

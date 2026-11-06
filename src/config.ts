@@ -19,7 +19,7 @@ export interface AppleSignin {
   privateKey: string;
 }
 
-/** The enabled sign-in providers, keyed in display order (research R4). */
+/** The enabled login providers, keyed in display order (research R4). */
 export interface OAuthProviders {
   google?: OAuthClient;
   apple?: AppleSignin;
@@ -39,7 +39,7 @@ export interface AppConfig {
   /** Folders under prototypes/ the server serves at /prototypes/<name>/ (ENV_PROTOTYPES); none by default. */
   prototypes: string[];
   maxSigninCookieDurationMs: number;
-  /** Whether the login page's "Stay signed in" box starts ticked (ENV_STAY_SIGNED_IN=1; any other value, or none, leaves it clear). */
+  /** Whether the login page's "Stay logged in" box starts ticked (ENV_STAY_SIGNED_IN=1; any other value, or none, leaves it clear). */
   staySignedInDefault: boolean;
   signinMethod: SigninMethod;
   /** The email-link routes are served (native or both). */
@@ -98,9 +98,9 @@ export interface AppConfig {
   emailFrom: string;
   /** Origin the email logo is loaded from (ENV_EMAIL_ASSET_ORIGIN); unset → each link's own origin. */
   emailAssetOrigin?: string;
-  /** Email keys allowed to sign up and sign in before launch (ENV_ALLOWED_EMAILS); unset → everyone. */
+  /** Email keys allowed to sign up and log in before launch (ENV_ALLOWED_EMAILS); unset → everyone. */
   allowedEmailKeys?: Set<string>;
-  /** The self-hosted FCaptcha check before sign-in (ENV_FCAPTCHA_*); null → off. */
+  /** The self-hosted FCaptcha check before login (ENV_FCAPTCHA_*); null → off. */
   humanCheck: HumanCheckConfig | null;
   /** Device evidence collection (ENV_DEVICE_EVENTS_*); the key is empty while it is off. */
   deviceEvents: DeviceEventsConfig;
@@ -291,7 +291,7 @@ export function loadConfig(env: Env = process.env): AppConfig {
   const oauthProviders = oauthSignin ? oauthProvidersOf(env, read) : {};
   if (oauthSignin && Object.keys(oauthProviders).length === 0) {
     throw new ConfigError(
-      `Invalid ENV_SIGNIN_METHOD: "${signinMethod}" needs at least one sign-in provider, and no sign-in provider is configured.`
+      `Invalid ENV_SIGNIN_METHOD: "${signinMethod}" needs at least one login provider, and no login provider is configured.`
     );
   }
 
@@ -417,12 +417,12 @@ export function loadConfig(env: Env = process.env): AppConfig {
   const emailAssetOrigin = originVar(env, "ENV_EMAIL_ASSET_ORIGIN");
   if (emailAssetOrigin === undefined) read.none("ENV_EMAIL_ASSET_ORIGIN", "none (each link's own origin)");
   const allowedKeys = allowedEmailKeys(env);
-  if (allowedKeys === undefined) read.none("ENV_ALLOWED_EMAILS", "none (allowlist off: everyone may sign in)");
+  if (allowedKeys === undefined) read.none("ENV_ALLOWED_EMAILS", "none (allowlist off: everyone may log in)");
   const humanCheck = humanCheckConfig(env);
-  if (humanCheck === null) read.none("ENV_FCAPTCHA_ENABLED", "off (no human check before sign-in)");
+  if (humanCheck === null) read.none("ENV_FCAPTCHA_ENABLED", "off (no human check before login)");
   const deviceEvents = deviceEventsConfig(env);
   if (!deviceEvents.enabled) read.none("ENV_DEVICE_EVENTS_ENABLED", "false (no device evidence is collected)");
-  if (!env.ENV_STAY_SIGNED_IN?.trim()) read.none("ENV_STAY_SIGNED_IN", "0 (the Stay signed in box starts clear)");
+  if (!env.ENV_STAY_SIGNED_IN?.trim()) read.none("ENV_STAY_SIGNED_IN", "0 (the Stay logged in box starts clear)");
   for (const name of ["ENV_SMTP_USER", "ENV_SMTP_PASS"]) {
     if (!env[name]) read.none(name, "none (emails logged to the console, not sent)");
   }
@@ -605,12 +605,12 @@ function oauthProvidersOf(env: Env, read: SettingsReader): OAuthProviders {
   for (const [provider, names] of Object.entries(PROVIDER_SETTINGS) as [keyof OAuthProviders, readonly string[]][]) {
     const values = names.map((name) => optionalVar(env, name));
     if (values.every((value) => value === undefined)) {
-      read.none(`ENV_OAUTH_${provider.toUpperCase()}_*`, `none (${PROVIDER_NAMES[provider]} sign-in off)`);
+      read.none(`ENV_OAUTH_${provider.toUpperCase()}_*`, `none (${PROVIDER_NAMES[provider]} login off)`);
       continue;
     }
     const missing = names.find((_name, index) => values[index] === undefined);
     if (missing) {
-      throw new ConfigError(`Incomplete ${PROVIDER_NAMES[provider]} sign-in settings: ${missing} is not set.`);
+      throw new ConfigError(`Incomplete ${PROVIDER_NAMES[provider]} login settings: ${missing} is not set.`);
     }
     const [clientId, second, keyId, privateKey] = values as string[];
     if (provider === "apple") {

@@ -18,10 +18,10 @@ An absent or malformed header, or either part being unusable, is treated as miss
 ## A3. `GET /api/me` (changed)
 
 - **Body**: unchanged.
-- **Response header**: `X-Device-Sign-In-Due: 1` only when collection is on, the current Terms are accepted and this session has no sign-in event. It is absent otherwise.
+- **Response header**: `X-Device-Login-Due: 1` only when collection is on, the current Terms are accepted and this session has no sign-in event. It is absent otherwise.
 - **Caching**: `Cache-Control: no-store` when collection is on and the Terms are accepted, so a browser's stored copy cannot keep the header (research R7).
 
-## A4. `POST /api/me/device-sign-in` (new)
+## A4. `POST /api/me/device-login` (new)
 
 Records this session's sign-in event. It is not on the terms gate's allow list, so it is refused before acceptance.
 

@@ -6,14 +6,19 @@ const sheet = readFileSync(path.resolve("src/public/back-to-top-m3.css"), "utf8"
 const flat = (css: string) => css.replace(/\s+/g, " ");
 
 describe("the back-to-top sheet", () => {
-  it("fixes the button at the bottom centre, above the cookie banner", () => {
+  it("fixes the button at the bottom left of the container, above the cookie banner", () => {
     expect(sheet).toContain("position:fixed;");
-    expect(sheet).toContain("left:0;");
-    expect(sheet).toContain("right:0;");
-    expect(sheet).toContain("margin-inline:auto;");
-    expect(sheet).not.toContain("right:20px;");
+    expect(sheet).toContain("left:max(20px, calc((100% - var(--max-width,1280px)) / 2 + 20px));");
+    expect(flat(sheet)).toContain("@media (max-width: 639.98px){ .back-to-top-fab{ left:14px; } }");
+    expect(sheet).not.toContain("margin-inline:auto;");
+    expect(sheet).not.toContain("right:");
     expect(sheet).toContain("bottom:calc(20px + var(--cookie-banner-offset,0px));");
     expect(sheet).toContain("z-index:40;");
+  });
+
+  it("has its own green, the same in both colour schemes", () => {
+    expect(sheet).toContain("background:#3A8C5D;");
+    expect(sheet).toContain("color:var(--md-sys-color-on-primary);");
   });
 
   it("is hidden until backToTopFab.js adds the visible class", () => {

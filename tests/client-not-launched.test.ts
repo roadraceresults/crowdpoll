@@ -47,7 +47,7 @@ describe("the not-launched notice in oauth mode", () => {
     await oauthCtx.stop();
   });
 
-  it("shows on the Login card after a refused social sign-in (T033)", async () => {
+  it("shows on the Login card after a refused social login (T033)", async () => {
     page = await openPage(oauthCtx, "login.html", {
       url: "http://localhost/login?error=not-launched",
       scripts: ["app.js", "cardShell.js", "loginCard.js"]

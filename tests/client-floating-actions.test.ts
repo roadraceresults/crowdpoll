@@ -69,7 +69,7 @@ describe("the guest's floating buttons", () => {
     expect(where(home)).toEqual(["170px", "104px"]);
   });
 
-  it("show Log In alone in every sign-in mode", async () => {
+  it("show Log In alone in every login mode", async () => {
     for (const signinMethod of ["native", "oauth", "both"] as const) {
       const home = await open({ signinMethod });
       expect(labels(floatingOf(home))).toEqual(["Log In"]);

@@ -37,7 +37,7 @@ description: "Task list for Multiple Account Prevention"
 **⚠️ CRITICAL**: no user story work can begin until this phase is complete
 
 - [X] T006 Generalise `src/db/partitions.ts` so the partition helpers take the parent table's name and index list, keeping `ensureVoteHistoryPartition` and `partitionName` behaving as they do, and add `ensureDeviceEventsPartition` creating `device_events_YYYY_MM` with an index on `account_id` and one on `poll_id` (R9)
-- [X] T007 Create `src/db/migrations/017-device-events.ts` from `data-model.md`, with this and next month's partitions, and register it in `src/db/migrations/index.ts`
+- [X] T007 Create `src/db/migrations/018-device-events.ts` from `data-model.md`, with this and next month's partitions, and register it in `src/db/migrations/index.ts`
 - [X] T008 Add `DeviceEventsTable` and its entry in `Database` to `src/db/schema.ts`
 - [X] T009 Create `src/votes/deviceEvents.ts` exporting `DEVICE_FINGERPRINT_VERSION = 1`, `parseFingerprintHeader(value)` (contract A1; returns the two parts or null) and `keyedDeviceHashes(header, key)` (HMAC-SHA-256 hex, or null hashes when missing) (R4, R5)
 - [X] T010 [P] Unit-test `parseFingerprintHeader` and `keyedDeviceHashes` in `tests/device-events.test.ts`: valid, absent, wrong length, upper case, oversized, one part only; equal input gives equal output, a different key gives a different output, and the output never contains the input
@@ -101,13 +101,13 @@ description: "Task list for Multiple Account Prevention"
 
 ### Tests for User Story 2
 
-- [X] T025 [US2] In `tests/device-events.test.ts`, test contract A3 and A4: the `X-Device-Sign-In-Due` header appears only when on, accepted and unreported; the `/api/me` body is unchanged; each row of A4's table; two concurrent posts write one row; a failed insert releases the key; an email link, a provider and an invitation sign-in are each due; a session started before collection was on is due
+- [X] T025 [US2] In `tests/device-events.test.ts`, test contract A3 and A4: the `X-Device-Login-Due` header appears only when on, accepted and unreported; the `/api/me` body is unchanged; each row of A4's table; two concurrent posts write one row; a failed insert releases the key; an email link, a provider and an invitation sign-in are each due; a session started before collection was on is due
 - [X] T026 [US2] In `tests/client-device-evidence.test.ts`, test C2: one post when due, including after a failed computation; no post when not due; a failed post is ignored; the session snapshot's fields are unchanged and no subscriber is notified because of the header
 
 ### Implementation for User Story 2
 
 - [X] T027 [US2] Add `recordSignInEvent` and the `device-signin:<sessionId>` key helpers to `src/votes/deviceEvents.ts` (`setNx`, `ensureDeviceEventsPartition` for the current month, insert with a null poll, release the key on failure) (R7)
-- [X] T028 [US2] In `src/routes/api.ts`, set `X-Device-Sign-In-Due: 1` in `GET /api/me` under A3's conditions, and add `POST /api/me/device-sign-in` behind `pageLoads` per A4
+- [X] T028 [US2] In `src/routes/api.ts`, set `X-Device-Login-Due: 1` in `GET /api/me` under A3's conditions, and add `POST /api/me/device-login` behind `pageLoads` per A4
 - [X] T029 [US2] In `src/public/app.js`'s `fetchMe`, expose the header as `window.DeviceSignInDue` without touching the snapshot, and in `src/public/deviceEvidence.js` compute and post per C1 and C2
 - [X] T030 [US2] Add the script tag to `src/public/profile.html`, `src/public/settings.html`, `src/public/admin.html` and `src/public/admin-results.html`, and pin them in `tests/m3-assets.test.ts` (R8)
 
@@ -157,7 +157,7 @@ description: "Task list for Multiple Account Prevention"
 
 ## Phase 8: Polish & Cross-Cutting Concerns
 
-- [X] T039 [P] Describe the header, the changed `GET /api/me` and `GET /api/config`, and `POST /api/me/device-sign-in` in `postman/openapi.json`
+- [X] T039 [P] Describe the header, the changed `GET /api/me` and `GET /api/config`, and `POST /api/me/device-login` in `postman/openapi.json`
 - [X] T040 [P] Update `README.md` (what is collected, the setting and the secret, how to turn it on) and `ARCHITECTURE.md` (the vote path's new fields, the sign-in report, `device_events`, retention), without referring to specs
 - [X] T041 Add the feature's decisions to `CLAUDE_COMPLETE.md` as the earlier features' are, and add `device_events` to any cross-feature list there
 - [X] T042 Run `npx tsc --noEmit` and `npm test`, and fix what they find

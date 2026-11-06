@@ -18,7 +18,7 @@ export interface FloorDeps {
   budget: Budget;
 }
 
-/** The session id for a signed-in caller, the client address for a guest. */
+/** The session id for a logged-in caller, the client address for a guest. */
 export async function floorSubject(sessions: SessionCache, req: Request): Promise<string> {
   const session = await sessions.getSession(req);
   return session ? `s:${session.session.id}` : `ip:${req.ip ?? "unknown"}`;

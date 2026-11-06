@@ -1,5 +1,5 @@
 import { gzipSync } from "node:zlib";
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import type { SpacesConfig } from "../config.js";
 import type { TrendingListing } from "./recompute.js";
 
@@ -12,7 +12,8 @@ export const TRENDING_OBJECTS: ListingObjects = { counts: "trending-counts.json"
 export const NEWEST_OBJECTS: ListingObjects = { counts: "newest-counts.json", cards: "newest.json" };
 
 export interface ObjectStore {
-  put(key: string, body: Buffer, headers: { contentType: string; cacheControl: string; contentEncoding?: string }): Promise<void>;
+  put(key: string, body: Buffer, headers: { contentType: string; cacheControl: string; contentEncoding?: string }, signal?: AbortSignal): Promise<void>;
+  delete(key: string): Promise<void>;
 }
 
 // Spaces speaks the S3 API: https://docs.digitalocean.com/products/spaces/reference/s3-sdk-examples/
@@ -24,7 +25,7 @@ export function createSpacesStore(spaces: SpacesConfig): ObjectStore {
     credentials: { accessKeyId: spaces.key, secretAccessKey: spaces.secret }
   });
   return {
-    async put(key, body, headers) {
+    async put(key, body, headers, signal) {
       await client.send(
         new PutObjectCommand({
           Bucket: spaces.bucket,
@@ -34,8 +35,12 @@ export function createSpacesStore(spaces: SpacesConfig): ObjectStore {
           ContentType: headers.contentType,
           CacheControl: headers.cacheControl,
           ContentEncoding: headers.contentEncoding
-        })
+        }),
+        { abortSignal: signal }
       );
+    },
+    async delete(key) {
+      await client.send(new DeleteObjectCommand({ Bucket: spaces.bucket, Key: key }));
     }
   };
 }

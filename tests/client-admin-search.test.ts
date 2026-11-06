@@ -254,7 +254,7 @@ describe("the read-only card's Created By field", () => {
     expect(dateValues(page, card)[0]).toBe("Olive Owner (card-owner@example.com)");
   });
 
-  it("marks another creator's poll Not your poll, and leaves the signed-in administrator's own poll unmarked", async () => {
+  it("marks another creator's poll Not your poll, and leaves the logged-in administrator's own poll unmarked", async () => {
     await polls(ctx).deleteMany({});
     const owner = await forgeSession(ctx, "card-other@example.com");
     const theirs = makePoll({ title: "Their card", pollState: "OPEN" });

@@ -312,7 +312,7 @@ describe("a failed save, and other tabs (C4, US4)", () => {
     });
   }
 
-  it("goes to sign-in on a 401", async () => {
+  it("goes to login on a 401", async () => {
     const page = await openSettings(await signIn());
     const saves = holdSaves(page);
     const before = page.navigations.length;

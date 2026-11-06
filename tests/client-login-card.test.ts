@@ -61,7 +61,7 @@ describe("native mode", () => {
   it("the Login card has the badge, its subtitle lines and a Create account line", async () => {
     page = await login(ctx);
     expectBadge(page);
-    expect(lines(page)).toEqual(["We email you a one-time sign-in link."]);
+    expect(lines(page)).toEqual(["We email you a one-time login link."]);
     expect(note(page)).toBe("We do not store passwords.");
     expect(foot(page)?.textContent).toBe("Don't have an account? Create account");
     expect(foot(page)?.querySelector("a")?.getAttribute("href")).toBe("/create-account");
@@ -75,7 +75,7 @@ describe("native mode", () => {
   it("the Create Account card has the badge, its subtitle lines and a Log in line", async () => {
     page = await createAccount(ctx);
     expectBadge(page);
-    expect(lines(page)).toEqual(["Enter your email address.", "We will create your account and email your first sign-in link."]);
+    expect(lines(page)).toEqual(["Enter your email address.", "We will create your account and email your first login link."]);
     expect(note(page)).toBe("We do not store passwords.");
     expect(foot(page)?.textContent).toBe("Already have an account? Log in");
     expect(foot(page)?.querySelector("a")?.getAttribute("href")).toBe("/login");
@@ -105,7 +105,7 @@ describe("both mode", () => {
   it("the Login card names both ways in two lines and keeps the Create account line", async () => {
     page = await login(ctx);
     expectBadge(page);
-    expect(lines(page)).toEqual(["Sign in with a provider,", "or we email you a one-time sign-in link."]);
+    expect(lines(page)).toEqual(["Log in with a provider,", "or we email you a one-time login link."]);
     expect(note(page)).toBe("We do not store passwords.");
     expect(foot(page)?.textContent).toBe("Don't have an account? Create account");
   });
@@ -123,7 +123,7 @@ describe("oauth mode", () => {
   it("the Login card names the providers and has no Create account line", async () => {
     page = await login(ctx);
     expectBadge(page);
-    expect(lines(page)).toEqual(["Sign in with your Google, Apple, Microsoft or Amazon account."]);
+    expect(lines(page)).toEqual(["Log in with your Google, Apple, Microsoft or Amazon account."]);
     expect(note(page)).toBe("We do not store passwords.");
     expect(foot(page)).toBeNull();
   });

@@ -256,8 +256,8 @@ describe("the terms gate stops collection (R10)", () => {
     const voted = await castThroughRoute(ctx, poll._id, cookie, ["c1"], VALID);
     expect(voted.status).toBe(403);
     expect(voted.body.code).toBe("terms-required");
-    expect((await request(ctx.app).post("/api/me/device-sign-in").set("Cookie", cookie).set("X-Device-Fingerprint", VALID)).status).toBe(403);
-    expect((await request(ctx.app).get("/api/me").set("Cookie", cookie)).headers["x-device-sign-in-due"]).toBeUndefined();
+    expect((await request(ctx.app).post("/api/me/device-login").set("Cookie", cookie).set("X-Device-Fingerprint", VALID)).status).toBe(403);
+    expect((await request(ctx.app).get("/api/me").set("Cookie", cookie)).headers["x-device-login-due"]).toBeUndefined();
     await ctx.consumer.runOnce();
     expect(await rows(ctx)).toEqual([]);
   });
@@ -278,7 +278,7 @@ describe("sign-in events (A3, A4, R7)", () => {
 
   const me = (cookie: string) => request(ctx.app).get("/api/me").set("Cookie", cookie);
   const report = (cookie: string, header?: string) => {
-    const req = request(ctx.app).post("/api/me/device-sign-in").set("Cookie", cookie);
+    const req = request(ctx.app).post("/api/me/device-login").set("Cookie", cookie);
     return header === undefined ? req : req.set("X-Device-Fingerprint", header);
   };
   const session = () => forgeSession(ctx, `signin${users++}@example.com`);
@@ -286,11 +286,11 @@ describe("sign-in events (A3, A4, R7)", () => {
   it("marks an unreported session due in a header, leaving the body as it was, and stops once reported", async () => {
     const { cookie } = await session();
     const due = await me(cookie);
-    expect(due.headers["x-device-sign-in-due"]).toBe("1");
+    expect(due.headers["x-device-login-due"]).toBe("1");
     expect(Object.keys(due.body)).not.toContain("deviceSignInDue");
     expect((await report(cookie, VALID)).status).toBe(204);
     const reported = await me(cookie);
-    expect(reported.headers["x-device-sign-in-due"]).toBeUndefined();
+    expect(reported.headers["x-device-login-due"]).toBeUndefined();
     expect(reported.body).toEqual(due.body);
   });
 
@@ -300,7 +300,7 @@ describe("sign-in events (A3, A4, R7)", () => {
   });
 
   it("answers 401 without a session", async () => {
-    const res = await request(ctx.app).post("/api/me/device-sign-in");
+    const res = await request(ctx.app).post("/api/me/device-login");
     expect(res.status).toBe(401);
     expect(res.body).toEqual({ error: "Not signed in" });
   });
@@ -336,7 +336,7 @@ describe("sign-in events (A3, A4, R7)", () => {
     silenced.mockRestore();
     await sql`alter table device_events_hidden rename to device_events`.execute(ctx.db);
     expect(failed.status).toBe(500);
-    expect((await me(cookie)).headers["x-device-sign-in-due"]).toBe("1");
+    expect((await me(cookie)).headers["x-device-login-due"]).toBe("1");
     expect((await report(cookie, VALID)).status).toBe(204);
     expect((await rows(ctx)).length).toBe(1);
   });
@@ -346,15 +346,15 @@ describe("sign-in events (A3, A4, R7)", () => {
     await request(ctx.app).post("/api/auth/create-account").set("x-forwarded-for", "198.51.100.8").send({ ...AGREED, email });
     const followed = await followSignInLink(ctx, extractLinkPath(ctx.sent.at(-1)!));
     const cookie = [followed.headers["set-cookie"]].flat().map(String).find((c) => c.startsWith("session_token="))!.split(";")[0]!;
-    expect((await me(cookie)).headers["x-device-sign-in-due"]).toBe("1");
+    expect((await me(cookie)).headers["x-device-login-due"]).toBe("1");
   });
 
   it("gives each session of one account its own event", async () => {
     const first = await session();
     expect((await report(first.cookie, VALID)).status).toBe(204);
-    expect((await me(first.cookie)).headers["x-device-sign-in-due"]).toBeUndefined();
+    expect((await me(first.cookie)).headers["x-device-login-due"]).toBeUndefined();
     const other = await session();
-    expect((await me(other.cookie)).headers["x-device-sign-in-due"]).toBe("1");
+    expect((await me(other.cookie)).headers["x-device-login-due"]).toBe("1");
   });
 });
 
@@ -389,7 +389,7 @@ describe("deletions and retention (R9, R10)", () => {
     expect((await castThroughRoute(ctx, gone._id, cookie, ["c1"], VALID)).status).toBe(200);
     await resetFloors(ctx);
     expect((await castThroughRoute(ctx, kept._id, cookie, ["c1"], VALID)).status).toBe(200);
-    expect((await request(ctx.app).post("/api/me/device-sign-in").set("Cookie", cookie).set("X-Device-Fingerprint", VALID)).status).toBe(204);
+    expect((await request(ctx.app).post("/api/me/device-login").set("Cookie", cookie).set("X-Device-Fingerprint", VALID)).status).toBe(204);
     await ctx.consumer.runOnce();
     expect((await rows(ctx)).length).toBe(3);
 
@@ -470,9 +470,9 @@ describe("the coverage line (R12)", () => {
     try {
       const { cookie } = await forgeSession(ctx, "off-coverage@example.com");
       const res = await request(ctx.app).get("/api/me").set("Cookie", cookie);
-      expect(res.headers["x-device-sign-in-due"]).toBeUndefined();
+      expect(res.headers["x-device-login-due"]).toBeUndefined();
       expect(res.headers["cache-control"]).not.toBe("no-store");
-      expect((await request(ctx.app).post("/api/me/device-sign-in").set("Cookie", cookie).set("X-Device-Fingerprint", VALID)).status).toBe(204);
+      expect((await request(ctx.app).post("/api/me/device-login").set("Cookie", cookie).set("X-Device-Fingerprint", VALID)).status).toBe(204);
       expect(await rows(ctx)).toEqual([]);
       expect(await coverageLines(ctx)).toEqual([]);
     } finally {

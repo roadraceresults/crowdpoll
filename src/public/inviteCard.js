@@ -53,15 +53,17 @@
   /* What the person had chosen when the server asked for the human check again. */
   var kept = null;
 
-  function startSignin(provider, pid) {
-    var callbackURL = pid ? "/?PID=" + pid : "/";
+  function startSignin(provider, pid, stay) {
+    var callbackURL = (pid ? "/?PID=" + pid + "&" : "/?") + "signedIn=1";
     var amazon = provider === "amazon";
+    var body = amazon
+      ? { providerId: provider, callbackURL: callbackURL }
+      : { provider: provider, callbackURL: callbackURL };
+    if (stay) body.additionalData = { staySignedIn: true };
     return fetch(amazon ? "/api/auth/sign-in/oauth2" : "/api/auth/sign-in/social", {
       method: "POST",
       headers: Object.assign({ "Content-Type": "application/json" }, checkHeaders()),
-      body: JSON.stringify(amazon
-        ? { providerId: provider, callbackURL: callbackURL }
-        : { provider: provider, callbackURL: callbackURL })
+      body: JSON.stringify(body)
     }).then(function (res) {
       return res.json().then(function (body) {
         if (refused(body)) {
@@ -75,7 +77,7 @@
     });
   }
 
-  function renderProviders(card, enabled, pid, regate) {
+  function renderProviders(card, enabled, pid, regate, stay) {
     var wrap = el("div", "oauth-providers");
     var status = el("p", "card-shell-status");
     var busy = false;
@@ -93,7 +95,7 @@
         if (busy) return;
         busy = true;
         button.setAttribute("aria-busy", "true");
-        startSignin(provider, pid)
+        startSignin(provider, pid, stay.checked)
           .then(function (url) { location.href = url; })
           .catch(function (err) {
             if (err && err.refused) {
@@ -102,13 +104,14 @@
             }
             busy = false;
             button.removeAttribute("aria-busy");
-            status.textContent = "Sign-in with that provider failed. Please try again.";
+            status.textContent = "Login with that provider failed. Please try again.";
             status.className = "card-shell-status error";
           });
       });
       wrap.appendChild(button);
     });
     card.body.appendChild(wrap);
+    window.CardShell.addOauthSharing(card, enabled);
     card.body.appendChild(status);
   }
 
@@ -119,7 +122,7 @@
     if (switching) {
       paragraph(
         card.body,
-        "This invitation is for " + info.email + ". Sign out and continue as that address to see the poll. " +
+        "This invitation is for " + info.email + ". Log out and continue as that address to see the poll. " +
           "Or ask the poll creator to resend the invitation to your current address."
       );
     } else {
@@ -140,7 +143,7 @@
     stay.name = "stay";
     stay.type = "checkbox";
     stay.checked = info.staySignedInDefault === true;
-    stayLabel.append(stay, document.createTextNode(" Stay signed in on this device"));
+    stayLabel.append(stay, document.createTextNode(" Stay logged in on this device"));
     card.body.appendChild(stayLabel);
     if (kept) {
       stay.checked = kept.stay;
@@ -154,7 +157,7 @@
     }
 
     var action = card.addAction(
-      switching ? "Sign out and continue as " + info.email : "Continue",
+      switching ? "Log out and continue as " + info.email : "Continue",
       function (status) {
         var body = { pid: pid, token: token, stay: stay.checked };
         if (terms) {
@@ -204,7 +207,7 @@
     }
     sync();
 
-    if (info.providers && info.providers.length > 0) renderProviders(card, info.providers, pid, regate);
+    if (info.providers && info.providers.length > 0) renderProviders(card, info.providers, pid, regate, stay);
   }
 
   function start() {

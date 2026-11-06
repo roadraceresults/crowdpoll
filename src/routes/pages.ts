@@ -2,8 +2,8 @@
  * HTML page routes: /, /login, /create-account, /profile (contract "Pages"),
  * plus /admin and /admin/poll/results (contracts/page-routes.md,
  * 004-realtime-poll-voting). The /profile page is guarded — guests are
- * redirected to sign in (FR-014). The /login page is guarded the other way
- * — a signed-in user is redirected home instead of ever seeing the login
+ * redirected to log in (FR-014). The /login page is guarded the other way
+ * — a logged-in user is redirected home instead of ever seeing the login
  * form (FR-008/FR-009). The /admin* pages are open to administrators and poll
  * creators, and 404 on a poll PID the caller may not manage.
  */
@@ -79,7 +79,7 @@ export function createPagesRouter({ sessions, config, db, cache }: PageDeps): Ro
       }
       const session = await sessions.getSession(req);
       if (!session) {
-        // A poll search engines may index has a page of its own a guest can read; any other needs a sign-in.
+        // A poll search engines may index has a page of its own a guest can read; any other needs a login.
         const row = await db
           .selectFrom("polls")
           .select(["poll_visibility", "poll_state", "poll_state_before_edit_update"])

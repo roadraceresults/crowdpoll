@@ -6,7 +6,7 @@ The full description, every earlier feature's decisions and the settings table a
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-`specs/20261105-162941-MULTIPLE-ACCOUNT-PREVENTION/plan.md` (research R1–R12, `data-model.md` — one migration, `017-device-events`;
+`specs/20261105-162941-MULTIPLE-ACCOUNT-PREVENTION/plan.md` (research R1–R12, `data-model.md` — one migration, `018-device-events`;
 the stream fields, the cache key and the settings; the contracts `contracts/api.md` A1–A5 and `contracts/ui-contracts.md` C1–C6, and the
 quickstart live alongside it in `specs/20261105-162941-MULTIPLE-ACCOUNT-PREVENTION/`). The requirements report is
 `requirements/20261105-162941-multiple-account-prevention/requirements-report.md`: 4 diagrams and 16 findings, all resolved.
@@ -20,6 +20,28 @@ Decisions that are easy to get wrong:
 - **Off by default**; the terms gate stops collection before acceptance; rows go with the account and the poll, not with a ban (R10, R11).
 One migration, one route, two settings, no npm dependency; one vendored file, one script.
 The preceding feature is
+`specs/20261105-161242-SOCIAL-LOGIN-AVATAR/plan.md` (research R1–R10, `data-model.md` — migration 017; the
+`profile_avatar_hash` column, the `avatar_removals` queue and the Spaces object; the HTTP contracts `contracts/api.md`
+A1–A3, the UI contracts `contracts/ui-contracts.md` C1–C6, and the quickstart live alongside it in
+`specs/20261105-161242-SOCIAL-LOGIN-AVATAR/`). The requirements report is
+`requirements/20261105-161242-social-login-avatar/requirements-report.md`: 3 diagrams and 20 findings, all resolved.
+Decisions that are easy to get wrong:
+- **Google only**: a `hooks.after` on `/callback/:id` reads the fresh `idToken` from the `account` row;
+  not `overrideUserInfoOnSignIn`, which rewrites name and email. Amazon's login has no picture (R1, RS1).
+- **The image lives in Spaces, not the database**: `avatars/<random>`, public-read, private bucket; `profileAvatar`
+  holds the key and `avatarUrl` gives the API the CDN URL; no route, no Terms gate entry (R10, NC1, IN1).
+- **`Cache-Control` is one day**, because that also bounds how long a deleted picture stays reachable (R3).
+- **Upload, then one transaction**; every path that stops using an object queues its key there, and a sweep deletes
+  it (R5, R6, UA9). A failure at any step never stops the login.
+- **Stay logged in reaches a provider login through `additionalData`**, read back with `getOAuthState` in the callback
+  hook; no cookie or URL parameter carries it (TWEAK10).
+- **`signedIn=1` on the provider `callbackURL`** drives the snackbar; `app.js` removes it, and `acceptTermsCard.js`
+  takes it out of `next` (R7).
+- **Change a document's date in `src/legal/version.ts`**: `TERMS_VERSION` is the later of `TERMS_UPDATED` and
+  `PRIVACY_UPDATED`, the pages' dates are filled in from them when served (`{{PRIVACY_UPDATED}}`), and the Accept Terms
+  notice compares each with the version the account accepted (TWEAK14, TWEAK17).
+No setting, route, cookie or dependency; one migration, one sweep, one sheet, a new `TERMS_VERSION`.
+Before it came
 `specs/20261104-180032-LEGAL-PAGE-UPDATES/plan.md` (research R1–R8, `data-model.md` — no migration; the shared policy
 version and the `history.state.legalDepth` step count; the UI contracts `contracts/ui-contracts.md` C1–C6, and the
 quickstart live alongside it in `specs/20261104-180032-LEGAL-PAGE-UPDATES/`). The requirements report is
@@ -33,9 +55,9 @@ Decisions that are easy to get wrong:
 - **Fixed under the header in line with the logo** (a wrapper built like `#site-header`), text gutter
   `max(0px, calc(56px - (100% - 72ch) / 2))` on narrow screens; the look is `back-arrow-m3.css`, shared with the admin
   link (`admin-back-link back-arrow`) (R3–R5, clarification Q2).
-- **The Up arrow is centred on every page** (`left:0; right:0; margin-inline:auto`), not only the legal pages (R7, AM1).
+- **The Up arrow was centred on every page** (R7, AM1); social-login-avatar's TWEAK07 moved it to the container's left edge.
 No migration, route, setting or dependency; one constant, one script, one sheet.
-Before it came
+And before that
 `specs/20261103-114927-PROVISION-FCAPTCHA-SERVICE/plan.md` (research R1–R14, `data-model.md` — no migration; the
 Terraform resources, inputs, git-ignored files and the switch-over states; the contracts `contracts/infra-config.md`
 C1–C5 and `contracts/deploy-command.md` D1–D3, and the quickstart runbook live alongside it in
@@ -66,7 +88,7 @@ Decisions that are easy to get wrong:
   `launched_at`), WAITING TO OPEN always; drafts, rejected and archived never (R3).
 - **`keepOrder`**: after a vote or watch on a Home card the browser sends it until Home is next opened, so the card does
   not jump; access is still re-checked on every refresh (R5, R6, clarification Q2).
-- **Hidden, not disabled, for guests**; Home is the signed-in landing tab and the avatar menu's first item;
+- **Hidden, not disabled, for guests**; Home is the logged-in landing tab and the avatar menu's first item;
   `relations` adds `created` ("Your poll") and `trending` ("Trending") (R7, R9, R10, clarification Q1).
 No migration, dependency or sweep; one route, two settings (`ENV_HOME_TAB_REFRESH_INTERVAL`, `ENV_MAX_HOME_PAGE_POLLS`).
 And before that
@@ -95,7 +117,7 @@ CrowdPoll: a real-time opinion-poll site in TypeScript (Node ≥ 22, ESM) with E
 BetterAuth, built to serve very large audiences from a small autoscaled fleet. `README.md` describes the user-facing
 behaviour; `ARCHITECTURE.md` the deployment and the request, vote and refresh paths.
 
-- **Sign-in is passwordless**: an emailed magic link (Amazon SES + nodemailer), or by `ENV_SIGNIN_METHOD` the social
+- **Login is passwordless**: an emailed magic link (Amazon SES + nodemailer), or by `ENV_SIGNIN_METHOD` the social
   providers (Google, Apple, Microsoft, Amazon) only (`oauth`) or beside the link (`both`).
 - **Sessions**: one `session_token` cookie (httpOnly, secure, sameSite=lax, up to 30 days). The only other cookies are
   `signin_binding` (`Path=/api/auth`, 15 min) and `oauth_state` (5 min). An account must accept the current Terms
@@ -156,12 +178,14 @@ npx vitest run -t "name of the test"   # tests matching a name
 - Poll access is decided by `src/polls/access.ts` (`mayWatch`, `mayViewResults`); a poll the caller may not see, or does
   not own on an admin route, answers `404`, never `403`.
 - The terms gate runs before every router: a new `/api/*` route is refused before acceptance unless listed there.
-- Every path that creates an account, a session or sends a sign-in email checks `isAllowed` (`src/auth/allowlist.ts`).
+- Every path that creates an account, a session or sends a login email checks `isAllowed` (`src/auth/allowlist.ts`).
 - `emailKey` is defined once in SQL (`src/auth/emailKey.ts`); its TypeScript twin `emailKeyOf` is tested to agree.
 - Logs never carry a full email address, link or token (`maskAddress`, `maskIp`).
 - No third-party request from a page: fonts are committed `woff2` files under `src/public/fonts/`.
 - A new cookie or browser storage key needs a Cookie Use row in `privacy.html` (`tests/cookie-use-list.test.ts`).
 - `postman/openapi.json` follows the routes.
+- A path that stops using an `avatars/` object queues its key in the same transaction (`queueAvatarRemoval`); only the
+  removal sweep deletes it.
 - A new dev script needs a `!devScripts/<file>` line in `.gitignore`.
 - `m3-assets.test.ts` pins each page's stylesheets (`LAYER_ORDER`); M3 layers hold only M3 tokens, no literal font sizes.
 - Bookmark is "Favorites" in the UI only; routes, tables and identifiers keep `bookmark`; stored enumerations stay verbatim.

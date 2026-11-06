@@ -54,7 +54,7 @@ beforeEach(async () => {
   for (const key of await ctx.cache.scan("line-graph:*")) await ctx.cache.del(key);
 });
 
-/** The cookie is read per request: the users are signed in by `beforeAll`, after this module loads. */
+/** The cookie is read per request: the users are logged in by `beforeAll`, after this module loads. */
 function asUser(cookie: () => string) {
   return {
     editSession: (pid: string) =>

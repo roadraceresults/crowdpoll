@@ -113,7 +113,7 @@
     box.querySelector(".modal-ok").focus();
   }
 
-  // A signed-in user without the View Polls grant sees no poll cards anywhere, only this.
+  // A logged-in user without the View Polls grant sees no poll cards anywhere, only this.
   // The grants come from /api/me: a rendering hint; the routes that know the user refuse too.
   const NO_VIEW_MESSAGE = "You do not have permission to view polls.";
 
@@ -567,7 +567,7 @@
     return true;
   }
 
-  // ---- The signed-in overlay for polls a tab holds (FR-019) ----
+  // ---- The logged-in overlay for polls a tab holds (FR-019) ----
 
   /*
     One fetcher per tab that lists polls without their overlay (TRENDING, Search).
@@ -1045,7 +1045,7 @@
       if (!btn || name === "home") return;
       if (signedIn) btn.removeAttribute("aria-disabled");
       else btn.setAttribute("aria-disabled", "true");
-      btn.title = signedIn ? "" : "Sign in to use this tab";
+      btn.title = signedIn ? "" : "Log in to use this tab";
     });
     if (!signedIn && PERSONAL_TABS.indexOf(activeTab) !== -1) select("trending");
   }

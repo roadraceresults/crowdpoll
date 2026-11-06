@@ -132,7 +132,7 @@ describe("branded layout and messages (US2)", () => {
   });
 
   it("uses the approved wording (M1–M4)", () => {
-    expect(loginLinkMessage(`${ORIGIN}/x`).subject).toBe("Your CrowdPoll sign-in link");
+    expect(loginLinkMessage(`${ORIGIN}/x`).subject).toBe("Your CrowdPoll login link");
     expect(createAccountMessage(`${ORIGIN}/x`).subject).toBe("Finish creating your CrowdPoll account");
     expect(emailChangeVerificationMessage(`${ORIGIN}/x`).subject).toBe("Confirm your new CrowdPoll email address");
     expect(emailChangeNoticeMessage(ORIGIN, "new@example.org").subject).toBe(

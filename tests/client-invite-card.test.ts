@@ -55,9 +55,11 @@ const NEW_ADDRESS = {
   providers: [] as string[]
 };
 
-async function open(stub: Stub, redeemBodies: string[] = []): Promise<BrowserPage> {
+const INVITE_URL = "http://localhost/invite?PID=3f6c2a9e-4b1d-4e8a-9c7f-1a2b3c4d5e6f&token=tok1";
+
+async function open(stub: Stub, redeemBodies: string[] = [], url = INVITE_URL): Promise<BrowserPage> {
   return openPage(ctx, "invite.html", {
-    url: "http://localhost/invite?PID=3f6c2a9e-4b1d-4e8a-9c7f-1a2b3c4d5e6f&token=tok1",
+    url,
     scripts: ["app.js", "cardShell.js", "inviteCard.js"],
     beforeScripts: stubApi(stub, redeemBodies)
   });
@@ -76,7 +78,7 @@ function tickTerms(p: BrowserPage, checked = true): void {
 }
 
 describe("the invitation card for a new address (C1)", () => {
-  it("shows the masked address, the unticked Terms box and Stay signed in, gating Continue", async () => {
+  it("shows the masked address, the unticked Terms box and Stay logged in, gating Continue", async () => {
     page = await open({ linkInfo: { status: 200, body: NEW_ADDRESS } });
     await page.settle();
     expect(page.document.body.textContent).toContain("Continue as j•••@gmail.com");
@@ -95,7 +97,7 @@ describe("the invitation card for a new address (C1)", () => {
     expect(isDisabled(button)).toBe(true);
   });
 
-  it("starts Stay signed in from staySignedInDefault", async () => {
+  it("starts Stay logged in from staySignedInDefault", async () => {
     page = await open({ linkInfo: { status: 200, body: { ...NEW_ADDRESS, staySignedInDefault: true } } });
     await page.settle();
     expect((page.document.getElementById("stay") as HTMLInputElement).checked).toBe(true);
@@ -146,19 +148,19 @@ describe("the invitation card for a new address (C1)", () => {
     expect(isDisabled(button)).toBe(false);
   });
 
-  it("explains another signed-in account, posts signOut on switch, and Stay as leaves quietly", async () => {
+  it("explains another logged-in account, posts signOut on switch, and Stay as leaves quietly", async () => {
     const sent: string[] = [];
     page = await open({ linkInfo: { status: 200, body: { ...NEW_ADDRESS, signedInAs: "o•••@example.com" } } }, sent);
     await page.settle();
     expect(page.document.body.textContent).toContain(
-      "This invitation is for j•••@gmail.com. Sign out and continue as that address to see the poll. " +
+      "This invitation is for j•••@gmail.com. Log out and continue as that address to see the poll. " +
         "Or ask the poll creator to resend the invitation to your current address."
     );
     const buttons = [...page.document.querySelectorAll("button")].map((b) => b.textContent);
-    expect(buttons).toContain("Sign out and continue as j•••@gmail.com");
+    expect(buttons).toContain("Log out and continue as j•••@gmail.com");
     expect(buttons).toContain("Stay as o•••@example.com");
     const switchButton = [...page.document.querySelectorAll("button")].find(
-      (b) => b.textContent === "Sign out and continue as j•••@gmail.com"
+      (b) => b.textContent === "Log out and continue as j•••@gmail.com"
     ) as HTMLButtonElement;
     expect(isDisabled(switchButton)).toBe(true);
     tickTerms(page);
@@ -182,7 +184,7 @@ describe("the invitation card for a new address (C1)", () => {
     expect(page.navigations.length).toBe(1);
   });
 
-  it("offers the provider buttons as on the Login page when sign-in is both", async () => {
+  it("offers the provider buttons as on the Login page when login is both", async () => {
     page = await open({ linkInfo: { status: 200, body: { ...NEW_ADDRESS, providers: ["google", "apple"] } } });
     await page.settle();
     const buttons = [...page.document.querySelectorAll(".oauth-button")] as HTMLButtonElement[];
@@ -191,7 +193,53 @@ describe("the invitation card for a new address (C1)", () => {
     expect(buttons[0]!.querySelector("img.oauth-logo")).not.toBeNull();
   });
 
-  it("follows the redirect of a link that cannot sign in", async () => {
+  it("says what is shared under the provider buttons (C2)", async () => {
+    page = await open({ linkInfo: { status: 200, body: { ...NEW_ADDRESS, providers: ["google", "amazon"] } } });
+    await page.settle();
+    const line = page.document.querySelector(".oauth-sharing")!;
+    expect(line.textContent).toBe("Google shares your name, email address and profile picture. Amazon shares your name and email address. Privacy Policy");
+    expect(line.querySelector("a")!.getAttribute("href")).toBe("/privacy");
+    const buttons = page.document.querySelector(".oauth-providers")!;
+    expect(buttons.compareDocumentPosition(line) & page.window.Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("says nothing about what is shared when the page lists no provider", async () => {
+    page = await open({ linkInfo: { status: 200, body: NEW_ADDRESS } });
+    await page.settle();
+    expect(continueButton(page)).toBeTruthy();
+    expect(page.document.querySelector(".oauth-sharing")).toBeNull();
+  });
+
+  async function startedWith(provider: string, url?: string): Promise<unknown> {
+    page = await open({ linkInfo: { status: 200, body: { ...NEW_ADDRESS, providers: [provider] } } }, [], url);
+    await page.settle();
+    page.document.querySelector<HTMLButtonElement>(".oauth-button")!.click();
+    await page.settle(100);
+    return page.requests.find((r) => r.url.startsWith("/api/auth/sign-in/"))!.body;
+  }
+
+  it("marks a provider login, so the first page says which account is in use (A3)", async () => {
+    const pid = "3f6c2a9e-4b1d-4e8a-9c7f-1a2b3c4d5e6f";
+    expect(await startedWith("google")).toEqual({ provider: "google", callbackURL: `/?PID=${pid}&signedIn=1` });
+    page!.close();
+    expect(await startedWith("amazon")).toEqual({ providerId: "amazon", callbackURL: `/?PID=${pid}&signedIn=1` });
+    page!.close();
+    expect(await startedWith("google", "http://localhost/invite?token=tok1")).toEqual({ provider: "google", callbackURL: "/?signedIn=1" });
+  });
+
+  it("carries Stay logged in through a provider login (C11)", async () => {
+    page = await open({ linkInfo: { status: 200, body: { ...NEW_ADDRESS, staySignedInDefault: true, providers: ["google"] } } }, [], "http://localhost/invite?token=tok1");
+    await page.settle();
+    page.document.querySelector<HTMLButtonElement>(".oauth-button")!.click();
+    await page.settle(100);
+    expect(page.requests.find((r) => r.url.startsWith("/api/auth/sign-in/"))!.body).toEqual({
+      provider: "google",
+      callbackURL: "/?signedIn=1",
+      additionalData: { staySignedIn: true }
+    });
+  });
+
+  it("follows the redirect of a link that cannot log in", async () => {
     page = await open({ linkInfo: { status: 404, body: { error: "invalid-invitation", redirect: "/?PID=3f6c2a9e-4b1d-4e8a-9c7f-1a2b3c4d5e6f" } } });
     await page.settle();
     expect(page.navigations.length).toBe(1);

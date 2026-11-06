@@ -762,38 +762,6 @@
   .poll-admin-card .wizard-footer :is(.btn-header-ghost, .btn-header-primary){ padding:0 12px; }
 }
 
-/* ---------- 9. Snackbar ----------
-   As card-shell-m3.css's: inverse-surface, Body Medium, extra-small corners,
-   elevation 3, at the bottom of the screen. adminCard.js adds is-shown. */
-.m3-snackbar{
-  position:fixed;
-  z-index:50;
-  left:50%;
-  bottom:16px;
-  box-sizing:border-box;
-  width:max-content;
-  min-width:200px;
-  max-width:min(672px, calc(100% - 32px));
-  min-height:48px;
-  display:flex;
-  align-items:center;
-  padding:14px 16px;
-  border-radius:var(--md-sys-shape-corner-extra-small);
-  background:var(--md-sys-color-inverse-surface);
-  color:var(--md-sys-color-inverse-on-surface);
-  box-shadow:var(--md-sys-elevation-3);
-  font:400 var(--md-sys-typescale-body-medium-size)/var(--md-sys-typescale-body-medium-line-height) var(--md-sys-typescale-font);
-  letter-spacing:var(--md-sys-typescale-body-medium-tracking);
-  opacity:0;
-  transform:translate(-50%, 8px);
-  pointer-events:none;
-  transition:opacity 150ms cubic-bezier(0.2, 0, 0, 1), transform 150ms cubic-bezier(0.2, 0, 0, 1);
-}
-.m3-snackbar.is-shown{ opacity:1; transform:translate(-50%, 0); }
-@media (prefers-reduced-motion: reduce){
-  .m3-snackbar{ transition:none; }
-}
-
 /* ---------- 10. An existing poll in the wizard ----------
    What the poll's state does not let change is disabled in M3's 38%, with one
    Body Small line saying why at the top of the step; the line above the footer

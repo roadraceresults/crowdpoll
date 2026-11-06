@@ -102,7 +102,7 @@ describe("issuing at a send", () => {
     expect(new Date(stored.token_expires_at!).getTime()).toBe(endAt.getTime());
   });
 
-  it("a reminder replaces the hash, so only the newest token signs in", async () => {
+  it("a reminder replaces the hash, so only the newest token logs in", async () => {
     const poll = await seed();
     const first = await invite(poll._id);
     await sendReminder({ db: ctx.db, config: ctx.config }, poll._id, INVITEE);
@@ -114,7 +114,7 @@ describe("issuing at a send", () => {
     expect(await findSignInToken(ctx.db, poll._id, second)).toEqual({ email: INVITEE });
   });
 
-  it("issues no token and keeps the /?PID= link without native sign-in", async () => {
+  it("issues no token and keeps the /?PID= link without native login", async () => {
     const poll = await seed();
     await ctx.db.insertInto("poll_invitations").values({ poll_id: poll._id, email: INVITEE }).execute();
     await sendPendingInvitations({ db: ctx.db, config: { ...ctx.config, nativeSignin: false } });
@@ -126,7 +126,7 @@ describe("issuing at a send", () => {
   });
 });
 
-describe("can a token sign in?", () => {
+describe("can a token log in?", () => {
   it("not after it was used, and useToken wins only once", async () => {
     const poll = await seed();
     const token = await invite(poll._id);

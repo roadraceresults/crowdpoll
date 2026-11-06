@@ -34,7 +34,7 @@ describe("create-account requires the Terms (A3, R4)", () => {
     const res = await createAccount({ email: "old-terms@example.org", acceptedTerms: true, termsVersion: "2000-01-01" });
     expect(res.status).toBe(400);
     expect(res.body).toEqual({
-      error: "The Terms of Service have changed. Reload the page and accept them again.",
+      error: "The Terms of Service or Privacy Policy have changed. Reload the page and accept them again.",
       code: "terms-required"
     });
     expect(await userRow("old-terms@example.org")).toBeUndefined();

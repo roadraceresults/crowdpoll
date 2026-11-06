@@ -36,7 +36,7 @@ async function seed(overrides: Parameters<typeof makePoll>[0]) {
 }
 
 describe("GET /?PID= for a guest", () => {
-  it("redirects to sign-in identically for an existing private poll, an unpublished public poll and an unknown id", async () => {
+  it("redirects to login identically for an existing private poll, an unpublished public poll and an unknown id", async () => {
     const privatePoll = await seed({ pollVisibility: "Private Poll" });
     const waitingPoll = await seed({ pollState: "WAITING TO OPEN" });
     const unknown = randomUUID();
@@ -64,7 +64,7 @@ describe("GET /?PID= for a guest", () => {
   });
 });
 
-describe("GET /?PID= for a signed-in visitor", () => {
+describe("GET /?PID= for a logged-in visitor", () => {
   it("lands a non-creator on a published Anyone With The Link poll in Shared With You and records the view once", async () => {
     const poll = await seed({ pollVisibility: "Private Poll", pollSharingMode: "Anyone With The Link" });
     const res = await open(poll._id);

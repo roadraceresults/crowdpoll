@@ -212,7 +212,7 @@ describe("device evidence and account deletion (R10)", () => {
     expect((await castOn(own._id, stayer.cookie)).status).toBe(200);
     await clearFloors();
     expect((await castOn(others._id, stayer.cookie)).status).toBe(200);
-    expect((await request(collecting.app).post("/api/me/device-sign-in").set("Cookie", leaver.cookie).set("X-Device-Fingerprint", FINGERPRINT)).status).toBe(204);
+    expect((await request(collecting.app).post("/api/me/device-login").set("Cookie", leaver.cookie).set("X-Device-Fingerprint", FINGERPRINT)).status).toBe(204);
     await collecting.consumer.runOnce();
     expect((await events()).length).toBe(4);
 

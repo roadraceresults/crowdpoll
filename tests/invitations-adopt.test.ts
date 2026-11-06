@@ -58,7 +58,7 @@ async function where(pid: string) {
 const adopted = { invitation: ["jdoe@gmail.com"], invited: ["jdoe@gmail.com"], votes: ["jdoe@gmail.com"] };
 
 describe("adoption by email key", () => {
-  it("happens at sign-in, and invalidates the roster cache", async () => {
+  it("happens at login, and invalidates the roster cache", async () => {
     const poll = await seed();
     await ctx.cache.set(INVITE_KEY(poll._id), "stale");
     await forgeSession(ctx, "jdoe@gmail.com");
@@ -113,7 +113,7 @@ describe("adoption by email key", () => {
     expect(await where(poll._id)).toEqual({ invitation: [INVITED], invited: [INVITED], votes: [INVITED] });
   });
 
-  it("sends a signed-out visitor to sign in with the poll", async () => {
+  it("sends a signed-out visitor to log in with the poll", async () => {
     const poll = await seed();
     const res = await request(ctx.app).get(`/?PID=${poll._id}`);
     expect(res.headers.location).toBe(`/login?PID=${poll._id}`);

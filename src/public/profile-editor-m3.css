@@ -35,14 +35,6 @@
   box-shadow:inset 0 -2px 0 var(--md-sys-color-error);
 }
 
-.profile-your-data-heading{
-  margin:0 0 8px;
-  font-size:var(--md-sys-typescale-title-medium-size);
-  color:var(--md-sys-color-on-surface);
-}
-
-.profile-your-data .card-shell-link{ display:inline-block; margin:0 0 12px; }
-
 .profile-delete-btn{
   display:block;
   min-height:40px;

@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { sql } from "kysely";
 import { supersedeLoginLinks } from "../auth/auth.js";
 import { emailKey, emailKeyOf } from "../auth/emailKey.js";
+import { queueAvatarRemoval } from "../auth/profilePicture.js";
 import { sessionKey } from "../auth/sessionCache.js";
 import type { Cache } from "../cache/cache.js";
 import type { Db } from "../db/client.js";
@@ -115,6 +116,8 @@ function removeInOneTransaction(db: Db, cache: Cache, user: { id: string; email:
     await trx.deleteFrom("bookmarks").where("email", "=", email).execute();
     await trx.deleteFrom("user_polls").where("email", "=", email).execute();
     await supersedeLoginLinks(trx, email);
+    const owner = await trx.selectFrom("user").select("profileAvatar").where("id", "=", user.id).executeTakeFirst();
+    await queueAvatarRemoval(trx, owner?.profileAvatar);
     await trx.deleteFrom("user").where("id", "=", user.id).execute();
 
     const changedPids = [...new Set([...votedPids, ...invitedPids])];

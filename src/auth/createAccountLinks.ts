@@ -15,7 +15,7 @@ function likeEmail(email: string): string {
   return `{"createAccount":${JSON.stringify(email).replace(/[\\%_]/g, "\\$&")}%`;
 }
 
-/** Stores a single-use create-account token for an address with no account; returns the token. Only the newest signs in. */
+/** Stores a single-use create-account token for an address with no account; returns the token. Only the newest logs in. */
 export async function issueCreateAccountToken(db: Db, link: CreateAccountLink, now: Date = new Date()): Promise<string> {
   const token = randomBytes(32).toString("base64url");
   await db.transaction().execute(async (trx) => {

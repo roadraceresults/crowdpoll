@@ -239,11 +239,19 @@
 .header-user .avatar-btn{
   position:relative;
   display:inline-flex;
+  align-items:center;
+  gap:4px;
   padding:0;
   border:0;
   border-radius:var(--md-sys-shape-corner-full);
   background:none;
+  color:var(--md-sys-color-on-surface-variant);
   cursor:pointer;
+}
+.header-user .avatar-btn-chevron{
+  width:20px;
+  height:20px;
+  flex:0 0 auto;
 }
 .header-user .avatar-btn .avatar{
   width:32px;

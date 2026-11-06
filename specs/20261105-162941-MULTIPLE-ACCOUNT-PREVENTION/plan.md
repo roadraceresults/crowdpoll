@@ -20,7 +20,7 @@ Start collecting evidence for the later detection of one person voting from seve
 
 **Primary Dependencies**: no npm dependency added. One vendored browser file, `@fingerprintjs/fingerprintjs` 5.3.0 (MIT).
 
-**Storage**: PostgreSQL, one new partitioned table (migration `017-device-events`); one Valkey key per session; nothing in the browser.
+**Storage**: PostgreSQL, one new partitioned table (migration `018-device-events`); one Valkey key per session; nothing in the browser.
 
 **Testing**: Vitest on embedded PostgreSQL with supertest; jsdom client tests through `tests/helpers/browser.ts`, with `FingerprintJS` stubbed; `m3-assets.test.ts` for the pages' scripts; `legal-pages.test.ts` for the wording. Real-browser checks are in `quickstart.md`.
 
@@ -74,7 +74,7 @@ specs/20261105-162941-MULTIPLE-ACCOUNT-PREVENTION/
 ```text
 src/
 ├── db/
-│   ├── migrations/017-device-events.ts     # new; registered in index.ts
+│   ├── migrations/018-device-events.ts     # new; registered in index.ts
 │   ├── partitions.ts                       # generalised to a named table
 │   └── schema.ts                           # DeviceEventsTable
 ├── votes/
@@ -83,7 +83,7 @@ src/
 │   └── consumer.ts                         # parseEntry; rows inserted in writeBatch
 ├── routes/
 │   ├── pollsApi.ts                         # the vote route reads the header
-│   └── api.ts                              # /api/me header, POST /api/me/device-sign-in, /api/config flag
+│   └── api.ts                              # /api/me header, POST /api/me/device-login, /api/config flag
 ├── polls/
 │   ├── store.ts                            # deletePoll deletes its events
 │   └── sweeps.ts                           # partitions, retention, the coverage line
