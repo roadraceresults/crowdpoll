@@ -108,7 +108,7 @@ const wrap =
     fn(req, res).catch(next);
   };
 
-/** Signed-in caller's emailAddress, or null for a guest (data-model.md participant key). */
+/** Logged-in caller's emailAddress, or null for a guest (data-model.md participant key). */
 async function callerEmail(
   sessions: SessionCache,
   req: Request
@@ -136,7 +136,7 @@ export function createVoteRouter(context: AppContext): Router {
     wrap(async (req, res) => {
       const caller = await callerEmail(sessions, req);
       if (!caller) {
-        res.status(401).json({ error: "Not signed in" });
+        res.status(401).json({ error: "Not logged in" });
         return;
       }
       if (bookmarked && !holdsPermission(caller, "View Polls", config)) {
@@ -175,7 +175,7 @@ export function createVoteRouter(context: AppContext): Router {
     wrap(async (req, res) => {
       const caller = await callerEmail(sessions, req);
       if (!caller) {
-        res.status(401).json({ error: "Sign in to vote" });
+        res.status(401).json({ error: "Log in to vote" });
         return;
       }
       if (!holdsPermission(caller, "Vote on Polls", config)) {
@@ -214,7 +214,7 @@ export function createVoteRouter(context: AppContext): Router {
       };
       const caller = await callerEmail(sessions, req);
       if (!caller) {
-        refuse(401, "Sign in to add a choice");
+        refuse(401, "Log in to add a choice");
         return;
       }
       if (!holdsPermission(caller, "Vote on Polls", config)) {

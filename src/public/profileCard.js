@@ -4,7 +4,7 @@
  * Two states drawn by one script:
  *   - the verification result, rendered from the query string alone, which is
  *     what a link followed in a browser with no session lands on;
- *   - the Profile card, for a signed-in visitor.
+ *   - the Profile card, for a logged-in visitor.
  *
  * The result is read before the session is evaluated, so the same script draws
  * the page on both paths and the result never depends on a session lookup.
@@ -33,16 +33,16 @@
   /**
    * Each result has two wordings, because the same link lands in two very
    * different places. `subtitle` is the session-less card: that person has no
-   * session in this browser, so the next thing they need is to sign in.
-   * `onCard` is the status line of a visitor who is already signed in — the
-   * change does not end their session, so telling them to sign in would be
+   * session in this browser, so the next thing they need is to log in.
+   * `onCard` is the status line of a visitor who is already logged in — the
+   * change does not end their session, so telling them to log in would be
    * wrong, and telling them to go to their Profile page would be odd when they
    * are looking at it.
    */
   var RESULTS = {
     changed: {
       title: "Email Address Changed",
-      subtitle: "Your email address has been updated. Sign in with your new address to continue.",
+      subtitle: "Your email address has been updated. Log in with your new address to continue.",
       onCard: "Your email address has been updated."
     },
     invalid: {
@@ -120,7 +120,7 @@
     card.face.appendChild(row);
   }
 
-  /* ---------- the Profile card (signed in) ---------- */
+  /* ---------- the Profile card (logged in) ---------- */
 
   function buildProfileCard(me) {
     /* The avatar occupies the subtitle slot, right-aligned; there is no
@@ -240,22 +240,6 @@
         });
     }, { into: emailSection });
 
-    var dataSection = section();
-    dataSection.classList.add("profile-your-data");
-    var dataHeading = el("h3", "profile-your-data-heading");
-    dataHeading.textContent = "Your Data";
-    var copyLine = el("p", "card-shell-line");
-    copyLine.textContent =
-      "To get a copy of the data CrowdPoll holds about you, write to privacy@crowdpoll.vote. We answer within 30 days.";
-    var policyLink = el("a", "card-shell-link");
-    policyLink.href = "/privacy";
-    policyLink.textContent = "Read the Privacy Policy";
-    var deleteButton = el("button", "profile-delete-btn");
-    deleteButton.type = "button";
-    deleteButton.textContent = "Delete Account";
-    deleteButton.addEventListener("click", function () { openDeleteDialog(deleteButton); });
-    dataSection.append(dataHeading, copyLine, policyLink, deleteButton);
-
     /* Each action is unavailable until its field holds text that differs from
        the current value: submitting the name someone already has, or the
        address they already use, is not a change. Both start unavailable now,
@@ -293,6 +277,8 @@
     "If you were banned from a poll, the ban stays.",
     "This cannot be undone."
   ];
+
+  var DELETE_ACCOUNT_HASH = "#delete-account";
 
   function openDeleteDialog(opener) {
     var scrim = el("div", "delete-dialog-scrim");
@@ -436,6 +422,12 @@
       .catch(function () { return { signinMethod: "native" }; });
   }
 
+  function openDeleteDialogWhenAsked() {
+    if (location.hash !== DELETE_ACCOUNT_HASH) return;
+    history.replaceState(history.state, "", location.pathname + location.search);
+    openDeleteDialog(ui.nameInput);
+  }
+
   function start() {
     if (!main) return;
     fetchConfig().then(function (config) {
@@ -453,6 +445,8 @@
         }
         if (!ui) ui = buildProfileCard(me);
         applyProfile(me, config);
+        openDeleteDialogWhenAsked();
+        window.addEventListener("hashchange", openDeleteDialogWhenAsked);
         /* FR-007: a link followed in the browser that requested it is reported
            on the card, in the status line of the action it concerns. */
         if (result && ui.sendAction.status.textContent === "") {

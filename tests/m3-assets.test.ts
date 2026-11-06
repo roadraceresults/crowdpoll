@@ -32,6 +32,7 @@ const LAYER_ORDER = [
   "admin-search-m3.css",
   "single-column-m3.css",
   "tab-bar-scroll-arrows-m3.css",
+  "snackbar-m3.css",
   "legal-m3.css",
   "footer-m3.css",
   "line-graph-m3.css"
@@ -47,7 +48,7 @@ const PAGES: Record<string, PageAssets> = {
   "index.html": {
     sheets: ["tabs.css", "pollCard.css", "site.css"],
     scripts: ["app.js", "headerFit.js", "fixedChrome.js", "addChoiceDialog.js", "pollCard.js", "voteClient.js", "deltaClient.js", "lineGraph.js", "tabs.js", "trending.js", "newest.js", "searchTab.js", "liveResults.js", "tabBarScroll.js", "tabBarScrollArrows.js", "floatingActions.js", "backToTopFab.js"],
-    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "tabs-modal-m3.css", "add-choice-m3.css", "live-idle-prompt-m3.css", "empty-tab-line-m3.css", "pollCard-m3.css", "single-column-m3.css", "tab-bar-scroll-arrows-m3.css", "footer-m3.css", "line-graph-m3.css"]
+    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "tabs-modal-m3.css", "add-choice-m3.css", "live-idle-prompt-m3.css", "empty-tab-line-m3.css", "pollCard-m3.css", "single-column-m3.css", "tab-bar-scroll-arrows-m3.css", "snackbar-m3.css", "footer-m3.css", "line-graph-m3.css"]
   },
   "profile.html": {
     sheets: ["tabs.css", "pollCard.css", "site.css"],
@@ -102,7 +103,7 @@ const PAGES: Record<string, PageAssets> = {
   "admin.html": {
     sheets: ["styles.css", "tabs.css", "pollCard.css", "admin.css", "site.css"],
     scripts: ["app.js", "headerFit.js", "fixedChrome.js", "adminCard.js", "adminList.js", "backToTopFab.js"],
-    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "back-arrow-m3.css", "tabs-modal-m3.css", "discard-dialog-m3.css", "admin-card-m3.css", "admin-search-m3.css", "footer-m3.css"]
+    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "back-arrow-m3.css", "tabs-modal-m3.css", "discard-dialog-m3.css", "admin-card-m3.css", "admin-search-m3.css", "snackbar-m3.css", "footer-m3.css"]
   },
   "admin-results.html": {
     sheets: ["styles.css", "tabs.css", "pollCard.css", "admin.css", "site.css"],
@@ -214,6 +215,12 @@ describe("Material 3 page assets", () => {
     expect(css).not.toMatch(/::(before|after)::|::(before|after):|:checked:checked|:focus-visible:focus-visible/);
     expect(css).toContain(".poll-admin-card .m3-radio::before{");
     expect(css).toContain(".poll-admin-card .m3-radio:checked::before{ transform:scale(1); }");
+  });
+
+  it("lifts the snackbar above the cookie banner, in its own sheet", () => {
+    expect(read("snackbar-m3.css")).toContain("bottom:calc(16px + var(--cookie-banner-offset, 0px));");
+    expect(read("snackbar-m3.css")).toMatch(/\.m3-snackbar--top\{\s*top:16px;\s*bottom:auto;/);
+    expect(read("admin-card-m3.css")).not.toContain(".m3-snackbar");
   });
 
   it("scales the card title between 18px and Title Large's 20px", () => {

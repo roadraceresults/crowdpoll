@@ -1,6 +1,6 @@
 /**
  * TWEAK04 — the create-account email sent to an address with no account is a
- * one-time link: it creates the account and signs in, with no second email.
+ * one-time link: it creates the account and logs in, with no second email.
  */
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import request from "supertest";
@@ -26,7 +26,7 @@ afterEach(() => {
   restoreTime();
 });
 
-/** Asks for a sign-in link for an address with no account; returns the emailed token and link. */
+/** Asks for a login link for an address with no account; returns the emailed token and link. */
 async function requestLink(email: string, body: Record<string, unknown> = {}): Promise<{ token: string; link: URL }> {
   const res = await request(ctx.app)
     .post("/api/auth/request-login-link")
@@ -78,7 +78,7 @@ describe("the create-account email for an address with no account", () => {
     expect((await request(ctx.app).get(`/api/auth/create-account/link-info?token=${second.token}`)).status).toBe(200);
   });
 
-  it("survives the sign-in link supersession that minting runs", async () => {
+  it("survives the login link supersession that minting runs", async () => {
     const email = freshAddress();
     const { token } = await requestLink(email);
     await supersedeLoginLinks(ctx.db, email);
@@ -124,7 +124,7 @@ describe("POST /api/auth/create-account with a token", () => {
     expect(await userOf(email)).toBeUndefined();
   });
 
-  it("creates the account, confirms the address and signs in, with no second email", async () => {
+  it("creates the account, confirms the address and logs in, with no second email", async () => {
     const email = freshAddress();
     const pid = randomUUID();
     const { token } = await requestLink(email, { pid });
@@ -138,7 +138,7 @@ describe("POST /api/auth/create-account with a token", () => {
     expect(user).toMatchObject({ emailVerified: true, status: "active", terms_version: TERMS_VERSION });
   });
 
-  it("signs in once: a second press is an invalid link", async () => {
+  it("logs in once: a second press is an invalid link", async () => {
     const { token } = await requestLink(freshAddress());
     expect((await create({ token, ...AGREE })).status).toBe(200);
     const again = await create({ token, ...AGREE });

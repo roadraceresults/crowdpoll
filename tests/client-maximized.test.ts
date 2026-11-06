@@ -206,7 +206,7 @@ describe("maximizing and restoring", () => {
     expect(scrollCalls(page).at(-1)).toBe(64);
   });
 
-  it("lets a guest maximize a card, while Vote inside it still asks them to sign in", async () => {
+  it("lets a guest maximize a card, while Vote inside it still asks them to log in", async () => {
     await seedThree();
     page = await open();
     expect(page.document.body.classList.contains("is-guest")).toBe(true);

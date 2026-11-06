@@ -18,6 +18,7 @@ import { createDb, type Db } from "../../src/db/client.js";
 import { setTransport } from "../../src/email/mailer.js";
 import { createApp, createAppContext, type AppContext } from "../../src/server.js";
 import { VOTE_GROUP, VOTE_STREAM } from "../../src/votes/queue.js";
+import type { ObjectStore } from "../../src/trending/publish.js";
 import { TERMS_VERSION } from "../../src/legal/version.js";
 
 /** The agreement every create-account request now carries (A3). */
@@ -38,12 +39,15 @@ export interface TestContext extends AppContext {
   config: AppConfig;
   /** Every message "sent" since startup, oldest first. */
   sent: CapturedMail[];
-  /** Every sign-in binding cookie the app set, keyed by the hash its link carries. */
+  /** Every login binding cookie the app set, keyed by the hash its link carries. */
   bindings: Map<string, string>;
   /** Every SQL statement the app ran, for suites that assert on database access. */
   queries: string[];
   stop(): Promise<void>;
 }
+
+/** Stands in for Spaces in a suite that sets `ENV_SPACES_*` and gives no store of its own. */
+const INERT_STORE: ObjectStore = { put: async () => {}, delete: async () => {} };
 
 let databaseCounter = 0;
 
@@ -67,7 +71,7 @@ async function createTestDatabase(): Promise<{ url: string; drop: () => Promise<
 
 export async function startTestContext(
   envOverrides: Record<string, string> = {},
-  options: { humanCheckFetch?: typeof fetch } = {}
+  options: { humanCheckFetch?: typeof fetch; objectStore?: ObjectStore } = {}
 ): Promise<TestContext> {
   const database = await createTestDatabase();
   const queries: string[] = [];
@@ -109,8 +113,9 @@ export async function startTestContext(
 
   const cache = new MemoryCache();
   await cache.xgroupCreate(VOTE_STREAM, VOTE_GROUP);
-  const auth = createAuth(db, config, cache);
-  const context = createAppContext({ auth, db, cache, config, humanCheckFetch: options.humanCheckFetch });
+  const objectStore = config.spaces ? options.objectStore ?? INERT_STORE : null;
+  const auth = createAuth(db, config, cache, objectStore);
+  const context = createAppContext({ auth, db, cache, config, objectStore, humanCheckFetch: options.humanCheckFetch });
   const bindings = new Map<string, string>();
   const app = express();
   app.set("trust proxy", true);
@@ -157,8 +162,8 @@ export async function clearPolls(ctx: TestContext): Promise<void> {
 
 /**
  * Create a user + session directly through the library's stores and return
- * a validly signed session cookie — lets suites exercise signed-in behavior
- * in configurations whose sign-in flow is externally blocked (OAuth mode).
+ * a validly signed session cookie — lets suites exercise logged-in behavior
+ * in configurations whose login flow is externally blocked (OAuth mode).
  */
 export async function forgeSession(
   ctx: TestContext,
@@ -195,7 +200,7 @@ export function extractLink(mail: CapturedMail): string {
 }
 
 /**
- * Follows an emailed sign-in link from the browser that asked for it: sends the
+ * Follows an emailed login link from the browser that asked for it: sends the
  * signin_binding cookie the request set, plus any other cookies given.
  */
 export function followSignInLink(ctx: TestContext, link: string, cookie?: string) {

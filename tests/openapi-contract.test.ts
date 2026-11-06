@@ -251,7 +251,7 @@ describe("openapi.json tracks the 017 surfaces", () => {
     }
   });
 
-  it("documents the sign-in confirmation routes and the hidden anti-bot field (production email A1–A6)", () => {
+  it("documents the login confirmation routes and the hidden anti-bot field (production email A1–A6)", () => {
     const documented = new Set(documentedRoutes());
     expect(documented.has("GET /api/auth/link-info")).toBe(true);
     expect(documented.has("POST /api/auth/confirm-signin")).toBe(true);

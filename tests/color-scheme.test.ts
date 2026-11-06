@@ -106,7 +106,7 @@ describe("PATCH /api/me colorScheme", () => {
     expect(await total()).toBe(before);
   });
 
-  it("serves /settings to a signed-in user and sends a guest to sign in", async () => {
+  it("serves /settings to a logged-in user and sends a guest to log in", async () => {
     const cookie = await signIn(freshEmail());
     const page = await request(ctx.app).get("/settings").set("Cookie", cookie);
     expect(page.status).toBe(200);

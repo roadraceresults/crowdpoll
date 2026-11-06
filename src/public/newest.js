@@ -108,7 +108,7 @@
     await fetchOverlay();
   }
 
-  // ---- The signed-in overlay: fetched, and refetched after a refusal, by Tabs ----
+  // ---- The logged-in overlay: fetched, and refetched after a refusal, by Tabs ----
 
   function fetchOverlay() {
     return overlay.fetch();

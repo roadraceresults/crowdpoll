@@ -206,7 +206,7 @@ describe("colors on a poll that has votes", () => {
     });
   }
 
-  it("answers 404 for a signed-in user who is neither the creator nor an administrator", async () => {
+  it("answers 404 for a logged-in user who is neither the creator nor an administrator", async () => {
     const poll = await votedPoll();
     const { cookie: other } = await forgeSession(ctx, "someone-else@example.com");
     const res = await request(ctx.app).post(`/api/admin/polls/${poll._id}/colors`).set("Cookie", other).send({ clientGuid: "tab-1", colors: ["#F91010", null] });

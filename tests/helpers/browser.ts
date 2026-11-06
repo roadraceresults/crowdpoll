@@ -158,5 +158,5 @@ export async function openPage(
  */
 export const LISTING_MAX_AGE_1S = { ENV_TRENDING_POLLS_RECOMPUTE_SWEEP_INTERVAL: "1000", ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL: "1000" };
 
-/** The home page's address for a signed-in visitor who should start on Trending rather than land on Home. */
+/** The home page's address for a logged-in visitor who should start on Trending rather than land on Home. */
 export const ON_TRENDING = "http://localhost/?tab=trending";

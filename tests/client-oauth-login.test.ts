@@ -1,7 +1,7 @@
 /**
  * The Login card's provider buttons (contracts/ui-contracts.md C1, C2): one per enabled provider in display
- * order, usable at once (agreement is asked for afterwards, on the Accept Terms card), each starting its provider's sign-in; the email form follows a
- * divider in both mode; a refused sign-in's ?error= code shows its message.
+ * order, usable at once (agreement is asked for afterwards, on the Accept Terms card), each starting its provider's login; the email form follows a
+ * divider in both mode; a refused login's ?error= code shows its message.
  */
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { NOT_LAUNCHED_MESSAGE } from "../src/auth/allowlist.js";
@@ -64,44 +64,58 @@ describe("oauth mode", () => {
     expect(page.document.querySelector(".oauth-divider")).toBeNull();
   });
 
-  it("has no Terms box: the buttons work at once, and a line below them names the Terms", async () => {
+  it("has no Terms box: the buttons work at once, and a line above them names the Terms", async () => {
     page = await login(ctx);
     await page.settle();
     expect(page.document.getElementById("terms")).toBeNull();
     for (const b of buttons(page)) expect(b.getAttribute("aria-disabled")).toBe("false");
     const line = page.document.querySelector(".login-terms-line")!;
-    expect(line.textContent!.startsWith("By signing in you agree to the Terms of Service")).toBe(true);
+    expect(line.textContent!.startsWith("By logging in you agree to the Terms of Service")).toBe(true);
     expect([...line.querySelectorAll("a")].map((link) => link.getAttribute("href"))).toEqual(["/terms", "/privacy"]);
-    expect(buttons(page).at(-1)!.compareDocumentPosition(line) & page.window.Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(page.document.getElementById("stay")!.compareDocumentPosition(line) & page.window.Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(line.compareDocumentPosition(buttons(page)[0]!) & page.window.Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it("starts Google's sign-in with the shared poll's landing and goes to the address it is given", async () => {
+  it("starts Google's login with the shared poll's landing and goes to the address it is given", async () => {
     const pid = "6f1c2b9e-3d4a-4f5b-8c7d-9e0a1b2c3d4e";
     page = await login(ctx, `?PID=${pid}`);
     await page.settle();
     const sent = capture(page, "/api/auth/sign-in/social");
     buttons(page)[0]!.click();
     await page.settle(100);
-    expect(sent).toEqual([{ provider: "google", callbackURL: `/?PID=${pid}` }]);
+    expect(sent).toEqual([{ provider: "google", callbackURL: `/?PID=${pid}&signedIn=1` }]);
     expect(page.navigations.length).toBeGreaterThan(0);
   });
 
-  it("starts Amazon's sign-in at its own route", async () => {
+  it("offers Stay logged in above the buttons, with no address needed, and carries it through the login", async () => {
+    page = await login(ctx);
+    await page.settle();
+    const stay = page.document.getElementById("stay") as HTMLInputElement;
+    expect(stay.disabled).toBe(false);
+    expect(stay.compareDocumentPosition(buttons(page)[0]!) & page.window.Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    stay.checked = true;
+    const sent = capture(page, "/api/auth/sign-in/oauth2");
+    buttons(page)[2]!.click();
+    await page.settle(100);
+    expect(sent).toEqual([{ providerId: "amazon", callbackURL: "/?signedIn=1", additionalData: { staySignedIn: true } }]);
+  });
+
+  it("starts Amazon's login at its own route", async () => {
     page = await login(ctx);
     await page.settle();
     const sent = capture(page, "/api/auth/sign-in/oauth2");
     buttons(page)[2]!.click();
     await page.settle(100);
-    expect(sent).toEqual([{ providerId: "amazon", callbackURL: "/" }]);
+    expect(sent).toEqual([{ providerId: "amazon", callbackURL: "/?signedIn=1" }]);
   });
 
   it("shows each refusal's message (C2)", async () => {
     const cases: [string, string][] = [
       ["not-launched", NOT_LAUNCHED_MESSAGE],
-      ["access_denied", "Sign-in was cancelled."],
-      ["account_not_linked", "An account already uses this email address. Sign in the way you usually do."],
+      ["access_denied", "Login was cancelled."],
+      ["account_not_linked", "An account already uses this email address. Log in the way you usually do."],
       ["email_not_found", "CrowdPoll needs your email address to sign you in; try another way."],
-      ["invalid_code", "Sign-in with that provider failed. Please try again."]
+      ["invalid_code", "Login with that provider failed. Please try again."]
     ];
     for (const [code, message] of cases) {
       page = await login(ctx, `?error=${code}`);
@@ -131,13 +145,77 @@ describe("both mode", () => {
     expect(divider.textContent).toBe("or");
     expect(wrap.compareDocumentPosition(divider) & page.window.Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(divider.compareDocumentPosition(form) & page.window.Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(page.document.querySelector(".login-terms-line")).not.toBeNull();
+    const terms = page.document.querySelectorAll(".login-terms-line");
+    expect(terms).toHaveLength(1);
+    expect(terms[0]!.compareDocumentPosition(wrap) & page.window.Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it("keeps an expired email link's notice on the email form", async () => {
     page = await login(ctx, "?error=invalid-link");
     await page.settle();
     const errors = [...page.document.querySelectorAll(".card-shell-status.error")].map((s) => s.textContent);
-    expect(errors).toEqual(["That sign-in link is no longer valid. Request a new one."]);
+    expect(errors).toEqual(["That login link is no longer valid. Request a new one."]);
+  });
+});
+
+describe("what is shared (C2)", () => {
+  let ctx: TestContext;
+  beforeAll(async () => {
+    ctx = await startTestContext({ ENV_SIGNIN_METHOD: "oauth", ...PROVIDERS });
+  });
+  afterAll(async () => {
+    await ctx.stop();
+  });
+
+  /** The harness configures three providers; the page draws what `/api/config` lists. */
+  async function providerRows(oauthProviders: string[]) {
+    page = await openPage(ctx, "login.html", {
+      url: "http://localhost/login",
+      scripts: ["app.js", "cardShell.js", "loginCard.js"],
+      beforeScripts: (window) => {
+        const real = window.fetch;
+        window.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+          const res = await real(input, init);
+          if (String(input) !== "/api/config") return res;
+          const body = await res.json();
+          return { ...res, ok: true, status: 200, json: async () => ({ ...body, oauthProviders }) } as unknown as Response;
+        }) as typeof window.fetch;
+      }
+    });
+    await page.settle();
+    return [...page.document.querySelectorAll(".oauth-provider")];
+  }
+
+  const GOOGLE = "Google shares your name, email address and profile picture.";
+  const cases: [string[], [string, string][]][] = [
+    [["google"], [["google", GOOGLE]]],
+    [["amazon"], [["amazon", "Amazon shares your name and email address."]]],
+    [["apple", "microsoft"], [["apple", "Apple shares your name and email address."], ["microsoft", "Microsoft shares your name and email address."]]],
+    [["google", "amazon"], [["google", GOOGLE], ["amazon", "Amazon shares your name and email address."]]]
+  ];
+  for (const [providers, expected] of cases) {
+    it(`says it for ${providers.join(", ")}, each provider under its own button, with no link`, async () => {
+      const rows = await providerRows(providers);
+      expect(rows.map((row) => [row.querySelector("button")!.dataset.provider, row.querySelector(".oauth-sharing")!.textContent])).toEqual(expected);
+      for (const row of rows) {
+        expect(row.firstElementChild!.tagName).toBe("BUTTON");
+        expect(row.lastElementChild!.className).toBe("oauth-sharing");
+        expect(row.querySelector("a")).toBeNull();
+      }
+    });
+  }
+});
+
+describe("email-only mode", () => {
+  it("says nothing about what is shared", async () => {
+    const ctx = await startTestContext();
+    try {
+      page = await login(ctx);
+      await page.settle();
+      expect(page.document.getElementById("login-form")).not.toBeNull();
+      expect(page.document.querySelector(".oauth-sharing")).toBeNull();
+    } finally {
+      await ctx.stop();
+    }
   });
 });

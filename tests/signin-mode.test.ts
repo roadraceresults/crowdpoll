@@ -17,7 +17,7 @@ describe("oauth mode", () => {
     await ctx.stop();
   });
 
-  it("exposes the configured sign-in method to the client", async () => {
+  it("exposes the configured login method to the client", async () => {
     const res = await request(ctx.app).get("/api/config");
     expect(res.status).toBe(200);
     expect(res.body.signinMethod).toBe("oauth");
@@ -44,7 +44,7 @@ describe("oauth mode", () => {
     expect((await request(ctx.app).get("/login")).status).toBe(200);
   });
 
-  it("mounts the OAuth sign-in surface", async () => {
+  it("mounts the OAuth login surface", async () => {
     // No providers are configured in tests, so the library answers with its
     // own provider-not-found error — proving the surface exists (native mode
     // answers with the app's generic API 404 instead).

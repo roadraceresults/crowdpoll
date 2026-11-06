@@ -10,7 +10,7 @@ removing identical instances that share a database, a cache and a queue.
 ```mermaid
 flowchart LR
   Browser["Browser<br/>vanilla ES2020 tabs, cards, vote client"]
-  CDN["Spaces + CDN<br/>trending-counts.json, trending.json,<br/>newest-counts.json, newest.json,<br/>fingerprinted assets"]
+  CDN["Spaces + CDN<br/>trending-counts.json, trending.json,<br/>newest-counts.json, newest.json,<br/>fingerprinted assets, avatars/*"]
   subgraph DO["DigitalOcean App Platform"]
     LB["Load balancer<br/>health check GET /healthz"]
     W1["Web instance"]
@@ -60,13 +60,13 @@ sequenceDiagram
   participant PG as PostgreSQL
   participant VK as Valkey
   participant OS as OpenSearch
-  S->>S: loadConfig (fails fast, names the variable; a partial sign-in provider stops it; records each default used)
+  S->>S: loadConfig (fails fast, names the variable; a partial login provider stops it; records each default used)
   S->>S: log each setting left at its default ([config] … was not found, using default value: …)
-  S->>S: log sign-in mode and providers; sign Apple's client secret (renewed every 30 days)
+  S->>S: log login mode and providers; sign Apple's client secret (renewed every 30 days)
   S->>PG: migrateToLatest (abort on failure)
   S->>VK: connect, XGROUP CREATE votes writers
   S->>OS: ensureIndex + health probe (fallback to PostgreSQL FTS on failure)
-  S->>S: mount /healthz, compression, in-flight counter, the provider sign-in routes (oauth/both), dynamic routers, other-shedding, pages, API
+  S->>S: mount /healthz, compression, in-flight counter, the provider login routes (oauth/both), dynamic routers, other-shedding, pages, API
   S->>VK: heartbeat instance:<id> every 10 s
   S->>S: start sweeps (advisory-locked) and the vote consumer
   S->>S: listen
@@ -191,7 +191,7 @@ erDiagram
     timestamptz reminded_at
     timestamptz send_failed_at
     timestamptz accepted_at "first shown the poll"
-    text token_hash "sha256 of the newest sign-in token"
+    text token_hash "sha256 of the newest login token"
     timestamptz token_expires_at "min(poll end, send + 30 days)"
     timestamptz token_used_at "single use"
   }
@@ -234,7 +234,7 @@ Kysely's migration lock until the check passes (`devScripts/MIGRATIONS-HOWTO.md`
 
 | Key | Holds | Written by |
 |---|---|---|
-| `sess:<sha256(token)>` | a session, bounded by its own expiry | session cache-aside; deleted on logout, rename, sign-in elsewhere |
+| `sess:<sha256(token)>` | a session, bounded by its own expiry | session cache-aside; deleted on logout, rename, login elsewhere |
 | `floor:<kind>:<session\|ip>` | that kind's token bucket, refilled once per floor (× k for search and refresh) | every dynamic request |
 | `home:<emailKey>` | Home's membership: order, rules, reasons, the `tabs:v` it was built under (`ENV_HOME_TAB_REFRESH_INTERVAL`) | a Home refresh whose version changed (without `keepOrder`) or whose entry expired |
 | `tabs:v:<emailKey>`, `tabs:seen:<emailKey>:<tab>` | the user's list version (24 h); a personal tab's last full answer (5 min) | a full personal-tab answer; the version is deleted after commit by every write to the user's relations, invitations or bans |
@@ -336,7 +336,7 @@ flowchart LR
   end
 
   subgraph Leader["One instance per tick (advisory lock)"]
-    Sweeps["sweeps.ts<br/>12 timers"]
+    Sweeps["sweeps.ts<br/>13 timers"]
   end
 
   Cache[("Valkey<br/>cnt:&lt;pid&gt;, poll:&lt;pid&gt;, tabs:*, k:*, floor:*")]
@@ -365,7 +365,7 @@ The fleet's budget is 1,250 dynamic requests per second per live instance, cappe
 
 | Mechanism | Who pays | Rate, at most | Cost of one |
 |---|---|---|---|
-| Sweeps (all twelve) | one instance per tick | fixed by their intervals | small bounded queries; grows with polls changed, never with visitors |
+| Sweeps (all thirteen) | one instance per tick | fixed by their intervals | small bounded queries; grows with polls changed, never with visitors |
 | Live Results timer | each open, visible, non-idle Live tab | 1 per 2 s × `k:live`, backing off to 1 per 10 s while unchanged | cache reads only (≤ 5 polls) |
 | Refresh on a personal tab | one visitor | burst 5, then 1 per 5 s × `k:refresh` | unchanged list: cache reads only (the shortcut below); otherwise one indexed query (≤ 200 rows) |
 | Refresh on Search | one visitor | burst 3, then 1 per 2 s × `k:search` | the 10 s search cache, or one engine query |
@@ -483,7 +483,7 @@ flowchart LR
   Rank -- "cardsVersion = sha256(pid:contentVersion lines); cards only when it changed" --> Cards["trending.json"]
   Counts & Cards --> CDN["Spaces + CDN, max-age min(interval, 10 s), ETag"]
   Browser -- "conditional GET; cards only when cardsVersion or membershipVersion differs" --> CDN
-  Browser -- "GET /api/me/polls?pids= (signed in)" --> Overlay["overlay: voted, choiceIds, bookmarked"]
+  Browser -- "GET /api/me/polls?pids= (logged in)" --> Overlay["overlay: voted, choiceIds, bookmarked"]
 ```
 
 Newest is the same publication a second time with a different ranking key: `launched_at`, a
@@ -531,8 +531,8 @@ an invitation.
 A poll link, `/?PID=<uuid>`, is decided on the server while the home page is served
 (`decideSharedLink`, then `resolveSharedLink` records the view as a `linked` relation, at most
 once a minute). A guest is redirected to `/login?PID=` before any lookup; the id then rides the
-sign-in URLs, the request body and the emailed link, never a cookie or browser storage, and a
-successful verify lands on `/?PID=` again. A signed-in visitor is redirected to `/` with one of a
+login URLs, the request body and the emailed link, never a cookie or browser storage, and a
+successful verify lands on `/?PID=` again. A logged-in visitor is redirected to `/` with one of a
 fixed set of landings (`open`, `tab`, `notice`), which the page applies; a poll no list holds is
 fetched from `GET /api/me/polls/:pid` and mounted as a retained maximized card.
 
@@ -568,7 +568,7 @@ stateDiagram-v2
   [*] --> Grid
   Grid --> Maximized: title, subtitle or maximize button
   Maximized --> Grid: minimize button, Escape, the active tab (scroll and focus restored)
-  Maximized --> Grid: another tab, a search, a sign-in change (quiet: neither restored)
+  Maximized --> Grid: another tab, a search, a login change (quiet: neither restored)
   Maximized --> Grid: the poll leaves the tab's list (any tab but Trending and Newest)
   Maximized --> Retained: a Trending or Newest recompute drops the poll
   Retained --> Grid: any close (the card is removed)
@@ -758,7 +758,7 @@ flowchart TB
   `--fixed-chrome-height`) that `header-fixed-m3.css` uses to pin both to the top of the viewport
   and to reserve matching space in `.container`'s padding; `window.FixedChrome.height()` lets
   `floatingActions.js` and `tabs.js` keep the guest buttons and a maximized card from landing
-  underneath it. `backToTopFab.js` injects one button, centred at the bottom of the viewport, shown
+  underneath it. `backToTopFab.js` injects one button, at the bottom of the viewport on the container's left edge, shown
   past 600px of scroll and hidden again below 400px, that returns the page to the top (instantly
   under reduced motion).
 - **Back arrow.** On `/privacy` and `/terms`, `backArrow.js` decides once at load whether to show a
@@ -845,6 +845,7 @@ as `Created By: <username> (<email>)` above its dates.
 | newest recompute + publish (also once at start) | `ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL` | 10 |
 | retention: expired sessions, links, email changes and rate-limit rows; `invitation_emails` older than 24 hours; `vote_history` partitions older than 12 months | daily | 11 |
 | invitations: claim and send the pending invitations of every open Invitation Only poll | `ENV_INVITATION_SWEEP_INTERVAL` | 12 |
+| avatar removal: delete up to 100 queued objects from Spaces; only when Spaces is configured | 5 minutes | 13 |
 
 ```mermaid
 gantt
@@ -976,7 +977,7 @@ open poll and by `invitationSweep` (30 s, lock 12), takes a per-creator advisory
 twice. Only OPEN polls send; a resend is refused while the poll is not open. A failed send sets `send_failed_at`.
 
 An invitation typed in another spelling of an account's address (Gmail dots, a `+tag`) is **adopted** by the account —
-the invitation, its `invited` row and its placeholder vote take the account's address — at sign-in
+the invitation, its `invited` row and its placeholder vote take the account's address — at login
 (`session.create.after`), at the poll link and at the Shared With You tab, so every exact-match reader stays as it was. The
 link and the tab also set `accepted_at` once. The admin list rows carry `acceptedCount`.
 
@@ -986,12 +987,12 @@ the zone in force on that date (EDT or EST).
 
 **The invitation link signs the invitee in.** Each send issues a 32-byte token (`src/invitations/tokens.ts`); the row
 keeps only `hashToken(token)`, an expiry of min(poll end, 30 days) and a used mark (migration `011-invitation-tokens`,
-a unique partial index on the hash), so only the newest email's token signs in, once, and removing the address revokes
+a unique partial index on the hash), so only the newest email's token logs in, once, and removing the address revokes
 it with the row. The emailed link is `/invite?PID=<pid>&token=<token>` (in `oauth` mode, `/?PID=<pid>` with no token),
-and the email says, under the button, whom the button signs in. `GET /invite` writes nothing — a token that cannot sign
+and the email says, under the button, whom the button logs in. `GET /invite` writes nothing — a token that cannot sign
 in (replaced, used, expired, poll closed or no longer Invitation Only) falls back to `/?PID=<pid>`, an invalid `PID` to
-`/login?error=invalid-link` — except for a browser already signed in as the invited address (by email key), which uses
-the token up and goes straight to `/?PID=<pid>`. The card (`invite.html` + `inviteCard.js`, built on the sign-in cards)
+`/login?error=invalid-link` — except for a browser already logged in as the invited address (by email key), which uses
+the token up and goes straight to `/?PID=<pid>`. The card (`invite.html` + `inviteCard.js`, built on the login cards)
 reads `GET /api/invitations/link-info` (`no-store`, masked addresses) and posts `POST /api/invitations/redeem`, which
 checks, in order: `Origin`, the token, the Terms box for a new address, the shared email rate limit
 (`/redeem-invitation` — only presses that got this far count), the pre-launch allowlist, and a session for another
@@ -1011,7 +1012,7 @@ miss and caches it with the session, so a check costs nothing on a hit.
 
 ```mermaid
 flowchart TD
-    R["/admin* or /api/admin/* request"] --> S{"signed in?"}
+    R["/admin* or /api/admin/* request"] --> S{"logged in?"}
     S -- no --> D403["403"]
     S -- yes --> A{"administrator?"}
     A -- yes --> OK["allowed, any poll"]
@@ -1030,7 +1031,7 @@ search and rescreen and `canReachAdmin` for the rest. `createRequirePollOwner` f
 routes and answers `404` for a poll the caller did not create, so the poll's existence is never
 revealed. Outside the admin routes, `holdsPermission` gates three actions: a vote (`403
 no-vote-permission`), adding a bookmark, and adding a Live Results entry (`403 no-view-permission`).
-Removing either is never gated. Without `View Polls`, a signed-in user sees no poll cards at all:
+Removing either is never gated. Without `View Polls`, a logged-in user sees no poll cards at all:
 `createGrid` in `tabs.js` mounts none on any tab and each tab shows the reason, while the four
 personal tabs and Live Results refresh answer as empty and Search answers `403`. Trending and
 Newest are shared objects, so the page alone withholds them.
@@ -1109,7 +1110,7 @@ daylight-saving change never shifts a vote onto the wrong day. Voters from one p
 one, so the final bars follow the latest data point. `updatePoll` stamps `launched_at` only when a poll
 enters OPEN, so a rerun writes `launched_at = start_at` itself.
 
-## Email and sign-in links
+## Email and login links
 
 All mail goes through `src/email/mailer.ts`. `createTransportFor` picks the transport from `ENV_EMAIL_TRANSPORT`:
 nodemailer's own SES transport over `@aws-sdk/client-sesv2` (`ses`: production and the development templates, HTTPS
@@ -1121,7 +1122,7 @@ replace the transport with `setTransport`. Every send is raced against `ENV_EMAI
 masked recipient and the provider's message id; a failure is a `MailError`, which the routes answer with `502`
 (the change notice only logs it).
 
-The messages (sign-in link, create-account invitation, email-change verification, change notice, account deleted, and
+The messages (login link, create-account invitation, email-change verification, change notice, account deleted, and
 the poll invitation and its reminder from `invitationMessage`) are built by `src/email/templates.ts`: one table-based layout with inline styles, the hosted `/email-logo.png` (written by
 `devScripts/favicon-ico.ts`), the site's green, a footer naming `support@crowdpoll.vote`, a plain-text part with the
 same content, and every inserted value escaped. `layout()` takes an optional `headingLine2`, which the invitation
@@ -1129,7 +1130,7 @@ uses to put the poll title on its own line under the heading; every other messag
 invitation's link is `/create-account?token=…` (`src/auth/createAccountLinks.ts`): a single-use token whose hash is a
 `verification` row of its own (`create-account:` identifier, a value that `supersedeLoginLinks` never matches, 15
 minutes, the newest per address); `GET /api/auth/create-account/link-info` reads it, and the token form of
-`POST /api/auth/create-account` (Origin, token, Terms, rate limit, allowlist) creates the account and signs in through
+`POST /api/auth/create-account` (Origin, token, Terms, rate limit, allowlist) creates the account and logs in through
 `mintLoginToken` and `completeSignIn`, as the invitation card does. Bounces and complaints are left to SES's account-level suppression
 list; there is no delivery webhook.
 
@@ -1157,28 +1158,28 @@ sequenceDiagram
   end
 ```
 
-Both sign-in paths share `completeSignIn`, which consumes the token through BetterAuth and shapes the session cookie for
-stay-signed-in and the shared poll. The binding stores nothing: the link carries `hashToken` of the cookie value, and
+Both login paths share `completeSignIn`, which consumes the token through BetterAuth and shapes the session cookie for
+stay-logged-in and the shared poll. The binding stores nothing: the link carries `hashToken` of the cookie value, and
 `link-info` reads the verification row by the same hash BetterAuth stores, without consuming it, so a mail scanner that
 loads the link signs no one in. The confirm route checks `Origin` so another site cannot post a token of its own and sign
 a visitor into its account.
 
-The create-account, request-sign-in-link and email-change routes check a hidden `homepage` field first: when it is filled
+The create-account, request-login-link and email-change routes check a hidden `homepage` field first: when it is filled
 they answer as on success, send nothing and leave the rate limit untouched. Create-account and email change compare
 addresses by `emailKey` (`src/auth/emailKey.ts`, plus-tag dropped, Gmail dots removed), one SQL expression applied to both
-sides and backed by the non-unique expression index of migration `008-email-key`; sign-in requests still match exactly,
+sides and backed by the non-unique expression index of migration `008-email-key`; login requests still match exactly,
 and existing accounts that share a key keep working.
 
 **Pre-launch allowlist.** While `ENV_ALLOWED_EMAILS` is set, `isAllowed` (`src/auth/allowlist.ts`) admits only the listed
 addresses, compared by `emailKeyOf` (the TypeScript twin of `emailKey`), and the `ENV_ADMINS` addresses. Create-account,
-request-sign-in-link and email change check it after the honeypot, validation and rate limit, and answer `403
+request-login-link and email change check it after the honeypot, validation and rate limit, and answer `403
 { error, code: "not-launched" }` without creating or sending anything; verify and confirm-signin check the link's address
 before `completeSignIn`, so a refused link is not consumed; the email-change link checks the new address before applying
 it. BetterAuth's `user.create.before` and `session.create.before` hooks refuse an unlisted address too, which covers the
-provider sign-ins, whose refusals land on `/login?error=not-launched` (`onAPIError.errorURL`). Existing sessions are untouched.
+provider logins, whose refusals land on `/login?error=not-launched` (`onAPIError.errorURL`). Existing sessions are untouched.
 Unset or empty, the list is off and every path behaves as before.
 
-## Social sign-in
+## Social login
 
 `ENV_SIGNIN_METHOD` is `native`, `oauth` or `both`; `loadConfig` derives `nativeSignin` and `oauthSignin`, which every
 check uses (`nativeOnly` in `api.ts`, the `/create-account` and `/confirm-signin` guards, `/api/config`). The enabled
@@ -1189,12 +1190,12 @@ are all set. BetterAuth's `baseURL` and only trusted origin is `ENV_PUBLIC_ORIGI
   `GET|POST /api/auth/callback/:provider`, `POST /api/auth/sign-in/oauth2` and `GET /api/auth/oauth2/callback/:providerId`,
   before the JSON parser; every other `/api/auth/*` path stays CrowdPoll's. Google, Apple and Microsoft are
   BetterAuth `socialProviders` (Microsoft with `tenantId: "common"`, no photo); Amazon is a `genericOAuth` entry whose
-  `getUserInfo` reads `https://api.amazon.com/user/profile`. BetterAuth allows three sign-in starts per address per
+  `getUserInfo` reads `https://api.amazon.com/user/profile`. BetterAuth allows three login starts per address per
   10 seconds.
 - **Linking.** Each provider's `mapProfileToUser` swaps the provider's address for an existing account's stored address
   when their `emailKey` matches, so BetterAuth's exact lookup links the provider to that account. No provider is
   "trusted": BetterAuth links only when the provider reports the address verified (a personal Microsoft account counts
-  as verified) and the local account has signed in before; otherwise `/login?error=account_not_linked`. A link is keyed by
+  as verified) and the local account has logged in before; otherwise `/login?error=account_not_linked`. A link is keyed by
   the provider's user id, so it survives an email change; the stored name and address are never overwritten. Deleting an
   account deletes its `account` rows by cascade.
 - **New accounts** go through `user.create.before` like any other (allowlist, user name, default avatar, the provider's
@@ -1208,9 +1209,45 @@ are all set. BetterAuth's `baseURL` and only trusted origin is `ENV_PUBLIC_ORIGI
   `access_denied`, `account_not_linked` and `email_not_found` to messages and anything else to a generic one. The card
   renders one button per `oauthProviders` entry with the provider's logo from `/oauth/`, with no Terms box (agreement
   is asked for afterwards by the terms gate's Accept Terms card, which greets a first acceptance, `termsFirstAcceptance`
-  on `GET /api/me`), and posts to the start route with `callbackURL` `/` or `/?PID=…`; in `both` the email form follows a divider.
+  on `GET /api/me`, and otherwise names what changed, by `termsUpdated` and `privacyUpdated`), and posts to the start route with `callbackURL` `/?signedIn=1` or `/?PID=…&signedIn=1`; in `both` the email form follows a divider.
 - **Cookie.** BetterAuth's state cookie is named `oauth_state` (httpOnly, secure, lax, 5 minutes) and listed in the
   Cookie Use table.
+- **Stay logged in.** A ticked box adds `additionalData: { staySignedIn: true }` to the provider start, which BetterAuth
+  keeps in its OAuth state. The after hook on both callback routes reads it with `getOAuthState`, extends the session row
+  and sets `Max-Age` as the emailed link's route does; with the box clear it leaves a browser-session cookie. No cookie or
+  address carries the choice.
+- **What is shared.** `CardShell.addProviderSharing` writes a sentence under each provider's button on the Login card, and
+  `CardShell.addOauthSharing` writes one line under the invitation card's buttons, from the configured providers. `signedIn=1` tells `app.js` to show "Logged in as" as a snackbar, and it removes
+  the parameter at once; `acceptTermsCard.js` shows the same words itself and takes the parameter out of `next`.
+
+### The Google profile picture
+
+Google's `picture` claim is read after the login, and the image is copied, so a page never asks Google for anything.
+
+```mermaid
+sequenceDiagram
+  participant B as Browser
+  participant A as BetterAuth callback
+  participant H as after hook (profilePicture.ts)
+  participant G as Google's picture host
+  participant S as Spaces
+  participant P as PostgreSQL
+  B->>A: GET /api/auth/callback/google
+  A->>P: session and account (fresh idToken)
+  A->>H: newSession set
+  H->>G: fetch, https only, no redirect, 256 KB, PNG/JPEG/WebP
+  H->>S: if the hash differs, put avatars/<random>, public, one day
+  H->>P: one transaction: point the user at the key, queue the old key
+  A-->>B: the same redirect
+  B->>S: load the picture through the CDN
+```
+
+- The step has 3 seconds in all, and any failure leaves the account as it was and logs the reason without the address.
+- `user.profileAvatar` holds the default path or the key; `avatarUrl` turns it into the CDN address for `GET` and
+  `PATCH /api/me`. There is no route for the image, and the bucket cannot be listed.
+- Every path that stops using an object (a new picture, a deleted account) queues its key in `avatar_removals` in the same
+  transaction; the avatar removal sweep deletes the object, then the row, and retries on failure. The one-day
+  `Cache-Control` bounds how long a deleted picture stays reachable through the CDN.
 
 ## Privacy, Terms and account deletion
 
@@ -1221,13 +1258,13 @@ are all set. BetterAuth's `baseURL` and only trusted origin is `ENV_PUBLIC_ORIGI
   terms-required`, before the rate limit) and stamps `terms_version` / `terms_accepted_at`. The terms gate
   (`src/legal/termsGate.ts`), mounted before every router, lets requests without a session cookie through at once; for an
   account whose `terms_version` is not current, `/api/*` answers `403 terms-required` except accept-terms, logout,
-  `GET /api/me`, `GET /api/config` and the sign-in and link routes, and page routes redirect to
+  `GET /api/me`, `GET /api/config` and the login and link routes, and page routes redirect to
   `/accept-terms?next=…`. `POST /api/legal/accept-terms` (same-origin only) records the agreement and drops the cached
-  sessions. A provider sign-in creates the account without agreement and the gate stops it until it accepts.
+  sessions. A provider login creates the account without agreement and the gate stops it until it accepts.
 - **Deletion** (`DELETE /api/me`, same-origin, `{ confirm: "DELETE" }`, `src/legal/deleteAccount.ts`) runs in one
   transaction: the user's own polls are deleted with their history (and queued for removal from the search index), their
   votes on other polls are rewritten to a per-poll `deleted-<uuid>@deleted.invalid` and "Deleted user" (counts unchanged;
-  the results page shows "Deleted user"), their invitations (by email key, with their invitation history), bookmarks, `user_polls` and sign-in links are deleted,
+  the results page shows "Deleted user"), their invitations (by email key, with their invitation history), bookmarks, `user_polls` and login links are deleted,
   bans are kept, and the user row goes, taking sessions with it. The address is added to `deleted-accounts` first and
   removed again if the transaction fails; afterwards the cached sessions, rosters and counters are dropped and the
   "account deleted" notice is sent.
@@ -1236,7 +1273,7 @@ are all set. BetterAuth's `baseURL` and only trusted origin is `ENV_PUBLIC_ORIGI
 - **"Ever voted"** (which freezes a poll's fields) reads `polls.ever_voted`, set by every `vote_history` insert, so
   the retention sweep can drop old history partitions.
 
-## Human check before sign-in
+## Human check before login
 
 - **Where it runs**: FCaptcha's standalone server is a second App Platform service, `fcaptcha` (`fcaptcha-server/`,
   `@webdecoy/fcaptcha` and `@webdecoy/fcaptcha-client` pinned at 1.46.1; `start.js` points it at the client package's
@@ -1277,11 +1314,11 @@ are all set. BetterAuth's `baseURL` and only trusted origin is `ENV_PUBLIC_ORIGI
   with the poll's title, description, canonical, Open Graph and JSON-LD `Question` tags, `data-poll-page` on `<body>`
   and an escaped `#poll-summary` at the start of `<main>`, with the published percentages from the live counters. In
   the browser, `tabs.js` opens Trending, fetches `GET /api/polls/:pid/card` (guest, shed as refresh), mounts and
-  maximizes the card and removes the summary. A signed-in visitor is redirected to `/?PID=<pid>`; a guest opening
-  `/?PID=` for an indexable poll is redirected to `/poll/<pid>`, and for any other poll to sign in as before. Anything
+  maximizes the card and removes the summary. A logged-in visitor is redirected to `/?PID=<pid>`; a guest opening
+  `/?PID=` for an indexable poll is redirected to `/poll/<pid>`, and for any other poll to log in as before. Anything
   not indexable is `404 Not found`, the same answer as an unknown id.
 - **Head tags**: `sendPage(…, canonicalPath)` adds the canonical link to `/`, `/privacy` and `/terms`; those pages carry
-  descriptions, and the sign-in, account and admin pages carry `noindex`.
+  descriptions, and the login, account and admin pages carry `noindex`.
 
 ## Site icon
 

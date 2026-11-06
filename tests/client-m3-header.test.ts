@@ -99,6 +99,9 @@ describe("avatar", () => {
     expect(button.getAttribute("aria-haspopup")).toBe("menu");
     expect(button.getAttribute("aria-expanded")).toBe("false");
     expect(button.querySelector("img.avatar")!.getAttribute("alt")).toBe("Profile avatar — open menu");
+    const chevron = button.querySelector(".avatar-btn-chevron")!;
+    expect(chevron.getAttribute("aria-hidden")).toBe("true");
+    expect(chevron.previousElementSibling).toBe(button.querySelector("img.avatar"));
     const menu = page.document.querySelector(".avatar-menu") as HTMLElement;
 
     button.click();
@@ -120,13 +123,13 @@ describe("avatar", () => {
 });
 
 describe("guest tabs", () => {
-  it("stay focusable with aria-disabled and send a click to sign-in without opening the tab", async () => {
+  it("stay focusable with aria-disabled and send a click to login without opening the tab", async () => {
     page = await openPage(ctx, "index.html");
     for (const name of ["your-polls", "shared-with-you", "your-votes", "watching", "live"]) {
       const tab = page.document.querySelector(`.tab[data-tab="${name}"]`) as HTMLButtonElement;
       expect(tab.getAttribute("aria-disabled"), name).toBe("true");
       expect(tab.disabled, name).toBe(false);
-      expect(tab.getAttribute("title"), name).toBe("Sign in to use this tab");
+      expect(tab.getAttribute("title"), name).toBe("Log in to use this tab");
     }
     const requestsBefore = page.requests.length;
     await page.click('.tab[data-tab="watching"]');

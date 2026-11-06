@@ -1,5 +1,5 @@
 /**
- * US1 — session cookie flags, stay-signed-in persistence, single active
+ * US1 — session cookie flags, stay-logged-in persistence, single active
  * session, logout (FR-006–FR-009; SC-006 single-cookie check).
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -35,7 +35,7 @@ async function signIn(
     .set("x-forwarded-for", ip)
     .send({ ...AGREED, email });
   // An existing account gets a normal login link from the same endpoint,
-  // but stay-signed-in is only expressible on the login endpoint.
+  // but stay-logged-in is only expressible on the login endpoint.
   if (stay) {
     await request(ctx.app)
       .post("/api/auth/request-login-link")
@@ -66,13 +66,13 @@ describe("session cookie", () => {
     expect(setCookie).toMatch(/samesite=lax/i);
   });
 
-  it("has no Max-Age/Expires without stay-signed-in (browser-session only, FR-006)", async () => {
+  it("has no Max-Age/Expires without stay-logged-in (browser-session only, FR-006)", async () => {
     const { setCookie } = await signIn(freshEmail());
     expect(setCookie).not.toMatch(/max-age/i);
     expect(setCookie).not.toMatch(/expires/i);
   });
 
-  it("persists for the configured maximum with stay-signed-in (FR-006)", async () => {
+  it("persists for the configured maximum with stay-logged-in (FR-006)", async () => {
     const { setCookie } = await signIn(freshEmail(), { stay: true });
     const maxAge = Number(/max-age=(\d+)/i.exec(setCookie)?.[1]);
     expect(maxAge).toBe(ctx.config.maxSigninCookieDurationMs / 1000);
@@ -80,7 +80,7 @@ describe("session cookie", () => {
 });
 
 describe("single active session (FR-007a)", () => {
-  it("a second sign-in replaces the first session", async () => {
+  it("a second login replaces the first session", async () => {
     const email = freshEmail();
     const first = await signIn(email);
     const okBefore = await request(ctx.app).get("/api/me").set("Cookie", first.cookie);
@@ -136,7 +136,7 @@ describe("US2 — profile access & guest guard (FR-014)", () => {
     expect(res.headers.location).toBe("/login");
   });
 
-  it("the /profile page is served to signed-in users", async () => {
+  it("the /profile page is served to logged-in users", async () => {
     const { cookie } = await signIn(freshEmail());
     const res = await request(ctx.app).get("/profile").set("Cookie", cookie);
     expect(res.status).toBe(200);
@@ -181,7 +181,7 @@ describe("GET /profile verification results (013 FR-002/FR-003)", () => {
   });
 });
 
-describe("only the session cookie and the sign-in binding cookie (FR-008, SC-006; production email FR-020)", () => {
+describe("only the session cookie and the login binding cookie (FR-008, SC-006; production email FR-020)", () => {
   it("a full email-change round trip sets no cookie at all", async () => {
     const email = freshEmail();
     const { cookie } = await signIn(email);

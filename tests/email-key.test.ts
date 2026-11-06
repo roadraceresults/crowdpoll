@@ -25,7 +25,7 @@ function createAccount(email: string) {
 }
 
 describe("one mailbox, one account (FR-024–FR-028)", () => {
-  it("a Gmail plus-tag and dot variant creates no account and signs in the existing one", async () => {
+  it("a Gmail plus-tag and dot variant creates no account and logs in the existing one", async () => {
     await forgeSession(ctx, "jsmith@gmail.com");
     const before = ctx.sent.length;
     const res = await createAccount("j.smith+polls@googlemail.com");
@@ -34,7 +34,7 @@ describe("one mailbox, one account (FR-024–FR-028)", () => {
     expect(await userEmails()).not.toContain("j.smith+polls@googlemail.com");
     expect(ctx.sent.length).toBe(before + 1);
     expect(ctx.sent.at(-1)!.to).toBe("jsmith@gmail.com");
-    expect(ctx.sent.at(-1)!.subject).toBe("Your CrowdPoll sign-in link");
+    expect(ctx.sent.at(-1)!.subject).toBe("Your CrowdPoll login link");
   });
 
   it("drops plus-tags on every domain but keeps dots outside Gmail", async () => {
@@ -93,7 +93,7 @@ describe("one mailbox, one account (FR-024–FR-028)", () => {
         .send({ email, staySignedIn: false });
       expect(res.status).toBe(200);
       expect(ctx.sent.at(-1)!.to).toBe(email);
-      expect(ctx.sent.at(-1)!.subject).toBe("Your CrowdPoll sign-in link");
+      expect(ctx.sent.at(-1)!.subject).toBe("Your CrowdPoll login link");
     }
   });
 });

@@ -113,7 +113,7 @@ async function userRow(email: string) {
     .executeTakeFirstOrThrow();
 }
 
-describe("minted sign-in (foundation)", () => {
+describe("minted login (foundation)", () => {
   it("minting stores the token in the map and sends no email", async () => {
     const invitee = freshAddress();
     await createPendingAccount(invitee);
@@ -123,7 +123,7 @@ describe("minted sign-in (foundation)", () => {
     expect(mintedTokens.size).toBe(0);
   });
 
-  it("the minted token signs in through the confirmation route, verifies the address and activates the account", async () => {
+  it("the minted token logs in through the confirmation route, verifies the address and activates the account", async () => {
     const invitee = freshAddress();
     await createPendingAccount(invitee);
     const before = await userRow(invitee);
@@ -144,7 +144,7 @@ describe("minted sign-in (foundation)", () => {
     expect(after.status).toBe("active");
   });
 
-  it("signing in with a minted token adopts invitations matched by email key", async () => {
+  it("logging in with a minted token adopts invitations matched by email key", async () => {
     const creator = await forgeSession(ctx, "creator-redeem@example.com");
     const poll = makePoll({ pollState: "OPEN", pollVisibility: "Private Poll", pollSharingMode: "Invitation Only" });
     await insertPoll(ctx, poll, { id: creator.userId, name: "Cree", email: "creator-redeem@example.com" });
@@ -299,7 +299,7 @@ describe("US1: refusals", () => {
 });
 
 describe("US2: an existing account holder reaches the poll in one click", () => {
-  it("link-info says hasAccount, and Continue signs in without the Terms, keeping the name", async () => {
+  it("link-info says hasAccount, and Continue logs in without the Terms, keeping the name", async () => {
     const poll = await seedPoll();
     const invitee = freshAddress();
     const authCtx = await ctx.auth.$context;
@@ -331,7 +331,7 @@ describe("US2: an existing account holder reaches the poll in one click", () => 
     expect(landing.headers.location).toContain("/accept-terms?next=");
   });
 
-  it("GET /invite from a browser already signed in as the invited address uses the token and goes straight in", async () => {
+  it("GET /invite from a browser already logged in as the invited address uses the token and goes straight in", async () => {
     const poll = await seedPoll();
     const invitee = freshAddress();
     const token = await invite(poll._id, invitee);
@@ -342,7 +342,7 @@ describe("US2: an existing account holder reaches the poll in one click", () => 
     expect((await invitationRow(poll._id, invitee)).token_used_at).not.toBeNull();
   });
 
-  it("matches the signed-in address by email key, Gmail dots and tags included", async () => {
+  it("matches the logged-in address by email key, Gmail dots and tags included", async () => {
     const poll = await seedPoll();
     const invited = `m.c.invitee+${++serial}@gmail.com`;
     const account = `mcinvitee+${serial}@gmail.com`;
@@ -360,7 +360,7 @@ describe("US2: an existing account holder reaches the poll in one click", () => 
   });
 });
 
-describe("US4: a browser signed in as someone else", () => {
+describe("US4: a browser logged in as someone else", () => {
   it("names the other account, refuses without signOut, and switches with it", async () => {
     const poll = await seedPoll();
     const invitee = freshAddress();
@@ -454,7 +454,7 @@ describe("US5: old, used and expired links still lead somewhere sensible", () =>
     expect(signedIn.headers.location).toBe("/");
   });
 
-  it("a plain GET of a valid link (a mail scanner) leaves the token able to sign in", async () => {
+  it("a plain GET of a valid link (a mail scanner) leaves the token able to log in", async () => {
     const poll = await seedPoll();
     const invitee = freshAddress();
     const token = await invite(poll._id, invitee);

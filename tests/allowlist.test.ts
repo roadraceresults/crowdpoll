@@ -155,7 +155,7 @@ describe("with the list on", () => {
       expect(ctx.sent.at(-1)!.subject).toBe("Finish creating your CrowdPoll account");
     });
 
-    it("lets an administrator who is not listed sign in", async () => {
+    it("lets an administrator who is not listed log in", async () => {
       await forgeSession(ctx, ADMIN);
       const before = ctx.sent.length;
       const res = await request(ctx.app).post("/api/auth/request-login-link").set("x-forwarded-for", freshIp()).send({ email: ADMIN });
@@ -164,7 +164,7 @@ describe("with the list on", () => {
     });
   });
 
-  describe("sign-in link (A4, A5)", () => {
+  describe("login link (A4, A5)", () => {
     it("refuses a link issued earlier without consuming it", async () => {
       spyLog();
       await unlistedUser("early@example.org");
@@ -278,7 +278,7 @@ describe("with the list off", () => {
   });
 });
 
-describe("social sign-in with the list on (T033)", () => {
+describe("social login with the list on (T033)", () => {
   let ctx: TestContext;
 
   beforeAll(async () => {

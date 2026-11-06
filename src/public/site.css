@@ -390,7 +390,7 @@
   box-shadow:inset -2px 0 0 rgba(0,0,0,0.55);
 }
 
-/* ---- Session UI (signed-in header area + cookie banner) ----
+/* ---- Session UI (logged-in header area + cookie banner) ----
    Copied from styles.css so poll pages don't need to load that sheet
    (its element-level button/input rules bleed into the reference
    components — e.g. button padding crushed the card's .icon-btn svg). */

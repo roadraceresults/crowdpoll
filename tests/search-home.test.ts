@@ -88,7 +88,7 @@ describe("home search on PostgreSQL full-text", () => {
     expect(ctx.queries.filter((q) => q.includes("websearch_to_tsquery")).length).toBe(queriesBefore);
   });
 
-  it("refuses a signed-in searcher without the View Polls grant, and still answers a guest", async () => {
+  it("refuses a logged-in searcher without the View Polls grant, and still answers a guest", async () => {
     await polls(ctx).insertOne(makePoll({ title: "Zebra crossing rules" }));
     const barred = await forgeSession(ctx, "search-no-view@example.com");
     await ctx.db.updateTable("user").set({ permissions: ["Vote on Polls"] }).where("id", "=", barred.userId).execute();

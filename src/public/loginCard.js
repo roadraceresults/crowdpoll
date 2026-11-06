@@ -29,20 +29,20 @@
     amazon: { label: "Login with Amazon" }
   };
 
-  /* What a provider sign-in that came back to /login?error=<code> says (C2). */
+  /* What a provider login that came back to /login?error=<code> says (C2). */
   var PROVIDER_ERRORS = {
     "not-launched": NOT_LAUNCHED_MESSAGE,
-    access_denied: "Sign-in was cancelled.",
-    account_not_linked: "An account already uses this email address. Sign in the way you usually do.",
+    access_denied: "Login was cancelled.",
+    account_not_linked: "An account already uses this email address. Log in the way you usually do.",
     email_not_found: "CrowdPoll needs your email address to sign you in; try another way.",
     email_is_missing: "CrowdPoll needs your email address to sign you in; try another way."
   };
-  var PROVIDER_FAILED = "Sign-in with that provider failed. Please try again.";
+  var PROVIDER_FAILED = "Login with that provider failed. Please try again.";
 
   var MS_PER_DAY = 86400000;
   var MS_PER_HOUR = 3600000;
 
-  /* How long "stay signed in" lasts, from ENV_MAX_SIGNIN_COOKIE_DURATION: whole
+  /* How long "stay logged in" lasts, from ENV_MAX_SIGNIN_COOKIE_DURATION: whole
      days (rounded down), "day" for one and "days" for more. Under a day it is
      hours to two decimals, which only a test deployment uses. */
   function stayDuration(ms) {
@@ -91,32 +91,36 @@
       title: "Login",
       signin: true,
       subtitle: oauth
-        ? ["Sign in with your Google, Apple, Microsoft or Amazon account."]
+        ? ["Log in with your Google, Apple, Microsoft or Amazon account."]
         : mode === "both"
-          ? ["Sign in with a provider,", "or we email you a one-time sign-in link."]
-          : ["We email you a one-time sign-in link."],
+          ? ["Log in with a provider,", "or we email you a one-time login link."]
+          : ["We email you a one-time login link."],
       note: "We do not store passwords.",
       closeHref: "/"
     });
 
-    /* FR-037: the card offers only what the configured sign-in method
+    /* FR-037: the card offers only what the configured login method
        supports. Preserving the switch is correctness, not oauth design work —
        a card that offered a control the system refuses would be broken in a
        supported configuration. No layout is designed for oauth mode; it gets
        what the shell gives it. */
     window.CardShell.addSharedPollLine(card);
+    var stayChoice = stayBox(config);
     if (mode === "oauth" || mode === "both") {
-      renderOauth(card, config.oauthProviders || []);
-      /* Agreement is asked for after a provider sign-in, on the Accept Terms
+      card.body.appendChild(stayChoice.label);
+      /* Agreement is asked for after a provider login, on the Accept Terms
          card, and only when the account has not accepted the current Terms;
-         here the card only says what signing in means (TWEAKS06). */
+         here the card only says what logging in means (TWEAKS06). It sits above
+         the buttons with the box, since both apply to every way of logging in. */
+      window.CardShell.termsLine(card.body, "By logging in you agree to");
+      renderOauth(card, config.oauthProviders || [], stayChoice.input);
       if (oauth) {
-        window.CardShell.termsLine(card.body, "By signing in you agree to");
+        kept = null;
         return;
       }
       card.body.appendChild(el("div", "oauth-divider")).textContent = "or";
     }
-    renderNative(card, config);
+    renderNative(card, stayChoice, mode !== "both");
     window.CardShell.addFootLine(card, "Don't have an account?", "/create-account", "Create account");
   }
 
@@ -129,18 +133,20 @@
     return img;
   }
 
-  /* Starts a provider sign-in: the start route answers with the provider's
+  /* Starts a provider login: the start route answers with the provider's
      address, and the browser goes there (research R9). */
-  function startSignin(provider) {
+  function startSignin(provider, stay) {
     var pid = window.CardShell.sharedPid();
-    var callbackURL = pid ? "/?PID=" + pid : "/";
+    var callbackURL = (pid ? "/?PID=" + pid + "&" : "/?") + "signedIn=1";
     var amazon = provider === "amazon";
+    var body = amazon
+      ? { providerId: provider, callbackURL: callbackURL }
+      : { provider: provider, callbackURL: callbackURL };
+    if (stay) body.additionalData = { staySignedIn: true };
     return fetch(amazon ? "/api/auth/sign-in/oauth2" : "/api/auth/sign-in/social", {
       method: "POST",
       headers: Object.assign({ "Content-Type": "application/json" }, checkHeaders()),
-      body: JSON.stringify(amazon
-        ? { providerId: provider, callbackURL: callbackURL }
-        : { provider: provider, callbackURL: callbackURL })
+      body: JSON.stringify(body)
     }).then(function (res) {
       return res.json().then(function (body) {
         if (refused(body)) {
@@ -154,7 +160,7 @@
     });
   }
 
-  function renderOauth(card, enabled) {
+  function renderOauth(card, enabled, stay) {
     var wrap = el("div", "oauth-providers");
     var status = el("p", "card-shell-status");
     var busy = false;
@@ -178,10 +184,11 @@
         syncProviders();
         status.textContent = "";
         status.className = "card-shell-status";
-        startSignin(provider)
+        startSignin(provider, stay.checked)
           .then(function (url) { location.href = url; })
           .catch(function (err) {
             if (err && err.refused) {
+              kept = { email: "", stay: stay.checked };
               gated();
               return;
             }
@@ -193,7 +200,10 @@
             status.className = "card-shell-status error";
           });
       });
-      wrap.appendChild(button);
+      var row = el("div", "oauth-provider");
+      row.appendChild(button);
+      window.CardShell.addProviderSharing(row, provider);
+      wrap.appendChild(row);
       return button;
     });
     function syncProviders() {
@@ -203,7 +213,8 @@
       });
     }
     syncProviders();
-    card.body.append(wrap, status);
+    card.body.appendChild(wrap);
+    card.body.appendChild(status);
 
     var error = new URLSearchParams(location.search).get("error");
     if (error && error !== "invalid-link") {
@@ -217,7 +228,21 @@
     return pid ? Object.assign({ pid: pid }, body) : body;
   }
 
-  function renderNative(card, config) {
+  /* The one Stay logged in box: above the provider buttons when there are any, since it applies
+     to them too, and otherwise in the email form. */
+  function stayBox(config) {
+    var label = el("label", "checkbox");
+    var input = el("input");
+    input.id = "stay";
+    input.name = "stay";
+    input.type = "checkbox";
+    input.checked = kept ? kept.stay : config.staySignedInDefault === true;
+    var duration = stayDuration(config.maxSigninCookieDurationMs);
+    label.append(input, document.createTextNode(" Stay logged in on this device" + (duration ? " for " + duration : "")));
+    return { label: label, input: input };
+  }
+
+  function renderNative(card, stayChoice, emailOnly) {
     // The form keeps id="login-form": tests/pages.test.ts asserts a guest's
     // GET /login contains it, and a page-guard test should not be rewritten
     // because a stylesheet changed.
@@ -236,16 +261,11 @@
     input.required = true;
     input.autocomplete = "email";
 
-    var stayLabel = el("label", "checkbox");
-    var stay = el("input");
-    stay.id = "stay";
-    stay.name = "stay";
-    stay.type = "checkbox";
-    stay.checked = config.staySignedInDefault === true;
-    var duration = stayDuration(config.maxSigninCookieDurationMs);
-    stayLabel.append(stay, document.createTextNode(" Stay signed in on this device" + (duration ? " for " + duration : "")));
+    var stay = stayChoice.input;
+    var stayLabel = stayChoice.label;
 
-    form.append(label, input, stayLabel);
+    form.append(label, input);
+    if (emailOnly) form.append(stayLabel);
     var homepage = window.CardShell.hiddenField(form);
     card.body.appendChild(form);
 
@@ -266,7 +286,7 @@
           if (r.res.ok) {
             status.textContent =
               (r.body.message || "Check your inbox") +
-              " — click the link we sent you to sign in.";
+              " — click the link we sent you to log in.";
             status.className = "card-shell-status";
             action.settle();
             return;
@@ -291,7 +311,7 @@
         });
     });
 
-    window.CardShell.termsLine(card.body, "By signing in you agree to");
+    if (emailOnly) window.CardShell.termsLine(card.body, "By logging in you agree to");
 
     // Submitting the form runs the same action, so Enter works in the field.
     form.addEventListener("submit", function (event) {
@@ -299,20 +319,20 @@
       action.button.click();
     });
 
-    /* Nothing on this card can be used until there is an address to send to.
-       The action and the stay-signed-in choice are both held unavailable while
-       the field is empty, and become unavailable again if it is cleared, so a
-       blank submission is not something the person can attempt and be refused
-       for. */
+    /* The action cannot be used until there is an address to send to. It is held
+       unavailable while the field is empty, and becomes unavailable again if it is
+       cleared, so a blank submission is not something the person can attempt and be
+       refused for. When the email form is the only way in, the stay-logged-in choice
+       is held with it; beside provider buttons it applies to them too. */
     function syncEnabled() {
       var hasAddress = input.value.trim().length > 0;
       action.setEnabled(hasAddress);
+      if (!emailOnly) return;
       stay.disabled = !hasAddress;
       stayLabel.classList.toggle("is-disabled", !hasAddress);
     }
     if (kept) {
       input.value = kept.email;
-      stay.checked = kept.stay;
       kept = null;
     }
     input.addEventListener("input", syncEnabled);
@@ -334,9 +354,9 @@
     var params = new URLSearchParams(location.search);
     if (params.get("error") === "invalid-link") {
       action.status.textContent =
-        "That sign-in link is no longer valid. Request a new one.";
+        "That login link is no longer valid. Request a new one.";
       action.status.className = "card-shell-status error";
-    } else if (params.get("error") === NOT_LAUNCHED_ERROR && config.signinMethod === "native") {
+    } else if (params.get("error") === NOT_LAUNCHED_ERROR && emailOnly) {
       action.status.textContent = NOT_LAUNCHED_MESSAGE;
       action.status.className = "card-shell-status error";
     }

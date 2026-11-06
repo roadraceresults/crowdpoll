@@ -151,6 +151,6 @@ describe("M3 tooltips", () => {
     const p = page!;
     key(p, "Tab");
     (p.document.querySelector('.tab[data-tab="watching"]') as HTMLElement).focus();
-    expect(shownText(p)).toBe("Sign in to use this tab");
+    expect(shownText(p)).toBe("Log in to use this tab");
   });
 });

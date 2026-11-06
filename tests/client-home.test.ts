@@ -102,7 +102,7 @@ describe("the home page in a browser", () => {
     expect(page.document.querySelector('.tab[data-tab="trending"]')!.classList.contains("is-active")).toBe(true);
   });
 
-  it("a signed-in visitor also fetches the overlay once and sees their own vote on the card", async () => {
+  it("a logged-in visitor also fetches the overlay once and sees their own vote on the card", async () => {
     const me = "home@example.com";
     const { cookie } = await forgeSession(ctx, me);
     const poll = makePoll({
@@ -227,7 +227,7 @@ describe("the home page in a browser", () => {
 });
 
 describe("the Live Results bars and the guest (FR-011)", () => {
-  it("a guest's page carries body.is-guest, a member's does not, and signing in removes it", async () => {
+  it("a guest's page carries body.is-guest, a member's does not, and logging in removes it", async () => {
     const options: { cookie?: string } = {};
     page = await openPage(ctx, "index.html", options);
     await page.settle(50);
@@ -368,7 +368,7 @@ describe("the Newest tab in a browser", () => {
     return [first._id, second._id];
   };
 
-  it("opens for a guest with no sign-in redirect and lists the newest polls first, from the two objects and nothing else", async () => {
+  it("opens for a guest with no login redirect and lists the newest polls first, from the two objects and nothing else", async () => {
     await seedTwo();
     page = await openPage(ctx, "index.html");
     await page.settle(50);
@@ -457,7 +457,7 @@ describe("the Newest tab in a browser", () => {
     expect(refresh.getAttribute("aria-disabled")).toBeNull();
   });
 
-  it("a sign-in with Newest open refetches the overlay; a guest's visit reaches the application for nothing else", async () => {
+  it("a login with Newest open refetches the overlay; a guest's visit reaches the application for nothing else", async () => {
     const ids = await seedTwo();
     const options: { cookie?: string } = {};
     page = await openPage(ctx, "index.html", options);
@@ -1284,7 +1284,7 @@ describe("a bookmark seen from another window (FIX04)", () => {
   });
 });
 
-describe("the signed-in overlay on a page load (FIX06)", () => {
+describe("the logged-in overlay on a page load (FIX06)", () => {
   it("a reload inside the floor is refused the overlay once and asks again, so a bookmarked TRENDING card shows as bookmarked", async () => {
     const me = "reload-overlay@example.com";
     const { cookie } = await forgeSession(ctx, me);
@@ -1685,7 +1685,7 @@ describe("where a poll link landed, in a browser", () => {
     expect(page.window.location.search).toBe("");
   });
 
-  it("says the poll is not available and lands a signed-in visitor on Home", async () => {
+  it("says the poll is not available and lands a logged-in visitor on Home", async () => {
     const { cookie } = await forgeSession(ctx, "landing-unavailable@example.com");
     page = await arrive("?notice=unavailable", cookie);
     await page.settle(100);

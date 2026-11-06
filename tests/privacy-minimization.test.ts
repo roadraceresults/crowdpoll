@@ -26,7 +26,7 @@ describe("maskIp (R10)", () => {
 });
 
 describe("sessions keep no IP address or user agent (FR-021)", () => {
-  it("stores neither when a sign-in link is followed", async () => {
+  it("stores neither when a login link is followed", async () => {
     await request(ctx.app).post("/api/auth/create-account").set("x-forwarded-for", "198.51.100.7").set("User-Agent", "Test/1.0").send({ ...AGREED, email: "no-ip@example.org" });
     const res = await followSignInLink(ctx, extractLinkPath(ctx.sent.at(-1)!)).set("x-forwarded-for", "198.51.100.7").set("User-Agent", "Test/1.0");
     expect(res.status).toBe(302);
@@ -37,7 +37,7 @@ describe("sessions keep no IP address or user agent (FR-021)", () => {
 });
 
 describe("log lines never carry a full address (FR-022)", () => {
-  it("masks IPs and email addresses across sign-up, sign-in, limits, votes and deletion", async () => {
+  it("masks IPs and email addresses across sign-up, login, limits, votes and deletion", async () => {
     await clearPolls(ctx);
     const ip = "203.0.113.77";
     const email = "logged-person@example.org";
@@ -80,6 +80,7 @@ describe("the Privacy Policy on invitations (C7, R12)", () => {
     const paragraph = /<p id="invitations">([\s\S]*?)<\/p>/.exec(html)?.[1] ?? "";
     expect(paragraph).toContain("at most one reminder");
     expect(paragraph).toContain("only for that poll");
+    expect(paragraph).toContain("an ordinary CrowdPoll account");
     expect(paragraph).toContain("privacy@crowdpoll.vote");
   });
 });

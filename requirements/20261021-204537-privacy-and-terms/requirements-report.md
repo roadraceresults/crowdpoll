@@ -490,7 +490,7 @@ The requirements ask for retention to be communicated but set no periods, and to
 
     ➡️ [X] **Accepted**  
     - Account and profile: until you delete it.  
-    - Sessions: until you sign out or they expire (30 days at most); expired rows removed daily.  
+    - Sessions: until you Log out or they expire (30 days at most); expired rows removed daily.  
     - Sign-in and email-change links: 15 minutes; removed daily.  
     - Rate-limit records: 15 minutes; removed daily.  
     - Polls and votes: as long as the poll exists; deleted with the poll or your account (UA1).  

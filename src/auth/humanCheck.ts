@@ -85,7 +85,7 @@ export interface HumanCheckGuardDeps {
 export const HUMAN_CHECK_HEADER = "X-Human-Check";
 
 /**
- * Refuses a sign-in start that carries no good pass. When FCaptcha cannot be reached the request goes on
+ * Refuses a login start that carries no good pass. When FCaptcha cannot be reached the request goes on
  * under the route's own limits, and the skip is counted for /healthz.
  */
 export function requireHumanCheck(deps: HumanCheckGuardDeps, accepted: readonly HumanCheckAction[]): RequestHandler {

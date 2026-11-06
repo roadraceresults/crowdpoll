@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { startTestContext, type TestContext } from "./helpers/setup.js";
+import { forgeSession, startTestContext, type TestContext } from "./helpers/setup.js";
 import { openPage, type BrowserPage } from "./helpers/browser.js";
 
 let ctx: TestContext;
@@ -38,6 +38,23 @@ describe("the site footer (C1)", () => {
       expect(footers[0]!.textContent).toContain(`© ${new Date().getFullYear()} CrowdPoll`);
     });
   }
+});
+
+describe("the footer's Delete Account link", () => {
+  const item = (p: BrowserPage) => p.document.querySelector<HTMLElement>(".site-footer-delete-account")!;
+
+  it("is hidden from a guest", async () => {
+    page = await openPage(ctx, "index.html", { scripts: ["app.js"] });
+    expect(item(page).hidden).toBe(true);
+  });
+
+  it("follows Cookie Use for a logged-in user and goes to the delete dialog's address", async () => {
+    const { cookie } = await forgeSession(ctx, "footer-delete@example.com");
+    page = await openPage(ctx, "index.html", { cookie, scripts: ["app.js"] });
+    expect(item(page).hidden).toBe(false);
+    expect(item(page).querySelector("a")!.getAttribute("href")).toBe("/profile#delete-account");
+    expect(page.document.querySelector(".site-footer nav")!.textContent).toBe("Privacy Policy · Terms of Service · Cookie Use · Delete Account");
+  });
 });
 
 describe("the footer's look (C1, TWEAKS07)", () => {

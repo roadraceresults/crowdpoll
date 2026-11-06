@@ -1,5 +1,5 @@
 /**
- * The login card says how long "stay signed in" lasts, from ENV_MAX_SIGNIN_COOKIE_DURATION:
+ * The login card says how long "stay logged in" lasts, from ENV_MAX_SIGNIN_COOKIE_DURATION:
  * whole days rounded down ("day" for one, "days" for more), and hours to two decimals
  * below a day (a test deployment only).
  */
@@ -41,14 +41,14 @@ async function stayText(ms: number | null): Promise<string> {
 const DAY = 86400000;
 const HOUR = 3600000;
 
-describe("the stay-signed-in help text", () => {
+describe("the stay-logged-in help text", () => {
   it("serves the duration in the configuration", async () => {
     const res = await request(ctx.app).get("/api/config");
     expect(res.body.maxSigninCookieDurationMs).toBe(original);
   });
 
   it("says 30 days for the default setting", async () => {
-    expect(await stayText(null)).toBe("Stay signed in on this device for 30 days");
+    expect(await stayText(null)).toBe("Stay logged in on this device for 30 days");
   });
 
   it.each([
@@ -57,7 +57,7 @@ describe("the stay-signed-in help text", () => {
     [2 * DAY, "2 days"],
     [7 * DAY + 5 * HOUR, "7 days"]
   ])("rounds %d ms down to whole days: %s", async (ms, expected) => {
-    expect(await stayText(ms)).toBe(`Stay signed in on this device for ${expected}`);
+    expect(await stayText(ms)).toBe(`Stay logged in on this device for ${expected}`);
   });
 
   it.each([
@@ -66,11 +66,11 @@ describe("the stay-signed-in help text", () => {
     [DAY - 1, "24 hours"],
     [20 * 60000, "0.33 hours"]
   ])("shows %d ms below a day as hours to two decimals: %s", async (ms, expected) => {
-    expect(await stayText(ms)).toBe(`Stay signed in on this device for ${expected}`);
+    expect(await stayText(ms)).toBe(`Stay logged in on this device for ${expected}`);
   });
 });
 
-describe("the stay-signed-in box default", () => {
+describe("the stay-logged-in box default", () => {
   async function stayBox(): Promise<HTMLInputElement> {
     page = await openPage(ctx, "login.html", {
       url: "http://localhost/login",

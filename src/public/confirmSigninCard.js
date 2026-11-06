@@ -22,10 +22,10 @@
 
   function showInvalid(card, pid) {
     card.body.replaceChildren();
-    paragraph(card.body, "This sign-in link is invalid or has expired.");
+    paragraph(card.body, "This login link is invalid or has expired.");
     var link = el("a", "card-shell-link");
     link.href = loginHref(pid);
-    link.textContent = "Request a new sign-in link";
+    link.textContent = "Request a new login link";
     card.body.appendChild(link);
   }
 
@@ -36,8 +36,8 @@
     var stay = params.get("stay") === "1";
     var pid = window.CardShell.sharedPid();
 
-    var card = window.CardShell.mount(main, { title: "Sign in on this device?", closeHref: "/" });
-    paragraph(card.body, "Checking your sign-in link…");
+    var card = window.CardShell.mount(main, { title: "Log in on this device?", closeHref: "/" });
+    paragraph(card.body, "Checking your login link…");
 
     fetch("/api/auth/link-info?token=" + encodeURIComponent(token))
       .then(function (res) {
@@ -59,7 +59,7 @@
         notNow.href = loginHref(pid);
         notNow.textContent = "Not now";
 
-        card.addAction("Sign in", function (status) {
+        card.addAction("Log in", function (status) {
           return fetch("/api/auth/confirm-signin", {
             method: "POST",
             headers: { "Content-Type": "application/json" },

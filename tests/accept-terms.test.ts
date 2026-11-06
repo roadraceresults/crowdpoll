@@ -64,7 +64,7 @@ describe("POST /api/legal/accept-terms (A7, R6)", () => {
 });
 
 describe("GET /accept-terms (A6)", () => {
-  it("shows the page to a signed-in user who has not accepted", async () => {
+  it("shows the page to a logged-in user who has not accepted", async () => {
     const { cookie } = await unaccepted("accept-page@example.org");
     const res = await request(ctx.app).get("/accept-terms?next=%2Fprofile").set("Cookie", cookie);
     expect(res.status).toBe(200);
