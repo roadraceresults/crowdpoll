@@ -154,6 +154,7 @@ flowchart TB
 erDiagram
   polls ||--o{ votes : "one row per participant"
   polls ||--o{ vote_history : "append-only, monthly partitions"
+  polls ||--o{ device_events : "vote events, monthly partitions, kept 3 months"
   polls ||--o{ line_graph_tally : "per hour and choice, kept with vote_history"
   polls ||--o{ line_graph_selection : "each voter's latest selection"
   polls ||--o{ poll_invitations : "status columns"
@@ -267,11 +268,11 @@ sequenceDiagram
   R->>C: poll:<pid>, ban/invite sets, voted:<session>
   Note over R: refusals keep their messages: banned, not invited, full, closed, already voted.<br/>The projection serves an EDITING poll's stashed state, so an open poll under edit votes as OPEN
   R->>C: HINCRBY cnt:<pid> choice/total/seq, trend bucket, SADD dirty
-  R->>C: XADD votes {pid, email, choices, votedAt, mutability}
+  R->>C: XADD votes {pid, email, choices, votedAt, mutability, + accountId and keyed hashes when collecting}
   R-->>B: 200 { status, voteCount, choiceCounts, countsVersion, myChoiceIds, nextRefreshMs }
   loop every batch
     W->>C: XREADGROUP writers COUNT 500 BLOCK 1000 (+ XAUTOCLAIM idle entries)
-    W->>PG: one transaction: votes upsert (last wins on Dynamic-Vote, first on Final-Vote), vote_history, user_polls
+    W->>PG: one transaction: votes upsert (last wins on Dynamic-Vote, first on Final-Vote), vote_history, device_events, user_polls
     W->>C: XACK; queue:lag sampled once a second
   end
   Note over C,PG: flush sweep every 10 s (ENV_COUNTER_FLUSH_SWEEP_INTERVAL): UPDATE polls … FROM (VALUES …) for the dirty set
@@ -281,6 +282,29 @@ A vote is never refused for load: the route touches the cache only, answers from
 counters it just moved, and the row work happens later in batches. A second vote on a
 Final-Vote poll is refused even while the first is still queued, because the voted-set is
 written at enqueue time.
+
+### Device evidence
+
+While `ENV_DEVICE_EVENTS_ENABLED` is true, `device_events` gains one row per accepted vote and one per session, for later
+offline analysis. Nothing refuses, warns or changes a count on a fingerprint.
+
+- **In the browser**: `deviceEvidence.js` (`index`, `profile`, `settings`, `admin`, `admin-results`) computes at idle, for a
+  signed-in user with the Terms accepted, when the page can vote or a sign-in is due. It injects the vendored
+  `/vendor/fingerprintjs-5.3.0.min.js` only then, always with `monitoring: false`, and keeps the value in page memory. The
+  value is the library's `visitorId` and a hash of what browsers report alike (screen resolution, colour depth, processor
+  count, time zone, platform); the GPU and `deviceMemory` are left out. A vote never waits for it, and a failure leaves
+  votes without it.
+- **Votes**: `X-Device-Fingerprint` is validated strictly (a missing or malformed one becomes null hashes, without an
+  error) and HMACed with `ENV_DEVICE_EVENTS_KEY` in the web process, so the stream too holds only keyed values.
+  `writeBatch` inserts the rows in the votes' transaction, from the list before votes collapse to one per participant; a
+  batch's dropping of deleted polls and accounts applies to them too.
+- **Sign-ins**: `GET /api/me` answers `X-Device-Sign-In-Due: 1` while the session's `device-signin:<sessionId>` key is absent;
+  a response header, because `sameSnapshot` compares every body field. While collecting it is `no-store`, because a `304`
+  leaves a browser's stored headers in place. The page then posts `/api/me/device-sign-in`, which claims the key with
+  `setNx`, inserts one row, and gives the key back if the insert fails.
+- **Removal**: `deletePoll` and `deleteAccount` delete rows in their transactions; a ban or a vote reset keeps them.
+  `retentionSweep` drops a partition once its month's end is more than 3 months old, and logs
+  `[device-events] last 24h: …`, counts only, while collecting.
 
 ### Adding a choice
 
@@ -834,7 +858,7 @@ as `Created By: <username> (<email>)` above its dates.
 | Sweep | Interval | Lock |
 |---|---|---|
 | screening (approval) | `ENV_POLL_APPROVAL_SWEEP_INTERVAL` | 1 |
-| schedule (+ next month's `vote_history` partition) | `ENV_POLL_DATE_CHECK_SWEEP_INTERVAL` | 2 |
+| schedule (+ next month's `vote_history` and `device_events` partitions) | `ENV_POLL_DATE_CHECK_SWEEP_INTERVAL` | 2 |
 | counter flush | `ENV_COUNTER_FLUSH_SWEEP_INTERVAL` | 3 |
 | trending recompute + publish | `ENV_TRENDING_POLLS_RECOMPUTE_SWEEP_INTERVAL` | 4 |
 | search outbox drain | `ENV_OUTBOX_DRAIN_SWEEP_INTERVAL` | 5 |
@@ -843,7 +867,7 @@ as `Created By: <username> (<email>)` above its dates.
 | budget controller | `ENV_BUDGET_CONTROLLER_SWEEP_INTERVAL` | 8 |
 | stale editing session release | 2 × heartbeat | 9 |
 | newest recompute + publish (also once at start) | `ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL` | 10 |
-| retention: expired sessions, links, email changes and rate-limit rows; `invitation_emails` older than 24 hours; `vote_history` partitions older than 12 months | daily | 11 |
+| retention: expired sessions, links, email changes and rate-limit rows; `invitation_emails` older than 24 hours; `vote_history` partitions older than 12 months; `device_events` partitions older than 3 months, and the coverage line | daily | 11 |
 | invitations: claim and send the pending invitations of every open Invitation Only poll | `ENV_INVITATION_SWEEP_INTERVAL` | 12 |
 
 ```mermaid
@@ -1225,7 +1249,7 @@ are all set. BetterAuth's `baseURL` and only trusted origin is `ENV_PUBLIC_ORIGI
   `/accept-terms?next=…`. `POST /api/legal/accept-terms` (same-origin only) records the agreement and drops the cached
   sessions. A provider sign-in creates the account without agreement and the gate stops it until it accepts.
 - **Deletion** (`DELETE /api/me`, same-origin, `{ confirm: "DELETE" }`, `src/legal/deleteAccount.ts`) runs in one
-  transaction: the user's own polls are deleted with their history (and queued for removal from the search index), their
+  transaction: the user's own polls are deleted with their history and device events (and queued for removal from the search index), the user's device events are deleted, their
   votes on other polls are rewritten to a per-poll `deleted-<uuid>@deleted.invalid` and "Deleted user" (counts unchanged;
   the results page shows "Deleted user"), their invitations (by email key, with their invitation history), bookmarks, `user_polls` and sign-in links are deleted,
   bans are kept, and the user row goes, taking sessions with it. The address is added to `deleted-accounts` first and

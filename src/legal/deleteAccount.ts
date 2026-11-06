@@ -53,9 +53,12 @@ function removeInOneTransaction(db: Db, cache: Cache, user: { id: string; email:
         .values(ownPolls.map((p) => ({ poll_id: p.id, version: Number(p.content_version) + 1, reason: "content" as const })))
         .onConflict((oc) => oc.column("poll_id").doUpdateSet({ version: sql`excluded.version`, reason: "content" }))
         .execute();
+      await trx.deleteFrom("device_events").where("poll_id", "in", ownIds).execute();
       await trx.deleteFrom("vote_history").where("poll_id", "in", ownIds).execute();
       await trx.deleteFrom("polls").where("id", "in", ownIds).execute();
     }
+
+    await trx.deleteFrom("device_events").where("account_id", "=", user.id).execute();
 
     const votedPids = [
       ...new Set([

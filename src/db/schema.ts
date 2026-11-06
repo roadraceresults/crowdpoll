@@ -148,6 +148,18 @@ export interface VoteHistoryTable {
   voted_at: Timestamp;
 }
 
+/** One sign-in or vote with its keyed device hashes; null hashes mean no usable fingerprint came with it. */
+export interface DeviceEventsTable {
+  id: Generated<number>;
+  account_id: string;
+  event: "sign-in" | "vote";
+  poll_id: string | null;
+  browser_hash: string | null;
+  hardware_hash: string | null;
+  fingerprint_version: number;
+  at: Timestamp;
+}
+
 /** Per poll, hour and choice, how much the count changed; TALLY_VOTERS ("") counts addresses. */
 export interface LineGraphTallyTable {
   poll_id: string;
@@ -227,6 +239,7 @@ export interface Database {
   polls: PollTable;
   votes: VoteTable;
   vote_history: VoteHistoryTable;
+  device_events: DeviceEventsTable;
   line_graph_tally: LineGraphTallyTable;
   line_graph_selection: LineGraphSelectionTable;
   poll_invitations: PollInvitationTable;

@@ -901,3 +901,30 @@ describe("human check settings", () => {
     }
   });
 });
+
+describe("ENV_DEVICE_EVENTS_* (R11)", () => {
+  const GOOD_KEY = "k".repeat(32);
+
+  it("is off by default", () => {
+    expect(loadConfig(baseEnv()).deviceEvents).toEqual({ enabled: false, key: "" });
+  });
+
+  it("is on with a good key", () => {
+    expect(loadConfig(baseEnv({ ENV_DEVICE_EVENTS_ENABLED: "true", ENV_DEVICE_EVENTS_KEY: GOOD_KEY })).deviceEvents).toEqual({ enabled: true, key: GOOD_KEY });
+  });
+
+  it("stops the app when on with no key, or a short one, without printing the key", () => {
+    expect(() => loadConfig(baseEnv({ ENV_DEVICE_EVENTS_ENABLED: "true" }))).toThrow(ConfigError);
+    const short = "s".repeat(31);
+    expect(() => loadConfig(baseEnv({ ENV_DEVICE_EVENTS_ENABLED: "true", ENV_DEVICE_EVENTS_KEY: short }))).toThrow(/at least 32/);
+    try {
+      loadConfig(baseEnv({ ENV_DEVICE_EVENTS_ENABLED: "true", ENV_DEVICE_EVENTS_KEY: short }));
+    } catch (err) {
+      expect((err as Error).message).not.toContain(short);
+    }
+  });
+
+  it("stops the app on a value that is neither true nor false", () => {
+    expect(() => loadConfig(baseEnv({ ENV_DEVICE_EVENTS_ENABLED: "yes", ENV_DEVICE_EVENTS_KEY: GOOD_KEY }))).toThrow(ConfigError);
+  });
+});

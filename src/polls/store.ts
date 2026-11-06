@@ -857,6 +857,7 @@ export async function appendChoice(
 
 export async function deletePoll({ db, cache }: StoreDeps, pid: string): Promise<void> {
   await db.transaction().execute(async (trx) => {
+    await trx.deleteFrom("device_events").where("poll_id", "=", pid).execute();
     await trx.deleteFrom("vote_history").where("poll_id", "=", pid).execute();
     await trx.deleteFrom("polls").where("id", "=", pid).execute();
   });

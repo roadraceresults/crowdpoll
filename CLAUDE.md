@@ -6,6 +6,20 @@ The full description, every earlier feature's decisions and the settings table a
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261105-162941-MULTIPLE-ACCOUNT-PREVENTION/plan.md` (research R1–R12, `data-model.md` — one migration, `017-device-events`;
+the stream fields, the cache key and the settings; the contracts `contracts/api.md` A1–A5 and `contracts/ui-contracts.md` C1–C6, and the
+quickstart live alongside it in `specs/20261105-162941-MULTIPLE-ACCOUNT-PREVENTION/`). The requirements report is
+`requirements/20261105-162941-multiple-account-prevention/requirements-report.md`: 4 diagrams and 16 findings, all resolved.
+Decisions that are easy to get wrong:
+- **Collection only**: nothing refuses, warns or changes a count on a fingerprint; analysis and response are later features (IN1).
+- **`FingerprintJS.load({ monitoring: false })` always**: the vendored npm build otherwise calls the vendor on 0.1% of loads (R2).
+- **Two values**: `visitorId`, and a hardware hash with **no GPU or `deviceMemory`**, because browsers do not report them alike, and Firefox reports no GPU to the library (R3).
+- **Raw values are never queued**: the web process HMACs them; a missing or malformed header never touches the vote (R4–R6).
+- **Vote events are taken in `writeBatch` before votes collapse** to one per participant (R6).
+- **Sign-in due is a response header on `/api/me`**, not a body field: `sameSnapshot` compares every body field; while collecting `/api/me` is `no-store`, because a `304` keeps a browser's stored headers (R7).
+- **Off by default**; the terms gate stops collection before acceptance; rows go with the account and the poll, not with a ban (R10, R11).
+One migration, one route, two settings, no npm dependency; one vendored file, one script.
+The preceding feature is
 `specs/20261104-180032-LEGAL-PAGE-UPDATES/plan.md` (research R1–R8, `data-model.md` — no migration; the shared policy
 version and the `history.state.legalDepth` step count; the UI contracts `contracts/ui-contracts.md` C1–C6, and the
 quickstart live alongside it in `specs/20261104-180032-LEGAL-PAGE-UPDATES/`). The requirements report is
@@ -21,7 +35,7 @@ Decisions that are easy to get wrong:
   link (`admin-back-link back-arrow`) (R3–R5, clarification Q2).
 - **The Up arrow is centred on every page** (`left:0; right:0; margin-inline:auto`), not only the legal pages (R7, AM1).
 No migration, route, setting or dependency; one constant, one script, one sheet.
-The preceding feature is
+Before it came
 `specs/20261103-114927-PROVISION-FCAPTCHA-SERVICE/plan.md` (research R1–R14, `data-model.md` — no migration; the
 Terraform resources, inputs, git-ignored files and the switch-over states; the contracts `contracts/infra-config.md`
 C1–C5 and `contracts/deploy-command.md` D1–D3, and the quickstart runbook live alongside it in
@@ -37,7 +51,7 @@ Decisions that are easy to get wrong:
   holds them in plain text (R4, UA7).
 - **Releases** use `npm run deploy` (`devScripts/deploy-app.ts`; `DIGITALOCEAN_TOKEN`, API, no `doctl`); autodeploy stays off (R11).
 No migration and no npm dependency; Terraform and two plugins, only in `infra/`.
-Before it came
+And before that
 `specs/20261103-120521-HOME-TAB/plan.md` (research R1–R14, `data-model.md` — no migration; the `home:<emailKey>`
 membership, the five rules, the date windows and `ENV_HOME_TAB_REFRESH_INTERVAL`; the HTTP contracts `contracts/api.md`
 A1–A3, the UI contracts `contracts/ui-contracts.md` C1–C6, and the quickstart live alongside it in

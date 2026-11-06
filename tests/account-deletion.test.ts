@@ -178,3 +178,57 @@ describe("DELETE /api/me (A8, R8)", () => {
     expect(Number(row.vote_count)).toBe(0);
   });
 });
+
+// Last: a second context takes over the mail transport from the suites above.
+describe("device evidence and account deletion (R10)", () => {
+  let collecting: TestContext;
+  const FINGERPRINT = `${"a".repeat(32)}.${"b".repeat(32)}`;
+
+  beforeAll(async () => {
+    collecting = await startTestContext({ ENV_DEVICE_EVENTS_ENABLED: "true", ENV_DEVICE_EVENTS_KEY: "k".repeat(32) });
+  });
+  afterAll(async () => {
+    await collecting.stop();
+  });
+
+  const castOn = (pid: string, cookie: string) =>
+    request(collecting.app).post(`/api/polls/${pid}/vote`).set("Cookie", cookie).set("X-Device-Fingerprint", FINGERPRINT).send({ choiceIds: ["c1"] });
+  const leave = (cookie: string) => request(collecting.app).delete("/api/me").set("Host", "127.0.0.1").set("Origin", "http://127.0.0.1").set("Cookie", cookie).send({ confirm: "DELETE" });
+  const events = () => collecting.db.selectFrom("device_events").select(["account_id", "poll_id"]).execute();
+  const clearFloors = async () => {
+    for (const key of await collecting.cache.scan("floor:*")) await collecting.cache.del(key);
+  };
+
+  it("removes the account's rows, including votes on others' polls, and others' votes on its own polls", async () => {
+    const leaver = await forgeSession(collecting, "evidence-leaver@example.org");
+    const stayer = await forgeSession(collecting, "evidence-stayer@example.org");
+    const own = makePoll();
+    await insertPoll(collecting, own, { id: leaver.userId, name: "leaver", email: "evidence-leaver@example.org" });
+    const others = makePoll();
+    await insertPoll(collecting, others, { id: stayer.userId, name: "stayer", email: "evidence-stayer@example.org" });
+
+    expect((await castOn(others._id, leaver.cookie)).status).toBe(200);
+    await clearFloors();
+    expect((await castOn(own._id, stayer.cookie)).status).toBe(200);
+    await clearFloors();
+    expect((await castOn(others._id, stayer.cookie)).status).toBe(200);
+    expect((await request(collecting.app).post("/api/me/device-sign-in").set("Cookie", leaver.cookie).set("X-Device-Fingerprint", FINGERPRINT)).status).toBe(204);
+    await collecting.consumer.runOnce();
+    expect((await events()).length).toBe(4);
+
+    expect((await leave(leaver.cookie)).status).toBe(200);
+    expect(await events()).toEqual([{ account_id: stayer.userId, poll_id: others._id }]);
+  });
+
+  it("leaves no row for a vote queued before the deletion", async () => {
+    await collecting.db.deleteFrom("device_events").execute();
+    const leaver = await forgeSession(collecting, "evidence-queued@example.org");
+    const poll = makePoll();
+    await insertPoll(collecting, poll, { id: "someone-else", name: "someone", email: "evidence-owner@example.org" });
+    await clearFloors();
+    expect((await castOn(poll._id, leaver.cookie)).status).toBe(200);
+    expect((await leave(leaver.cookie)).status).toBe(200);
+    await collecting.consumer.runOnce();
+    expect(await events()).toEqual([]);
+  });
+});

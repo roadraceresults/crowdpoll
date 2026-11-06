@@ -30,6 +30,15 @@ describe("infra configuration", () => {
     }
   });
 
+  it("gives device evidence its secret, and keeps collection off and read only at run time", () => {
+    const app = read("app.tf");
+    expect(variables().find((variable) => variable.name === "device_events_key")?.sensitive).toBe(true);
+    expect(read("variables.tf")).toContain("length(trimspace(var.device_events_key)) > 0");
+    expect(app).toMatch(/key\s*=\s*"ENV_DEVICE_EVENTS_KEY"\s*\r?\n\s*value\s*=\s*var\.device_events_key\s*\r?\n\s*scope\s*=\s*"RUN_TIME"\s*\r?\n\s*type\s*=\s*"SECRET"/);
+    expect(app).toMatch(/ENV_DEVICE_EVENTS_ENABLED\s*=\s*"false"/);
+    expect(app).toMatch(/web_run_time_settings\s*=\s*\[[^\]]*"ENV_DEVICE_EVENTS_ENABLED"/);
+  });
+
   it("gives no secret a non-empty default", () => {
     for (const { name, sensitive, defaultValue } of variables()) {
       if (sensitive && defaultValue !== undefined) expect(defaultValue, name).toBe('""');

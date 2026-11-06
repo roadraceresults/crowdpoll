@@ -54,6 +54,15 @@ variable "allowed_emails" {
   }
 }
 
+variable "device_events_key" {
+  type      = string
+  sensitive = true
+  validation {
+    condition     = length(trimspace(var.device_events_key)) > 0
+    error_message = "device_events_key must be set in infra/secrets.auto.tfvars."
+  }
+}
+
 # Optional sign-in providers: a provider's values are set together, or left empty (no env is added).
 
 variable "oauth_google_client_id" {

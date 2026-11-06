@@ -18,6 +18,8 @@
       // says so, instead of an error page.
       if (res.status === 429) window.TooManyLoads = true;
       if (!res.ok) return null;
+      // Beside the snapshot, not in it: the snapshot is compared by value on every refresh.
+      window.DeviceSignInDue = res.headers?.get("X-Device-Sign-In-Due") === "1";
       const me = await res.json();
       if (me && me.termsAccepted === false) sendToAcceptTerms();
       return me;

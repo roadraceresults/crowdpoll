@@ -1,8 +1,8 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { AGREED, clearPolls, extractLinkPath, followSignInLink, startTestContext, type TestContext } from "./helpers/setup.js";
-import { makePoll } from "./helpers/poll-fixtures.js";
+import { AGREED, clearPolls, extractLinkPath, followSignInLink, forgeSession, startTestContext, type TestContext } from "./helpers/setup.js";
+import { makePoll, polls } from "./helpers/poll-fixtures.js";
 import { insertPoll } from "../src/polls/store.js";
 import { castVote } from "../src/votes/votePath.js";
 import { maskIp } from "../src/auth/maskIp.js";
@@ -81,5 +81,51 @@ describe("the Privacy Policy on invitations (C7, R12)", () => {
     expect(paragraph).toContain("at most one reminder");
     expect(paragraph).toContain("only for that poll");
     expect(paragraph).toContain("privacy@crowdpoll.vote");
+  });
+});
+
+// Last: a second context takes over the mail transport from the suites above.
+describe("device evidence stays out of reach and out of the log (R5, R11)", () => {
+  const KEY = "device-evidence-test-key-0123456789";
+  const FINGERPRINT = `${"a".repeat(32)}.${"b".repeat(32)}`;
+  let collecting: TestContext;
+
+  beforeAll(async () => {
+    collecting = await startTestContext({ ENV_DEVICE_EVENTS_ENABLED: "true", ENV_DEVICE_EVENTS_KEY: KEY });
+  });
+  afterAll(async () => {
+    await collecting.stop();
+  });
+
+  it("no route reads the table", () => {
+    for (const name of readdirSync("src/routes")) {
+      expect(readFileSync(`src/routes/${name}`, "utf8"), name).not.toContain("device_events");
+    }
+  });
+
+  it("publishes the switch and never the key", async () => {
+    const res = await request(collecting.app).get("/api/config");
+    expect(res.body.deviceEventsEnabled).toBe(true);
+    expect(res.text).not.toContain(KEY);
+  });
+
+  it("logs no raw value, hash or key for a session that signs in and votes", async () => {
+    const lines: string[] = [];
+    const capture = (...args: unknown[]) => void lines.push(args.map(String).join(" "));
+    const spies = (["log", "info", "warn", "error"] as const).map((method) => vi.spyOn(console, method).mockImplementation(capture));
+    const { cookie } = await forgeSession(collecting, "quiet@example.org");
+    const poll = makePoll();
+    await polls(collecting).insertOne(poll);
+    expect((await request(collecting.app).post("/api/me/device-sign-in").set("Cookie", cookie).set("X-Device-Fingerprint", FINGERPRINT)).status).toBe(204);
+    expect((await request(collecting.app).post(`/api/polls/${poll._id}/vote`).set("Cookie", cookie).set("X-Device-Fingerprint", FINGERPRINT).send({ choiceIds: ["c1"] })).status).toBe(200);
+    await collecting.consumer.runOnce();
+    for (const spy of spies) spy.mockRestore();
+
+    const stored = await collecting.db.selectFrom("device_events").select(["browser_hash", "hardware_hash"]).execute();
+    expect(stored.length).toBe(2);
+    const log = lines.join("\n");
+    for (const secret of [FINGERPRINT, "a".repeat(32), "b".repeat(32), KEY, ...stored.flatMap((r) => [r.browser_hash!, r.hardware_hash!])]) {
+      expect(log).not.toContain(secret);
+    }
   });
 });

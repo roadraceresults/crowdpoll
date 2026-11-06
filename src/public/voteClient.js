@@ -22,7 +22,7 @@
   async function post(pid, choiceIds) {
     const res = await fetch("/api/polls/" + encodeURIComponent(pid) + "/vote", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...window.DeviceEvidence?.headers() },
       body: JSON.stringify({ choiceIds: choiceIds })
     });
     const body = await res.json().catch(() => ({}));

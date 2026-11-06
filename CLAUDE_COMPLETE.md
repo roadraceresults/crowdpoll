@@ -5,6 +5,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261105-162941-MULTIPLE-ACCOUNT-PREVENTION/plan.md` (research R1–R12, `data-model.md` — one migration, `017-device-events`;
+the stream fields, the cache key and the settings; the contracts `contracts/api.md` A1–A5 and `contracts/ui-contracts.md` C1–C6, and the
+quickstart live alongside it in `specs/20261105-162941-MULTIPLE-ACCOUNT-PREVENTION/`). The requirements report is
+`requirements/20261105-162941-multiple-account-prevention/requirements-report.md`: 4 diagrams and 16 findings, all resolved.
+Decisions that are easy to get wrong:
+- **Collection only**: nothing refuses, warns or changes a count on a fingerprint; analysis and response are later features (IN1).
+- **`FingerprintJS.load({ monitoring: false })` always**: the vendored npm build otherwise calls the vendor on 0.1% of loads (R2).
+  The file is `src/public/vendor/fingerprintjs-5.3.0.min.js`, kept by a `.gitignore` exception to `*.min.js`.
+- **Two values**: `visitorId`, and a hardware hash with **no GPU or `deviceMemory`**, because browsers do not report them alike,
+  and Firefox reports no GPU to the library (R3). `DEVICE_FINGERPRINT_VERSION` is bumped when the library or the key changes.
+- **Raw values are never queued**: the web process HMACs them; a missing or malformed header never touches the vote (R4–R6).
+- **Vote events are taken in `writeBatch` before votes collapse** to one per participant; an entry with no `accountId` makes no
+  row (R6). `device_events` goes with `deletePoll` and `deleteAccount`, not with a ban or a vote reset (R10).
+- **Sign-in due is a response header on `/api/me`**, not a body field: `sameSnapshot` compares every body field. While
+  collecting `/api/me` is `no-store`, because a `304` keeps a browser's stored headers (R7).
+- **Off by default**; the terms gate stops collection before acceptance. `ENV_DEVICE_EVENTS_ENABLED` is in
+  `web_run_time_settings`, or the build's `loadConfig` would stop for want of the run-time key (R10, R11).
+One migration, one route, two settings, no npm dependency; one vendored file, one script.
+The preceding feature recorded here is
 `specs/20261104-180032-LEGAL-PAGE-UPDATES/plan.md` (research R1–R8, `data-model.md` — no migration; the shared policy
 version and the `history.state.legalDepth` step count; the UI contracts `contracts/ui-contracts.md` C1–C6, and the
 quickstart live alongside it in `specs/20261104-180032-LEGAL-PAGE-UPDATES/`). The requirements report is
@@ -23,7 +42,7 @@ Decisions that are easy to get wrong:
   (R3–R5, clarification Q2).
 - **The Up arrow is centred on every page** (`left:0; right:0; margin-inline:auto`), not only the legal pages (R7, AM1).
 No migration, route, setting or dependency; one constant, one script, one sheet.
-The preceding feature recorded here is
+Before it came
 `specs/20261102-134601-SITE-SETTINGS/plan.md` (research R1–R13, `data-model.md` — one `user` column,
 `color_scheme`, added by migration `016-color-scheme`, the `localStorage` copy and the `data-theme` states; the HTTP
 contracts `contracts/api.md` A1–A3, the UI contracts `contracts/ui-contracts.md` C1–C6, and the quickstart live
