@@ -1,6 +1,6 @@
 /**
  * GET /login page-route guard (FR-008/FR-009; contracts/page-routes.md):
- * a signed-in user is redirected to / before login.html is ever sent; a
+ * a logged-in user is redirected to / before login.html is ever sent; a
  * guest still gets the login form unchanged.
  */
 import { readFileSync } from "node:fs";
@@ -22,7 +22,7 @@ afterAll(async () => {
 });
 
 describe("GET /login (FR-008/FR-009)", () => {
-  it("redirects a signed-in user to / without sending the login form", async () => {
+  it("redirects a logged-in user to / without sending the login form", async () => {
     const { cookie } = await forgeSession(ctx, freshEmail());
     const res = await request(ctx.app).get("/login").set("Cookie", cookie);
     expect(res.status).toBe(302);
@@ -35,7 +35,7 @@ describe("GET /login (FR-008/FR-009)", () => {
     // 013 US4: the form is built by loginCard.js rather than shipped as static
     // markup, so the served HTML carries the script that mounts it rather than
     // the form's own id. What this guards is unchanged: a guest is not
-    // redirected away from the sign-in page.
+    // redirected away from the login page.
     expect(res.text).toContain("/loginCard.js");
   });
 });
@@ -54,13 +54,13 @@ async function forgeWithPermissions(permissions?: string[]) {
 }
 
 describe("Admin pages ignore the isAdmin hint (012 FR-053)", () => {
-  it("refuses a signed-in user without Create Poll", async () => {
+  it("refuses a logged-in user without Create Poll", async () => {
     const { cookie } = await forgeWithPermissions(["View Polls", "Vote on Polls"]);
     const res = await request(ctx.app).get("/admin").set("Cookie", cookie);
     expect(res.status).toBe(403);
   });
 
-  it("refuses a signed-in user with Create Poll but not View Polls", async () => {
+  it("refuses a logged-in user with Create Poll but not View Polls", async () => {
     const { cookie } = await forgeWithPermissions(["Create Poll"]);
     const res = await request(ctx.app).get("/admin").set("Cookie", cookie);
     expect(res.status).toBe(403);
@@ -99,8 +99,8 @@ describe("A creator's results page (025)", () => {
  * 013 FR-042/FR-044 (contracts/page-routes.md): the refusal becomes a page
  * rather than a JSON fragment. The status stays 403 -- the request is still
  * refused, and a 200 would tell caches, crawlers and monitoring the page
- * loaded normally. One card serves a guest and a signed-in non-administrator
- * alike, revealing neither which they are nor whether signing in would help.
+ * loaded normally. One card serves a guest and a logged-in non-administrator
+ * alike, revealing neither which they are nor whether logging in would help.
  */
 describe("Unauthorized access to an admin page (013 FR-042/FR-044)", () => {
   // 014 FR-004: /admin/poll and /admin/poll/update are removed; editing is on the card.
@@ -115,7 +115,7 @@ const ADMIN_PAGES = ["/admin", "/admin/poll/results"];
     }
   });
 
-  it("shows a signed-in user without the creator grants the same page as a guest", async () => {
+  it("shows a logged-in user without the creator grants the same page as a guest", async () => {
     const { cookie } = await forgeWithPermissions([]);
     const signedIn = await request(ctx.app).get("/admin").set("Cookie", cookie);
     const guest = await request(ctx.app).get("/admin");
@@ -220,7 +220,7 @@ describe("The tabbed home page (017)", () => {
     expect(res.text).toContain("/tabs.js");
   });
 
-  it("sends a guest holding a poll link to sign in, whatever the poll", async () => {
+  it("sends a guest holding a poll link to log in, whatever the poll", async () => {
     const pid = "123e4567-e89b-42d3-a456-426614174000";
     const res = await request(ctx.app).get(`/?PID=${pid}`).redirects(0);
     expect(res.status).toBe(302);
@@ -302,10 +302,10 @@ describe("The site favicon (FR-010)", () => {
     expect(res.text).toContain(ICON_LINKS);
   });
 
-  it("the cookie banner names the session cookie and the sign-in security cookie", () => {
+  it("the cookie banner names the session cookie and the login security cookie", () => {
     const app = readFileSync(path.resolve("src/public/app.js"), "utf8");
     expect(app).toContain("strictly necessary session cookie");
-    expect(app).toContain("short-lived security cookie while a sign-in link is waiting to be used");
+    expect(app).toContain("short-lived security cookie while a login link is waiting to be used");
   });
 
   it("GET /email-logo.png answers with the email logo", async () => {

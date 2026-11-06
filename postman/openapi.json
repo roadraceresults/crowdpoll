@@ -14,11 +14,11 @@
   "tags": [
     {
       "name": "auth",
-      "description": "Native sign-in (disabled when ENV_SIGNIN_METHOD=oauth)"
+      "description": "Native login (disabled when ENV_SIGNIN_METHOD=oauth)"
     },
     {
       "name": "profile",
-      "description": "Signed-in profile access and editing"
+      "description": "Logged-in profile access and editing"
     },
     {
       "name": "config",
@@ -46,7 +46,7 @@
     },
     {
       "name": "invitations",
-      "description": "Single-email invitation sign-in"
+      "description": "Single-email invitation login"
     }
   ],
   "components": {
@@ -120,7 +120,7 @@
           },
           "profileAvatar": {
             "type": "string",
-            "description": "System default in native mode; provider-supplied for OAuth accounts. Not editable."
+            "description": "An image address: a site path to the default avatar, or an absolute URL on the site's CDN for a picture kept from Google. Not editable."
           },
           "status": {
             "type": "string",
@@ -128,7 +128,7 @@
               "pending",
               "active"
             ],
-            "description": "pending until the first successful login-link sign-in"
+            "description": "pending until the first successful login-link login"
           },
           "isAdmin": {
             "type": "boolean",
@@ -153,7 +153,15 @@
           },
           "termsFirstAcceptance": {
             "type": "boolean",
-            "description": "True while the account has never accepted any version of the Terms (a new account, e.g. after a first provider sign-in); the Accept Terms card then greets it instead of calling the Terms updated"
+            "description": "True while the account has never accepted any version of the Terms (a new account, e.g. after a first provider login); the Accept Terms card then greets it instead of calling the Terms updated"
+          },
+          "termsUpdated": {
+            "type": "boolean",
+            "description": "True when the Terms of Service changed after the version this account last accepted; the Accept Terms card names the documents that changed"
+          },
+          "privacyUpdated": {
+            "type": "boolean",
+            "description": "True when the Privacy Policy changed after the version this account last accepted; the Accept Terms card names the documents that changed"
           },
           "colorScheme": {
             "type": "string",
@@ -370,7 +378,7 @@
           },
           "ownPoll": {
             "type": "boolean",
-            "description": "True when the signed-in caller created the poll; an administrator's list and search also return other creators' polls, which the card marks Not your poll"
+            "description": "True when the logged-in caller created the poll; an administrator's list and search also return other creators' polls, which the card marks Not your poll"
           },
           "launchedAt": {
             "type": [
@@ -600,7 +608,7 @@
           "voted",
           "bookmarked"
         ],
-        "description": "The signed-in visitor's own state for one poll, kept apart from the shared card.",
+        "description": "The logged-in visitor's own state for one poll, kept apart from the shared card.",
         "properties": {
           "voted": {
             "type": "boolean"
@@ -1055,7 +1063,7 @@
               },
               "humanCheckSkipped": {
                 "type": "integer",
-                "description": "Sign-in starts let through without a human check because the FCaptcha service was unreachable, since start"
+                "description": "Login starts let through without a human check because the FCaptcha service was unreachable, since start"
               }
             }
           }
@@ -1397,7 +1405,7 @@
         }
       },
       "TermsRequired": {
-        "description": "The signed-in account has not accepted the current Terms of Service (the terms gate); only accept-terms, logout, /api/me, /api/config and the sign-in and link routes answer",
+        "description": "The logged-in account has not accepted the current Terms of Service (the terms gate); only accept-terms, logout, /api/me, /api/config and the login and link routes answer",
         "content": {
           "application/json": {
             "schema": {
@@ -1427,7 +1435,7 @@
         ],
         "operationId": "homePage",
         "summary": "The home page; with ?PID=<id>, a poll link",
-        "description": "Without PID, or with one that is not a poll id, serves the home page. With a poll id a guest is redirected to /login?PID=<id> before the poll is looked up (the answer is the same for every poll). A signed-in visitor is redirected to / with the landing the server chose — ?open=<id>&tab=<your-polls|shared-with-you|trending>, ?tab=shared-with-you&notice=unpublished, or ?notice=unavailable — and the view is recorded here for a link-only private poll the visitor did not create.",
+        "description": "Without PID, or with one that is not a poll id, serves the home page. With a poll id a guest is redirected to /login?PID=<id> before the poll is looked up (the answer is the same for every poll). A logged-in visitor is redirected to / with the landing the server chose — ?open=<id>&tab=<your-polls|shared-with-you|trending>, ?tab=shared-with-you&notice=unpublished, or ?notice=unavailable — and the view is recorded here for a link-only private poll the visitor did not create.",
         "parameters": [
           {
             "name": "PID",
@@ -1444,7 +1452,7 @@
             "description": "The home page"
           },
           "302": {
-            "description": "Redirect to /login?PID=<id> (guest) or to the landing above (signed in)",
+            "description": "Redirect to /login?PID=<id> (guest) or to the landing above (logged in)",
             "headers": {
               "Location": {
                 "schema": {
@@ -1462,8 +1470,8 @@
           "pages"
         ],
         "operationId": "loginPage",
-        "summary": "The sign-in page",
-        "description": "A signed-in visitor is redirected to / (or to /?PID=<id> when a poll id is carried).",
+        "summary": "The login page",
+        "description": "A logged-in visitor is redirected to / (or to /?PID=<id> when a poll id is carried).",
         "parameters": [
           {
             "name": "PID",
@@ -1477,10 +1485,10 @@
         ],
         "responses": {
           "200": {
-            "description": "The sign-in page"
+            "description": "The login page"
           },
           "302": {
-            "description": "Redirect to / or /?PID=<id> for a signed-in visitor",
+            "description": "Redirect to / or /?PID=<id> for a logged-in visitor",
             "headers": {
               "Location": {
                 "schema": {
@@ -1498,8 +1506,8 @@
           "pages"
         ],
         "operationId": "createAccountPage",
-        "summary": "The create-account page (native sign-in only)",
-        "description": "404 outside native sign-in mode. A signed-in visitor carrying a poll id is redirected to /?PID=<id>.",
+        "summary": "The create-account page (native login only)",
+        "description": "404 outside native login mode. A logged-in visitor carrying a poll id is redirected to /?PID=<id>.",
         "parameters": [
           {
             "name": "PID",
@@ -1516,7 +1524,7 @@
             "description": "The create-account page"
           },
           "302": {
-            "description": "Redirect to /?PID=<id> for a signed-in visitor",
+            "description": "Redirect to /?PID=<id> for a logged-in visitor",
             "headers": {
               "Location": {
                 "schema": {
@@ -1537,7 +1545,7 @@
           "config"
         ],
         "operationId": "getConfig",
-        "summary": "Active sign-in method for client rendering",
+        "summary": "Active login method for client rendering",
         "responses": {
           "200": {
             "description": "Deployment configuration",
@@ -1562,15 +1570,15 @@
                         "oauth",
                         "both"
                       ],
-                      "description": "ENV_SIGNIN_METHOD: native (email link), oauth (sign-in providers only) or both"
+                      "description": "ENV_SIGNIN_METHOD: native (email link), oauth (login providers only) or both"
                     },
                     "maxSigninCookieDurationMs": {
                       "type": "integer",
-                      "description": "How long a stay-signed-in session lasts, in milliseconds (ENV_MAX_SIGNIN_COOKIE_DURATION); the login card shows it as whole days, or as hours below one day"
+                      "description": "How long a stay-logged-in session lasts, in milliseconds (ENV_MAX_SIGNIN_COOKIE_DURATION); the login card shows it as whole days, or as hours below one day"
                     },
                     "staySignedInDefault": {
                       "type": "boolean",
-                      "description": "Whether the login page's stay-signed-in box starts ticked (ENV_STAY_SIGNED_IN=1)"
+                      "description": "Whether the login page's stay-logged-in box starts ticked (ENV_STAY_SIGNED_IN=1)"
                     },
                     "participantsViewportSize": {
                       "type": "integer",
@@ -1692,7 +1700,7 @@
                           "amazon"
                         ]
                       },
-                      "description": "The enabled sign-in providers, in display order; empty in native mode"
+                      "description": "The enabled login providers, in display order; empty in native mode"
                     },
                     "lineGraphMinVotePercentage": {
                       "type": "integer",
@@ -1732,7 +1740,7 @@
                           }
                         }
                       ],
-                      "description": "The human check before sign-in; null while ENV_FCAPTCHA_ENABLED is not 1"
+                      "description": "The human check before login; null while ENV_FCAPTCHA_ENABLED is not 1"
                     }
                   }
                 }
@@ -1750,7 +1758,7 @@
         ],
         "operationId": "createAccount",
         "summary": "Create a pending account and auto-send the first login link",
-        "description": "The response is identical whether or not the address is already registered (account-existence privacy); an existing account receives a normal login link instead of a duplicate account. An address is matched to an existing account by its email key (plus-tag dropped; Gmail dots removed), so a variant of an existing address signs that account in. The request must carry the agreement to the current Terms of Service; the account records the version and the time. Token form: with `token` (the one-time link emailed to an address with no account), no `email` is sent; the server checks Origin, the token, the Terms (for an address still without an account), the rate limit and the allowlist, then creates the account, uses the token up and signs in at once, answering `{ redirect }` with the session cookie; no second email is sent. While the human check is on, needs a pass from the create-account (only without token: finishing from an emailed link needs no pass) page in X-Human-Check.",
+        "description": "The response is identical whether or not the address is already registered (account-existence privacy); an existing account receives a normal login link instead of a duplicate account. An address is matched to an existing account by its email key (plus-tag dropped; Gmail dots removed), so a variant of an existing address signs that account in. The request must carry the agreement to the current Terms of Service; the account records the version and the time. Token form: with `token` (the one-time link emailed to an address with no account), no `email` is sent; the server checks Origin, the token, the Terms (for an address still without an account), the rate limit and the allowlist, then creates the account, uses the token up and logs in at once, answering `{ redirect }` with the session cookie; no second email is sent. While the human check is on, needs a pass from the create-account (only without token: finishing from an emailed link needs no pass) page in X-Human-Check.",
         "requestBody": {
           "required": true,
           "content": {
@@ -1766,7 +1774,7 @@
                   "pid": {
                     "type": "string",
                     "format": "uuid",
-                    "description": "The poll a shared link was for; carried through sign-in so the visitor lands on it. Anything that is not a poll id is ignored."
+                    "description": "The poll a shared link was for; carried through login so the visitor lands on it. Anything that is not a poll id is ignored."
                   },
                   "homepage": {
                     "type": "string",
@@ -1809,7 +1817,7 @@
         },
         "responses": {
           "200": {
-            "description": "Check your inbox; or, in the token form, signed in: `{ redirect }` (`/?PID=<pid>` when the request named a poll, else `/`) with the session_token cookie",
+            "description": "Check your inbox; or, in the token form, logged in: `{ redirect }` (`/?PID=<pid>` when the request named a poll, else `/`) with the session_token cookie",
             "content": {
               "application/json": {
                 "schema": {
@@ -1837,7 +1845,7 @@
                 "schema": {
                   "type": "string"
                 },
-                "description": "signin_binding=…; Path=/api/auth; Max-Age=900; HttpOnly; Secure; SameSite=Lax — only when a sign-in link was issued; it binds the link to this browser"
+                "description": "signin_binding=…; Path=/api/auth; Max-Age=900; HttpOnly; Secure; SameSite=Lax — only when a login link was issued; it binds the link to this browser"
               }
             }
           },
@@ -1878,7 +1886,7 @@
             "$ref": "#/components/responses/RateLimited"
           },
           "500": {
-            "description": "Token form only: the account exists but the sign-in could not be completed",
+            "description": "Token form only: the account exists but the login could not be completed",
             "content": {
               "application/json": {
                 "schema": {
@@ -1945,7 +1953,7 @@
             }
           },
           "404": {
-            "description": "Unknown, used, superseded or expired token (code invalid-link); or native sign-in is off",
+            "description": "Unknown, used, superseded or expired token (code invalid-link); or native login is off",
             "content": {
               "application/json": {
                 "schema": {
@@ -1963,7 +1971,7 @@
           "auth"
         ],
         "operationId": "requestLoginLink",
-        "summary": "Request a one-time sign-in link",
+        "summary": "Request a one-time login link",
         "description": "Unknown addresses get an identical on-screen response but receive an invitation to create an account instead of a login link. While the human check is on, needs a pass from the login page in X-Human-Check.",
         "requestBody": {
           "required": true,
@@ -1988,7 +1996,7 @@
                   "pid": {
                     "type": "string",
                     "format": "uuid",
-                    "description": "The poll a shared link was for; carried through sign-in so the visitor lands on it. Anything that is not a poll id is ignored."
+                    "description": "The poll a shared link was for; carried through login so the visitor lands on it. Anything that is not a poll id is ignored."
                   },
                   "homepage": {
                     "type": "string",
@@ -2014,7 +2022,7 @@
                 "schema": {
                   "type": "string"
                 },
-                "description": "signin_binding=…; Path=/api/auth; Max-Age=900; HttpOnly; Secure; SameSite=Lax — only when a sign-in link was issued; it binds the link to this browser"
+                "description": "signin_binding=…; Path=/api/auth; Max-Age=900; HttpOnly; Secure; SameSite=Lax — only when a login link was issued; it binds the link to this browser"
               }
             }
           },
@@ -2083,7 +2091,7 @@
                 "1"
               ]
             },
-            "description": "Stay-signed-in choice carried from the request step"
+            "description": "Stay-logged-in choice carried from the request step"
           },
           {
             "name": "PID",
@@ -2292,8 +2300,8 @@
           "profile"
         ],
         "operationId": "deleteAccount",
-        "summary": "Delete the signed-in account",
-        "description": "Deletes the account, its sessions, sign-in links, bookmarks, linked polls, the polls it created (with their votes, history and search entries) and invitations naming its address; anonymizes its votes on other people's polls (shown as Deleted user, counts unchanged); keeps bans. All or nothing. Requires a same-origin Origin header. Sends an \"account deleted\" email.",
+        "summary": "Delete the logged-in account",
+        "description": "Deletes the account, its sessions, login links, bookmarks, linked polls, the polls it created (with their votes, history and search entries) and invitations naming its address; anonymizes its votes on other people's polls (shown as Deleted user, counts unchanged); keeps bans. All or nothing. Requires a same-origin Origin header. Sends an \"account deleted\" email.",
         "security": [
           {
             "sessionCookie": []
@@ -2484,7 +2492,7 @@
         ],
         "operationId": "verifyEmailChange",
         "summary": "Consume an email-change verification link",
-        "description": "Self-contained — completes the change from any device or browser, signed in or not. Re-checks new-address uniqueness at consume (two racing accounts: first verified change wins), swaps the profile's emailAddress, and sends an informational notice (no action links) to the old address.",
+        "description": "Self-contained — completes the change from any device or browser, logged in or not. Re-checks new-address uniqueness at consume (two racing accounts: first verified change wins), swaps the profile's emailAddress, and sends an informational notice (no action links) to the old address.",
         "parameters": [
           {
             "name": "token",
@@ -2581,7 +2589,7 @@
             "$ref": "#/components/responses/Unauthorized"
           },
           "403": {
-            "description": "Banned, not invited (the creator of an Invitation Only poll needs no invitation, and while uninvited their vote is outside the voter cap), or voter cap reached (FR-028-030); or the signed-in user lacks the Vote on Polls grant, answered as { \"error\": \"You do not have permission to vote.\", \"code\": \"no-vote-permission\" }; or terms-required (see TermsRequired)",
+            "description": "Banned, not invited (the creator of an Invitation Only poll needs no invitation, and while uninvited their vote is outside the voter cap), or voter cap reached (FR-028-030); or the logged-in user lacks the Vote on Polls grant, answered as { \"error\": \"You do not have permission to vote.\", \"code\": \"no-vote-permission\" }; or terms-required (see TermsRequired)",
             "content": {
               "application/json": {
                 "schema": {
@@ -2700,7 +2708,7 @@
             "$ref": "#/components/responses/Unauthorized"
           },
           "403": {
-            "description": "Not signed in, or signed in without the grants this route needs: administrator for search and rescreen; administrator, or both Create Poll and View Polls, for the rest (FR-035); or terms-required (see TermsRequired)",
+            "description": "Not logged in, or logged in without the grants this route needs: administrator for search and rescreen; administrator, or both Create Poll and View Polls, for the rest (FR-035); or terms-required (see TermsRequired)",
             "content": {
               "application/json": {
                 "schema": {
@@ -2753,7 +2761,7 @@
             "$ref": "#/components/responses/Unauthorized"
           },
           "403": {
-            "description": "Not signed in, or signed in without the grants this route needs: administrator for search and rescreen; administrator, or both Create Poll and View Polls, for the rest (FR-035); or terms-required (see TermsRequired)",
+            "description": "Not logged in, or logged in without the grants this route needs: administrator for search and rescreen; administrator, or both Create Poll and View Polls, for the rest (FR-035); or terms-required (see TermsRequired)",
             "content": {
               "application/json": {
                 "schema": {
@@ -2802,7 +2810,7 @@
             "$ref": "#/components/responses/Unauthorized"
           },
           "403": {
-            "description": "Not signed in, or signed in without the grants this route needs: administrator for search and rescreen; administrator, or both Create Poll and View Polls, for the rest (FR-035); or terms-required (see TermsRequired)",
+            "description": "Not logged in, or logged in without the grants this route needs: administrator for search and rescreen; administrator, or both Create Poll and View Polls, for the rest (FR-035); or terms-required (see TermsRequired)",
             "content": {
               "application/json": {
                 "schema": {
@@ -2902,7 +2910,7 @@
             "$ref": "#/components/responses/Unauthorized"
           },
           "403": {
-            "description": "Not signed in, or signed in without the grants this route needs: administrator for search and rescreen; administrator, or both Create Poll and View Polls, for the rest (FR-035); or terms-required (see TermsRequired)",
+            "description": "Not logged in, or logged in without the grants this route needs: administrator for search and rescreen; administrator, or both Create Poll and View Polls, for the rest (FR-035); or terms-required (see TermsRequired)",
             "content": {
               "application/json": {
                 "schema": {
@@ -3004,7 +3012,7 @@
             "$ref": "#/components/responses/Unauthorized"
           },
           "403": {
-            "description": "Not signed in, or signed in without the grants this route needs: administrator for search and rescreen; administrator, or both Create Poll and View Polls, for the rest (FR-035); or terms-required (see TermsRequired)",
+            "description": "Not logged in, or logged in without the grants this route needs: administrator for search and rescreen; administrator, or both Create Poll and View Polls, for the rest (FR-035); or terms-required (see TermsRequired)",
             "content": {
               "application/json": {
                 "schema": {
@@ -3063,7 +3071,7 @@
             "$ref": "#/components/responses/Unauthorized"
           },
           "403": {
-            "description": "Not signed in, or signed in without the grants this route needs: administrator for search and rescreen; administrator, or both Create Poll and View Polls, for the rest (FR-035); or terms-required (see TermsRequired)",
+            "description": "Not logged in, or logged in without the grants this route needs: administrator for search and rescreen; administrator, or both Create Poll and View Polls, for the rest (FR-035); or terms-required (see TermsRequired)",
             "content": {
               "application/json": {
                 "schema": {
@@ -3122,7 +3130,7 @@
             "$ref": "#/components/responses/Unauthorized"
           },
           "403": {
-            "description": "Not signed in, or signed in without the grants this route needs: administrator for search and rescreen; administrator, or both Create Poll and View Polls, for the rest (FR-035); or terms-required (see TermsRequired)",
+            "description": "Not logged in, or logged in without the grants this route needs: administrator for search and rescreen; administrator, or both Create Poll and View Polls, for the rest (FR-035); or terms-required (see TermsRequired)",
             "content": {
               "application/json": {
                 "schema": {
@@ -3189,7 +3197,7 @@
             "$ref": "#/components/responses/Unauthorized"
           },
           "403": {
-            "description": "Not signed in, or signed in without the grants this route needs: administrator for search and rescreen; administrator, or both Create Poll and View Polls, for the rest (FR-035); or terms-required (see TermsRequired)",
+            "description": "Not logged in, or logged in without the grants this route needs: administrator for search and rescreen; administrator, or both Create Poll and View Polls, for the rest (FR-035); or terms-required (see TermsRequired)",
             "content": {
               "application/json": {
                 "schema": {
@@ -4084,7 +4092,7 @@
             "$ref": "#/components/responses/Unauthorized"
           },
           "403": {
-            "description": "The signed-in user lacks the View Polls grant, answered as { \"error\": \"You do not have permission to view polls.\", \"code\": \"no-view-permission\" }. Removing a bookmark (DELETE) never needs the grant.; or terms-required (see TermsRequired)",
+            "description": "The logged-in user lacks the View Polls grant, answered as { \"error\": \"You do not have permission to view polls.\", \"code\": \"no-view-permission\" }. Removing a bookmark (DELETE) never needs the grant.; or terms-required (see TermsRequired)",
             "content": {
               "application/json": {
                 "schema": {
@@ -4416,7 +4424,7 @@
             "$ref": "#/components/responses/Busy"
           }
         },
-        "description": "Signed-in only. Home's membership is built on demand by five rules (first match wins; caps 10/10/10/all/10) and cached per user for ENV_HOME_TAB_REFRESH_INTERVAL; a changed tab version rebuilds it unless keepOrder is sent. Access is re-checked on every refresh. Never accepts an invitation."
+        "description": "Logged-in only. Home's membership is built on demand by five rules (first match wins; caps 10/10/10/all/10) and cached per user for ENV_HOME_TAB_REFRESH_INTERVAL; a changed tab version rebuilds it unless keepOrder is sent. Access is re-checked on every refresh. Never accepts an invitation."
       }
     },
     "/api/tabs/watching/refresh": {
@@ -4509,7 +4517,7 @@
             }
           },
           "403": {
-            "description": "A signed-in caller without the View Polls grant: { \"error\": \"You do not have permission to view polls.\", \"code\": \"no-view-permission\" }. A guest is never refused for this.",
+            "description": "A logged-in caller without the View Polls grant: { \"error\": \"You do not have permission to view polls.\", \"code\": \"no-view-permission\" }. A guest is never refused for this.",
             "content": {
               "application/json": {
                 "schema": {
@@ -4565,7 +4573,7 @@
             }
           },
           "403": {
-            "description": "A signed-in caller without the View Polls grant: { \"error\": \"You do not have permission to view polls.\", \"code\": \"no-view-permission\" }. A guest is never refused for this.",
+            "description": "A logged-in caller without the View Polls grant: { \"error\": \"You do not have permission to view polls.\", \"code\": \"no-view-permission\" }. A guest is never refused for this.",
             "content": {
               "application/json": {
                 "schema": {
@@ -4589,7 +4597,7 @@
           "home"
         ],
         "operationId": "overlay",
-        "summary": "The signed-in visitor's own state for the polls listed (kind refresh)",
+        "summary": "The logged-in visitor's own state for the polls listed (kind refresh)",
         "security": [
           {
             "sessionCookie": []
@@ -5157,7 +5165,7 @@
             "$ref": "#/components/responses/Unauthorized"
           },
           "403": {
-            "description": "Not eligible to view the poll: not signed in for a private poll, or not invited; or the signed-in user lacks the View Polls grant, answered as { \"error\": \"You do not have permission to view polls.\", \"code\": \"no-view-permission\" }. DELETE (removing the poll) never needs the grant.; or terms-required (see TermsRequired)",
+            "description": "Not eligible to view the poll: not logged in for a private poll, or not invited; or the logged-in user lacks the View Polls grant, answered as { \"error\": \"You do not have permission to view polls.\", \"code\": \"no-view-permission\" }. DELETE (removing the poll) never needs the grant.; or terms-required (see TermsRequired)",
             "content": {
               "application/json": {
                 "schema": {
@@ -5613,7 +5621,7 @@
           "auth"
         ],
         "operationId": "signInLinkInfo",
-        "summary": "Describe an unused sign-in link without consuming it",
+        "summary": "Describe an unused login link without consuming it",
         "description": "Used by the confirmation page. Reads only; Cache-Control: no-store.",
         "parameters": [
           {
@@ -5627,7 +5635,7 @@
         ],
         "responses": {
           "200": {
-            "description": "The account the link signs in as, and when it was requested",
+            "description": "The account the link logs in as, and when it was requested",
             "content": {
               "application/json": {
                 "schema": {
@@ -5669,7 +5677,7 @@
           "auth"
         ],
         "operationId": "confirmSignIn",
-        "summary": "Sign in with a link opened in another browser, after the person confirms",
+        "summary": "Log in with a link opened in another browser, after the person confirms",
         "description": "Refused with 403 unless the Origin header is this site's own origin, so another site cannot sign a visitor into an account of its choosing. Not rate limited: it sends no email.",
         "requestBody": {
           "required": true,
@@ -5699,7 +5707,7 @@
         },
         "responses": {
           "200": {
-            "description": "Signed in; the page goes to redirect",
+            "description": "Logged in; the page goes to redirect",
             "headers": {
               "Set-Cookie": {
                 "schema": {
@@ -5776,7 +5784,7 @@
         ],
         "operationId": "invitationLinkInfo",
         "summary": "The facts the invitation confirmation card shows",
-        "description": "Answered with Cache-Control: no-store; writes nothing, so a mail scanner's fetch changes no state. 404 when the token cannot sign in; the card then follows the answer's redirect.",
+        "description": "Answered with Cache-Control: no-store; writes nothing, so a mail scanner's fetch changes no state. 404 when the token cannot log in; the card then follows the answer's redirect.",
         "parameters": [
           {
             "name": "PID",
@@ -5837,7 +5845,7 @@
                       "items": {
                         "type": "string"
                       },
-                      "description": "Empty unless the sign-in method is both"
+                      "description": "Empty unless the login method is both"
                     }
                   }
                 }
@@ -5845,7 +5853,7 @@
             }
           },
           "404": {
-            "description": "The token cannot sign in; the card follows redirect",
+            "description": "The token cannot log in; the card follows redirect",
             "content": {
               "application/json": {
                 "schema": {
@@ -5879,7 +5887,7 @@
         ],
         "operationId": "redeemInvitation",
         "summary": "Continue on the invitation confirmation card: sign the invited address in once",
-        "description": "Refused with 403 unless the Origin header is this site's own origin. A token that cannot sign in answers 200 with a redirect to /?PID=, so old links never dead-end. A new address must carry acceptedTerms and the current termsVersion. Counted against the email rate limit only after the token and Terms checks pass. The token is single-use; the address is confirmed and the session hooks run as for an emailed sign-in link. While the human check is on, needs a pass from the invite page in X-Human-Check.",
+        "description": "Refused with 403 unless the Origin header is this site's own origin. A token that cannot log in answers 200 with a redirect to /?PID=, so old links never dead-end. A new address must carry acceptedTerms and the current termsVersion. Counted against the email rate limit only after the token and Terms checks pass. The token is single-use; the address is confirmed and the session hooks run as for an emailed login link. While the human check is on, needs a pass from the invite page in X-Human-Check.",
         "requestBody": {
           "required": true,
           "content": {
@@ -5912,7 +5920,7 @@
                   },
                   "signOut": {
                     "type": "boolean",
-                    "description": "Required, true, when the browser is signed in as another account"
+                    "description": "Required, true, when the browser is logged in as another account"
                   }
                 }
               }
@@ -5921,13 +5929,13 @@
         },
         "responses": {
           "200": {
-            "description": "Signed in (Set-Cookie: session_token shaped by stay), or the token cannot sign in; the page goes to redirect",
+            "description": "Logged in (Set-Cookie: session_token shaped by stay), or the token cannot log in; the page goes to redirect",
             "headers": {
               "Set-Cookie": {
                 "schema": {
                   "type": "string"
                 },
-                "description": "session_token=…; HttpOnly; Secure; SameSite=Lax[; Max-Age=…] on a sign-in"
+                "description": "session_token=…; HttpOnly; Secure; SameSite=Lax[; Max-Age=…] on a login"
               }
             },
             "content": {
@@ -6002,7 +6010,7 @@
             }
           },
           "409": {
-            "description": "Signed in as another account and signOut was not true (code other-account)",
+            "description": "Logged in as another account and signOut was not true (code other-account)",
             "content": {
               "application/json": {
                 "schema": {
@@ -6049,7 +6057,7 @@
             }
           },
           "500": {
-            "description": "The server-side sign-in step failed; the token stays unused",
+            "description": "The server-side login step failed; the token stays unused",
             "content": {
               "application/json": {
                 "schema": {
@@ -6081,7 +6089,7 @@
         ],
         "operationId": "acceptTerms",
         "summary": "Accept the current Terms of Service",
-        "description": "Records the agreement (version and time) on the signed-in account and opens the terms gate. Requires a same-origin Origin header.",
+        "description": "Records the agreement (version and time) on the logged-in account and opens the terms gate. Requires a same-origin Origin header.",
         "security": [
           {
             "sessionCookie": []
@@ -6191,7 +6199,7 @@
         ],
         "operationId": "acceptTermsPage",
         "summary": "Accept the updated Terms of Service",
-        "description": "Shown to a signed-in account that has not accepted the current Terms; every other page route redirects here for it.",
+        "description": "Shown to a logged-in account that has not accepted the current Terms; every other page route redirects here for it.",
         "parameters": [
           {
             "name": "next",
@@ -6225,7 +6233,7 @@
           "auth"
         ],
         "operationId": "startProviderSignin",
-        "summary": "Start a sign-in with Google, Apple or Microsoft (oauth and both modes)",
+        "summary": "Start a login with Google, Apple or Microsoft (oauth and both modes)",
         "requestBody": {
           "required": true,
           "content": {
@@ -6248,6 +6256,15 @@
                   "callbackURL": {
                     "type": "string",
                     "description": "Same-origin path to land on: / or /?PID=<uuid>"
+                  },
+                  "additionalData": {
+                    "type": "object",
+                    "description": "Carried to the callback. staySignedIn: true is the Stay logged in box, ticked: a session of ENV_MAX_SIGNIN_COOKIE_DURATION",
+                    "properties": {
+                      "staySignedIn": {
+                        "type": "boolean"
+                      }
+                    }
                   }
                 }
               }
@@ -6305,7 +6322,7 @@
           "auth"
         ],
         "operationId": "startAmazonSignin",
-        "summary": "Start a Login with Amazon sign-in (oauth and both modes)",
+        "summary": "Start a Login with Amazon login (oauth and both modes)",
         "requestBody": {
           "required": true,
           "content": {
@@ -6326,6 +6343,15 @@
                   "callbackURL": {
                     "type": "string",
                     "description": "Same-origin path to land on: / or /?PID=<uuid>"
+                  },
+                  "additionalData": {
+                    "type": "object",
+                    "description": "Carried to the callback. staySignedIn: true is the Stay logged in box, ticked: a session of ENV_MAX_SIGNIN_COOKIE_DURATION",
+                    "properties": {
+                      "staySignedIn": {
+                        "type": "boolean"
+                      }
+                    }
                   }
                 }
               }
@@ -6441,7 +6467,7 @@
         ],
         "responses": {
           "302": {
-            "description": "Signed in, or refused",
+            "description": "Logged in, or refused",
             "headers": {
               "Location": {
                 "schema": {
@@ -6564,7 +6590,7 @@
         ],
         "responses": {
           "302": {
-            "description": "Signed in, or refused",
+            "description": "Logged in, or refused",
             "headers": {
               "Location": {
                 "schema": {
@@ -7094,7 +7120,7 @@
             }
           },
           "401": {
-            "description": "Sign in to add a choice",
+            "description": "Log in to add a choice",
             "content": {
               "application/json": {
                 "schema": {

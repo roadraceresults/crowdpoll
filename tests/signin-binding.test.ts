@@ -50,7 +50,7 @@ function confirm(body: Record<string, unknown>, origin: string | null = ORIGIN) 
   return (origin ? req.set("Origin", origin) : req).send(body);
 }
 
-describe("sign-in links bound to the requesting browser (FR-016–FR-020)", () => {
+describe("login links bound to the requesting browser (FR-016–FR-020)", () => {
   it("sets the binding cookie and puts its hash on the link", async () => {
     const { res, link } = await requestLink(freshEmail());
     const binding = cookies(res).find((c) => c.startsWith("signin_binding="))!;
@@ -63,7 +63,7 @@ describe("sign-in links bound to the requesting browser (FR-016–FR-020)", () =
     expect(new URL(link, "http://localhost").searchParams.get("bind")).toBe(hashToken(value));
   });
 
-  it("signs in at once in the same browser and clears the cookie", async () => {
+  it("logs in at once in the same browser and clears the cookie", async () => {
     const { link } = await requestLink(freshEmail());
     const res = await followSignInLink(ctx, link).redirects(0);
     expect(res.headers.location).toBe("/");
@@ -98,7 +98,7 @@ describe("sign-in links bound to the requesting browser (FR-016–FR-020)", () =
     expect((await request(ctx.app).get("/api/auth/link-info?token=nope")).status).toBe(404);
   });
 
-  it("confirm-signin signs in and honours stay and the shared poll", async () => {
+  it("confirm-signin logs in and honours stay and the shared poll", async () => {
     const pid = randomUUID();
     const { link } = await requestLink(freshEmail(), { staySignedIn: true, pid });
     const res = await confirm({ token: tokenOf(link), stay: true, pid });

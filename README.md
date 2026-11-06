@@ -1,11 +1,11 @@
 # CrowdPoll
 
-A real-time opinion-poll site with passwordless sign-in, built in TypeScript with Express,
+A real-time opinion-poll site with passwordless login, built in TypeScript with Express,
 PostgreSQL and [BetterAuth](https://better-auth.com). Visitors browse polls on a
 nine-tab home page (Home, Your Polls, Shared With You, Your Votes, Trending, Newest, Watching, Live Results,
 Search — each tab with its own icon, under a rule that runs the full width of the window), vote
 once per poll (or change their vote on a poll that allows it), watch the polls they care about,
-and follow up to five polls update live. Administrators create, edit, screen, moderate and export polls. Sign-in emails a
+and follow up to five polls update live. Administrators create, edit, screen, moderate and export polls. Login emails a
 one-time login link (no passwords, ever), or goes through Google, Apple, Microsoft or Amazon: `ENV_SIGNIN_METHOD`
 chooses the email link alone (`native`), the providers alone (`oauth`) or both.
 
@@ -18,7 +18,7 @@ delivery network.
 
 ## For end users
 
-- **Home** — where a signed-in visitor lands: one list gathering, in this order, the polls shared
+- **Home** — where a logged-in visitor lands: one list gathering, in this order, the polls shared
   with you (10 at most), your own polls (10), the polls you voted in (10), every poll you watch, and
   ten from Trending, each poll once, at its first place. Open polls appear for two months after
   they opened, closed polls for a week after they closed, and polls waiting to open always; drafts,
@@ -34,28 +34,28 @@ delivery network.
   administrator re-opens counts as new, and a poll under edit keeps its place. **Refresh** works
   as on Trending.
 - **Your Polls**, **Shared With You**, **Your Votes** and **Watching** — the private tabs come
-  first. Sign in to see them; **Refresh** can be pressed a few times in a row, then once every 5
+  first. Log in to see them; **Refresh** can be pressed a few times in a row, then once every 5
   seconds, and its tooltip says how long is left while it waits.
   - **Your Polls** — every poll you created, public and private, in every state, newest first. A
     poll that has not launched shows its state (and why it was rejected) and cannot be voted on.
   - **Shared With You** — the private polls someone else created that you were invited to, or whose
     link you opened. It has no remove control. Opening a poll's shared link (`/?PID=…`, from **Copy
-    Link**) lists it here and opens that tab at the poll, shown maximized; a guest is sent to sign in
-    first (or to create an account) and returns to the poll, even when the sign-in email is opened in
-    another browser (after one click to confirm the sign-in there). A poll that is not published yet waits here as a card saying who shared it; it
+    Link**) lists it here and opens that tab at the poll, shown maximized; a guest is sent to log in
+    first (or to create an account) and returns to the poll, even when the login email is opened in
+    another browser (after one click to confirm the login there). A poll that is not published yet waits here as a card saying who shared it; it
     becomes the ordinary card once published. Any link to a poll you may not see answers "That poll
     isn't available."
   - **Your Votes** — every poll you voted in, public and private.
   - **Watching** — only the polls you chose to watch.
-- **Human check before signing in** — **Login**, **Create Account** and an invitation open on a
+- **Human check before logging in** — **Login**, **Create Account** and an invitation open on a
   "Vote protection" card: tick **I am not a Bot or AI Agent** (it follows your Color Scheme in Site Settings), and the page's own
   card appears in its place. The check runs on CrowdPoll's own servers and sets no cookie; **What this
   safeguard checks** leads to the Privacy Policy's *Bot and AI Agent Detection*. If it fails, the card says so and offers **Try
-  again**; if it cannot load within 10 seconds, the sign-in card appears without it. A link from a
-  sign-in email needs no check.
+  again**; if it cannot load within 10 seconds, the login card appears without it. A link from a
+  login email needs no check.
 - **A public poll's own page** — every public poll that is open or closed has an address of its own,
   `/poll/<id>`, that search engines can read. A guest who opens it, or a shared link to it, sees the
-  poll's live card on Trending, maximized; a signed-in visitor goes to the poll as before.
+  poll's live card on Trending, maximized; a logged-in visitor goes to the poll as before.
 - **Search** — type words in the box and press Enter: titles match first, then subtitles, then
   choices; a misspelt title is still found. At most 200 results are shown.
 - **Vote** — press **Vote** on a card, pick your choice(s) and **Submit vote**. The card shows
@@ -111,10 +111,10 @@ delivery network.
 - **Look and dark mode** — the site follows Google's Material 3 design, in the Roboto typeface:
   tabs, buttons, menus, dialogs and short messages ("snackbars") look and respond the same way
   everywhere. The site is light for everyone, whatever your device's own light or dark setting.
-- **Site Settings** — the avatar menu's Site Settings item (a gear, for every signed-in user) opens a
+- **Site Settings** — the avatar menu's Site Settings item (a gear, for every logged-in user) opens a
   page with one setting, Color Scheme: Light (the default) or Dark. A choice applies at once, with no
   Save button, and is saved to your account, so every page, the administration pages and the line
-  graph included, opens in it on any device you sign in on. Other open tabs switch too. If the save
+  graph included, opens in it on any device you log in on. Other open tabs switch too. If the save
   fails, the page goes back to the scheme your account holds and says so. Signing out returns the
   browser to Light. Poll Administration's menu item now has its own checklist icon.
 - **Tooltips** — resting the pointer on an icon, or reaching it with the keyboard, explains what it
@@ -130,19 +130,20 @@ delivery network.
   over it to move it sideways. Refresh sits under the bar at the left and the All tabs menu at the right, each
   flush with the edge of the poll cards below.
 - **Back to top** — once you have scrolled a good way down any page, a button appears at the
-  bottom centre; press it (or reach it with the keyboard) to return to the top at once.
+  bottom left; press it (or reach it with the keyboard) to return to the top at once.
 - Guests can browse Trending and Newest, search, and open any poll maximized; everything else
-  asks you to sign in.
+  asks you to log in.
 - **Privacy Policy and Terms of Service** — every page ends with a footer linking the Privacy Policy
   (`/privacy`), its Cookie Use section and the Terms of Service (`/terms`), with
   `privacy@crowdpoll.vote` for privacy questions and `support@crowdpoll.vote` for everything else.
+  When you are logged in, it also has a **Delete Account** link, which opens the delete dialog.
   Creating an account needs the "I agree to the Terms of Service" box ticked; when the Terms change,
   you are asked to accept them again on your next visit before you can do anything else.
   Opened from another CrowdPoll page in the same tab, the Privacy Policy and the Terms show a **Back**
   arrow under the header, in line with the logo; it returns to that page, past any section links
   you followed. Opened in a new tab or from another site, they show no arrow.
-- **Your data** — the Profile page's Your Data section explains how to get a copy of your data and
-  lets you delete your account: type DELETE to confirm. Your account, sessions, bookmarks and the
+- **Your data** — the Privacy Policy explains how to get a copy of your data, and its **Delete your
+  account** link opens the Profile page's delete dialog: type DELETE to confirm. Your account, sessions, bookmarks and the
   polls you created go at once; your votes on other people's polls stay counted, shown as
   "Deleted user"; a ban from a poll stays.
 
@@ -229,20 +230,20 @@ before then wait, as *Not sent yet*. Each row shows the person's status — *Not
 email, while the poll is open, or **Remove** them (and, after a confirmation, their vote). You can invite and remove at any
 time until the poll closes, without pausing voting. You may send at most `ENV_MAX_INVITATIONS_PER_DAY` invitation emails a
 day across all your polls; the rest go out as the day's allowance frees up. Dates in the email are in your time zone. Someone
-who signs in with a differently written form of the invited address (a Gmail address with or without dots, or a `+tag`)
+who logs in with a differently written form of the invited address (a Gmail address with or without dots, or a `+tag`)
 is matched to their invitation.
 
 The invitation's **Open the poll** button can also sign the invitee in, once, without a second email: it opens a
 confirmation card naming the invited address, where one press of **Continue** signs them in and lands them on the poll,
-maximized — a new address just ticks the Terms of Service box first, and a browser signed in as someone else offers
-**Sign out and continue** in one press. Each email's link works until the poll ends or for 30 days, whichever comes
-first, and only the newest email's link signs in, once; any link that no longer signs in still leads to the poll's
-ordinary sign-in flow, so old invitation emails never dead-end. Opening the link writes nothing by itself, which keeps
+maximized — a new address just ticks the Terms of Service box first, and a browser logged in as someone else offers
+**Log out and continue** in one press. Each email's link works until the poll ends or for 30 days, whichever comes
+first, and only the newest email's link logs in, once; any link that no longer logs in still leads to the poll's
+ordinary login flow, so old invitation emails never dead-end. Opening the link writes nothing by itself, which keeps
 corporate mail scanners from using it up.
 
 There is no page for changing grants yet. To change one, edit the `permissions` column of the
 `user` table (any of `View Polls`, `Vote on Polls`, `Create Poll`). The change takes effect when
-the user next signs in, or once their cached session expires (`ENV_SESSION_CACHE_TTL`).
+the user next logs in, or once their cached session expires (`ENV_SESSION_CACHE_TTL`).
 
 ## Prerequisites
 
@@ -374,13 +375,13 @@ not part of `npm run build`.
 
 ## Email
 
-CrowdPoll sends six messages: the sign-in link, the create-account invitation, the email-change verification, the
+CrowdPoll sends six messages: the login link, the create-account invitation, the email-change verification, the
 notice to the old address after a change, the notice that an account was deleted, and a poll creator's invitation to a
 private poll (with its one reminder). The four with a link also link
 the Privacy Policy and the Terms of Service; the two notices carry no link at all. The create-account invitation, sent
-when someone asks to sign in with an address that has no account, carries a one-time link (15 minutes, the newest one
+when someone asks to log in with an address that has no account, carries a one-time link (15 minutes, the newest one
 only): it opens Create Account for that address, and ticking the Terms and pressing Create Account creates the account
-and signs in, with no second email; a link that can no longer be used falls back to the ordinary Create Account form.
+and logs in, with no second email; a link that can no longer be used falls back to the ordinary Create Account form.
 They share one branded layout (`src/email/templates.ts`), come from
 `CrowdPoll <no-reply@mail.crowdpoll.vote>`, and name `support@crowdpoll.vote` for questions.
 
@@ -390,9 +391,9 @@ They share one branded layout (`src/email/templates.ts`), come from
   send nowhere else; that region stays in the SES sandbox, so it only mails inboxes you have verified. The setup is in
   The SMTP (Mailtrap) path and the console fallback remain in the code for reference; the tests capture messages and send none.
 - Each send logs its type, a masked recipient (`j•••@gmail.com`) and the provider's message id, never the link.
-- A sign-in link signs in at once only in the browser that asked for it (a short-lived `signin_binding` cookie);
+- A login link logs in at once only in the browser that asked for it (a short-lived `signin_binding` cookie);
   opened anywhere else, a page names the account and asks for one click to confirm.
-- Before launch, `ENV_ALLOWED_EMAILS` limits account creation and sign-in to the listed addresses (and the administrators);
+- Before launch, `ENV_ALLOWED_EMAILS` limits account creation and login to the listed addresses (and the administrators);
   anyone else is told CrowdPoll hasn't launched yet, and nothing is sent. In production it comes from `allowed_emails` in the
   git-ignored `infra/secrets.auto.tfvars`, as an encrypted variable, and is required there; at launch, remove its check from
   `infra/variables.tf` and leave it empty.
@@ -401,7 +402,7 @@ They share one branded layout (`src/email/templates.ts`), come from
 - A new account or email change that is a `+tag` (or, for Gmail, dotted) variant of an existing address creates no
   second account.
 
-## Sign-in with Google, Apple, Microsoft and Amazon
+## Login with Google, Apple, Microsoft and Amazon
 
 - `ENV_SIGNIN_METHOD` is `native` (the email link, the default), `oauth` (the providers only) or `both` (the provider
   buttons above the email form). A provider is on when all its `ENV_OAUTH_*` values are set; some but not all stops the
@@ -409,13 +410,23 @@ They share one branded layout (`src/email/templates.ts`), come from
 - Every redirect address is built from `ENV_PUBLIC_ORIGIN` (required): `<origin>/api/auth/callback/google`, `…/apple`,
   `…/microsoft`, and `<origin>/api/auth/oauth2/callback/amazon` (Amazon goes through BetterAuth's generic OAuth plugin).
   Only those provider routes are mounted, so the email routes stay CrowdPoll's own in `both`.
-- A provider address with the same email key as an existing account signs in to that account and links the provider to
-  it, if the account has signed in before and the provider vouches for the address; an Apple Hide My Email address gets
-  an account of its own. A new provider account accepts the Terms on its first page. Its picture is not kept.
+- A provider address with the same email key as an existing account logs in to that account and links the provider to
+  it, if the account has logged in before and the provider vouches for the address; an Apple Hide My Email address gets
+  an account of its own. A new provider account accepts the Terms on its first page.
+- Logging in with Google shows your Google profile picture where the default avatar appears, in the header and on the
+  Profile card; it follows the picture at Google each time you log in with Google, and goes when the account is deleted.
+  Amazon, Apple and Microsoft accounts keep the default avatar. It needs Spaces: without `ENV_SPACES_*`, every account
+  keeps the default avatar. A failure to fetch or store the picture never stops the login.
+- **Stay logged in** applies to every way of logging in. On the Login card it sits above the provider buttons when there
+  are any, and a provider login with it ticked lasts as long as an emailed link's (30 days by default). Left clear, a
+  login lasts until the browser closes, or 24 hours at most.
+- The Login card says under each provider's button what that provider shares, and the invitation card says it under its
+  buttons. After a provider
+  login, "Logged in as" and the address appear on the Accept Terms card, or for about 6 seconds on the first page.
 - Apple's client secret is a JWT the app signs with the Sign in with Apple key (`node:crypto`, ES256) at start-up and
   every 30 days; `GET /.well-known/apple-developer-domain-association.txt` serves the file Apple asks for, once committed
   to `src/public/.well-known/`.
-- A refused sign-in lands on `/login?error=<code>` with a message. A provider sign-in sets the `oauth_state` cookie
+- A refused login lands on `/login?error=<code>` with a message. A provider login sets the `oauth_state` cookie
   for 5 minutes, listed in the Privacy Policy's Cookie Use table.
 - Registering the four apps and their secrets is a one-time task for the operator; the redirect addresses above are what
   each provider needs.
@@ -444,7 +455,7 @@ PostgreSQL full-text search.
 - A Spaces key pair and an SES access key for the sending user.
 
 **The secrets file.** Copy `infra/secrets.auto.tfvars.example` to `infra/secrets.auto.tfvars` (git-ignored) and fill in
-`better_auth_secret` (`openssl rand -hex 32`), the SES key, the Spaces key pair and `allowed_emails`; a sign-in
+`better_auth_secret` (`openssl rand -hex 32`), the SES key, the Spaces key pair and `allowed_emails`; a login
 provider's `oauth_*` values are set together or left empty, and an empty one adds no setting. A required value left
 empty stops `terraform plan` with `<name> must be set in infra/secrets.auto.tfvars.` FCaptcha's two secrets are
 generated by Terraform. The cluster sizes default to `db-s-1vcpu-1gb` and can be set in the same file.
@@ -461,7 +472,7 @@ keep it and `infra/secrets.auto.tfvars` out of cloud-synced folders. A lost stat
 **The one-time switch-over** from the hand-made stack: note the old clusters' sizes; fill the secrets file and check
 the plan; in the console delete the old app, the two clusters, the bucket's CDN endpoint and then the emptied bucket,
 and remove any A/AAAA or CNAME record the old app left in the `crowdpoll.vote` zone (keep the SES records); run
-`terraform apply`, fixing and applying again after a failure; check the site, the human check, a sign-in email and the
+`terraform apply`, fixing and applying again after a failure; check the site, the human check, a login email and the
 CDN assets; then revoke the old SES and Spaces keys. The Spaces key has Full Access (all buckets): Terraform reads the bucket's
 own settings when it plans, which a key limited to the bucket may not do. The old data is not kept.
 
@@ -501,15 +512,15 @@ Operational notes:
 
 - `/healthz` always answers `200` (so the load balancer never removes an overloaded instance)
   and reports whether the cache answered, how many requests the instance shed by kind,
-  how many votes were refused for exceeding the per-address cap, and how many sign-ins went
+  how many votes were refused for exceeding the per-address cap, and how many logins went
   ahead without a human check because FCaptcha could not be reached (`humanCheckSkipped`).
-- `[human-check]` log lines mark each refused sign-in start and each one let through while
+- `[human-check]` log lines mark each refused login start and each one let through while
   FCaptcha was unreachable, with the address masked; a rising skip count means the service is down.
 - An instance that cannot reach the cache answers every vote, search, refresh and Live
   Results request with `503` and a `Retry-After`, keeps serving pages, and pauses its sweeps
   until the cache is back.
 - Every sweep (screening, schedule, counter flush, trending, newest, search index, bookmark
-  expiry, nightly reconcile, budget controller) runs on one instance at a time; the vote writer
+  expiry, nightly reconcile, budget controller, profile picture removal) runs on one instance at a time; the vote writer
   runs on every instance.
 - `[abuse]` log lines mark addresses that exceeded `ENV_MAX_VOTES_PER_IP_PER_MINUTE`;
   `[controller]` lines show the request rate against the budget and the current multipliers.
@@ -529,20 +540,20 @@ provider settings only with `oauth` or `both`, and administrator addresses are m
 | `ENV_DATABASE_CA_CERT` | unset | PEM of the CA that signed the database server's certificate (on DigitalOcean the database component's `CA_CERT`); the connection is then verified against it. Unset on a local database |
 | `ENV_VALKEY_URL` | unset | Valkey/Redis URL; unset → in-process cache and queue |
 | `ENV_OPENSEARCH_URL` | unset | OpenSearch endpoint; unset → PostgreSQL full-text search |
-| `ENV_SPACES_BUCKET`, `ENV_SPACES_REGION`, `ENV_SPACES_KEY`, `ENV_SPACES_SECRET`, `ENV_SPACES_CDN_URL` | unset | Spaces bucket for the TRENDING and Newest objects and the assets; all five or none |
+| `ENV_SPACES_BUCKET`, `ENV_SPACES_REGION`, `ENV_SPACES_KEY`, `ENV_SPACES_SECRET`, `ENV_SPACES_CDN_URL` | unset | Spaces bucket for the TRENDING and Newest objects, the assets and Google profile pictures; all five or none |
 | `ENV_BETTER_AUTH_SECRET` | — (required, ≥ 32 chars) | Session signing secret |
 | `ENV_ADMINS` | `roadraceresults@gmail.com` | Comma-separated administrator addresses |
-| `ENV_SIGNIN_METHOD` | `native` | `native` (email login link), `oauth` (sign-in providers only) or `both` |
-| `ENV_MAX_SIGNIN_COOKIE_DURATION` | `2592000000` | Longest stay-signed-in session (30 days) |
-| `ENV_STAY_SIGNED_IN` | `0` | `1` → the login page's "Stay signed in" box starts ticked; anything else leaves it clear |
+| `ENV_SIGNIN_METHOD` | `native` | `native` (email login link), `oauth` (login providers only) or `both` |
+| `ENV_MAX_SIGNIN_COOKIE_DURATION` | `2592000000` | Longest stay-logged-in session (30 days) |
+| `ENV_STAY_SIGNED_IN` | `0` | `1` → the login page's "Stay logged in" box starts ticked; anything else leaves it clear |
 | `ENV_EMAIL_TRANSPORT` | `smtp` | `smtp` (development) or `ses` (production); `ses` requires the three `ENV_SES_*` values |
 | `ENV_SES_REGION` / `ENV_SES_ACCESS_KEY_ID` / `ENV_SES_SECRET_ACCESS_KEY` | — | Amazon SES region and sending key |
 | `ENV_SMTP_HOST` / `ENV_SMTP_PORT` / `ENV_SMTP_USER` / `ENV_SMTP_PASS` | Mailtrap sandbox / `2525` / — / — | Development mail; without user and password each message is logged to the console |
 | `ENV_EMAIL_FROM` | `CrowdPoll <no-reply@mail.crowdpoll.vote>` | Sender of every message |
 | `ENV_EMAIL_SEND_TIMEOUT` | `10000` | Longest one send may take before it counts as failed |
 | `ENV_EMAIL_ASSET_ORIGIN` | unset | Origin the email logo is loaded from (development: `https://crowdpoll.vote`, since mail apps cannot reach `localhost`); unset → the link's origin |
-| `ENV_ALLOWED_EMAILS` | unset | Comma-separated addresses allowed to create an account and sign in before launch; administrators always are. Unset or empty: everyone. An invalid entry stops the app. Production: `allowed_emails` in the git-ignored `infra/secrets.auto.tfvars`, set as an encrypted variable |
-| `ENV_OAUTH_GOOGLE_*`, `ENV_OAUTH_MICROSOFT_*`, `ENV_OAUTH_AMAZON_*` (`CLIENT_ID`, `CLIENT_SECRET`) | — | Sign-in provider credentials; a provider is on when both are set |
+| `ENV_ALLOWED_EMAILS` | unset | Comma-separated addresses allowed to create an account and log in before launch; administrators always are. Unset or empty: everyone. An invalid entry stops the app. Production: `allowed_emails` in the git-ignored `infra/secrets.auto.tfvars`, set as an encrypted variable |
+| `ENV_OAUTH_GOOGLE_*`, `ENV_OAUTH_MICROSOFT_*`, `ENV_OAUTH_AMAZON_*` (`CLIENT_ID`, `CLIENT_SECRET`) | — | Login provider credentials; a provider is on when both are set |
 | `ENV_OAUTH_APPLE_CLIENT_ID` / `_TEAM_ID` / `_KEY_ID` / `_PRIVATE_KEY` | — | Sign in with Apple: the Services ID, team, key id and the key's PEM (`\n` pairs read as line breaks) |
 | `ENV_EMAIL_RATE_LIMIT_WINDOW_MINUTES` / `ENV_EMAIL_RATE_LIMIT_MAX_REQUESTS_PER_WINDOW` | `15` / `2` | Email-sending rate limit (window in **minutes**) |
 | `ENV_SCREENING_CALL_TIMEOUT` | `10000` | Bound on one screening call |
@@ -592,7 +603,7 @@ provider settings only with `oauth` or `both`, and administrator addresses are m
 | `ENV_MAX_BOOKMARKS_PER_USER` | `200` | Bookmarks per visitor |
 | `ENV_BOOKMARK_EXPIRY_MONTHS` | `6` | Months of closure or inactivity before a bookmark is removed |
 | `ENV_PAGE_LOADS_PER_MINUTE` | `120` | Page loads per session (or address) per minute before a notice |
-| `ENV_FCAPTCHA_ENABLED` | unset | `1` turns on the human check before sign-in (the self-hosted FCaptcha service); anything else leaves it off. When on, the three below are required |
+| `ENV_FCAPTCHA_ENABLED` | unset | `1` turns on the human check before login (the self-hosted FCaptcha service); anything else leaves it off. When on, the three below are required |
 | `ENV_FCAPTCHA_URL` | unset | Where the web service reaches FCaptcha, server to server (`${fcaptcha.PRIVATE_URL}` in `infra/app.tf`) |
 | `ENV_FCAPTCHA_SITE_KEY` | unset | The site key the widget is drawn with (public; one of the FCaptcha service's `ENV_FCAPTCHA_SITE_KEYS`) |
 | `ENV_FCAPTCHA_VERIFY_SECRET` | unset | The credential for FCaptcha's token check; the same name and value on the FCaptcha service. Production: an encrypted variable |

@@ -57,7 +57,7 @@ describe("per-kind floors", () => {
     expect((await request(app).post("/refresh").set("X-Forwarded-For", ip)).status).toBe(429);
   });
 
-  it("keys signed-in callers by session and guests by address", async () => {
+  it("keys logged-in callers by session and guests by address", async () => {
     const ip = "203.0.113.12";
     const { cookie } = await forgeSession(ctx, "floors@example.com");
     expect((await request(app).post("/vote").set("X-Forwarded-For", ip)).status).toBe(200);

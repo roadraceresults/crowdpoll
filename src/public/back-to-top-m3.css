@@ -1,8 +1,6 @@
 .back-to-top-fab{
   position:fixed;
-  left:0;
-  right:0;
-  margin-inline:auto;
+  left:max(20px, calc((100% - var(--max-width,1280px)) / 2 + 20px));
   bottom:calc(20px + var(--cookie-banner-offset,0px));
   z-index:40;
   display:flex;
@@ -12,13 +10,17 @@
   height:56px;
   border:none;
   border-radius:16px;
-  background:var(--md-sys-color-primary);
+  background:#3A8C5D;
   color:var(--md-sys-color-on-primary);
   cursor:pointer;
   opacity:0;
   transform:translateY(8px);
   pointer-events:none;
   transition:opacity 0.2s ease, transform 0.2s ease;
+}
+
+@media (max-width: 639.98px){
+  .back-to-top-fab{ left:14px; }
 }
 
 .back-to-top-fab svg{ width:24px; height:24px; }

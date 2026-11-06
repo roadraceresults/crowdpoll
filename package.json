@@ -1,7 +1,7 @@
 {
-  "name": "native-auth-oauth",
-  "version": "0.1.0",
-  "description": "Reusable passwordless user-authentication system (email magic links, switchable to OAuth) with a minimal demo web client",
+  "name": "crowdpoll.vote",
+  "version": "0.2.0",
+  "description": "Public and Private Polls",
   "private": true,
   "type": "module",
   "engines": {

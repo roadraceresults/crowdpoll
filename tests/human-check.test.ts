@@ -1,6 +1,6 @@
 /**
- * The human check on the server: every sign-in start refuses a missing or bad pass before doing anything else,
- * and the routes that finish a sign-in already started need none.
+ * The human check on the server: every login start refuses a missing or bad pass before doing anything else,
+ * and the routes that finish a login already started need none.
  */
 import request from "supertest";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
@@ -50,7 +50,7 @@ function fakeFcaptcha() {
 
 const REFUSED = { error: "Please complete the human check.", code: "challenge-required" };
 
-describe("native sign-in starts with the check on", () => {
+describe("native login starts with the check on", () => {
   let ctx: TestContext;
   const fcaptcha = fakeFcaptcha();
   let logs: string[];
@@ -151,7 +151,7 @@ describe("native sign-in starts with the check on", () => {
     expect(res.body).toEqual(REFUSED);
   });
 
-  it("asks no pass of the routes that finish a sign-in", async () => {
+  it("asks no pass of the routes that finish a login", async () => {
     const link = await request(ctx.app).post("/api/auth/create-account").send({ token: "not-a-real-link" });
     expect(link.body.code).not.toBe("challenge-required");
     const verify = await request(ctx.app).get("/api/auth/verify?token=nope");
@@ -176,7 +176,7 @@ describe("the check before the allowlist", () => {
   });
 });
 
-describe("provider sign-in starts with the check on", () => {
+describe("provider login starts with the check on", () => {
   let ctx: TestContext;
   const fcaptcha = fakeFcaptcha();
   beforeAll(async () => {
@@ -194,7 +194,7 @@ describe("provider sign-in starts with the check on", () => {
     expect(oauth2.body).toEqual(REFUSED);
   });
 
-  it("starts a provider sign-in with a pass from any of the three pages", async () => {
+  it("starts a provider login with a pass from any of the three pages", async () => {
     for (const action of ["login", "create-account", "invite"]) {
       fcaptcha.pass(`social-${action}`, action);
       const res = await request(ctx.app)
@@ -221,7 +221,7 @@ describe("the check off", () => {
     await ctx.stop();
   });
 
-  it("starts a sign-in with no pass, as before", async () => {
+  it("starts a login with no pass, as before", async () => {
     const res = await request(ctx.app).post("/api/auth/request-login-link").send({ email: "reader@example.com" });
     expect(res.status).toBe(200);
   });
@@ -268,7 +268,7 @@ describe("when FCaptcha cannot be reached", () => {
   };
 
   for (const failure of ["down", "error5xx"] as const) {
-    it(`lets a sign-in with a pass go on, counted and logged (${failure})`, async () => {
+    it(`lets a login with a pass go on, counted and logged (${failure})`, async () => {
       mode = failure;
       const before = await skipped();
       captureLogs();
@@ -280,7 +280,7 @@ describe("when FCaptcha cannot be reached", () => {
     });
   }
 
-  it("gives up on a verify call after three seconds and lets the sign-in go on", async () => {
+  it("gives up on a verify call after three seconds and lets the login go on", async () => {
     mode = "timeout";
     const before = await skipped();
     const started = Date.now();
@@ -290,7 +290,7 @@ describe("when FCaptcha cannot be reached", () => {
     expect(await skipped()).toBe(before + 1);
   }, 10_000);
 
-  it("lets a sign-in without a pass go on only while the service is down", async () => {
+  it("lets a login without a pass go on only while the service is down", async () => {
     healthUp = false;
     const before = await skipped();
     expect((await start()).status).toBe(200);

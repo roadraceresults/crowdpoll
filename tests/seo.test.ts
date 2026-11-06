@@ -184,7 +184,7 @@ describe("a poll's own page", () => {
     }
   });
 
-  it("sends a signed-in visitor to the poll on the home page", async () => {
+  it("sends a logged-in visitor to the poll on the home page", async () => {
     const { cookie } = await forgeSession(ctx, `reader-${randomUUID()}@example.com`);
     const res = await request(ctx.app).get(`/poll/${open}`).set("Cookie", cookie);
     expect(res.status).toBe(302);
@@ -215,14 +215,14 @@ describe("the guest card route", () => {
 });
 
 describe("a shared link opened by a guest", () => {
-  it("goes to the poll's page when it may be indexed, and to sign-in otherwise", async () => {
+  it("goes to the poll's page when it may be indexed, and to login otherwise", async () => {
     const open = await seed();
     const hidden = await seed({ pollVisibility: "Private Poll" });
     expect((await request(ctx.app).get(`/?PID=${open}`)).headers.location).toBe(`/poll/${open}`);
     expect((await request(ctx.app).get(`/?PID=${hidden}`)).headers.location).toBe(`/login?PID=${hidden}`);
   });
 
-  it("is unchanged for a signed-in visitor", async () => {
+  it("is unchanged for a logged-in visitor", async () => {
     const open = await seed();
     const { cookie } = await forgeSession(ctx, `linked-${randomUUID()}@example.com`);
     const res = await request(ctx.app).get(`/?PID=${open}`).set("Cookie", cookie);
@@ -240,7 +240,7 @@ describe("head tags of the other pages", () => {
     expect((await request(ctx.app).get("/")).text).toContain("<title>CrowdPoll — live opinion polls</title>");
   });
 
-  it("keeps the sign-in and account pages out of search results", async () => {
+  it("keeps the login and account pages out of search results", async () => {
     for (const path of ["/login", "/create-account"]) {
       expect((await request(ctx.app).get(path)).text, path).toContain('<meta name="robots" content="noindex">');
     }
@@ -248,13 +248,13 @@ describe("head tags of the other pages", () => {
     expect((await request(ctx.app).get("/profile").set("Cookie", cookie)).text).toContain('<meta name="robots" content="noindex">');
   });
 
-  it("tells a visitor without scripts that signing in needs them", async () => {
+  it("tells a visitor without scripts that logging in needs them", async () => {
     for (const path of ["/login", "/create-account"]) {
       expect((await request(ctx.app).get(path)).text, path).toContain(
-        '<main id="card-root"><noscript><p class="card-shell-status">Signing in needs JavaScript.</p></noscript></main>'
+        '<main id="card-root"><noscript><p class="card-shell-status">Logging in needs JavaScript.</p></noscript></main>'
       );
     }
     const { readFileSync } = await import("node:fs");
-    expect(readFileSync("src/public/invite.html", "utf8")).toContain("<noscript><p class=\"card-shell-status\">Signing in needs JavaScript.</p></noscript>");
+    expect(readFileSync("src/public/invite.html", "utf8")).toContain("<noscript><p class=\"card-shell-status\">Logging in needs JavaScript.</p></noscript>");
   });
 });

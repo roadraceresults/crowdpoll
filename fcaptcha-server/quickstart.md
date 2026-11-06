@@ -1,4 +1,4 @@
-# Quickstart: Human Check Before Sign-In, and Search Engine Indexing of Public Polls
+# Quickstart: Human Check Before Login, and Search Engine Indexing of Public Polls
 
 ## Automated
 
@@ -69,7 +69,7 @@ are still signed off on a deployed app (a staging deploy, or production with the
 
 ### Diagnosing a local run with the check turned on
 
-When the page shows "The human check is unavailable right now." over the sign-in card, the widget did not load. With
+When the page shows "The human check is unavailable right now." over the login card, the widget did not load. With
 the FCaptcha server started as in step 1 and the web app's `ENV_FCAPTCHA_URL=http://localhost:3001`, check each link:
 
 | Command | Expected | If not |
@@ -91,7 +91,7 @@ In PowerShell, call `curl.exe` (plain `curl` is `Invoke-WebRequest`), and quote 
 | 3 | US1 | Tab to the checkbox, press Space; use a screen reader | Operable; the result is announced |
 | 4 | US2 | `curl -X POST /api/auth/request-login-link -d '{"email":"a@b.c"}'` with no header | `400 challenge-required`; no email |
 | 5 | US2 | Replay a pass already used; a pass from `/invite` sent to `/api/auth/create-account` | Both `400 challenge-required` |
-| 6 | US2 | Sign in by the emailed link in another browser | No check asked |
+| 6 | US2 | Log in by the emailed link in another browser | No check asked |
 | 7 | US3 | Force three failures (DevTools: `navigator.webdriver` spoof) | Message, Try again, then the support address |
 | 8 | US3 | Pass, wait 6 minutes, submit | The check returns; after passing, the form keeps the email |
 | 9 | US4 | `curl /robots.txt`, `/sitemap.xml`, `/poll/<public open pid>` | Rules as A5; the poll listed with lastmod; the page source holds title, description, choices, canonical, og: tags, JSON-LD |

@@ -88,12 +88,12 @@ describe("the Create Account card opened from the emailed link", () => {
     expect(bodies.map((b) => JSON.parse(b))).toEqual([{ token: "tok1", acceptedTerms: true, termsVersion: TERMS_VERSION }]);
   });
 
-  it("offers Sign In without the Terms box when the address already has an account", async () => {
+  it("offers Log In without the Terms box when the address already has an account", async () => {
     page = await open({ linkInfo: { status: 200, body: { ...NEW_ADDRESS, hasAccount: true } } });
     await page.settle();
-    expect(page.document.body.textContent).toContain("Sign in as j•••@gmail.com.");
+    expect(page.document.body.textContent).toContain("Log in as j•••@gmail.com.");
     expect(page.document.getElementById("terms")).toBeNull();
-    expect(actionButton(page).textContent).toBe("Sign In");
+    expect(actionButton(page).textContent).toBe("Log In");
     expect(actionButton(page).disabled).toBe(false);
   });
 

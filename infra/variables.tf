@@ -54,7 +54,7 @@ variable "allowed_emails" {
   }
 }
 
-# Optional sign-in providers: a provider's values are set together, or left empty (no env is added).
+# Optional login providers: a provider's values are set together, or left empty (no env is added).
 
 variable "oauth_google_client_id" {
   type      = string

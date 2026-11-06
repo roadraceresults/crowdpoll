@@ -8,6 +8,7 @@ import {
   withoutAgreement,
   type TestContext
 } from "./helpers/setup.js";
+import { PRIVACY_UPDATED, TERMS_UPDATED, TERMS_VERSION } from "../src/legal/version.js";
 
 let ctx: TestContext;
 let nextIp = 1;
@@ -29,7 +30,7 @@ async function unaccepted(email: string): Promise<string> {
 const TERMS_REQUIRED = { error: "Please accept the updated Terms of Service.", code: "terms-required" };
 
 describe("the terms gate (A4, A5, R5)", () => {
-  it("refuses signed-in API calls with 403 terms-required", async () => {
+  it("refuses logged-in API calls with 403 terms-required", async () => {
     const cookie = await unaccepted("gate-api@example.org");
     const res = await request(ctx.app).get("/api/me/polls?tab=your-polls").set("Cookie", cookie);
     expect(res.status).toBe(403);
@@ -68,7 +69,7 @@ describe("the terms gate (A4, A5, R5)", () => {
     }
   });
 
-  it("lets the sign-in and link routes through for a browser holding an old session", async () => {
+  it("lets the login and link routes through for a browser holding an old session", async () => {
     const cookie = await unaccepted("gate-link@example.org");
     const asked = await request(ctx.app)
       .post("/api/auth/request-login-link")
@@ -98,5 +99,19 @@ describe("the terms gate (A4, A5, R5)", () => {
     const me = await request(ctx.app).get("/api/me").set("Cookie", cookie);
     expect(me.body.termsAccepted).toBe(true);
     expect(me.body.termsFirstAcceptance).toBe(false);
+  });
+
+  it("reports which documents changed after the version an account accepted", async () => {
+    const { cookie, userId } = await forgeSession(ctx, "gate-changed@example.org");
+    const reported = async (accepted: string) => {
+      await ctx.db.updateTable("user").set({ terms_version: accepted }).where("id", "=", userId).execute();
+      await ctx.sessions.forgetUserSessions(userId);
+      const { body } = await request(ctx.app).get("/api/me").set("Cookie", cookie);
+      return [body.termsUpdated, body.privacyUpdated];
+    };
+    expect(await reported("2000-01-01")).toEqual([true, true]);
+    expect(await reported(TERMS_UPDATED)).toEqual([false, TERMS_UPDATED < PRIVACY_UPDATED]);
+    expect(await reported(PRIVACY_UPDATED)).toEqual([PRIVACY_UPDATED < TERMS_UPDATED, false]);
+    expect(await reported(TERMS_VERSION)).toEqual([false, false]);
   });
 });

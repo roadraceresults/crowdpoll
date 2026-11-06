@@ -1,8 +1,8 @@
 /**
- * The human check before sign-in: a "Vote protection" card holding the
+ * The human check before login: a "Vote protection" card holding the
  * self-hosted FCaptcha widget, shown in place of the page's own card until it
  * is passed. The pass is kept in this page's memory only and sent once, in the
- * X-Human-Check header of the next sign-in start request.
+ * X-Human-Check header of the next login start request.
  *
  * Widget API: https://github.com/WebDecoy/FCaptcha (client, FCaptcha.render).
  */

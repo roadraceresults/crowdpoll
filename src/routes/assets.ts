@@ -4,13 +4,14 @@ import path from "node:path";
 import type { RequestHandler } from "express";
 import express from "express";
 import type { AppConfig } from "../config.js";
+import { PRIVACY_UPDATED, TERMS_UPDATED } from "../legal/version.js";
 
 export const IMMUTABLE_CACHE = "public, max-age=31536000, immutable";
 
 /**
  * Serves the HTML pages with their asset references rewritten to the fingerprinted
- * copies (from the CDN when Spaces is configured, from this instance otherwise) and
- * with a validator, so a reload costs nothing when nothing changed.
+ * copies (from the CDN when Spaces is configured, from this instance otherwise), the
+ * legal pages' dates from version.ts, and with a validator, so a reload costs nothing when nothing changed.
  */
 export function createAssetServing(publicDir: string, config: Pick<AppConfig, "spaces"> & Partial<Pick<AppConfig, "publicOrigin">>) {
   const manifestPath = path.join(publicDir, "asset-manifest.json");
@@ -28,7 +29,9 @@ export function createAssetServing(publicDir: string, config: Pick<AppConfig, "s
     const key = canonicalPath === undefined ? name : `${name} ${canonicalPath}`;
     const cached = pages.get(key);
     if (cached) return cached;
-    const raw = readFileSync(path.join(publicDir, name), "utf8");
+    const raw = readFileSync(path.join(publicDir, name), "utf8")
+      .replace("{{PRIVACY_UPDATED}}", PRIVACY_UPDATED)
+      .replace("{{TERMS_UPDATED}}", TERMS_UPDATED);
     const canonical = canonicalPath !== undefined && config.publicOrigin ? `  <link rel="canonical" href="${config.publicOrigin}${canonicalPath}">\n` : "";
     const html = raw.replace(/<\/head>/, `${canonical}</head>`).replace(/(href|src)="(\/[\w.-]+\.(?:js|css|svg|png|jpg|ico|woff2))"/g, (_m, attr, ref) => `${attr}="${assetUrl(ref)}"`);
     const rendered = { html, etag: `"${createHash("sha256").update(html).digest("hex").slice(0, 32)}"` };

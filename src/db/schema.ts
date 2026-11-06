@@ -15,6 +15,7 @@ export interface UserTable {
   clientSecret: string | null;
   userName: string | null;
   profileAvatar: string | null;
+  profile_avatar_hash: string | null;
   status: string | null;
   permissions: ColumnType<string[], string[] | undefined, string[]>;
   terms_version: string | null;
@@ -217,8 +218,14 @@ export interface SearchOutboxTable {
   reason: "content" | "counters";
 }
 
+export interface AvatarRemovalTable {
+  key: string;
+  queued_at: ColumnType<Date, Date | string | undefined, Date | string>;
+}
+
 export interface Database {
   user: UserTable;
+  avatar_removals: AvatarRemovalTable;
   session: SessionTable;
   account: AccountTable;
   verification: VerificationTable;

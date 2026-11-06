@@ -51,7 +51,7 @@ async function holdsRow(db: Db, table: "poll_bans" | "poll_invitations", pid: st
   return row !== undefined;
 }
 
-/** Decides where a signed-in visitor of a poll link lands, and whether the visit counts as a view. Writes nothing. */
+/** Decides where a logged-in visitor of a poll link lands, and whether the visit counts as a view. Writes nothing. */
 export async function decideSharedLink(deps: SharedLinkDeps, caller: Caller, pid: string): Promise<SharedLinkDecision> {
   const { db, config } = deps;
   if (!caller.email || !holdsPermission(caller, "View Polls", config)) return NOT_SHOWN;

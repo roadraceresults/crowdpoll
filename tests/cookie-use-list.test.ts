@@ -8,7 +8,7 @@ let ctx: TestContext;
 const publicDir = path.resolve("src/public");
 
 beforeAll(async () => {
-  // both mode, so the email flows and a provider sign-in each set their cookies.
+  // both mode, so the email flows and a provider login each set their cookies.
   ctx = await startTestContext({
     ENV_SIGNIN_METHOD: "both",
     ENV_OAUTH_GOOGLE_CLIENT_ID: "google-client",

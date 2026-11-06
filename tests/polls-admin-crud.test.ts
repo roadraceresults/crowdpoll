@@ -37,7 +37,7 @@ describe("Admin poll CRUD (US4)", () => {
     return poll;
   }
 
-  it("refuses a guest and a signed-in user without both Create Poll and View Polls, and scopes a creator to their own polls", async () => {
+  it("refuses a guest and a logged-in user without both Create Poll and View Polls, and scopes a creator to their own polls", async () => {
     const guestRes = await request(ctx.app).get("/api/admin/polls");
     expect([401, 403]).toContain(guestRes.status);
 

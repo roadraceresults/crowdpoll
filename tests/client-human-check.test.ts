@@ -1,6 +1,6 @@
 /**
- * The human check before sign-in, in the browser: /login, /create-account (form) and /invite open on a
- * "Vote protection" card; passing it draws the page's own card, whose sign-in start carries the pass once.
+ * The human check before login, in the browser: /login, /create-account (form) and /invite open on a
+ * "Vote protection" card; passing it draws the page's own card, whose login start carries the pass once.
  */
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { startTestContext, type TestContext } from "./helpers/setup.js";
@@ -109,7 +109,7 @@ async function pass(p: BrowserPage, widget: FakeWidget, token: string) {
   await p.settle();
 }
 
-describe("native sign-in with the check on", () => {
+describe("native login with the check on", () => {
   let ctx: TestContext;
   beforeAll(async () => {
     ctx = await startTestContext(HUMAN_CHECK_ON, { humanCheckFetch: fcaptcha() });
@@ -307,7 +307,7 @@ describe("the check off", () => {
   });
 });
 
-describe("provider sign-in with the check on", () => {
+describe("provider login with the check on", () => {
   let ctx: TestContext;
   beforeAll(async () => {
     ctx = await startTestContext({ ...HUMAN_CHECK_ON, ...PROVIDERS }, { humanCheckFetch: fcaptcha() });

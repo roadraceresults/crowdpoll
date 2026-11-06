@@ -53,7 +53,7 @@ export function createTabsApiRouter(context: AppContext): Router {
       .getSession(req)
       .then((session) => {
         if (!session) {
-          res.status(401).json({ error: "Not signed in" });
+          res.status(401).json({ error: "Not logged in" });
           return;
         }
         res.locals.session = session;
@@ -404,7 +404,7 @@ export function createTabsApiRouter(context: AppContext): Router {
     })
   );
 
-  // ---- The signed-in overlay for polls the visitor already holds ----
+  // ---- The logged-in overlay for polls the visitor already holds ----
 
   router.get(
     "/api/me/polls",

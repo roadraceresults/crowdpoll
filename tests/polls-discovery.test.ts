@@ -61,7 +61,7 @@ describe("TRENDING scope", () => {
     expect(card).not.toHaveProperty("bannedVoterList");
   });
 
-  it("the overlay, not the card, carries a signed-in caller's own choice", async () => {
+  it("the overlay, not the card, carries a logged-in caller's own choice", async () => {
     const { cookie } = await forgeSession(ctx, "voter@example.com");
     const poll = makePoll({
       currentVotes: [{ emailAddress: "voter@example.com", userName: "v", choiceIds: ["c2"], votedAt: new Date() }]

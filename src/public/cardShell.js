@@ -58,7 +58,7 @@
     var heading = el("h1", "question");
     heading.textContent = opts.title || "";
     var close = closeControl(opts.closeHref || "/");
-    /* The sign-in cards carry a lock badge on a row of its own, with the close
+    /* The login cards carry a lock badge on a row of its own, with the close
        control beside it, above the title. */
     if (opts.signin) {
       face.classList.add("card-shell-signin");
@@ -200,13 +200,48 @@
     return value && POLL_ID.test(value) ? value : null;
   }
 
-  /** The line above a sign-in form that explains why the visitor is here; nothing about the poll. */
+  /** The line above a login form that explains why the visitor is here; nothing about the poll. */
   function addSharedPollLine(card) {
     if (!sharedPid()) return;
     var line = document.createElement("p");
     line.className = "shared-poll-line";
-    line.textContent = "Sign in to see the poll that was shared with you.";
+    line.textContent = "Log in to see the poll that was shared with you.";
     card.body.appendChild(line);
+  }
+
+  var PROVIDER_NAMES = { apple: "Apple", microsoft: "Microsoft", amazon: "Amazon" };
+
+  function joinNames(names) {
+    if (names.length < 2) return names.join("");
+    return names.slice(0, -1).join(", ") + " and " + names[names.length - 1];
+  }
+
+  /** The line under the provider buttons: what each configured provider shares with CrowdPoll. */
+  function addOauthSharing(card, providers) {
+    var others = Object.keys(PROVIDER_NAMES)
+      .filter(function (provider) { return providers.indexOf(provider) >= 0; })
+      .map(function (provider) { return PROVIDER_NAMES[provider]; });
+    var sentences = [];
+    if (providers.indexOf("google") >= 0) sentences.push("Google shares your name, email address and profile picture.");
+    if (others.length > 0) sentences.push(joinNames(others) + (others.length === 1 ? " shares" : " share") + " your name and email address.");
+    if (sentences.length === 0) return;
+    var line = document.createElement("p");
+    line.className = "oauth-sharing";
+    var link = document.createElement("a");
+    link.href = "/privacy";
+    link.textContent = "Privacy Policy";
+    line.append(sentences.join(" ") + " ", link);
+    card.body.appendChild(line);
+  }
+
+  /** The sentence under one provider's button on the Login card: what that provider shares with CrowdPoll. */
+  function addProviderSharing(parent, provider) {
+    var line = document.createElement("p");
+    line.className = "oauth-sharing";
+    line.textContent = provider === "google"
+      ? "Google shares your name, email address and profile picture."
+      : PROVIDER_NAMES[provider] + " shares your name and email address.";
+    parent.appendChild(line);
   }
 
   function hiddenField(parent) {
@@ -233,7 +268,7 @@
     return a;
   }
 
-  function termsBox(parent, onChange) {
+  function termsBox(parent, onChange, withCookieUse) {
     var label = document.createElement("label");
     label.className = "checkbox terms-box";
     var box = document.createElement("input");
@@ -247,9 +282,10 @@
       docLink("/terms", "Terms of Service"),
       document.createElement("br"),
       document.createTextNode("and have read the "),
-      docLink("/privacy", "Privacy Policy"),
-      document.createTextNode(".")
+      docLink("/privacy", "Privacy Policy")
     );
+    if (withCookieUse) text.append(document.createTextNode(" and "), docLink("/privacy#cookies", "Cookie Use"));
+    text.append(document.createTextNode("."));
     label.append(box, text);
     box.addEventListener("change", onChange);
     parent.appendChild(label);
@@ -271,7 +307,7 @@
     return line;
   }
 
-  /** The line at the foot of a sign-in card that leads to the other one, keeping a shared poll's id. */
+  /** The line at the foot of a login card that leads to the other one, keeping a shared poll's id. */
   function addFootLine(card, lead, href, text) {
     var line = document.createElement("p");
     line.className = "card-shell-foot";
@@ -281,8 +317,10 @@
     return line;
   }
 
+  /* The version to agree to must be the server's now: /api/config may be cached for five
+     minutes, a reload does not refresh it, and a stale version is refused. */
   function termsVersion() {
-    return fetch("/api/config")
+    return fetch("/api/config", { cache: "no-cache" })
       .then(function (r) { return r.ok ? r.json() : {}; })
       .catch(function () { return {}; })
       .then(function (config) { return config.termsVersion || ""; });
@@ -292,6 +330,8 @@
     mount: mount,
     sharedPid: sharedPid,
     addSharedPollLine: addSharedPollLine,
+    addOauthSharing: addOauthSharing,
+    addProviderSharing: addProviderSharing,
     hiddenField: hiddenField,
     termsBox: termsBox,
     termsLine: termsLine,

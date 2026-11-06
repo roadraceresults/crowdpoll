@@ -22,7 +22,7 @@ const requestLink = (email: string, body: Record<string, unknown> = {}) =>
 const createAccount = (email: string, body: Record<string, unknown> = {}) =>
   request(ctx.app).post("/api/auth/create-account").set("x-forwarded-for", freshIp()).send({ ...AGREED, email, ...body });
 
-describe("the poll id through sign-in", () => {
+describe("the poll id through login", () => {
   it("a login link requested with a pid carries it, and verifying lands on the poll link", async () => {
     const pid = randomUUID();
     await forgeSession(ctx, "pid-existing@example.com");
@@ -72,9 +72,9 @@ describe("the poll id through sign-in", () => {
     expect(new URL(extractLink(ctx.sent.at(-1)!)).searchParams.get("PID")).toBe(pid);
   });
 
-  it("sends a signed-in visitor on the sign-in pages straight to the poll link", async () => {
+  it("sends a logged-in visitor on the login pages straight to the poll link", async () => {
     const pid = randomUUID();
-    const { cookie } = await forgeSession(ctx, "pid-signed-in@example.com");
+    const { cookie } = await forgeSession(ctx, "pid-logged-in@example.com");
     const login = await request(ctx.app).get(`/login?PID=${pid}`).set("Cookie", cookie).redirects(0);
     expect(login.headers.location).toBe(`/?PID=${pid}`);
     const create = await request(ctx.app).get(`/create-account?PID=${pid}`).set("Cookie", cookie).redirects(0);

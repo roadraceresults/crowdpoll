@@ -159,7 +159,7 @@ describe("Email transport, sender and timeout", () => {
     expect(pkg.dependencies.tsx).toBeDefined();
   });
 
-  it("reads the sign-in method and the human check switch only at run time in the deployment configuration, where their secrets are", () => {
+  it("reads the login method and the human check switch only at run time in the deployment configuration, where their secrets are", () => {
     const appTf = readFileSync(new URL("../infra/app.tf", import.meta.url), "utf8");
     expect(appTf).toMatch(/web_run_time_settings\s*=\s*\[[^\]]*"ENV_SIGNIN_METHOD"/);
     expect(appTf).toMatch(/web_run_time_settings\s*=\s*\[[^\]]*"ENV_FCAPTCHA_ENABLED"/);
@@ -345,7 +345,7 @@ describe("Private voter limit configuration (012)", () => {
  * sense together — a ceiling below the floor would make every poll unpublishable.
  */
 describe("ENV_STAY_SIGNED_IN", () => {
-  it("leaves the stay-signed-in box clear when it is not set", () => {
+  it("leaves the stay-logged-in box clear when it is not set", () => {
     expect(loadConfig(baseEnv()).staySignedInDefault).toBe(false);
   });
 
@@ -773,10 +773,10 @@ describe("defaultsUsed", () => {
     expect(defaultOf(config, "ENV_OPENSEARCH_URL")).toBe("none (PostgreSQL full-text search)");
     expect(defaultOf(config, "ENV_SPACES_*")).toBe("none (TRENDING objects and assets served from the instance)");
     expect(defaultOf(config, "ENV_DATABASE_CA_CERT")).toBe("none (system certificate roots)");
-    expect(defaultOf(config, "ENV_ALLOWED_EMAILS")).toBe("none (allowlist off: everyone may sign in)");
+    expect(defaultOf(config, "ENV_ALLOWED_EMAILS")).toBe("none (allowlist off: everyone may log in)");
     expect(defaultOf(config, "ENV_EMAIL_ASSET_ORIGIN")).toBe("none (each link's own origin)");
     expect(defaultOf(config, "ENV_PROTOTYPES")).toBe("none (no prototypes served)");
-    expect(defaultOf(config, "ENV_STAY_SIGNED_IN")).toBe("0 (the Stay signed in box starts clear)");
+    expect(defaultOf(config, "ENV_STAY_SIGNED_IN")).toBe("0 (the Stay logged in box starts clear)");
     expect(defaultOf(config, "ENV_SMTP_USER")).toBe("none (emails logged to the console, not sent)");
     expect(defaultOf(config, "ENV_SMTP_PASS")).toBe("none (emails logged to the console, not sent)");
     expect(config.defaultsUsed.some((entry) => entry.name === "ENV_SPACES_BUCKET")).toBe(false);
@@ -801,13 +801,13 @@ describe("defaultsUsed", () => {
     expect(defaultOf(loadConfig(baseEnv(spaces)), "ENV_SPACES_*")).toBeUndefined();
   });
 
-  it("lists each sign-in provider left out, as one line per provider", () => {
+  it("lists each login provider left out, as one line per provider", () => {
     const config = loadConfig(
       baseEnv({ ENV_SIGNIN_METHOD: "both", ENV_OAUTH_GOOGLE_CLIENT_ID: "id", ENV_OAUTH_GOOGLE_CLIENT_SECRET: "secret" })
     );
-    expect(defaultOf(config, "ENV_OAUTH_APPLE_*")).toBe("none (Apple sign-in off)");
-    expect(defaultOf(config, "ENV_OAUTH_MICROSOFT_*")).toBe("none (Microsoft sign-in off)");
-    expect(defaultOf(config, "ENV_OAUTH_AMAZON_*")).toBe("none (Amazon sign-in off)");
+    expect(defaultOf(config, "ENV_OAUTH_APPLE_*")).toBe("none (Apple login off)");
+    expect(defaultOf(config, "ENV_OAUTH_MICROSOFT_*")).toBe("none (Microsoft login off)");
+    expect(defaultOf(config, "ENV_OAUTH_AMAZON_*")).toBe("none (Amazon login off)");
     expect(defaultOf(config, "ENV_OAUTH_GOOGLE_*")).toBeUndefined();
   });
 
@@ -826,7 +826,7 @@ describe("defaultsUsed", () => {
     expect(defaultOf(smtp, "ENV_SMTP_PORT")).toBe("2525");
   });
 
-  it("lists no sign-in provider in native mode", () => {
+  it("lists no login provider in native mode", () => {
     expect(loadConfig(baseEnv()).defaultsUsed.filter((entry) => entry.name.startsWith("ENV_OAUTH_"))).toEqual([]);
   });
 

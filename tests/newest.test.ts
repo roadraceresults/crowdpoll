@@ -152,6 +152,7 @@ describe("publication", () => {
     const a = await seed({ title: "a", createdAt: minutesAgo(2) });
     const puts: { key: string; cacheControl: string; contentEncoding?: string }[] = [];
     const store: ObjectStore = {
+      delete: async () => {},
       put: async (key, _body, headers) => {
         puts.push({ key, cacheControl: headers.cacheControl, contentEncoding: headers.contentEncoding });
       }

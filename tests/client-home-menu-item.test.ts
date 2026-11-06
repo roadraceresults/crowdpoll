@@ -1,5 +1,5 @@
 /**
- * The avatar menu's Home item: first, for every signed-in user, leading to /?tab=home from any page and selecting
+ * The avatar menu's Home item: first, for every logged-in user, leading to /?tab=home from any page and selecting
  * the tab in place on the home page.
  */
 import { afterEach, describe, expect, it } from "vitest";

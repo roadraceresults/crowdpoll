@@ -78,7 +78,7 @@ describe("the tab bar", () => {
     expect(tabs.filter((t) => t.classList.contains("is-active")).map((t) => t.getAttribute("data-tab"))).toEqual(["trending"]);
   });
 
-  it("asks a guest to sign in on every personal tab", async () => {
+  it("asks a guest to log in on every personal tab", async () => {
     page = await open(fast);
     for (const name of PERSONAL) {
       const tab = page.document.querySelector(`.tab[data-tab="${name}"]`) as HTMLButtonElement;

@@ -206,13 +206,13 @@ describe("the Refresh row", () => {
 describe("the compact header", () => {
   const inside = flat(split(header).inside);
 
-  it("sizes the banner and the sign-in buttons, adds 3 px above the banner and tightens the space under it", () => {
+  it("sizes the banner and the login buttons, adds 3 px above the banner and tightens the space under it", () => {
     expect(inside).toContain(".btn-header-ghost, .btn-header-primary{ height:24px; }");
     expect(inside).toContain(".site-header{ margin-bottom:8px; padding-top:3px; }");
     expect(inside).toContain(".brand-logo, .brand-wordmark{ height:24px; }");
   });
 
-  it("sizes the sign-in buttons like a card's Vote button on a phone, 21 px and three quarters of its text", () => {
+  it("sizes the login buttons like a card's Vote button on a phone, 21 px and three quarters of its text", () => {
     expect(inside).toContain(
       ":is(.header-actions, .floating-actions) :is(.btn-header-ghost, .btn-header-primary){ height:21px; font-size:calc(var(--md-sys-typescale-label-large-size) * 0.75); }"
     );

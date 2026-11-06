@@ -72,13 +72,13 @@ describe("Restricted-access polls (US7)", () => {
     expect(await publicDetail(ctx, poll._id)).toBeNull();
   });
 
-  it("rejects a non-invited signed-in user on PRIVATE_POLL_INVITATION_ONLY (FR-030)", async () => {
+  it("rejects a non-invited logged-in user on PRIVATE_POLL_INVITATION_ONLY (FR-030)", async () => {
     const poll = makePoll({ pollVisibility: "Private Poll", pollSharingMode: "Invitation Only", invitedVoterList: ["invited@example.com"] });
     await polls(ctx).insertOne(poll);
     expect(checkViewEligibility(poll, "notinvited@example.com")?.status).toBe(403);
   });
 
-  it("allows an invited signed-in user to view and vote (FR-030)", async () => {
+  it("allows an invited logged-in user to view and vote (FR-030)", async () => {
     const poll = makePoll({ pollVisibility: "Private Poll", pollSharingMode: "Invitation Only", invitedVoterList: ["invited2@example.com"] });
     await polls(ctx).insertOne(poll);
     const { cookie } = await forgeSession(ctx, "invited2@example.com");

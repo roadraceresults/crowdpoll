@@ -57,7 +57,7 @@ describe("POST /api/polls/:pid/vote", () => {
     return { cookie: forged.cookie, email };
   }
 
-  it("403s a signed-in voter without the Vote on Polls grant, and counts nothing", async () => {
+  it("403s a logged-in voter without the Vote on Polls grant, and counts nothing", async () => {
     const poll = makePoll();
     await polls(ctx).insertOne(poll);
     const { cookie } = await voterWithPermissions(["View Polls", "Create Poll"]);
@@ -67,7 +67,7 @@ describe("POST /api/polls/:pid/vote", () => {
     expect((await readLiveCounts(ctx.cache, [poll._id])).get(poll._id)?.voteCount ?? 0).toBe(0);
   });
 
-  it("never applies the grant to a guest, who is still refused only for not being signed in", async () => {
+  it("never applies the grant to a guest, who is still refused only for not being logged in", async () => {
     const poll = makePoll();
     await polls(ctx).insertOne(poll);
     const res = await vote(poll._id, null, ["c1"]);

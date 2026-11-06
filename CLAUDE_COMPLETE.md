@@ -5,6 +5,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261105-161242-SOCIAL-LOGIN-AVATAR/plan.md` (research R1–R10, `data-model.md` — migration 017; the
+`profile_avatar_hash` column, the `avatar_removals` queue and the Spaces object; the HTTP contracts `contracts/api.md`
+A1–A3, the UI contracts `contracts/ui-contracts.md` C1–C6, and the quickstart live alongside it in
+`specs/20261105-161242-SOCIAL-LOGIN-AVATAR/`). The requirements report is
+`requirements/20261105-161242-social-login-avatar/requirements-report.md`: 3 diagrams and 20 findings, all resolved.
+Decisions that are easy to get wrong:
+- **Google only**: a `hooks.after` on `/callback/:id` reads the fresh `idToken` from the `account` row;
+  not `overrideUserInfoOnSignIn`, which rewrites name and email. Amazon's login has no picture (R1, RS1).
+- **The image lives in Spaces, not the database**: `avatars/<random>`, public-read, private bucket; `profileAvatar`
+  holds the key and `avatarUrl` gives the API the CDN URL; no route, no Terms gate entry (R10, NC1, IN1).
+- **`Cache-Control` is one day**, because that also bounds how long a deleted picture stays reachable (R3).
+- **Upload, then one transaction**; every path that stops using an object queues its key there, and a sweep deletes
+  it (R5, R6, UA9). A failure at any step never stops the login.
+- **Stay logged in reaches a provider login through `additionalData`**, read back with `getOAuthState` in the callback
+  hook; no cookie or URL parameter carries it (TWEAK10).
+- **`signedIn=1` on the provider `callbackURL`** drives the snackbar; `app.js` removes it, and `acceptTermsCard.js`
+  takes it out of `next` (R7).
+No setting, route, cookie or dependency; one migration, one sweep, one sheet, a new `TERMS_VERSION`.
+The preceding feature is
 `specs/20261104-180032-LEGAL-PAGE-UPDATES/plan.md` (research R1–R8, `data-model.md` — no migration; the shared policy
 version and the `history.state.legalDepth` step count; the UI contracts `contracts/ui-contracts.md` C1–C6, and the
 quickstart live alongside it in `specs/20261104-180032-LEGAL-PAGE-UPDATES/`). The requirements report is
@@ -21,7 +40,7 @@ Decisions that are easy to get wrong:
   `max(0px, calc(56px - (100% - 72ch) / 2))` on narrow screens, after `.legal-doc`'s `padding` shorthand; the look is
   `back-arrow-m3.css`, shared with the admin link (`admin-back-link back-arrow`), `admin.css` keeps only its margin
   (R3–R5, clarification Q2).
-- **The Up arrow is centred on every page** (`left:0; right:0; margin-inline:auto`), not only the legal pages (R7, AM1).
+- **The Up arrow was centred on every page** (R7, AM1); social-login-avatar's TWEAK07 moved it to the container's left edge.
 No migration, route, setting or dependency; one constant, one script, one sheet.
 The preceding feature recorded here is
 `specs/20261102-134601-SITE-SETTINGS/plan.md` (research R1–R13, `data-model.md` — one `user` column,
@@ -323,14 +342,14 @@ token columns, one migration — the HTTP contracts `contracts/api.md` A1–A3, 
 C1–C2 and the email sentence M1, and the quickstart live alongside it in `specs/20261027-133129-SINGLE-EMAIL-INVITE/`).
 The requirements report is `requirements/20261027-133129-single-email-invite/requirements-report.md`: 5 diagrams,
 3 research results and 15 findings, all resolved. Decisions that are easy to get wrong:
-- **The link is `/invite?PID=<pid>&token=<token>`**; only the newest token per invitation signs in, once, until the
-  poll ends or 30 days; any token that cannot sign in falls back to `/?PID=<pid>`, so old emails never dead-end (R1–R3).
-- **Opening the link writes nothing** (mail scanners), except for a browser already signed in as the invited address
+- **The link is `/invite?PID=<pid>&token=<token>`**; only the newest token per invitation logs in, once, until the
+  poll ends or 30 days; any token that cannot log in falls back to `/?PID=<pid>`, so old emails never dead-end (R1–R3).
+- **Opening the link writes nothing** (mail scanners), except for a browser already logged in as the invited address
   (by email key), which uses the token up and goes straight to `/?PID=` (R4).
-- **Continue signs in through the existing `completeSignIn`**: the server mints a BetterAuth magic-link token
+- **Continue logs in through the existing `completeSignIn`**: the server mints a BetterAuth magic-link token
   (`sendMagicLink` stores it instead of emailing when `metadata.mint` is set) and verifies it at once, so the address
   is confirmed and the session hooks run as for an emailed link (R5, R6).
-- **A new address needs the Terms box on the card; another signed-in account needs "Sign out and continue"**, one
+- **A new address needs the Terms box on the card; another logged-in account needs "Log out and continue"**, one
   press (clarification 2026-10-27); the allowlist and an `Origin` check apply; `oauth` mode keeps `/?PID=` (R6–R8).
 - **A landed poll is always maximized**: `applyLanding` maximizes after `mountLinkedPoll` too (R9).
 One additive migration, no new dependency, no new setting or cookie.
@@ -369,7 +388,7 @@ Decisions that are easy to get wrong:
 - **Invitation state is on `poll_invitations`** (`sent_at`, `reminded_at`, `send_failed_at`, `accepted_at`,
   `added_at`); `writeRoster` keeps existing invitation rows instead of deleting and reinserting them. Status is derived,
   never stored: Voted → Accepted → Not delivered → Invited → Not sent yet (R1, R8).
-- **Matching by email key is adoption**: at sign-in (`session.create.after`), the poll link and the Shared With You tab,
+- **Matching by email key is adoption**: at login (`session.create.after`), the poll link and the Shared With You tab,
   an invitation whose email key matches the account takes the account's address (invitation, `invited` row,
   placeholder vote), so every existing exact-match reader stays as it is (R2).
 - **Accepted = shown the poll** (the link or the Shared With You tab), written once; a vote counts as acceptance but
@@ -444,7 +463,7 @@ Decisions that are easy to get wrong:
 - **Agreement is `terms_version` / `terms_accepted_at` on `user`**, not declared to BetterAuth, read with `permissions` in
   `sessionCache.lookup()`; writing them is followed by `forgetUserSessions` (R3).
 - **The terms gate is one middleware before every router**: no cookie → pass; not accepted → `/api/*` answers
-  `403 terms-required` except accept-terms, logout, `GET /api/me`, `GET /api/config` and the sign-in and link routes
+  `403 terms-required` except accept-terms, logout, `GET /api/me`, `GET /api/config` and the login and link routes
   (create-account, request-login-link, verify, confirm-signin, link-info, email-change/verify); page routes redirect to
   `/accept-terms?next=`; `/privacy`, `/terms`, assets pass. In OAuth mode the account is created without agreement and the
   gate stops it until it accepts (R5, R7).
@@ -496,7 +515,7 @@ hand-done SES, DNS, forwarding and alarm setup (RS8, RS10, RS17). Decisions that
   the link. A mismatch redirects to `/confirm-signin` **without consuming the token**; `POST /api/auth/confirm-signin` checks
   `Origin`, to stop login pushing (R9).
 - **`emailKey` is SQL, defined once** (`src/auth/emailKey.ts`), used on both sides, backed by a non-unique expression index
-  (migration `008-email-key`). It applies to create-account and email change only; sign-in requests still match exactly (R10).
+  (migration `008-email-key`). It applies to create-account and email change only; login requests still match exactly (R10).
 - **The cookie policy is `session_token` plus strictly necessary security cookies**; the banner stays informational (R11).
 One new dependency, one additive migration; production configuration changes.
 The preceding feature is
@@ -683,7 +702,7 @@ against `requirements/026-high-level-requirements-HOME-PAGE-TABS.md`. Decisions 
   magic-link `metadata` → `&PID=` on verify → `/?PID=`; never `localStorage`, never a cookie; a validated
   UUID, redirects built by the server (R3).
 - **One outcome for every "not shown" case**: `/?notice=unavailable`. A guest's `/?PID=` always redirects to
-  sign-in before any lookup (R2).
+  login before any lookup (R2).
 - **Tabs are `your-polls`, `shared-with-you`, `your-votes`, `watching`**; `private`/`favourites` and their
   routes are retired; `bookmark` stays in routes, tables and callbacks (R10).
 - **`mayWatch` is one rule** (`src/polls/access.ts`) for the bookmark route (`404` on false), the Watching
@@ -708,7 +727,7 @@ wrong:
   filter; a non-admin's own-polls-only list and an admin's full list are the same function (R4,
   A1).
 - **The vote and view-permission checks both skip guests structurally**, not via a special case:
-  both sit after each call site's existing signed-in check, so a guest never reaches the new code
+  both sit after each call site's existing logged-in check, so a guest never reaches the new code
   (R5, R6).
 - **Losing `View Polls` blocks bookmarking and subscribing to Live Results, not just their
   display** — resolved by `/speckit-clarify` on 2026-10-04, the one spec-level gap the
@@ -844,9 +863,9 @@ Prior implemented features are documented in
 
 ## Project Overview
 
-CrowdPoll: a real-time opinion-poll site built in TypeScript (Node ≥ 22, ESM) with Express 5, PostgreSQL (Kysely) and BetterAuth, designed to serve very large audiences from a small autoscaled fleet. `README.md` describes the user-facing behaviour; `ARCHITECTURE.md` the deployment and request/vote/refresh paths. Sign-in is **passwordless**: a one-time magic link by email (Amazon SES + nodemailer, in development as in production), or, by `ENV_SIGNIN_METHOD`, the social providers (Google, Apple, Microsoft, Amazon) exclusively (`oauth`) or beside the email link (`both`).
+CrowdPoll: a real-time opinion-poll site built in TypeScript (Node ≥ 22, ESM) with Express 5, PostgreSQL (Kysely) and BetterAuth, designed to serve very large audiences from a small autoscaled fleet. `README.md` describes the user-facing behaviour; `ARCHITECTURE.md` the deployment and request/vote/refresh paths. Login is **passwordless**: a one-time magic link by email (Amazon SES + nodemailer, in development as in production), or, by `ENV_SIGNIN_METHOD`, the social providers (Google, Apple, Microsoft, Amazon) exclusively (`oauth`) or beside the email link (`both`).
 
-Sessions persist via a single `session_token` cookie (httpOnly, secure, sameSite=lax, up to 30 days). The cookie policy is `session_token` plus strictly necessary security cookies: the only others are `signin_binding` (httpOnly, secure, sameSite=lax, `Path=/api/auth`, 15 minutes), which binds an emailed sign-in link to the browser that requested it, and `oauth_state` (httpOnly, secure, sameSite=lax, 5 minutes), set only during a provider sign-in to protect it against forgery. The Privacy Policy (`/privacy`, with its Cookie Use
+Sessions persist via a single `session_token` cookie (httpOnly, secure, sameSite=lax, up to 30 days). The cookie policy is `session_token` plus strictly necessary security cookies: the only others are `signin_binding` (httpOnly, secure, sameSite=lax, `Path=/api/auth`, 15 minutes), which binds an emailed login link to the browser that requested it, and `oauth_state` (httpOnly, secure, sameSite=lax, 5 minutes), set only during a provider login to protect it against forgery. The Privacy Policy (`/privacy`, with its Cookie Use
 section `/privacy#cookies`) and the Terms of Service (`/terms`) are linked from a footer on every page; an account must accept
 the current Terms (`TERMS_VERSION`) before it can be used, and a user can delete their account from the Profile page.
 
@@ -923,7 +942,7 @@ All runtime configuration comes from `ENV_*` environment variables:
 | Variable | Dev default | Description |
 |---|---|---|
 | `ENV_PORT` | `8080` | HTTP port for the web app |
-| `ENV_PUBLIC_ORIGIN` | `http://localhost:8080` (templates) | The one origin the site is reached at, no path (`https://crowdpoll.vote` in `infra/app.tf`); required — the app refuses to start without it. Every sign-in provider redirect URI is built from it |
+| `ENV_PUBLIC_ORIGIN` | `http://localhost:8080` (templates) | The one origin the site is reached at, no path (`https://crowdpoll.vote` in `infra/app.tf`); required — the app refuses to start without it. Every login provider redirect URI is built from it |
 | `ENV_DATABASE_URL` | `postgres://localhost:5432/app01` | PostgreSQL connection string (the managed pool's URL in production) |
 | `ENV_DATABASE_CA_CERT` | unset | PEM of the CA that signed the database server's certificate (DigitalOcean: the database component's `CA_CERT`). Set → the connection is verified against it and `sslmode` is dropped from the URL; unset → `pg` verifies against the system roots, which fails against a managed database. `\n` pairs are read as line breaks |
 | `ENV_VALKEY_URL` | unset | Valkey URL; unset → the in-process cache/queue/registry (development and tests). A remote host beside a `localhost` `ENV_DATABASE_URL` stops the app: a local server on a shared Valkey would trade votes and counter flushes with production and drop them |
@@ -931,9 +950,9 @@ All runtime configuration comes from `ENV_*` environment variables:
 | `ENV_SPACES_BUCKET`, `ENV_SPACES_REGION`, `ENV_SPACES_KEY`, `ENV_SPACES_SECRET`, `ENV_SPACES_CDN_URL` | unset | Where the TRENDING objects and static assets are published; all five or none; unset → served from the instance |
 | `ENV_ADMINS` | `roadraceresults@gmail.com` | Comma-separated identifiers allowed on admin pages |
 | `ENV_PROTOTYPES` | unset | Comma-separated folders of `prototypes/` served, unlisted and `noindex`, at `/prototypes/<name>/` (temporary). Unset → none, and those addresses answer `404`. Letters, digits, `_` and `-` only |
-| `ENV_MAX_SIGNIN_COOKIE_DURATION` | `2592000000` | Max stay-signed-in duration (ms; 30 days); the login card shows it as whole days (hours below a day) |
-| `ENV_STAY_SIGNED_IN` | `0` | `1` → the login page's "Stay signed in on this device" box starts ticked; any other value, or none, leaves it clear |
-| `ENV_SIGNIN_METHOD` | `native` | `native` (email magic link), `oauth` (the sign-in providers only) or `both`; `oauth` and `both` need at least one provider below |
+| `ENV_MAX_SIGNIN_COOKIE_DURATION` | `2592000000` | Max stay-logged-in duration (ms; 30 days); the login card shows it as whole days (hours below a day) |
+| `ENV_STAY_SIGNED_IN` | `0` | `1` → the login page's "Stay logged in on this device" box starts ticked; any other value, or none, leaves it clear |
+| `ENV_SIGNIN_METHOD` | `native` | `native` (email magic link), `oauth` (the login providers only) or `both`; `oauth` and `both` need at least one provider below |
 | `ENV_OAUTH_GOOGLE_CLIENT_ID`, `ENV_OAUTH_GOOGLE_CLIENT_SECRET` | unset | Sign in with Google (secrets). A provider is on only when all its values are set; some but not all stops the app, naming the missing one |
 | `ENV_OAUTH_APPLE_CLIENT_ID`, `ENV_OAUTH_APPLE_TEAM_ID`, `ENV_OAUTH_APPLE_KEY_ID`, `ENV_OAUTH_APPLE_PRIVATE_KEY` | unset | Sign in with Apple: the Services ID, team, key id and the `.p8` key's PEM (`\n` pairs read as line breaks); the app signs Apple's client secret itself and renews it every 30 days |
 | `ENV_OAUTH_MICROSOFT_CLIENT_ID`, `ENV_OAUTH_MICROSOFT_CLIENT_SECRET` | unset | Sign in with Microsoft (personal, work and school accounts) |
@@ -952,9 +971,9 @@ All runtime configuration comes from `ENV_*` environment variables:
 | `ENV_EMAIL_FROM` | `CrowdPoll <no-reply@mail.crowdpoll.vote>` | Sender of every message (replaces `ENV_SMTP_FROM`, which is no longer read); the development templates use `no-reply@dev.mail.crowdpoll.vote` |
 | `ENV_EMAIL_SEND_TIMEOUT` | `10000` | Longest one send may take (ms) before it counts as failed |
 | `ENV_EMAIL_ASSET_ORIGIN` | unset | Origin the email logo is loaded from, no path; unset → the link's origin. The development templates set `https://crowdpoll.vote`, because a mail app's image proxy cannot reach `localhost` |
-| `ENV_ALLOWED_EMAILS` | unset | Pre-launch allowlist: comma-separated addresses allowed to create an account and sign in, compared by email key; `ENV_ADMINS` addresses always are. Unset or empty → off (everyone). An invalid entry stops the app; startup logs only the count. Production: `allowed_emails` in the git-ignored `infra/secrets.auto.tfvars`, never in a committed file; the templates carry it empty |
+| `ENV_ALLOWED_EMAILS` | unset | Pre-launch allowlist: comma-separated addresses allowed to create an account and log in, compared by email key; `ENV_ADMINS` addresses always are. Unset or empty → off (everyone). An invalid entry stops the app; startup logs only the count. Production: `allowed_emails` in the git-ignored `infra/secrets.auto.tfvars`, never in a committed file; the templates carry it empty |
 | `ENV_EMAIL_RATE_LIMIT_WINDOW_MINUTES` | `15` | Rate-limit window for email-sending endpoints, in **minutes** (not ms or seconds, unlike the intervals above) |
-| `ENV_EMAIL_RATE_LIMIT_MAX_REQUESTS_PER_WINDOW` | `2` | Requests allowed per client in that window. Lower the window and raise this while testing sign-in — the defaults lock you out for 15 minutes after two login links |
+| `ENV_EMAIL_RATE_LIMIT_MAX_REQUESTS_PER_WINDOW` | `2` | Requests allowed per client in that window. Lower the window and raise this while testing login — the defaults lock you out for 15 minutes after two login links |
 | `ENV_MAX_INVITATIONS_PER_DAY` | `200` | Invitation and reminder emails one poll creator may send in any rolling 24 hours, counted across all their polls; what does not fit waits as `Not sent yet` and goes as the window frees up. Lower it (e.g. `3`) to see the limit while testing |
 | `ENV_MAX_PRIVATE_POLL_VOTERS` | `100` | Voter ceiling on a private poll — both the limit a blank field means and the largest value enterable. Lower it (e.g. `10`) to fill a test poll in a few votes |
 | `ENV_PARTICIPANTS_VIEWPORT_SIZE` | `10` | Rows per page in the poll card's `Participants` and `Banned Voter List` sections. Lower it (e.g. `3`) to make paging visible with a handful of participants |

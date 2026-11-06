@@ -1,7 +1,7 @@
 /**
  * 013-UI-UX-revisions — the Create Account card (US4).
  *
- * The route 404s outside native sign-in mode (pages.ts), so this card is never
+ * The route 404s outside native login mode (pages.ts), so this card is never
  * served in the mode that would break it and needs no mode check of its own.
  */
 (function () {
@@ -50,14 +50,14 @@
   function renderToken(card, info, token) {
     card.body.replaceChildren();
     window.CardShell.addSharedPollLine(card);
-    var line = paragraph(card.body, info.hasAccount ? "Sign in as " : "Create your account as ");
+    var line = paragraph(card.body, info.hasAccount ? "Log in as " : "Create your account as ");
     var who = el("strong");
     who.textContent = info.email;
     line.append(who, document.createTextNode("."));
 
     var terms = info.hasAccount ? null : window.CardShell.termsBox(card.body, function () { sync(); });
 
-    var action = card.addAction(info.hasAccount ? "Sign In" : "Create Account", function (status) {
+    var action = card.addAction(info.hasAccount ? "Log In" : "Create Account", function (status) {
       var body = { token: token };
       if (terms) {
         body.acceptedTerms = terms.checked;
@@ -131,7 +131,7 @@
     var card = window.CardShell.mount(main, {
       title: "Create Account",
       signin: true,
-      subtitle: ["Enter your email address.", "We will create your account and email your first sign-in link."],
+      subtitle: ["Enter your email address.", "We will create your account and email your first login link."],
       note: "We do not store passwords.",
       closeHref: "/"
     });

@@ -163,7 +163,7 @@ describe("re-measuring", () => {
     expect(fit(home)).toBeNull();
   });
 
-  it("measures the new header after a sign-in or a sign-out", async () => {
+  it("measures the new header after a login or a sign-out", async () => {
     const home = await open(700);
     expect(fit(home)).toBeNull();
     await signInAs(home, MEMBER);

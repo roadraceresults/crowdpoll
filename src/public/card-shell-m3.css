@@ -201,6 +201,18 @@
   flex-direction:column;
   gap:8px;
 }
+.card-shell-body .oauth-sharing{
+  margin:12px 0 0;
+  font-weight:var(--md-sys-typescale-body-small-weight);
+  font-size:var(--md-sys-typescale-body-small-size);
+  line-height:var(--md-sys-typescale-body-small-line-height);
+  letter-spacing:var(--md-sys-typescale-body-small-tracking);
+  color:var(--md-sys-color-on-surface-variant);
+}
+.card-shell-body .oauth-sharing a{ color:var(--md-sys-color-primary); }
+.card-shell-body .login-terms-line + .oauth-providers{ margin-top:16px; }
+.card-shell-body .oauth-provider + .oauth-provider{ margin-top:8px; }
+.card-shell-body .oauth-provider .oauth-sharing{ margin-top:4px; }
 .card-shell-body .oauth-button{
   display:flex;
   align-items:center;
@@ -293,7 +305,7 @@
   border:1px solid var(--md-sys-color-outline);
 }
 
-/* ---------- 13. Sign-in cards: lock badge, subtitle lines, 14 px text, foot line ---------- */
+/* ---------- 13. Login cards: lock badge, subtitle lines, 14 px text, foot line ---------- */
 .card-shell-top-row{
   position:relative;
   display:flex;

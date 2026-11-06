@@ -1122,7 +1122,7 @@ function initPollCard(viewport, opts){
     return poll && poll.canVote === false ? (poll.voteBlockedReason || '') : '';
   }
 
-  // The signed-in viewer's grants, from /api/me: a rendering hint, re-checked by the vote route.
+  // The logged-in viewer's grants, from /api/me: a rendering hint, re-checked by the vote route.
   function viewerMayNotVote(){
     const me = window.Session && window.Session.getSession();
     const granted = me && Array.isArray(me.permissions) ? me.permissions : null;
@@ -1281,7 +1281,7 @@ function initPollCard(viewport, opts){
 
   /* The card actions: Vote everywhere but the Search tab, Live Results
      everywhere but the Live Results tab, Watch everywhere a tab sets showBookmark, and
-     the X that removes the poll on the Live Results tab alone. Guests are sent to sign in by the first three. */
+     the X that removes the poll on the Live Results tab alone. Guests are sent to log in by the first three. */
   function updateActionButtons(){
     if (voteBtn && opts.showVote === false) voteBtn.hidden = true;
     if (bookmarkBtn && opts.showBookmark === false) bookmarkBtn.hidden = true;
@@ -1370,7 +1370,7 @@ function initPollCard(viewport, opts){
   }
 
   // ---- Flip wiring ----
-  // Vote requires sign-in (FR-016); guests are sent to the login page.
+  // Vote requires login (FR-016); guests are sent to the login page.
   viewport.querySelector('.vote-btn')?.addEventListener('click', () => {
     if (!requireSignIn()) return;
     // 012 W2: the click landed in the split second before the grid refreshed. The
