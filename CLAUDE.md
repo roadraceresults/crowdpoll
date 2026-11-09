@@ -6,6 +6,18 @@ The full description, every earlier feature's decisions and the settings table a
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261109-083912-POPULATE-OLDEST-AGE/plan.md` (research R1–R7, `data-model.md` — no migration; the optional
+`oldest_age_in_days` key of a poll data file; the contract `contracts/data-file.md` D1–D3, and the quickstart live
+alongside it in `specs/20261109-083912-POPULATE-OLDEST-AGE/`). The requirements report is
+`requirements/20261109-083912-populate-oldest-age/requirements-report.md`: 3 diagrams and 6 findings, all resolved.
+Decisions that are easy to get wrong:
+- **A key of the data file, spelled `oldest_age_in_days`**, not a command-line option; `populate-all-polls` does not
+  change, a changed key changes the file's SHA-256 (AM1, AM2).
+- **Filter after `shiftDates`**: keep a point when its calendar day ≥ today − N (inclusive; `0` keeps today only); the
+  kept points set the poll's dates and the 12-month note (R3, R4).
+- **A whole number ≥ 0, validated in `parsePollData`**; `null`, `"30"`, `2.5`, `-1` are input errors (R2).
+No migration, setting, route or dependency; one key, one function, one log line.
+The preceding feature is
 `specs/20261105-161242-SOCIAL-LOGIN-AVATAR/plan.md` (research R1–R10, `data-model.md` — migration 017; the
 `profile_avatar_hash` column, the `avatar_removals` queue and the Spaces object; the HTTP contracts `contracts/api.md`
 A1–A3, the UI contracts `contracts/ui-contracts.md` C1–C6, and the quickstart live alongside it in
