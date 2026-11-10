@@ -56,6 +56,19 @@
     return node;
   }
 
+  function chevron(className) {
+    const SVG = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(SVG, "svg");
+    for (const [name, value] of Object.entries({
+      class: className, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2",
+      "stroke-linecap": "round", "stroke-linejoin": "round", "aria-hidden": "true", focusable: "false"
+    })) svg.setAttribute(name, value);
+    const path = document.createElementNS(SVG, "path");
+    path.setAttribute("d", "m6 9 6 6 6-6");
+    svg.appendChild(path);
+    return svg;
+  }
+
   // The Not Saved page dialog. It reuses Tabs.modal's markup, so tabs-modal-m3.css
   // and discard-dialog-m3.css dress it. Keep editing, Escape and the scrim answer
   // false; focus starts on Keep editing, Tab stays on the two actions, and focus
@@ -461,6 +474,7 @@
 
     let wizard = null;       // the open wizard: answers, current step, visited/answered
     let wizardSaved = null;  // what the last Save kept, reopened from the Summary Text
+    let notesEditor = null;
     // The wizard is also open on a poll that is not in its new-poll wizard (anything
     // published). It then starts from the poll, with every step answered, and its
     // footer is Cancel / Save changes.
@@ -498,7 +512,7 @@
       const state = wordedState();
       if (field === "startAt") return START_STATES.includes(state);
       if (field === "endAt") return state !== "CLOSED" && state !== "ARCHIVED";
-      if (field === "title" || field === "subtitle" || field === "colors" || field === "lineGraphEnabled") return true;
+      if (field === "title" || field === "subtitle" || field === "notes" || field === "colors" || field === "lineGraphEnabled") return true;
       if (field === "labels") return true;
       // A Private poll's sharing mode switches both ways after votes; visibility
       // itself stays frozen, and a public poll's mode is locked with it.
@@ -520,6 +534,11 @@
     const SUBTITLE_MAX = 40;
     const KEYWORDS_TOTAL_MAX = 200;   // every keyword plus one comma between each pair
     const DEFAULT_TITLE = /^New Poll \d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/;
+
+    function storedNotes() {
+      const p = session ? session.poll : {};
+      return { notes: p.notes || "", notesHtml: p.notesHtml || "" };
+    }
 
     function keywordsFromPoll(p) {
       return p.keywords ? p.keywords.split(",").filter(Boolean) : [];
@@ -565,6 +584,7 @@
         who: whoFromPoll(current), step: 1, visited: [1, 2, 3, 4, 5, 6], answered: [1, 2, 3, 4, 5, 6],
         title: current.title,
         subtitle: current.subtitle || "",
+        ...storedNotes(),
         keywords: keywordsFromPoll(current),
         choicesText: [...(current.choices || [])].sort((a, b) => a.position - b.position)
           .map((c) => c.label).join("\n"),
@@ -581,7 +601,7 @@
       if (existing) return pollAnswers();
       return wizardSaved || {
         who: whoFromPoll(current), step: 1, visited: [1], answered: [],
-        title: current.title, subtitle: current.subtitle || "", keywords: keywordsFromPoll(current),
+        title: current.title, subtitle: current.subtitle || "", ...storedNotes(), keywords: keywordsFromPoll(current),
         choicesText: storedChoicesText(),
         colors: storedColors(),
         lineGraph: current.lineGraphEnabled === true,
@@ -601,6 +621,8 @@
         answered: new Set(from.answered),
         title: from.title,
         subtitle: from.subtitle,
+        notes: from.notes,
+        notesHtml: from.notesHtml,
         keywords: [...from.keywords],
         choicesText: from.choicesText,
         colors: { ...from.colors },
@@ -625,7 +647,8 @@
     function wizardDirty() {
       const base = wizardBase();
       return wizard.who !== base.who || wizard.title !== base.title ||
-        wizard.subtitle !== base.subtitle || wizard.keywords.join(",") !== base.keywords.join(",") ||
+        wizard.subtitle !== base.subtitle || wizard.notes !== base.notes || Boolean(notesEditor && notesEditor.changed()) ||
+        wizard.keywords.join(",") !== base.keywords.join(",") ||
         wizard.choicesText !== base.choicesText ||
         JSON.stringify(colorsOfLines(wizard)) !== JSON.stringify(colorsOfLines(base)) ||
         ["multi", "rangeKind", "from", "to", "exact", "mutable",
@@ -751,6 +774,7 @@
     }
 
     async function goToStep(n) {
+      if (!commitNotes()) return;
       if (wizard.step === 3 && n !== 3) {
         if (duplicateMessage()) {
           const box = card.querySelector('[id^="pollChoices-"]');
@@ -831,13 +855,20 @@
     // A part is tappable only once its step has been answered (Next pressed on it).
     // A tappable part is inline text with a button's role: a real <button> is an
     // inline block, so a long part could not wrap with the sentence.
-    function summaryPart(text, step) {
-      if (!wizard.answered.has(step)) return el("span", "wizard-summary-part", text);
-      return tappablePart(text, text + ": change in Step " + step, () => goToStep(step));
+    function summaryPart(text, step, field, label = text) {
+      if (!wizard.answered.has(step)) return plainPart(text);
+      return tappablePart(text, label + ": change in Step " + step, () => goToStep(step));
+    }
+
+    function plainPart(text) {
+      const span = el("span", "wizard-summary-part", typeof text === "string" ? text : undefined);
+      if (typeof text !== "string") span.appendChild(text);
+      return span;
     }
 
     function tappablePart(text, label, onActivate) {
-      const link = el("span", "wizard-summary-part wizard-summary-link", text);
+      const link = el("span", "wizard-summary-part wizard-summary-link", typeof text === "string" ? text : undefined);
+      if (typeof text !== "string") link.appendChild(text);
       link.setAttribute("role", "button");
       link.tabIndex = 0;
       link.setAttribute("aria-label", label);
@@ -871,6 +902,13 @@
         const sub = el("p", "subtitle wizard-summary-subtitle");
         sub.appendChild(part(subtitle, 2, "subtitle"));
         section.appendChild(sub);
+      }
+      if (s.notesHtml) {
+        const notes = el("span", "wizard-summary-notes-text");
+        notes.innerHTML = s.notesHtml;
+        const notesLine = el("p", "wizard-summary-text wizard-summary-notes");
+        notesLine.append("Notes: ", part(notes, 2, "notes", "Notes"));
+        section.appendChild(notesLine);
       }
       const line = () => section.appendChild(el("p", "wizard-summary-text"));
       const who1 = line();
@@ -1302,6 +1340,61 @@
       return { ...field, input };
     }
 
+    function commitNotes() {
+      return !notesEditor || notesEditor.commit();
+    }
+
+    function m3NotesField() {
+      const id = "pollNotes-" + current.pid;
+      const field = m3Field("Notes", id, "Optional. Shown under the title on the poll card.");
+      field.wrap.classList.add("m3-field--notes");
+      const host = el("div", "wizard-notes");
+      field.box.appendChild(host);
+
+      function showPreview() {
+        const preview = el("div", "wizard-notes-preview");
+        const text = el("div", "wizard-notes-text");
+        text.innerHTML = wizard.notesHtml;
+        const edit = el("button", "wizard-notes-edit", "... edit");
+        edit.appendChild(chevron("wizard-notes-edit-chevron"));
+        edit.type = "button";
+        edit.id = id;
+        edit.setAttribute("aria-label", "Edit notes");
+        edit.setAttribute("aria-describedby", field.support.id);
+        edit.addEventListener("click", openEditor);
+        preview.append(text, edit);
+        host.replaceChildren(preview);
+        field.counter.textContent = wizard.notes.length + " / " + window.NotesEditor.NOTES_MAX;
+        return edit;
+      }
+
+      function openEditor() {
+        field.counter.textContent = "";
+        notesEditor = window.NotesEditor.open(host, {
+          html: wizard.notesHtml,
+          confirmDiscard,
+          onInput: () => {
+            syncWizardDirty();
+            refreshWizardChrome();
+          },
+          onDone: (notes, html) => {
+            wizard.notes = notes;
+            wizard.notesHtml = html;
+          },
+          onClose: () => {
+            notesEditor = null;
+            if (!wizard || !host.isConnected) return;
+            syncWizardDirty();
+            refreshWizardChrome();
+            showPreview().focus();
+          }
+        });
+      }
+
+      showPreview();
+      return field;
+    }
+
     function buildStep2() {
       const body = el("div", "wizard-step-body wizard-fields");
       const isPublic = wizard.who === "public";
@@ -1336,7 +1429,7 @@
         () => (keywords ? keywords.input.focus() : subtitle.input.blur()),
         isPublic ? "next" : "done");
 
-      body.append(title.wrap, subtitle.wrap);
+      body.append(title.wrap, subtitle.wrap, m3NotesField().wrap);
       // Keywords are for public polls only; on a private poll they are kept but hidden.
       if (isPublic) {
         keywords = m3KeywordsField();
@@ -2082,7 +2175,7 @@
       if (editMode() !== "UPDATE") return true;
       const before = wizardFields(pollAnswers());
       const after = wizardFields();
-      return ["title", "subtitle", "labels"].some((name) =>
+      return ["title", "subtitle", "notes", "labels"].some((name) =>
         canChange(FIELD_OF[name] || name) &&
         JSON.stringify(after[name]) !== JSON.stringify(before[name]));
     }
@@ -2113,6 +2206,7 @@
       if (option.pollSharingMode) fields.pollSharingMode = option.pollSharingMode;
       fields.title = s.title.trim();
       fields.subtitle = s.subtitle.trim();
+      fields.notes = s.notes;
       // Keywords are stored only with a public poll.
       if (s.who === "public") fields.keywords = s.keywords.join(",");
       fields.labels = choiceLines(s).map((l) => l.trim());
@@ -2141,6 +2235,8 @@
         answered: [...wizard.answered],
         title: wizard.title.trim(),
         subtitle: wizard.subtitle.trim(),
+        notes: wizard.notes,
+        notesHtml: wizard.notesHtml,
         keywords: [...wizard.keywords],
         choicesText: choiceLines().join("\n"),
         colors: Object.fromEntries(choiceLines().flatMap((line) =>
@@ -2163,6 +2259,7 @@
 
     function leaveWizard() {
       wizard = null;
+      if (notesEditor) notesEditor.close();
       existing = false;
       card.classList.remove("poll-admin-card--new");
       showStatus("");
@@ -2192,6 +2289,7 @@
 
     // Save keeps the answers and the progress; the poll stays INITIALIZED.
     async function saveWizard() {
+      if (!commitNotes()) return;
       const result = await postWizard("/save");
       if (!result.ok) {
         showStatus(result.body.error || "Could not save.");
@@ -2205,6 +2303,7 @@
 
     // Publish sends the poll on as the server would (screening: AWAITING APPROVAL).
     async function publishWizard() {
+      if (!commitNotes()) return;
       if (wizard) wizard.answered.add(6);
       const result = await postWizard("/publish");
       if (!result.ok) {
@@ -2225,6 +2324,7 @@
 
     // Save changes sends only the fields that changed and may change, to /publish.
     async function saveChanges() {
+      if (!commitNotes()) return;
       if (!(await confirmChoiceDeletions())) return;
       const before = wizardFields(pollAnswers());
       const after = wizardFields();
@@ -2360,7 +2460,8 @@
     // answered.
     function readOnlyAnswers() {
       const base = isWizardPoll() ? wizardBase() : pollAnswers();
-      return { ...base, answered: new Set(base.answered), state: isWizardPoll() ? "INITIALIZED" : wordedState() };
+      return { ...base, answered: new Set(base.answered), state: isWizardPoll() ? "INITIALIZED" : wordedState(),
+        notesHtml: current.notesPreviewHtml || "" };
     }
 
     // The state the when-line is worded for. A poll being edited is worded as the
@@ -2372,9 +2473,9 @@
 
     // A tap opens the wizard at the part's step. A part is a link only when its
     // field can change in the poll's state.
-    function readOnlyPart(text, step, field) {
-      if (!canOpenEditor() || (field && !canChange(field))) return el("span", "wizard-summary-part", text);
-      return tappablePart(text, text + ": change in Step " + step, () => requestEdit(step));
+    function readOnlyPart(text, step, field, label = text) {
+      if (!canOpenEditor() || (field && !canChange(field))) return plainPart(text);
+      return tappablePart(text, label + ": change in Step " + step, () => requestEdit(step));
     }
 
     function readOnlyPanel(className, children) {

@@ -6,6 +6,21 @@ The full description, every earlier feature's decisions and the settings table a
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261109-114330-POLL-NOTES/plan.md` (research R1–R14, `data-model.md` — migration 018; the `polls.notes`
+column, the redefined `search` column and `pending_update.notes`; the HTTP contracts `contracts/api.md` A1–A7, the UI
+contracts `contracts/ui-contracts.md` C1–C5, and the quickstart live alongside it in `specs/20261109-114330-POLL-NOTES/`).
+The requirements report is `requirements/20261109-114330-poll-notes/requirements-report.md`: 3 diagrams and 23 findings,
+21 resolved and 2 no longer applicable.
+Decisions that are easy to get wrong:
+- **Stored format**: plain text with `**bold**`, `*italic*`, `++underline++` and `\` escapes; unbalanced marks show as
+  typed; one server module, `src/polls/notes.ts`, renders it (escape all, then four tags) (R1, R2).
+- **Payloads**: the projection and admin list rows carry `notesPreviewHtml`/`hasMoreNotes`; only the one-card routes
+  and the admin details carry `notesHtml`; only those two fields ever reach `innerHTML` (R4, R6).
+- **6000 counts UTF-16 units**, like every field (R3). **No stash**: in UPDATE mode notes join `pending_update` (R7).
+- **The editor** (`notesEditor.js`, `contenteditable`, one `execCommand` wrapper) loads `notesHtml` and writes through
+  `serialize`; it never parses the stored format (R5). **The line graph mounts into `.maximized-graph`** (R9).
+No route, setting, cookie or dependency; one migration, one module, one script.
+The preceding feature is
 `specs/20261105-161242-SOCIAL-LOGIN-AVATAR/plan.md` (research R1–R10, `data-model.md` — migration 017; the
 `profile_avatar_hash` column, the `avatar_removals` queue and the Spaces object; the HTTP contracts `contracts/api.md`
 A1–A3, the UI contracts `contracts/ui-contracts.md` C1–C6, and the quickstart live alongside it in
@@ -27,7 +42,7 @@ Decisions that are easy to get wrong:
   `PRIVACY_UPDATED`, the pages' dates are filled in from them when served (`{{PRIVACY_UPDATED}}`), and the Accept Terms
   notice compares each with the version the account accepted (TWEAK14, TWEAK17).
 No setting, route, cookie or dependency; one migration, one sweep, one sheet, a new `TERMS_VERSION`.
-The preceding feature is
+Before it came
 `specs/20261104-180032-LEGAL-PAGE-UPDATES/plan.md` (research R1–R8, `data-model.md` — no migration; the shared policy
 version and the `history.state.legalDepth` step count; the UI contracts `contracts/ui-contracts.md` C1–C6, and the
 quickstart live alongside it in `specs/20261104-180032-LEGAL-PAGE-UPDATES/`). The requirements report is
@@ -43,7 +58,7 @@ Decisions that are easy to get wrong:
   link (`admin-back-link back-arrow`) (R3–R5, clarification Q2).
 - **The Up arrow was centred on every page** (R7, AM1); social-login-avatar's TWEAK07 moved it to the container's left edge.
 No migration, route, setting or dependency; one constant, one script, one sheet.
-The preceding feature is
+And before that
 `specs/20261103-114927-PROVISION-FCAPTCHA-SERVICE/plan.md` (research R1–R14, `data-model.md` — no migration; the
 Terraform resources, inputs, git-ignored files and the switch-over states; the contracts `contracts/infra-config.md`
 C1–C5 and `contracts/deploy-command.md` D1–D3, and the quickstart runbook live alongside it in
@@ -59,7 +74,7 @@ Decisions that are easy to get wrong:
   holds them in plain text (R4, UA7).
 - **Releases** use `npm run deploy` (`devScripts/deploy-app.ts`; `DIGITALOCEAN_TOKEN`, API, no `doctl`); autodeploy stays off (R11).
 No migration and no npm dependency; Terraform and two plugins, only in `infra/`.
-Before it came
+Earlier still,
 `specs/20261103-120521-HOME-TAB/plan.md` (research R1–R14, `data-model.md` — no migration; the `home:<emailKey>`
 membership, the five rules, the date windows and `ENV_HOME_TAB_REFRESH_INTERVAL`; the HTTP contracts `contracts/api.md`
 A1–A3, the UI contracts `contracts/ui-contracts.md` C1–C6, and the quickstart live alongside it in
@@ -77,7 +92,7 @@ Decisions that are easy to get wrong:
 - **Hidden, not disabled, for guests**; Home is the logged-in landing tab and the avatar menu's first item;
   `relations` adds `created` ("Your poll") and `trending` ("Trending") (R7, R9, R10, clarification Q1).
 No migration, dependency or sweep; one route, two settings (`ENV_HOME_TAB_REFRESH_INTERVAL`, `ENV_MAX_HOME_PAGE_POLLS`).
-And before that
+Before those,
 `specs/20261102-144053-FCAPTCHA-AND-SEO/plan.md` (research R1–R15, `data-model.md` — no migration; the pass, the
 `ENV_FCAPTCHA_*` settings, the indexable-poll rule and the sitemap cache; the HTTP contracts `contracts/api.md` A1–A6,
 the UI contracts `contracts/ui-contracts.md` C1–C5, and the quickstart live alongside it in
@@ -170,6 +185,8 @@ npx vitest run -t "name of the test"   # tests matching a name
 - No third-party request from a page: fonts are committed `woff2` files under `src/public/fonts/`.
 - A new cookie or browser storage key needs a Cookie Use row in `privacy.html` (`tests/cookie-use-list.test.ts`).
 - `postman/openapi.json` follows the routes.
+- Poll notes reach HTML only through `src/polls/notes.ts`; in the browser only `notesPreviewHtml` and `notesHtml` (and
+  the editor's own DOM-built copy) may be assigned to `innerHTML`.
 - A path that stops using an `avatars/` object queues its key in the same transaction (`queueAvatarRemoval`); only the
   removal sweep deletes it.
 - A new dev script needs a `!devScripts/<file>` line in `.gitignore`.

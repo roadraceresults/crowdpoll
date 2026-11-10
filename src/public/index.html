@@ -23,6 +23,7 @@
   <link rel="stylesheet" href="/header-single-row-m3.css">
   <link rel="stylesheet" href="/header-fixed-m3.css">
   <link rel="stylesheet" href="/back-to-top-m3.css">
+  <link rel="stylesheet" href="/back-arrow-m3.css">
   <link rel="stylesheet" href="/tabs-modal-m3.css">
   <link rel="stylesheet" href="/add-choice-m3.css">
   <link rel="stylesheet" href="/live-idle-prompt-m3.css">
@@ -106,6 +107,11 @@
             <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>
           </svg>
         </button>
+        <div class="back-arrow-bar maximized-back-bar" id="maximizedBack" hidden>
+          <button type="button" class="back-arrow maximized-back" aria-label="Back" title="Back">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+          </button>
+        </div>
       </div>
 
       <p class="tab-notice" id="tabNotice" hidden></p>
@@ -147,7 +153,10 @@
 <template id="maximizedCardGrid">
   <div class="maximized-card-grid">
     <div class="col-rule" aria-hidden="true"></div>
-    <div class="maximized-space-right"></div>
+    <div class="maximized-space-right">
+      <section class="maximized-notes" aria-label="Notes" hidden></section>
+      <div class="maximized-graph"></div>
+    </div>
   </div>
 </template>
 

@@ -16,21 +16,26 @@ const DEPS = { maxAttempts: 10, callTimeoutMs: 10_000 };
 
 describe("localScreener (011 R1)", () => {
   it("accepts ordinary wording", async () => {
-    expect(await localScreener({ title: "Best biscuit?", subtitle: "Pick one", choiceLabels: ["Hobnob", "Digestive"] })).toBe("");
+    expect(await localScreener({ title: "Best biscuit?", notes: "", subtitle: "Pick one", choiceLabels: ["Hobnob", "Digestive"] })).toBe("");
   });
 
   it("objects to unacceptable wording, with a readable reason", async () => {
-    const v = await localScreener({ title: "you fuck", subtitle: "", choiceLabels: ["a", "b"] });
+    const v = await localScreener({ title: "you fuck", notes: "", subtitle: "", choiceLabels: ["a", "b"] });
     expect(v).not.toBe("");
     expect(v).toMatch(/unacceptable language/i);
   });
 
   it("screens the choices too, not just the title", async () => {
-    expect(await localScreener({ title: "ok", subtitle: "", choiceLabels: ["fine", "nigger"] })).not.toBe("");
+    expect(await localScreener({ title: "ok", notes: "", subtitle: "", choiceLabels: ["fine", "nigger"] })).not.toBe("");
+  });
+
+  it("screens the notes too, and asks for them to be revised", async () => {
+    const v = await localScreener({ title: "ok", subtitle: "", notes: "**you** fuck", choiceLabels: ["a", "b"] });
+    expect(v).toBe("Acceptability Screening rejected this poll for unacceptable language (1 term). Please revise the title, subtitle, notes and choices.");
   });
 
   it("does not trip on innocent words that contain a term", async () => {
-    expect(await localScreener({ title: "Classic Scunthorpe", subtitle: "Assessment", choiceLabels: ["Grass", "Bassoon"] })).toBe("");
+    expect(await localScreener({ title: "Classic Scunthorpe", notes: "", subtitle: "Assessment", choiceLabels: ["Grass", "Bassoon"] })).toBe("");
   });
 });
 
@@ -102,6 +107,17 @@ describe("Publish and approval (011 US3)", () => {
     expect(after.pollApprovalTimestamp).toBeNull();
     // A call that completed resets the count, whatever it decided (FR-038).
     expect(after.pollAcceptabilityScreeningAttempts).toBe(0);
+  });
+
+  it("rejects a poll whose notes alone object, read without their marks", async () => {
+    const poll = makePoll({ pollState: "AWAITING APPROVAL", title: "Picnic", notes: "**f**uck ++shit++", choices: realChoices });
+    await polls(ctx).insertOne(poll);
+    expect(await pollsAwaitingApprovalSweep(ctx, DEPS)).toBe(1);
+    const after = await reload(poll._id);
+    expect(after.pollState).toBe("REJECTED");
+    expect(after.pollRejectionReason).toBe(
+      "Acceptability Screening rejected this poll for unacceptable language (2 terms). Please revise the title, subtitle, notes and choices."
+    );
   });
 
   it("approves a clean poll and writes the schedule-appropriate state (FR-041)", async () => {
@@ -580,6 +596,23 @@ describe("Pending review of an ever-voted poll (EDITING-POLL-AVAILABLE US1)", ()
     expect(after.pendingUpdate).toBeNull();
     expect(after.pendingRejectionReason).toMatch(/unacceptable language/i);
     expect(after.pollAcceptabilityScreeningAttempts).toBe(0);
+  });
+
+  it("screens a pending notes change, and applies it once approved", async () => {
+    const rejected = await votedOpenPoll({ notes: "Before" });
+    await publish(rejected._id, { notes: "you *fuck*" });
+    expect(await pollsAwaitingApprovalSweep(ctx, DEPS)).toBe(1);
+    let after = await reload(rejected._id);
+    expect(after.notes).toBe("Before");
+    expect(after.pendingUpdate).toBeNull();
+    expect(after.pendingRejectionReason).toMatch(/Please revise the title, subtitle, notes and choices\.$/);
+
+    const approved = await votedOpenPoll({ notes: "Before" });
+    await publish(approved._id, { notes: "**After**" });
+    expect(await pollsAwaitingApprovalSweep(ctx, DEPS)).toBe(1);
+    after = await reload(approved._id);
+    expect(after.notes).toBe("**After**");
+    expect(after.pendingUpdate).toBeNull();
   });
 
   it("a screening timeout releases the pending claim and keeps the update pending", async () => {

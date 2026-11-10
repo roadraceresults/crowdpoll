@@ -34,7 +34,7 @@ async function openAdmin(cookie: string): Promise<BrowserPage> {
   const p = await openPage(ctx, "admin.html", {
     cookie,
     url: "http://localhost/admin",
-    scripts: ["m3-ripple.js", "app.js", "adminCard.js", "adminList.js"]
+    scripts: ["m3-ripple.js", "app.js", "notesEditor.js", "adminCard.js", "adminList.js"]
   });
   p.window.HTMLElement.prototype.scrollIntoView = () => {};
   page = p;

@@ -228,6 +228,15 @@
           {
             "type": "object",
             "properties": {
+              "notes": {
+                "type": "string",
+                "maxLength": 6000,
+                "description": "The notes in the stored format (see the save request)."
+              },
+              "notesHtml": {
+                "type": "string",
+                "description": "The whole notes rendered as HTML: strong, em, u and br only; everything else escaped."
+              },
               "keywords": {
                 "type": "string",
                 "maxLength": 200,
@@ -302,6 +311,14 @@
           },
           "subtitle": {
             "type": "string"
+          },
+          "notesPreviewHtml": {
+            "type": "string",
+            "description": "The first 300 characters of the notes rendered as HTML (strong, em, u, br; everything else escaped), cut at a space with every mark closed, then \"…\" when there is more. \"\" without notes."
+          },
+          "hasMoreNotes": {
+            "type": "boolean",
+            "description": "True when notesPreviewHtml is not the whole notes."
           },
           "keywords": {
             "type": "string",
@@ -411,7 +428,7 @@
           },
           "pendingUpdate": {
             "type": "boolean",
-            "description": "True while a saved title, subtitle or choice change of this ever-voted poll is waiting for review; the editor is withheld (canEdit/canUpdate false) until the review resolves (EDITING-POLL-AVAILABLE A5)."
+            "description": "True while a saved title, subtitle, notes or choice change of this ever-voted poll is waiting for review; the editor is withheld (canEdit/canUpdate false) until the review resolves (EDITING-POLL-AVAILABLE A5)."
           },
           "pendingRejectionReason": {
             "type": [
@@ -682,6 +699,14 @@
           "subtitle": {
             "type": "string",
             "maxLength": 40
+          },
+          "notesPreviewHtml": {
+            "type": "string",
+            "description": "The first 300 characters of the notes rendered as HTML (strong, em, u, br; everything else escaped), cut at a space with every mark closed, then \"…\" when there is more. \"\" without notes."
+          },
+          "hasMoreNotes": {
+            "type": "boolean",
+            "description": "True when notesPreviewHtml is not the whole notes."
           },
           "choiceMode": {
             "type": "string",
@@ -1092,6 +1117,14 @@
           "subtitle": {
             "type": "string",
             "maxLength": 40
+          },
+          "notesPreviewHtml": {
+            "type": "string",
+            "description": "The first 300 characters of the notes rendered as HTML (strong, em, u, br; everything else escaped), cut at a space with every mark closed, then \"…\" when there is more. \"\" without notes."
+          },
+          "hasMoreNotes": {
+            "type": "boolean",
+            "description": "True when notesPreviewHtml is not the whole notes."
           },
           "choiceMode": {
             "type": "string",
@@ -3058,7 +3091,7 @@
         ],
         "responses": {
           "200": {
-            "description": "JSON file download",
+            "description": "JSON file download: pid, title, subtitle, notes (as stored), choices, totalVoted and participants",
             "content": {
               "application/json": {
                 "schema": {
@@ -3117,7 +3150,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Markdown file download",
+            "description": "Markdown file download: the title, the subtitle, the notes as stored (omitted when empty), then the results table",
             "content": {
               "text/markdown": {
                 "schema": {
@@ -3217,7 +3250,7 @@
             }
           }
         },
-        "description": "The copy carries the source's title, subtitle and choices, so it starts at the beginning of the lifecycle — inheriting an approved state would put unscreened content in front of the public. The source is unchanged, so an archived poll can be duplicated to re-run it."
+        "description": "The copy carries the source's title, subtitle, notes and choices, so it starts at the beginning of the lifecycle — inheriting an approved state would put unscreened content in front of the public. The source is unchanged, so an archived poll can be duplicated to re-run it."
       }
     },
     "/api/admin/polls/{pid}/edit-session": {
@@ -3536,6 +3569,11 @@
                     "type": "string",
                     "maxLength": 40
                   },
+                  "notes": {
+                    "type": "string",
+                    "maxLength": 6000,
+                    "description": "Notes in the stored format: plain text with **bold**, *italic*, ++underline++ and  escapes; a newline is a line break. Counted in UTF-16 units; whitespace-only notes are stored as \"\". In UPDATE mode a change waits in the pending update until review."
+                  },
                   "keywords": {
                     "type": "string",
                     "maxLength": 200,
@@ -3786,6 +3824,11 @@
                   "subtitle": {
                     "type": "string",
                     "maxLength": 40
+                  },
+                  "notes": {
+                    "type": "string",
+                    "maxLength": 6000,
+                    "description": "Notes in the stored format: plain text with **bold**, *italic*, ++underline++ and  escapes; a newline is a line break. Counted in UTF-16 units; whitespace-only notes are stored as \"\". In UPDATE mode a change waits in the pending update until review."
                   },
                   "keywords": {
                     "type": "string",
@@ -4485,7 +4528,7 @@
         ],
         "operationId": "searchPolls",
         "summary": "Free-text search of public polls (kind search; ENV_MIN_SEARCH_REFRESH_INTERVAL floor)",
-        "description": "Title outranks subtitle outranks choices; an AND match first, then OR matches, then a misspelt title. Identical words within ENV_SEARCH_CACHE_TTL are answered from the cache; a miss counts against the search sub-budget (ENV_SERVER_MAX_SEARCH_PER_SECOND, or the fallback bound while PostgreSQL full-text search serves).",
+        "description": "Title outranks subtitle outranks choices, which outrank keywords and notes; an AND match first, then OR matches, then a misspelt title. Identical words within ENV_SEARCH_CACHE_TTL are answered from the cache; a miss counts against the search sub-budget (ENV_SERVER_MAX_SEARCH_PER_SECOND, or the fallback bound while PostgreSQL full-text search serves).",
         "requestBody": {
           "required": true,
           "content": {
@@ -4692,7 +4735,13 @@
                   ],
                   "properties": {
                     "poll": {
-                      "type": "object"
+                      "type": "object",
+                      "description": "The card (see Card), plus notesHtml: the whole notes rendered as HTML (strong, em, u, br only; everything else escaped). Listings never carry notesHtml.",
+                      "properties": {
+                        "notesHtml": {
+                          "type": "string"
+                        }
+                      }
                     },
                     "counts": {
                       "type": "object"
@@ -7224,7 +7273,13 @@
                   ],
                   "properties": {
                     "poll": {
-                      "type": "object"
+                      "type": "object",
+                      "description": "The card (see Card), plus notesHtml: the whole notes rendered as HTML (strong, em, u, br only; everything else escaped). Listings never carry notesHtml.",
+                      "properties": {
+                        "notesHtml": {
+                          "type": "string"
+                        }
+                      }
                     },
                     "counts": {
                       "type": "object"

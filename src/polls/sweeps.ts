@@ -23,6 +23,7 @@ import {
 import { forgetTabs } from "../refresh/tabVersions.js";
 import { evaluateSchedule, correctInvertedSchedule } from "./service.js";
 import { screenWithTimeout, localScreener, type Screener } from "./screening.js";
+import { notesPlainText } from "./notes.js";
 import { dirtyDayKey, flushDirty, reconcile } from "./counters.js";
 import { recomputeNewest, recomputeTrending } from "../trending/recompute.js";
 import type { ObjectStore, Publisher } from "../trending/publish.js";
@@ -216,6 +217,7 @@ export async function pollsAwaitingApprovalSweep(
       {
         title: claimed.title,
         subtitle: claimed.subtitle,
+        notes: notesPlainText(claimed.notes),
         choiceLabels: claimed.choices.map((c) => c.label)
       },
       approval.callTimeoutMs
@@ -279,6 +281,7 @@ async function screenPendingUpdate(
       {
         title: pending.title ?? claimed.title,
         subtitle: pending.subtitle ?? claimed.subtitle,
+        notes: notesPlainText(pending.notes ?? claimed.notes),
         choiceLabels: (pending.choices ?? claimed.choices).map((c) => c.label)
       },
       approval.callTimeoutMs

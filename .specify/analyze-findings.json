@@ -158,6 +158,13 @@
         "requirements/20261105-161242-social-login-avatar/requirements.md": "95877e13e6ed12a847600fbddcbb54ab73198c77fdf7a2ec1317642e311d969c",
         "specs/20261105-161242-SOCIAL-LOGIN-AVATAR/contracts/api.md": "480521374417de6a263d1e8d46c4435391781db15e099728cb85314edffe4112",
         "specs/20261105-161242-SOCIAL-LOGIN-AVATAR/research.md": "c0c8707a718466dd7198981d5a56d48980a74ce7acf2c049afe61ad516b3cec3",
-        "specs/20261105-161242-SOCIAL-LOGIN-AVATAR/plan.md": "f7131e93e178ef3d8c9c074ac5262daf05622fba6238d84bedc72d16c9020de3"
+        "specs/20261105-161242-SOCIAL-LOGIN-AVATAR/plan.md": "f7131e93e178ef3d8c9c074ac5262daf05622fba6238d84bedc72d16c9020de3",
+        "specs/20261109-114330-POLL-NOTES/analyze-findings.md": "e25be16b01950ea2c38d6181298509a88da322333fc02e402991e36daa6b16ac",
+        "specs/20261109-114330-POLL-NOTES/spec.md": "49fe16e39108d7c5e522a640008ba0254057acc29f1b77fce7159c1d8cf66b91",
+        "specs/20261109-114330-POLL-NOTES/plan.md": "eb92082df1bc8b155ddd6de2dd2cc42bdfa098ab16e69868c2ffe4ace425788a",
+        "specs/20261109-114330-POLL-NOTES/tasks.md": "057cfb55e04089443374e590f245a38c62e75c3440365891b2b36a4c072df752",
+        "specs/20261109-114330-POLL-NOTES/research.md": "435de7101b444d0fe9c111dd1b646251c5b74532d97154ec8c2b3aaa47b204df",
+        "specs/20261109-114330-POLL-NOTES/contracts/api.md": "a500011849c3d87d70aa1f11b6d60adb3c5b893d55dbb3decef9f1dc0ba59b6b",
+        "specs/20261109-114330-POLL-NOTES/contracts/ui-contracts.md": "dc995d8cd12397e25b644bb33d3d83a880c4f8984e587a67e778dffa6f2ad695"
     }
 }

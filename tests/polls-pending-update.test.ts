@@ -10,6 +10,7 @@ import { makePoll, polls, voteHistory } from "./helpers/poll-fixtures.js";
 import { pollsAwaitingApprovalSweep } from "../src/polls/sweeps.js";
 import { computeResults, mergeChoices } from "../src/polls/service.js";
 import { readLiveCounts } from "../src/polls/counters.js";
+import { readProjection } from "../src/polls/versions.js";
 
 const DEPS = { maxAttempts: 10, callTimeoutMs: 10_000 };
 const BOUNDS = { minChoices: 2, maxChoices: 5 };
@@ -501,5 +502,47 @@ describe("votersAddChoices through /publish (USER-ADD-CHOICES A5)", () => {
     expect(bad.status).toBe(400);
     expect(bad.body.error).toBe("votersAddChoices must be true or false.");
     expect((await row(priv._id)).voters_add_choices).toBe(false);
+  });
+});
+
+describe("notes on an ever-voted poll", () => {
+  let ctx: TestContext;
+  let cookie: string;
+  beforeAll(async () => {
+    ctx = await startTestContext();
+    ({ cookie } = await forgeSession(ctx, ctx.config.admins[0]!));
+  });
+  afterAll(async () => {
+    await ctx.stop();
+  });
+  beforeEach(async () => {
+    await polls(ctx).deleteMany({});
+    await voteHistory(ctx).deleteMany({});
+  });
+
+  const row = (pid: string) =>
+    ctx.db.selectFrom("polls").select(["notes", "content_version", "pending_update"]).where("id", "=", pid).executeTakeFirstOrThrow();
+
+  it("waits in the pending update with the old preview served, and applying it bumps content_version", async () => {
+    const poll = makePoll({ pollState: "OPEN", notes: "**Old** notes", voterCountLimit: null } as never);
+    await polls(ctx).insertOne(poll);
+    await voteHistory(ctx).insertOne({ pid: poll._id, emailAddress: "v@example.com", userName: "v", choiceIds: ["c1"], votedAt: new Date() });
+    const before = await row(poll._id);
+
+    const res = await request(ctx.app).post(`/api/admin/polls/${poll._id}/publish`).set("Cookie", cookie).send({ notes: "**New** notes" });
+    expect(res.status).toBe(200);
+    expect(res.body.pending).toBe(true);
+    const pending = await row(poll._id);
+    expect(pending.notes).toBe("**Old** notes");
+    expect(pending.pending_update).toEqual({ notes: "**New** notes" });
+    expect(Number(pending.content_version)).toBe(Number(before.content_version));
+    expect((await readProjection(ctx.cache, ctx.db, poll._id))!.notesPreviewHtml).toBe("<strong>Old</strong> notes");
+
+    expect(await pollsAwaitingApprovalSweep(ctx, DEPS)).toBe(1);
+    const applied = await row(poll._id);
+    expect(applied.notes).toBe("**New** notes");
+    expect(applied.pending_update).toBeNull();
+    expect(Number(applied.content_version)).toBeGreaterThan(Number(before.content_version));
+    expect((await readProjection(ctx.cache, ctx.db, poll._id))!.notesPreviewHtml).toBe("<strong>New</strong> notes");
   });
 });

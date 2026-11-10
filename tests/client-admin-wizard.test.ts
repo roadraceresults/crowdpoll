@@ -48,7 +48,7 @@ async function open(sessionCookie = cookie): Promise<BrowserPage> {
   const p = await openPage(ctx, "admin.html", {
     cookie: sessionCookie,
     url: "http://localhost/admin",
-    scripts: ["m3-ripple.js", "app.js", "adminCard.js", "adminList.js"],
+    scripts: ["m3-ripple.js", "app.js", "notesEditor.js", "adminCard.js", "adminList.js"],
     beforeScripts: (window) => {
       Object.defineProperty(window.navigator, "clipboard", {
         configurable: true,
@@ -1074,6 +1074,32 @@ describe("the read-only face", () => {
     }
   });
 
+  it("shows the notes in the summary after the subtitle, opening Step 2 when the notes can change", async () => {
+    await seed(
+      makePoll({ title: "With notes", subtitle: "Sub", notes: "**Bring** a plate", pollState: "OPEN" }),
+      makePoll({ title: "Archived notes", notes: "Kept", pollState: "ARCHIVED" }),
+      makePoll({ title: "No notes", pollState: "OPEN" })
+    );
+    const p = await open();
+    const card = cardWith(p, "With notes");
+    const line = card.querySelector<HTMLElement>(".card-readonly .wizard-summary .wizard-summary-notes")!;
+    expect(line.previousElementSibling!.classList.contains("wizard-summary-subtitle")).toBe(true);
+    expect(line.textContent).toBe("Notes: Bring a plate");
+    expect(line.querySelector(".wizard-summary-notes-text")!.innerHTML).toBe("<strong>Bring</strong> a plate");
+    const part = line.querySelector<HTMLElement>(".wizard-summary-link")!;
+    expect(part.getAttribute("aria-label")).toBe("Notes: change in Step 2");
+    expect(card.querySelector(".card-notes-preview")).toBeNull();
+
+    const archived = cardWith(p, "Archived notes").querySelector(".wizard-summary-notes")!;
+    expect(archived.querySelector(".wizard-summary-link")).toBeNull();
+    expect(archived.textContent).toBe("Notes: Kept");
+    expect(cardWith(p, "No notes").querySelector(".wizard-summary-notes")).toBeNull();
+
+    part.click();
+    await p.settle(50);
+    expect(heading(wizardCard(p))).toBe("Step 2 · Title & Tags");
+  });
+
   describe("the when-line", () => {
     const hour = 3_600_000;
     const whenOf = (p: BrowserPage, title: string) => cardWith(p, title).querySelector(".wizard-summary-when")!.textContent;
@@ -1246,6 +1272,133 @@ describe("an existing poll in the wizard", () => {
     expect(p.document.querySelector(".poll-admin-card--new")).toBeNull();
     expect(p.document.activeElement).toBe(links(cardWith(p, "Lost"))[0]);
   }, 20_000);
+});
+
+describe("notes in Step 2", () => {
+  const notesHost = (p: BrowserPage) => wizardCard(p).querySelector<HTMLElement>(".wizard-notes")!;
+  const editButton = (p: BrowserPage) => notesHost(p).querySelector<HTMLButtonElement>(".wizard-notes-edit")!;
+  const previewHtml = (p: BrowserPage) => notesHost(p).querySelector(".wizard-notes-text")!.innerHTML;
+
+  async function openAtStep2(title: string, notes: string, pollState: Poll["pollState"] = "INITIALIZED") {
+    await seed(makePoll({ title, subtitle: "Sub", notes, pollState }));
+    const p = await open();
+    link(cardWith(p, title), title).click();
+    await p.settle(50);
+    return p;
+  }
+
+  async function editNotes(p: BrowserPage, html: string) {
+    editButton(p).click();
+    await p.settle();
+    const text = notesHost(p).querySelector<HTMLElement>(".notes-editor-text")!;
+    text.innerHTML = html;
+    text.dispatchEvent(new p.window.Event("input", { bubbles: true }));
+    await p.settle();
+  }
+
+  async function editorButton(p: BrowserPage, name: string) {
+    notesHost(p).querySelector<HTMLElement>(`.notes-editor-${name}`)!.click();
+    await p.settle();
+  }
+
+  it("shows Notes after Subtitle, with the preview, \"... edit\" and its chevron, and the counter", async () => {
+    const p = await openAtStep2("Picnic", "**Bring** a <plate>");
+    const labels = Array.from(wizardCard(p).querySelectorAll(".wizard-fields .m3-field-label")).map((l) => l.textContent);
+    expect(labels.slice(0, 3)).toEqual(["Title", "Subtitle", "Notes"]);
+    expect(previewHtml(p)).toBe("<strong>Bring</strong> a &lt;plate&gt;");
+    expect(editButton(p).textContent).toBe("... edit");
+    expect(editButton(p).querySelector("svg.wizard-notes-edit-chevron path")!.getAttribute("d")).toBe("m6 9 6 6 6-6");
+    const notesField = notesHost(p).closest(".m3-field")!;
+    expect(notesField.querySelector(".m3-field-support")!.textContent).toBe("Optional. Shown under the title on the poll card.");
+    expect(notesField.querySelector(".m3-field-counter")!.textContent).toBe("19 / 6000");
+  });
+
+  it("puts the notes into the preview and the summary on Done, returns the focus to \"... edit\", and Save sends them", async () => {
+    const p = await openAtStep2("Picnic", "");
+    await editNotes(p, "<b>Bring</b> two <i>plates</i>");
+    expect(notesHost(p).querySelector(".wizard-notes-preview")).toBeNull();
+    await editorButton(p, "done");
+    expect(previewHtml(p)).toBe("<strong>Bring</strong> two <em>plates</em>");
+    expect(p.document.activeElement).toBe(editButton(p));
+    const summaryNotes = wizardCard(p).querySelector(".wizard-summary .wizard-summary-notes")!;
+    expect(summaryNotes.textContent).toBe("Notes: Bring two plates");
+    expect(summaryNotes.querySelector(".wizard-summary-notes-text")!.innerHTML).toBe("<strong>Bring</strong> two <em>plates</em>");
+    footerButton(wizardCard(p), "Save").click();
+    await p.settle(100);
+    expect(sent("/save")[0]!.body!.notes).toBe("**Bring** two *plates*");
+  });
+
+  it("keeps an open editor's changes on Next and on a numbered step", async () => {
+    const p = await openAtStep2("Picnic", "");
+    await editNotes(p, "kept by next");
+    await next(p);
+    expect(heading(wizardCard(p))).toBe("Step 3 · Choices");
+    (circles(wizardCard(p))[1]!.querySelector("button") as HTMLButtonElement).click();
+    await p.settle();
+    expect(previewHtml(p)).toBe("kept by next");
+
+    await editNotes(p, "kept by a step");
+    (circles(wizardCard(p))[0]!.querySelector("button") as HTMLButtonElement).click();
+    await p.settle();
+    expect(heading(wizardCard(p))).toBe("Step 1 · Who can vote");
+    footerButton(wizardCard(p), "Save").click();
+    await p.settle(100);
+    expect(sent("/save")[0]!.body!.notes).toBe("kept by a step");
+  });
+
+  it("drops an open editor's changes with the card's Cancel, after asking", async () => {
+    const poll = makePoll({ title: "Picnic", notes: "Original", pollState: "INITIALIZED" });
+    await seed(poll);
+    const p = await open();
+    link(cardWith(p, "Picnic"), "Picnic").click();
+    await p.settle(50);
+    await editNotes(p, "Changed");
+    footerButton(wizardCard(p), "Cancel").click();
+    await p.settle();
+    (p.document.querySelector(".modal .modal-discard") as HTMLButtonElement).click();
+    await p.settle(100);
+    expect(p.document.querySelector(".poll-admin-card--new")).toBeNull();
+    expect(sent("/save")).toHaveLength(0);
+    expect((await polls(ctx).findOne({ _id: poll._id }))!.notes).toBe("Original");
+  });
+
+  it("asks before the editor's own Cancel drops a change, and keeps Escape from the card", async () => {
+    const p = await openAtStep2("Picnic", "Original");
+    await editNotes(p, "Changed");
+    const text = notesHost(p).querySelector<HTMLElement>(".notes-editor-text")!;
+    text.dispatchEvent(new p.window.KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+    await p.settle();
+    (p.document.querySelector(".modal .modal-discard") as HTMLButtonElement).click();
+    await p.settle();
+    expect(previewHtml(p)).toBe("Original");
+    expect(wizardCard(p)).not.toBeNull();
+  });
+
+  it("refuses Done, Next and Save above 6000 characters", async () => {
+    const p = await openAtStep2("Picnic", "");
+    await editNotes(p, "x".repeat(6001));
+    await editorButton(p, "done");
+    expect(notesHost(p).querySelector(".notes-editor")).not.toBeNull();
+    await next(p);
+    expect(heading(wizardCard(p))).toBe("Step 2 · Title & Tags");
+    footerButton(wizardCard(p), "Save").click();
+    await p.settle(100);
+    expect(sent("/save")).toHaveLength(0);
+  });
+
+  it("sends only the changed notes from an existing poll, and says saving re-screens", async () => {
+    const p = await openAtStep2("Running", "Before", "OPEN");
+    expect(footerButton(wizardCard(p), "Save changes").getAttribute("aria-disabled")).toBe("true");
+    await editNotes(p, "After");
+    expect(footerButton(wizardCard(p), "Save changes").hasAttribute("aria-disabled")).toBe(false);
+    await editorButton(p, "done");
+    expect(wizardCard(p).querySelector(".wizard-review-note")).not.toBeNull();
+    footerButton(wizardCard(p), "Save changes").click();
+    await p.settle(100);
+    const body = sent("/publish")[0]!.body!;
+    expect(Object.keys(body).sort()).toEqual(["clientGuid", "notes", "timeZone"]);
+    expect(body.notes).toBe("After");
+  });
 });
 
 describe("choice edits inside the wizard (EDITING-POLL-AVAILABLE US2)", () => {

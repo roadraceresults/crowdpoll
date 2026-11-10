@@ -124,7 +124,7 @@ function cardByTitle(p: BrowserPage, title: string): HTMLElement {
 async function maximize(p: BrowserPage, title: string): Promise<HTMLElement> {
   (cardByTitle(p, title).querySelector(".maximize-btn") as HTMLElement).click();
   await p.settle(50);
-  return p.document.querySelector(".maximized-card-grid:not([hidden]) .maximized-space-right") as HTMLElement;
+  return p.document.querySelector(".maximized-card-grid:not([hidden]) .maximized-graph") as HTMLElement;
 }
 
 /** Makes every line-graph fetch answer as told; other requests pass through. */

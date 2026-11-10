@@ -16,6 +16,7 @@ import * as pendingUpdate from "./014-pending-update.js";
 import * as votersAddChoices from "./015-voters-add-choices.js";
 import * as colorScheme from "./016-color-scheme.js";
 import * as profilePicture from "./017-profile-picture.js";
+import * as pollNotes from "./018-poll-notes.js";
 
 /** Applied in key order; add a new migration by appending the next number. */
 export const migrations: Record<string, Migration> = {
@@ -35,5 +36,6 @@ export const migrations: Record<string, Migration> = {
   "014-pending-update": pendingUpdate,
   "015-voters-add-choices": votersAddChoices,
   "016-color-scheme": colorScheme,
-  "017-profile-picture": profilePicture
+  "017-profile-picture": profilePicture,
+  "018-poll-notes": pollNotes
 };

@@ -923,7 +923,7 @@ describe("the date fields on an admin card", () => {
         makePoll({ title: "Finished", pollState: "CLOSED", endAt: new Date() }),
         makePoll({ title: "Waiting", pollState: "WAITING TO OPEN", startAt: scheduled })
       ]);
-      adminPage = await openPage(admin, "admin.html", { cookie, scripts: ["app.js", "adminCard.js", "adminList.js"] });
+      adminPage = await openPage(admin, "admin.html", { cookie, scripts: ["app.js", "notesEditor.js", "adminCard.js", "adminList.js"] });
       const cardOf = (title: string) =>
         Array.from(adminPage!.document.querySelectorAll("#pollList .poll-admin-card")).find((el) =>
           (el.textContent ?? "").includes(title)
@@ -955,7 +955,7 @@ describe("the admin search form in a browser", () => {
     try {
       const { cookie } = await forgeSession(admin, "admin-search@example.com");
       await polls(admin).insertMany([makePoll({ title: "Kettle poll", pollState: "OPEN" }), makePoll({ title: "Teapot poll", pollState: "CLOSED" })]);
-      adminPage = await openPage(admin, "admin.html", { cookie, scripts: ["app.js", "adminCard.js", "adminList.js"] });
+      adminPage = await openPage(admin, "admin.html", { cookie, scripts: ["app.js", "notesEditor.js", "adminCard.js", "adminList.js"] });
       const titles = () => Array.from(adminPage!.document.querySelectorAll("#pollList .poll-admin-card")).map((el) => el.querySelector(".card-title, .poll-title, h2, h3")?.textContent ?? el.textContent ?? "");
       expect(adminPage.document.querySelectorAll("#pollList .poll-admin-card").length).toBe(2);
       await adminPage.submitForm("#adminSearchForm", {});
@@ -992,7 +992,7 @@ describe("the admin search form in a browser", () => {
         makePoll({ title: "Rejected one", pollState: "REJECTED", pollRejectionReason: "no" })
       ];
       await polls(admin).insertMany(seeded);
-      adminPage = await openPage(admin, "admin.html", { cookie, scripts: ["app.js", "adminCard.js", "adminList.js"] });
+      adminPage = await openPage(admin, "admin.html", { cookie, scripts: ["app.js", "notesEditor.js", "adminCard.js", "adminList.js"] });
       adminPage.window.HTMLElement.prototype.scrollIntoView = () => {};
       const cards = () => adminPage!.document.querySelectorAll("#pollList .poll-admin-card").length;
       const active = () => (adminPage!.document.querySelector("#adminTabBar .tab.is-active") as HTMLElement).dataset.tab;

@@ -8,6 +8,7 @@ export function makePoll(overrides: Partial<Poll> = {}): Poll {
     _id: `poll-${Math.random().toString(36).slice(2)}`,
     title: "Test Poll",
     subtitle: "",
+    notes: "",
     keywords: "",
     choiceMode: "Single-Choice Poll",
     voteMutability: "Final-Vote Poll",

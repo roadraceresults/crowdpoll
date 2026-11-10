@@ -1,0 +1,17 @@
+[
+  { "stored": "", "html": "" },
+  { "stored": "Plain words.", "html": "Plain words." },
+  { "stored": "**bold**", "html": "<strong>bold</strong>" },
+  { "stored": "*italic*", "html": "<em>italic</em>" },
+  { "stored": "++underline++", "html": "<u>underline</u>" },
+  { "stored": "a **b** *c* ++d++ e", "html": "a <strong>b</strong> <em>c</em> <u>d</u> e" },
+  { "stored": "***both***", "html": "<strong><em>both</em></strong>" },
+  { "stored": "**++*all three*++**", "html": "<strong><u><em>all three</em></u></strong>" },
+  { "stored": "**bold *and italic* bold**", "html": "<strong>bold <em>and italic</em> bold</strong>" },
+  { "stored": "line one\nline two", "html": "line one<br>line two" },
+  { "stored": "**across\nlines**", "html": "<strong>across<br>lines</strong>" },
+  { "stored": "first\n\nafter a blank line", "html": "first<br><br>after a blank line" },
+  { "stored": "2 \\* 3 \\+ 4 \\\\ 5", "html": "2 * 3 + 4 \\ 5" },
+  { "stored": "**5 \\* 6**", "html": "<strong>5 * 6</strong>" },
+  { "stored": "&lt; \"quoted\" 'single'", "html": "&amp;lt; &quot;quoted&quot; &#39;single&#39;" }
+]

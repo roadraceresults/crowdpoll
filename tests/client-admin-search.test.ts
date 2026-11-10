@@ -18,7 +18,7 @@ afterAll(async () => {
   await ctx.stop();
 });
 
-const SCRIPTS = ["app.js", "adminCard.js", "adminList.js"];
+const SCRIPTS = ["app.js", "notesEditor.js", "adminCard.js", "adminList.js"];
 
 async function openAdmin(
   options: { as?: string; storage?: Record<string, string>; beforeScripts?: (window: BrowserPage["window"]) => void } = {}
