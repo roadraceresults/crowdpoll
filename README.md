@@ -145,6 +145,10 @@ delivery network.
   Opened from another CrowdPoll page in the same tab, the Privacy Policy and the Terms show a **Back**
   arrow under the header, in line with the logo; it returns to that page, past any section links
   you followed. Opened in a new tab or from another site, they show no arrow.
+- **Device evidence** — when collection is on, CrowdPoll records a fingerprint of your device and browser each
+  time you log in and vote, to help uphold one account per person. Nothing you see changes, and a fingerprint
+  never stops you voting. It is kept about 4 months at most and goes with your account; the Privacy Policy's
+  [Device Evidence](/privacy#device-evidence) section says exactly what is kept.
 - **Your data** — the Privacy Policy explains how to get a copy of your data, and its **Delete your
   account** link opens the Profile page's delete dialog: type DELETE to confirm. Your account, sessions, bookmarks and the
   polls you created go at once; your votes on other people's polls stay counted, shown as
@@ -621,6 +625,8 @@ provider settings only with `oauth` or `both`, and administrator addresses are m
 | `ENV_MAX_BOOKMARKS_PER_USER` | `200` | Bookmarks per visitor |
 | `ENV_BOOKMARK_EXPIRY_MONTHS` | `6` | Months of closure or inactivity before a bookmark is removed |
 | `ENV_PAGE_LOADS_PER_MINUTE` | `120` | Page loads per session (or address) per minute before a notice |
+| `ENV_DEVICE_EVENTS_ENABLED` | `false` | `true` records a device fingerprint at each login and vote, once the current Terms are accepted; any other value but `false` stops the app. To turn it on in production, confirm every account is a test user and tell them what is recorded, then set it in `infra/app.tf`, apply and deploy |
+| `ENV_DEVICE_EVENTS_KEY` | unset | The key fingerprints are hashed with, at least 32 characters, required when collection is on (`device_events_key` in `infra/secrets.auto.tfvars`, which Terraform requires even while collection is off). Never logged or published |
 | `ENV_FCAPTCHA_ENABLED` | unset | `1` turns on the human check before login (the self-hosted FCaptcha service); anything else leaves it off. When on, the three below are required |
 | `ENV_FCAPTCHA_URL` | unset | Where the web service reaches FCaptcha, server to server (`${fcaptcha.PRIVATE_URL}` in `infra/app.tf`) |
 | `ENV_FCAPTCHA_SITE_KEY` | unset | The site key the widget is drawn with (public; one of the FCaptcha service's `ENV_FCAPTCHA_SITE_KEYS`) |

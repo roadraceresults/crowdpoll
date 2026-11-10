@@ -95,6 +95,8 @@ export async function startTestContext(
     ENV_MANUAL_REFRESH_BURST: "1",
     ENV_SEARCH_BURST: "1",
     ENV_BUDGET_CONTROLLER_SWEEP_INTERVAL: "1",
+    // ENV_ADMINS has no default; suites that log in as config.admins[0] need one.
+    ENV_ADMINS: "harness-admin@example.org",
     ...envOverrides
   });
 
@@ -155,7 +157,7 @@ export async function startTestContext(
 
 /** Removes every poll-related row so a suite can start each case from nothing. */
 export async function clearPolls(ctx: TestContext): Promise<void> {
-  await sql`truncate table line_graph_tally, line_graph_selection, vote_history, votes, poll_invitations, invitation_history, invitation_emails, poll_bans, bookmarks, user_polls, search_outbox, polls`.execute(
+  await sql`truncate table device_events, line_graph_tally, line_graph_selection, vote_history, votes, poll_invitations, invitation_history, invitation_emails, poll_bans, bookmarks, user_polls, search_outbox, polls`.execute(
     ctx.db
   );
 }

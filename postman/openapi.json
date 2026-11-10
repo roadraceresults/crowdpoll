@@ -1774,6 +1774,10 @@
                         }
                       ],
                       "description": "The human check before login; null while ENV_FCAPTCHA_ENABLED is not 1"
+                    },
+                    "deviceEventsEnabled": {
+                      "type": "boolean",
+                      "description": "Whether device evidence is being collected (ENV_DEVICE_EVENTS_ENABLED); pages load the fingerprint library only when it is true"
                     }
                   }
                 }
@@ -2220,6 +2224,17 @@
                   "$ref": "#/components/schemas/Profile"
                 }
               }
+            },
+            "headers": {
+              "X-Device-Login-Due": {
+                "description": "1 when device evidence is being collected, the current Terms are accepted and this session has no sign-in event; absent otherwise. While collection is on the response carries Cache-Control: no-store, so a browser's stored copy cannot keep the header after the report.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "1"
+                  ]
+                }
+              }
             }
           },
           "401": {
@@ -2431,6 +2446,47 @@
         }
       }
     },
+    "/api/me/device-login": {
+      "post": {
+        "tags": [
+          "profile"
+        ],
+        "operationId": "reportDeviceSignIn",
+        "summary": "Record this session's sign-in event",
+        "description": "Called once per session by the page, after GET /api/me answered X-Device-Login-Due. The first report of a session writes one row, with keyed hashes of X-Device-Fingerprint or with null hashes when it is missing or malformed; every later report, and any report while ENV_DEVICE_EVENTS_ENABLED is false, writes nothing. It shares the ENV_PAGE_LOADS_PER_MINUTE limit with GET /api/me. Refused by the terms gate before the current Terms are accepted.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Device-Fingerprint",
+            "in": "header",
+            "required": false,
+            "description": "The browser's device fingerprint, read only while ENV_DEVICE_EVENTS_ENABLED is true: two parts of 32 lower-case hexadecimal characters joined by a dot. Absent or malformed, it is treated as missing and never causes an error; the request is answered the same.",
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}\\.[0-9a-f]{32}$"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Recorded, or nothing to record"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "terms-required: the current Terms are not accepted"
+          },
+          "429": {
+            "description": "More than ENV_PAGE_LOADS_PER_MINUTE page loads in a minute from this session or address"
+          }
+        }
+      }
+    },
     "/api/me/email-change": {
       "post": {
         "tags": [
@@ -2572,6 +2628,16 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "X-Device-Fingerprint",
+            "in": "header",
+            "required": false,
+            "description": "The browser's device fingerprint, read only while ENV_DEVICE_EVENTS_ENABLED is true: two parts of 32 lower-case hexadecimal characters joined by a dot. Absent or malformed, it is treated as missing and never causes an error; the request is answered the same.",
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}\\.[0-9a-f]{32}$"
             }
           }
         ],

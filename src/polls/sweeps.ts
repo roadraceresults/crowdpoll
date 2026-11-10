@@ -9,7 +9,7 @@
 import { sql } from "kysely";
 import type { AppConfig } from "../config.js";
 import type { Db } from "../db/client.js";
-import { ensureVoteHistoryPartition } from "../db/partitions.js";
+import { ensureDeviceEventsPartition, ensureVoteHistoryPartition } from "../db/partitions.js";
 import {
   applyPendingUpdate,
   claimNextForApproval,
@@ -336,10 +336,12 @@ export async function pollDateCheckSweep(deps: SweepDeps, now: Date = new Date()
   return changed;
 }
 
-/** The schedule sweep also keeps next month's vote-history partition ready. */
+/** The schedule sweep also keeps next month's vote-history and device-events partitions ready. */
 export async function scheduleSweep(deps: SweepDeps, now: Date = new Date()): Promise<number> {
   const changed = await pollDateCheckSweep(deps, now);
-  await ensureVoteHistoryPartition(deps.db, new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)));
+  const nextMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+  await ensureVoteHistoryPartition(deps.db, nextMonth);
+  await ensureDeviceEventsPartition(deps.db, nextMonth);
   return changed;
 }
 
@@ -350,6 +352,7 @@ export async function counterFlushSweep(deps: SweepDeps, now: Date = new Date())
 const DAY_MS = 24 * 3_600_000;
 
 const VOTE_HISTORY_RETENTION_MONTHS = 12;
+const DEVICE_EVENTS_RETENTION_MONTHS = 3;
 const EMAIL_CHANGE_LINK_MS = 15 * 60_000;
 
 /** Daily: removes what the Privacy Policy says is no longer kept (data-model.md Retention). */
@@ -369,24 +372,43 @@ export async function retentionSweep(deps: SweepDeps, config: AppConfig, now: Da
     .deleteFrom("invitation_emails")
     .where("sent_at", "<", new Date(now.getTime() - DAY_MS))
     .executeTakeFirst();
-  const partitions = await dropOldVoteHistory(db, now);
+  const partitions = await dropOldPartitions(db, "vote_history", VOTE_HISTORY_RETENTION_MONTHS, now);
+  const devicePartitions = await dropOldPartitions(db, "device_events", DEVICE_EVENTS_RETENTION_MONTHS, now);
   const counts = [sessions, links, changes, limits, invitationSends].map((r) => Number(r.numDeletedRows));
   console.log(
-    `[retention] Removed ${counts[0]} session(s), ${counts[1]} link(s), ${counts[2]} email change(s), ${counts[3]} rate-limit record(s), ${counts[4]} invitation send record(s); dropped ${partitions} vote-history partition(s)`
+    `[retention] Removed ${counts[0]} session(s), ${counts[1]} link(s), ${counts[2]} email change(s), ${counts[3]} rate-limit record(s), ${counts[4]} invitation send record(s); dropped ${partitions} vote-history partition(s), ${devicePartitions} device-events partition(s)`
   );
-  return counts.reduce((a, b) => a + b, partitions);
+  if (config.deviceEvents.enabled) await logDeviceEventCoverage(db, now);
+  return counts.reduce((a, b) => a + b, partitions + devicePartitions);
 }
 
-async function dropOldVoteHistory(db: Db, now: Date): Promise<number> {
-  const keepFrom = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - VOTE_HISTORY_RETENTION_MONTHS, now.getUTCDate()));
+/** Shows that collection works: counts only, so the line identifies nobody. */
+async function logDeviceEventCoverage(db: Db, now: Date): Promise<void> {
+  const rows = await db
+    .selectFrom("device_events")
+    .select((eb) => ["event", eb.fn.countAll<string>().as("total"), eb.fn.count<string>("browser_hash").as("with_fingerprint")])
+    .where("at", ">", new Date(now.getTime() - DAY_MS))
+    .where("at", "<=", now)
+    .groupBy("event")
+    .execute();
+  const part = (event: "sign-in" | "vote") => {
+    const row = rows.find((r) => r.event === event);
+    const withFingerprint = Number(row?.with_fingerprint ?? 0);
+    return `${event} ${withFingerprint} with a fingerprint, ${Number(row?.total ?? 0) - withFingerprint} without`;
+  };
+  console.log(`[device-events] last 24h: ${part("sign-in")}; ${part("vote")}`);
+}
+
+async function dropOldPartitions(db: Db, table: "vote_history" | "device_events", months: number, now: Date): Promise<number> {
+  const keepFrom = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - months, now.getUTCDate()));
   const children = await sql<{ name: string }>`
     select c.relname as name from pg_inherits i
     join pg_class c on c.oid = i.inhrelid
     join pg_class p on p.oid = i.inhparent
-    where p.relname = 'vote_history'`.execute(db);
+    where p.relname = ${table}`.execute(db);
   let dropped = 0;
   for (const { name } of children.rows) {
-    const match = /^vote_history_(\d{4})_(\d{2})$/.exec(name);
+    const match = new RegExp(`^${table}_(\\d{4})_(\\d{2})$`).exec(name);
     if (!match) continue;
     const monthEnd = new Date(Date.UTC(Number(match[1]), Number(match[2]), 1));
     if (monthEnd >= keepFrom) continue;

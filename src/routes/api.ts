@@ -37,6 +37,7 @@ import { maskIp } from "../auth/maskIp.js";
 import { avatarUrl } from "../auth/profilePicture.js";
 import { requireHumanCheck, type HumanCheck } from "../auth/humanCheck.js";
 import { listingMaxAgeMs } from "../trending/publish.js";
+import { isSignInDue, keyedDeviceHashes, recordSignInEvent } from "../votes/deviceEvents.js";
 
 export interface ApiDeps {
   auth: Auth;
@@ -154,6 +155,7 @@ export function createApiRouter(deps: ApiDeps): Router {
       oauthProviders: Object.keys(config.oauthProviders),
       // The login card says how long "stay logged in" lasts, from the same setting that enforces it.
       maxSigninCookieDurationMs: config.maxSigninCookieDurationMs,
+      deviceEventsEnabled: config.deviceEvents.enabled,
       staySignedInDefault: config.staySignedInDefault,
       trendingBaseUrl: config.spaces ? config.spaces.cdnUrl.replace(/\/$/, "") : "/api/trending",
       assetsBaseUrl: config.spaces ? `${config.spaces.cdnUrl.replace(/\/$/, "")}/assets` : "/assets",
@@ -722,6 +724,11 @@ export function createApiRouter(deps: ApiDeps): Router {
         profileAvatar?: string;
         status?: string;
       };
+      if (config.deviceEvents.enabled && hasAcceptedTerms(session)) {
+        // A 304 leaves a browser's stored headers in place, so a stored copy would keep saying due after the report.
+        res.setHeader("Cache-Control", "no-store");
+        if (await isSignInDue(cache, session.session.id)) res.setHeader("X-Device-Login-Due", "1");
+      }
       const acceptedVersion = (session.user as { termsVersion?: string | null }).termsVersion ?? "";
       res.json({
         userName: user.userName,
@@ -741,6 +748,31 @@ export function createApiRouter(deps: ApiDeps): Router {
         privacyUpdated: acceptedVersion < PRIVACY_UPDATED,
         colorScheme: colorSchemeOf(session.user)
       });
+    })
+  );
+
+  // POST /api/me/device-login (A4); the terms gate refuses it before acceptance.
+  router.post(
+    "/api/me/device-login",
+    pageLoads,
+    wrap(async (req, res) => {
+      const session = await sessions.getSession(req);
+      if (!session) {
+        res.status(401).json({ error: "Not signed in" });
+        return;
+      }
+      if (config.deviceEvents.enabled) {
+        await recordSignInEvent(
+          { db, cache },
+          {
+            sessionId: session.session.id,
+            accountId: session.user.id,
+            hashes: keyedDeviceHashes(req.get("x-device-fingerprint"), config.deviceEvents.key),
+            ttlMs: config.maxSigninCookieDurationMs
+          }
+        );
+      }
+      res.status(204).end();
     })
   );
 

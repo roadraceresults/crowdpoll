@@ -63,7 +63,7 @@ describe("retentionSweep (FR-020, R9)", () => {
     expect((await ctx.db.selectFrom("rateLimit").select("id").where("id", "in", ["r-old", "r-new"]).execute()).map((r) => r.id)).toEqual(["r-new"]);
     expect(await partitionExists(monthsAgo(13))).toBe(false);
     expect(await partitionExists(monthsAgo(11))).toBe(true);
-    expect(lines).toContain("[retention] Removed 1 session(s), 1 link(s), 1 email change(s), 1 rate-limit record(s), 0 invitation send record(s); dropped 1 vote-history partition(s)");
+    expect(lines).toContain("[retention] Removed 1 session(s), 1 link(s), 1 email change(s), 1 rate-limit record(s), 0 invitation send record(s); dropped 1 vote-history partition(s), 0 device-events partition(s)");
 
     expect(await hasVoteHistory(ctx.db, old._id)).toBe(true);
     expect(await pollsEverVoted(ctx.db, [old._id, recent._id])).toEqual(new Set([old._id, recent._id]));

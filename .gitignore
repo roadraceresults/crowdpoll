@@ -32,6 +32,7 @@ devScripts/populate/*
 [dD][oO][nN][tT][tT][rR][aA][cC][kK]/
 .claude/settings.local.json
 *.min.js
+!src/public/vendor/*.min.js
 *.bundle.js
 dump.rdb
 *BACKUP.*

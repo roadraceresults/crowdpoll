@@ -58,6 +58,20 @@ Decisions that are easy to get wrong:
 - **The resting pose is full**, so reduced motion is just `animation:none` (R3, R5).
 No migration, setting, route, cookie, file or dependency; one constant, one function, one sheet.
 Then, before that,
+`specs/20261105-162941-MULTIPLE-ACCOUNT-PREVENTION/plan.md` (research R1–R12, `data-model.md` — one migration, `019-device-events`;
+the stream fields, the cache key and the settings; the contracts `contracts/api.md` A1–A5 and `contracts/ui-contracts.md` C1–C6, and the
+quickstart live alongside it in `specs/20261105-162941-MULTIPLE-ACCOUNT-PREVENTION/`). The requirements report is
+`requirements/20261105-162941-multiple-account-prevention/requirements-report.md`: 4 diagrams and 16 findings, all resolved.
+Decisions that are easy to get wrong:
+- **Collection only**: nothing refuses, warns or changes a count on a fingerprint; analysis and response are later features (IN1).
+- **`FingerprintJS.load({ monitoring: false })` always**: the vendored npm build otherwise calls the vendor on 0.1% of loads (R2).
+- **Two values**: `visitorId`, and a hardware hash with **no GPU or `deviceMemory`**, because browsers do not report them alike, and Firefox reports no GPU to the library (R3).
+- **Raw values are never queued**: the web process HMACs them; a missing or malformed header never touches the vote (R4–R6).
+- **Vote events are taken in `writeBatch` before votes collapse** to one per participant (R6).
+- **Sign-in due is a response header on `/api/me`**, not a body field: `sameSnapshot` compares every body field; while collecting `/api/me` is `no-store`, because a `304` keeps a browser's stored headers (R7).
+- **Off by default**; the terms gate stops collection before acceptance; rows go with the account and the poll, not with a ban (R10, R11).
+One migration, one route, two settings, no npm dependency; one vendored file, one script.
+The preceding feature is
 `specs/20261105-161242-SOCIAL-LOGIN-AVATAR/plan.md` (research R1–R10, `data-model.md` — migration 017; the
 `profile_avatar_hash` column, the `avatar_removals` queue and the Spaces object; the HTTP contracts `contracts/api.md`
 A1–A3, the UI contracts `contracts/ui-contracts.md` C1–C6, and the quickstart live alongside it in

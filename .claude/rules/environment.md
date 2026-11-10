@@ -101,6 +101,8 @@ All runtime configuration comes from `ENV_*` environment variables:
 | `ENV_FCAPTCHA_REDIS_URL` | unset | FCaptcha service only: Valkey URL for its shared state, database 1 (`${valkey-tor1-crowdpoll.DATABASE_URL}/1`); unset → in memory |
 | `ENV_FCAPTCHA_TRUSTED_PROXIES` | unset | FCaptcha service only: comma-separated CIDRs whose forwarding headers are believed (FCaptcha's `TRUSTED_PROXIES`); production adds App Platform's `100.64.0.0/10` to the default; unset → loopback and private ranges |
 | `ENV_FCAPTCHA_INSECURE_DEV_MODE` | unset | FCaptcha service only: `1` lets it start without `ENV_FCAPTCHA_SECRET`, signing with a public key; never on a network |
+| `ENV_DEVICE_EVENTS_ENABLED` | `false` | `true` → a device fingerprint is recorded at each login and vote, once the current Terms are accepted; any value but `true` or `false` stops the app. Nothing refuses or warns on a fingerprint |
+| `ENV_DEVICE_EVENTS_KEY` | unset | The key the fingerprints are hashed with, required with at least 32 characters when collection is on. Replacing it means bumping `DEVICE_FINGERPRINT_VERSION`. Production: an encrypted variable, never logged or published |
 
 The FCaptcha service's settings are mapped by `fcaptcha-server/start.js` to FCaptcha's own names (`FCAPTCHA_SECRET`, `FCAPTCHA_VERIFY_SECRET`, `FCAPTCHA_SITE_KEYS`, `FCAPTCHA_ALLOWED_HOSTNAMES`, `FCAPTCHA_INSECURE_DEV_MODE`, `REDIS_URL`); one of those set directly stops it.
 

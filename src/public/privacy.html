@@ -40,7 +40,7 @@
           <ul>
             <li>One cookie lasts: the one that keeps you logged in. Two temporary cookies exist only during login: one for 15 minutes while a login link is waiting, and one for 5 minutes while you log in with Google, Apple, Microsoft or Amazon. Nothing else.</li>
             <li>We use your email address to sign you in, to send you the emails you ask for, and to show who voted on polls you take part in. Never for marketing.</li>
-            <li>No tracking: no analytics, no advertising, no profiling, nothing that follows you to other sites.</li>
+            <li>No analytics, no advertising, nothing that follows you to other sites. We do record a <a href="#device-evidence">fingerprint of your device and browser</a> when you log in and vote, to help uphold one account per person.</li>
             <li>Before you log in, a quick <a href="#bot-check">check</a> on our own servers detects bots and AI agents. It sets no cookie.</li>
             <li>We never sell your data or share it for anyone else's purposes.</li>
             <li>You can <a href="/profile#delete-account">delete your account</a> at any time from your Profile page.</li>
@@ -104,8 +104,29 @@
             <li><strong>Where</strong>: on CrowdPoll's own servers, using the open-source FCaptcha software. It is never
               sent to or shared with a third party.</li>
             <li><strong>How long</strong>: held in memory for at most one hour, then gone. It is not stored with your
-              account.</li>
+              account. This is separate from the <a href="#device-evidence">device evidence</a> described below.</li>
             <li><strong>Cookies</strong>: the check sets no cookie and stores nothing in your browser.</li>
+          </ul>
+        </section>
+
+        <section id="device-evidence" aria-labelledby="device-evidence-title">
+          <h3 id="device-evidence-title">Device Evidence</h3>
+          <ul>
+            <li><strong>What it records</strong>: when you log in and each time you vote, your account, the time, which
+              poll for a vote, and two scrambled codes made from characteristics of your browser and device (such as how
+              it draws graphics, and your screen, processor count, time zone and platform). It never records how you
+              voted.</li>
+            <li><strong>Why</strong>: CrowdPoll's rule is one account per person. These records let us look for one device
+              voting from several accounts. A shared device is normal, so a match alone does not mean anyone broke the
+              rule. It is never used for advertising.</li>
+            <li><strong>Where</strong>: on CrowdPoll's own servers, using the open-source FingerprintJS software. It is
+              never sent to or shared with a third party. The codes are scrambled with a secret key, so they mean nothing
+              outside CrowdPoll, and the characteristics themselves are not kept.</li>
+            <li><strong>Who sees it</strong>: only CrowdPoll's operators. Poll creators and other users cannot.</li>
+            <li><strong>How long</strong>: 3 months, removed once a month, so about 4 months at most. It is deleted at
+              once with your account, and a vote's record is deleted with its poll.</li>
+            <li><strong>Cookies</strong>: it keeps no cookie and stores nothing in your browser. The software checks
+              whether your browser accepts cookies by setting a test cookie and removing it at once.</li>
           </ul>
         </section>
 
@@ -129,7 +150,7 @@
         <p>No advertiser, data broker or analytics company receives anything. Our pages load nothing from anyone but the hosting provider listed above. Nothing follows you to other sites. We never sell your data.</p>
 
         <h2 id="tracking">7. No tracking</h2>
-        <p>We do not use analytics, advertising, profiling, or anything that follows you to other sites. We do not record which pages you look at.</p>
+        <p>We do not use analytics, advertising, or anything that follows you to other sites. We do not record which pages you look at.</p>
 
         <h2 id="retention">8. How long we keep it</h2>
         <table class="legal-table">
@@ -140,6 +161,7 @@
             <tr><td>Login and email-change links</td><td>15 minutes</td></tr>
             <tr><td>Rate-limit records (with your IP address)</td><td>15 minutes</td></tr>
             <tr><td>Bot and AI agent detection measurements</td><td>in memory, one hour at most</td></tr>
+            <tr><td>Device evidence</td><td>3 months, removed once a month, so about 4 months at most; deleted at once with your account, and a vote's record is deleted with its poll</td></tr>
             <tr><td>Polls and votes</td><td>as long as the poll exists; deleted with the poll or with your account</td></tr>
             <tr><td>The history of changed votes</td><td>12 months</td></tr>
             <tr><td>Bookmarks</td><td>6 months after the poll closes</td></tr>

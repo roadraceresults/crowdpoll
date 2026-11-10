@@ -29,6 +29,8 @@ export interface VoteRequest {
   pid: string;
   choiceIds: string[];
   now?: Date;
+  /** Present only when device evidence is being collected; its absence means no event is written. */
+  device?: { accountId: string; browserHash: string | null; hardwareHash: string | null };
 }
 
 export interface VoteResponse {
@@ -195,7 +197,10 @@ export async function castVote(deps: VotePathDeps, vote: VoteRequest): Promise<V
     userName: vote.userName,
     choiceIds: JSON.stringify(choiceIds),
     votedAt: now.toISOString(),
-    voteMutability: projection.voteMutability
+    voteMutability: projection.voteMutability,
+    ...(vote.device
+      ? { accountId: vote.device.accountId, browserHash: vote.device.browserHash ?? "", hardwareHash: vote.device.hardwareHash ?? "" }
+      : {})
   });
   await deps.cache.sadd(VOTED_KEY(vote.sessionId), VOTED_MARKER, vote.pid);
   await deps.cache.set(LAST_VOTE_KEY(vote.pid, vote.email), JSON.stringify(choiceIds), VOTED_TTL_MS);

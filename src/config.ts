@@ -108,6 +108,8 @@ export interface AppConfig {
   allowlist?: Allowlist;
   /** The self-hosted FCaptcha check before login (ENV_FCAPTCHA_*); null → off. */
   humanCheck: HumanCheckConfig | null;
+  /** Device evidence collection (ENV_DEVICE_EVENTS_*); the key is empty while it is off. */
+  deviceEvents: DeviceEventsConfig;
   emailSendTimeoutMs: number;
   sessionCacheTtlMs: number;
   maxPollsSearchResults: number;
@@ -193,6 +195,11 @@ export interface HumanCheckConfig {
   url: string;
   siteKey: string;
   verifySecret: string;
+}
+
+export interface DeviceEventsConfig {
+  enabled: boolean;
+  key: string;
 }
 
 export class ConfigError extends Error {}
@@ -420,6 +427,8 @@ export function loadConfig(env: Env = process.env): AppConfig {
   if (allowlist === undefined) read.none("ENV_ALLOWED_EMAILS", "none (allowlist off: everyone may log in)");
   const humanCheck = humanCheckConfig(env);
   if (humanCheck === null) read.none("ENV_FCAPTCHA_ENABLED", "off (no human check before login)");
+  const deviceEvents = deviceEventsConfig(env);
+  if (!deviceEvents.enabled) read.none("ENV_DEVICE_EVENTS_ENABLED", "false (no device evidence is collected)");
   if (!env.ENV_STAY_SIGNED_IN?.trim()) read.none("ENV_STAY_SIGNED_IN", "0 (the Stay logged in box starts clear)");
   for (const name of ["ENV_SMTP_USER", "ENV_SMTP_PASS"]) {
     if (!env[name]) read.none(name, "none (emails logged to the console, not sent)");
@@ -470,6 +479,7 @@ export function loadConfig(env: Env = process.env): AppConfig {
     emailAssetOrigin,
     allowlist,
     humanCheck,
+    deviceEvents,
     emailSendTimeoutMs: read.int("ENV_EMAIL_SEND_TIMEOUT", 10_000),
     sessionCacheTtlMs: read.int("ENV_SESSION_CACHE_TTL", 300_000),
     maxPollsSearchResults,
@@ -546,6 +556,21 @@ function humanCheckConfig(env: Env): HumanCheckConfig | null {
     throw new ConfigError(`ENV_FCAPTCHA_ENABLED is 1, so ${missing.join(", ")} must be set too.`);
   }
   return { url: url!, siteKey: siteKey!, verifySecret: verifySecret! };
+}
+
+const MIN_DEVICE_EVENTS_KEY_LENGTH = 32;
+
+function deviceEventsConfig(env: Env): DeviceEventsConfig {
+  const raw = env.ENV_DEVICE_EVENTS_ENABLED?.trim() ?? "";
+  if (raw !== "" && raw !== "true" && raw !== "false") {
+    throw new ConfigError(`Invalid ENV_DEVICE_EVENTS_ENABLED: "${raw}" — expected true or false.`);
+  }
+  if (raw !== "true") return { enabled: false, key: "" };
+  const key = optionalVar(env, "ENV_DEVICE_EVENTS_KEY") ?? "";
+  if (key.length < MIN_DEVICE_EVENTS_KEY_LENGTH) {
+    throw new ConfigError(`ENV_DEVICE_EVENTS_ENABLED is true, so ENV_DEVICE_EVENTS_KEY must be set, with at least ${MIN_DEVICE_EVENTS_KEY_LENGTH} characters.`);
+  }
+  return { enabled: true, key };
 }
 
 const SPACES_VARIABLES = [

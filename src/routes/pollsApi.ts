@@ -9,6 +9,7 @@ import type { SessionCache } from "../auth/sessionCache.js";
 import type { Cache } from "../cache/cache.js";
 import type { AppContext } from "../server.js";
 import { assertMayAddChoice, castVote } from "../votes/votePath.js";
+import { keyedDeviceHashes } from "../votes/deviceEvents.js";
 import { randomUUID } from "node:crypto";
 import { localScreener, screenWithTimeout } from "../polls/screening.js";
 import { projectPoll } from "../polls/versions.js";
@@ -187,10 +188,13 @@ export function createVoteRouter(context: AppContext): Router {
       const choiceIds = Array.isArray(req.body?.choiceIds)
         ? req.body.choiceIds.filter((c: unknown): c is string => typeof c === "string")
         : [];
+      const device = config.deviceEvents.enabled
+        ? { device: { accountId: caller.id, ...keyedDeviceHashes(req.get("x-device-fingerprint"), config.deviceEvents.key) } }
+        : {};
       try {
         const outcome = await castVote(
           { db, cache, config, rosters, abuse },
-          { sessionId: caller.sessionId, userId: caller.id, email: caller.email, userName: caller.userName, ip: req.ip ?? "", pid: pidOf(req), choiceIds }
+          { sessionId: caller.sessionId, userId: caller.id, email: caller.email, userName: caller.userName, ip: req.ip ?? "", pid: pidOf(req), choiceIds, ...device }
         );
         res.json({ ...outcome, nextRefreshMs: config.floors.vote });
       } catch (err) {

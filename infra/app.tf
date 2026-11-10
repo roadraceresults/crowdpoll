@@ -75,10 +75,11 @@ locals {
     ENV_PAGE_LOADS_PER_MINUTE                       = "120"
     ENV_FCAPTCHA_ENABLED                            = "1"
     ENV_FCAPTCHA_SITE_KEY                           = "crowdpoll"
+    ENV_DEVICE_EVENTS_ENABLED                       = "false"
   }
 
   # Read only at run time: the build (publish-assets) runs loadConfig without the RUN_TIME secrets they depend on.
-  web_run_time_settings = ["ENV_EMAIL_TRANSPORT", "ENV_SIGNIN_METHOD", "ENV_FCAPTCHA_ENABLED"]
+  web_run_time_settings = ["ENV_EMAIL_TRANSPORT", "ENV_SIGNIN_METHOD", "ENV_FCAPTCHA_ENABLED", "ENV_DEVICE_EVENTS_ENABLED"]
 
   # A login provider's env is added only when its value is set.
   oauth_settings = {
@@ -251,6 +252,13 @@ resource "digitalocean_app" "crowdpoll" {
       env {
         key   = "ENV_FCAPTCHA_VERIFY_SECRET"
         value = random_password.fcaptcha_verify_secret.result
+        scope = "RUN_TIME"
+        type  = "SECRET"
+      }
+
+      env {
+        key   = "ENV_DEVICE_EVENTS_KEY"
+        value = var.device_events_key
         scope = "RUN_TIME"
         type  = "SECRET"
       }

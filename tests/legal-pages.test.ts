@@ -70,6 +70,39 @@ describe("the Privacy Policy and Terms of Service pages (A1, A2)", () => {
     expect(html).toContain("<tr><td>Bot and AI agent detection measurements</td><td>in memory, one hour at most</td></tr>");
   });
 
+  it("describes device evidence in one section, and the summary and retention table agree with it (C4, C5)", () => {
+    const html = source("privacy.html").replace(/\s+/g, " ");
+    const section = /<section id="device-evidence"[\s\S]*?<\/section>/.exec(html)![0];
+    expect(html.indexOf('<section id="bot-check"')).toBeLessThan(html.indexOf('<section id="device-evidence"'));
+    expect(section).toContain("Device Evidence");
+    for (const part of ["What it records", "Why", "Where", "Who sees it", "How long", "Cookies"]) expect(section).toContain(`<strong>${part}</strong>`);
+    expect(section).toContain("never records how you voted");
+    expect(section).toContain("using the open-source FingerprintJS software");
+    expect(section).toContain("never sent to or shared with a third party");
+    expect(section).toContain("a match alone does not mean anyone broke the rule");
+    expect(section).toContain("3 months, removed once a month, so about 4 months at most");
+    expect(section).toContain("setting a test cookie and removing it at once");
+    expect(html).toContain('<a href="#device-evidence">fingerprint of your device and browser</a>');
+    expect(html).toContain("<tr><td>Device evidence</td><td>3 months, removed once a month, so about 4 months at most; deleted at once with your account, and a vote's record is deleted with its poll</td></tr>");
+    const botCheck = /<section id="bot-check"[\s\S]*?<\/section>/.exec(html)![0];
+    expect(botCheck).toContain('This is separate from the <a href="#device-evidence">device evidence</a> described below.');
+  });
+
+  it("no longer promises no profiling or no tracking in the summary, and keeps the bot-check anchor (C4)", () => {
+    const html = source("privacy.html").replace(/\s+/g, " ");
+    expect(html).not.toMatch(/profiling/i);
+    expect(html).not.toContain("<li>No tracking:");
+    expect(html).toContain('id="bot-check"');
+  });
+
+  it("links the Terms to the section, and neither page ensures one vote per person (C6)", () => {
+    const terms = source("terms.html").replace(/\s+/g, " ");
+    expect(terms).toContain('One account per person; do not create accounts for others or share yours. To help uphold this, we record a fingerprint of your device and browser when you log in and vote, as our <a href="/privacy#device-evidence">Privacy Policy</a> explains.');
+    for (const name of ["privacy.html", "terms.html"]) {
+      expect(source(name).replace(/\s+/g, " "), name).not.toMatch(/(guarantee|ensure)[^.]*one (vote|account) per person/i);
+    }
+  });
+
   it("says one cookie lasts, marks the other two temporary, and states the other promises (TWEAK18)", () => {
     const html = source("privacy.html");
     expect(html).toContain("One cookie lasts: the one that keeps you logged in. Two temporary cookies exist only during login:");

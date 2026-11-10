@@ -63,6 +63,8 @@ $env:ENV_OAUTH_AMAZON_CLIENT_SECRET = ""
 # $env:ENV_FCAPTCHA_SITE_KEY = "dev"
 # $env:ENV_FCAPTCHA_VERIFY_SECRET = ""
 # $env:ENV_FCAPTCHA_SECRET = ""
+# $env:ENV_DEVICE_EVENTS_ENABLED = "true"
+# $env:ENV_DEVICE_EVENTS_KEY = ""
 
 
 # --- 4. Email: Amazon SES and the rate limit on the endpoints that send mail ---

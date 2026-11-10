@@ -2,13 +2,14 @@ import { sql } from "kysely";
 import type { Cache, StreamEntry } from "../cache/cache.js";
 import type { AppConfig } from "../config.js";
 import type { Db } from "../db/client.js";
-import { ensureVoteHistoryPartition } from "../db/partitions.js";
+import { ensureDeviceEventsPartition, ensureVoteHistoryPartition } from "../db/partitions.js";
 import { markEverVoted, upsertUserPolls } from "../polls/store.js";
 import { forgetTabs } from "../refresh/tabVersions.js";
 import { recordLineGraphTally } from "../polls/lineGraphTally.js";
 import { reconcile } from "../polls/counters.js";
 import { withoutDeletedAccounts } from "../legal/deletedAccounts.js";
 import { VOTE_GROUP, VOTE_STREAM } from "./queue.js";
+import { DEVICE_FINGERPRINT_VERSION } from "./deviceEvents.js";
 import { QUEUE_LAG } from "./votePath.js";
 
 const BLOCK_MS = 1000;
@@ -24,6 +25,7 @@ interface QueuedVote {
   choiceIds: string[];
   votedAt: Date;
   voteMutability: string;
+  device?: { accountId: string; browserHash: string | null; hardwareHash: string | null };
 }
 
 function parseEntry(entry: StreamEntry): QueuedVote | null {
@@ -34,7 +36,16 @@ function parseEntry(entry: StreamEntry): QueuedVote | null {
       userName: entry.fields.userName ?? "",
       choiceIds: JSON.parse(entry.fields.choiceIds ?? "[]") as string[],
       votedAt: new Date(entry.fields.votedAt ?? Date.now()),
-      voteMutability: entry.fields.voteMutability ?? "Final-Vote Poll"
+      voteMutability: entry.fields.voteMutability ?? "Final-Vote Poll",
+      ...(entry.fields.accountId
+        ? {
+            device: {
+              accountId: entry.fields.accountId,
+              browserHash: entry.fields.browserHash || null,
+              hardwareHash: entry.fields.hardwareHash || null
+            }
+          }
+        : {})
     };
   } catch {
     return null;
@@ -65,6 +76,7 @@ export async function writeBatch(db: Db, queued: QueuedVote[]): Promise<void> {
   for (const month of months) {
     const [year, m] = month.split("-").map(Number);
     await ensureVoteHistoryPartition(db, new Date(Date.UTC(year!, m!, 1)));
+    if (votes.some((v) => v.device)) await ensureDeviceEventsPartition(db, new Date(Date.UTC(year!, m!, 1)));
   }
   await db.transaction().execute(async (trx) => {
     // One row per participant per poll in a statement: the last vote of a
@@ -109,6 +121,23 @@ export async function writeBatch(db: Db, queued: QueuedVote[]): Promise<void> {
       )
       .execute();
     await recordLineGraphTally(trx, votes);
+    // From the full list: two votes of one batch collapse to one row above, but each is an event.
+    const events = votes.flatMap((v) =>
+      v.device
+        ? [
+            {
+              account_id: v.device.accountId,
+              event: "vote" as const,
+              poll_id: v.pid,
+              browser_hash: v.device.browserHash,
+              hardware_hash: v.device.hardwareHash,
+              fingerprint_version: DEVICE_FINGERPRINT_VERSION,
+              at: v.votedAt
+            }
+          ]
+        : []
+    );
+    if (events.length > 0) await trx.insertInto("device_events").values(events).execute();
     await markEverVoted(trx, [...new Set(votes.map((v) => v.pid))]);
     const latest = new Map<string, Date>();
     for (const v of votes) {
