@@ -53,16 +53,16 @@ describe("allowlist setting", () => {
   it("reports its state at startup by count, never by address", () => {
     expect(allowlistStatus(configWith({}))).toBe("[auth] Sign-up allowlist off");
     const on = allowlistStatus(configWith({ ENV_ALLOWED_EMAILS: "a@example.org,b@example.org" }));
-    expect(on).toBe("[auth] Sign-up allowlist on (2 addresses; 1 administrator always allowed)");
+    expect(on).toBe("[auth] Sign-up allowlist on (2 addresses)");
     expect(on).not.toContain("example.org");
   });
 
   it("counts patterns apart from addresses, naming neither", () => {
     const status = (list: string) => allowlistStatus(configWith({ ENV_ALLOWED_EMAILS: list }));
-    expect(status("*@crowdpoll.vote")).toBe("[auth] Sign-up allowlist on (1 pattern; 1 administrator always allowed)");
-    expect(status("*@crowdpoll.vote,qa-*@gmail.com")).toBe("[auth] Sign-up allowlist on (2 patterns; 1 administrator always allowed)");
+    expect(status("*@crowdpoll.vote")).toBe("[auth] Sign-up allowlist on (1 pattern)");
+    expect(status("*@crowdpoll.vote,qa-*@gmail.com")).toBe("[auth] Sign-up allowlist on (2 patterns)");
     const mixed = status("a@example.org,b@example.org,*@crowdpoll.vote");
-    expect(mixed).toBe("[auth] Sign-up allowlist on (2 addresses, 1 pattern; 1 administrator always allowed)");
+    expect(mixed).toBe("[auth] Sign-up allowlist on (2 addresses, 1 pattern)");
     expect(mixed).not.toContain("crowdpoll.vote");
   });
 
@@ -71,6 +71,7 @@ describe("allowlist setting", () => {
     const three = status("devadmin01@crowdpoll.vote, devadmin02@crowdpoll.vote, devadmin03@crowdpoll.vote");
     expect(three).toBe("[auth] Sign-up allowlist on (1 pattern; 3 administrators always allowed)");
     expect(three).not.toContain("devadmin");
+    expect(status("admin@example.org")).toBe("[auth] Sign-up allowlist on (1 pattern; 1 administrator always allowed)");
     expect(status("")).toBe("[auth] Sign-up allowlist on (1 pattern)");
   });
 });

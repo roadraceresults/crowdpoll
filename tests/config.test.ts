@@ -728,7 +728,8 @@ describe("defaultsUsed", () => {
     expect(defaultOf(config, "ENV_SIGNIN_METHOD")).toBe("native");
     expect(defaultOf(config, "ENV_DATABASE_URL")).toBe("postgres://localhost:5432/app01");
     expect(defaultOf(config, "ENV_EMAIL_TRANSPORT")).toBe("smtp");
-    expect(defaultOf(config, "ENV_ADMINS")).toBe("roadraceresults@gmail.com");
+    expect(defaultOf(config, "ENV_ADMINS")).toBe("none (no administrators)");
+    expect(config.admins).toEqual([]);
     expect(defaultOf(config, "ENV_EMAIL_FROM")).toBe("CrowdPoll <no-reply@mail.crowdpoll.vote>");
   });
 
@@ -844,21 +845,14 @@ describe("defaultsUsedLines", () => {
     expect(defaultsUsedLines(config)).toEqual(["[config] ENV_PORT was not found, using default value: 8080."]);
   });
 
-  it("masks the default administrator address", () => {
-    const config = { ...loadConfig(baseEnv()), defaultsUsed: [{ name: "ENV_ADMINS", value: "roadraceresults@gmail.com" }] };
-    expect(defaultsUsedLines(config)).toEqual(["[config] ENV_ADMINS was not found, using default value: r•••@gmail.com."]);
-  });
-
   it("prints the service's own sender in full", () => {
     const from = "CrowdPoll <no-reply@mail.crowdpoll.vote>";
     const config = { ...loadConfig(baseEnv()), defaultsUsed: [{ name: "ENV_EMAIL_FROM", value: from }] };
     expect(defaultsUsedLines(config)).toEqual([`[config] ENV_EMAIL_FROM was not found, using default value: ${from}.`]);
   });
 
-  it("never prints the full default administrator address", () => {
-    for (const line of defaultsUsedLines(loadConfig(baseEnv()))) {
-      expect(line).not.toContain("roadraceresults@gmail.com");
-    }
+  it("says no administrators when ENV_ADMINS is unset", () => {
+    expect(defaultsUsedLines(loadConfig(baseEnv()))).toContain("[config] ENV_ADMINS was not found, using default value: none (no administrators).");
   });
 
   it("writes nothing when every setting was given", () => {

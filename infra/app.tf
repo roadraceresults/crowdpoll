@@ -12,7 +12,6 @@ locals {
     ENV_SPACES_BUCKET                               = digitalocean_spaces_bucket.crowdpoll.name
     ENV_SPACES_REGION                               = "tor1"
     ENV_SPACES_CDN_URL                              = "https://${digitalocean_cdn.crowdpoll.endpoint}"
-    ENV_ADMINS                                      = "roadraceresults@gmail.com"
     ENV_PROTOTYPES                                  = "SINGLE-COLUMN-RENDERING"
     ENV_PUBLIC_ORIGIN                               = "https://crowdpoll.vote"
     ENV_SIGNIN_METHOD                               = "both"
@@ -231,6 +230,13 @@ resource "digitalocean_app" "crowdpoll" {
       env {
         key   = "ENV_SES_SECRET_ACCESS_KEY"
         value = var.ses_secret_access_key
+        scope = "RUN_TIME"
+        type  = "SECRET"
+      }
+
+      env {
+        key   = "ENV_ADMINS"
+        value = var.admins
         scope = "RUN_TIME"
         type  = "SECRET"
       }

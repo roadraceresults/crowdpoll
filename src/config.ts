@@ -395,7 +395,8 @@ export function loadConfig(env: Env = process.env): AppConfig {
     );
   }
 
-  const admins = read.text("ENV_ADMINS", "roadraceresults@gmail.com")
+  if (env.ENV_ADMINS === undefined) read.none("ENV_ADMINS", "none (no administrators)");
+  const admins = (env.ENV_ADMINS ?? "")
     .split(",")
     .map((a) => a.trim().toLowerCase())
     .filter((a) => a.length > 0);
