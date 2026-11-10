@@ -131,7 +131,7 @@ describe("POST /api/auth/create-account with a token", () => {
     const mails = ctx.sent.length;
     const res = await create({ token, ...AGREE });
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ redirect: `/?PID=${pid}` });
+    expect(res.body).toEqual({ redirect: `/?PID=${pid}&signedIn=1` });
     expect((res.headers["set-cookie"] as unknown as string[]).some((c) => c.startsWith("session_token="))).toBe(true);
     expect(ctx.sent.length).toBe(mails);
     const user = await userOf(email);

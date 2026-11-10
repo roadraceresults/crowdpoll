@@ -28,7 +28,7 @@ async function signIn(email: string, ip = freshIp()): Promise<string> {
     .send({ ...AGREED, email });
   const link = extractLinkPath(ctx.sent.at(-1)!);
   const res = await followSignInLink(ctx, link);
-  expect(res.headers.location).toBe("/");
+  expect(res.headers.location).toBe("/?signedIn=1");
   const setCookie = (res.headers["set-cookie"] as unknown as string[]).find((c) =>
     c.startsWith("session_token=")
   )!;

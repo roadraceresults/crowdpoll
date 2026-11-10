@@ -45,7 +45,7 @@ async function signIn(
   const link = extractLinkPath(ctx.sent.at(-1)!);
   const res = await followSignInLink(ctx, link);
   expect(res.status).toBe(302);
-  expect(res.headers.location).toBe("/");
+  expect(res.headers.location).toBe("/?signedIn=1");
   const setCookie = recordCookies(res).find((c) => c.startsWith("session_token="))!;
   expect(setCookie).toBeTruthy();
   return { cookie: setCookie.split(";")[0]!, setCookie };

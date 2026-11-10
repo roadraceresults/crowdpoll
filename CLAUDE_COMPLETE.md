@@ -5,6 +5,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261108-193031-SNACKBAR-HOURGLASS/plan.md` (research R1–R10, `data-model.md` — no migration; the
+`SIGN_IN_NOTICE_MS` constant and the notice's markup; the UI contracts `contracts/ui-contracts.md` C1–C5, and the
+quickstart live alongside it in `specs/20261108-193031-SNACKBAR-HOURGLASS/`). The requirements report is
+`requirements/20261108-193031-snackbar-hourglass/requirements-report.md`: 3 diagrams and 10 findings, all resolved.
+Decisions that are easy to get wrong:
+- **An inline SVG built by `app.js`**, not an image file: only inline SVG takes the M3 colour tokens and the sheet's
+  animation, and it rides on the CDN-served script and sheet with no extra request (R1, RS2).
+- **One clock**: `SIGN_IN_NOTICE_MS` (7000) ends the notice and reaches the sheet as `--m3-snackbar-timer`; the
+  animation hangs on `m3-snackbar--timed`, never on `is-shown`, so the fade does not refill the sand (R4).
+- **The resting pose is full**, so reduced motion is just `animation:none` (R3, R5).
+No migration, setting, route, cookie, file or dependency; one constant, one function, one sheet.
+The preceding feature is
 `specs/20261105-161242-SOCIAL-LOGIN-AVATAR/plan.md` (research R1–R10, `data-model.md` — migration 017; the
 `profile_avatar_hash` column, the `avatar_removals` queue and the Spaces object; the HTTP contracts `contracts/api.md`
 A1–A3, the UI contracts `contracts/ui-contracts.md` C1–C6, and the quickstart live alongside it in

@@ -66,7 +66,7 @@ describe("login links bound to the requesting browser (FR-016–FR-020)", () => 
   it("logs in at once in the same browser and clears the cookie", async () => {
     const { link } = await requestLink(freshEmail());
     const res = await followSignInLink(ctx, link).redirects(0);
-    expect(res.headers.location).toBe("/");
+    expect(res.headers.location).toBe("/?signedIn=1");
     expect(cookies(res).some((c) => c.startsWith("session_token="))).toBe(true);
     expect(cookies(res).some((c) => /^signin_binding=;.*Max-Age=0/.test(c))).toBe(true);
   });
@@ -77,7 +77,7 @@ describe("login links bound to the requesting browser (FR-016–FR-020)", () => 
     expect(res.headers.location).toMatch(/^\/confirm-signin\?token=/);
     expect(cookies(res).some((c) => c.startsWith("session_token="))).toBe(false);
     const again = await followSignInLink(ctx, link).redirects(0);
-    expect(again.headers.location).toBe("/");
+    expect(again.headers.location).toBe("/?signedIn=1");
   });
 
   it("refuses an expired link in another browser as today, never confirming it", async () => {
@@ -103,7 +103,7 @@ describe("login links bound to the requesting browser (FR-016–FR-020)", () => 
     const { link } = await requestLink(freshEmail(), { staySignedIn: true, pid });
     const res = await confirm({ token: tokenOf(link), stay: true, pid });
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ redirect: `/?PID=${pid}` });
+    expect(res.body).toEqual({ redirect: `/?PID=${pid}&signedIn=1` });
     const session = cookies(res).find((c) => c.startsWith("session_token="))!;
     expect(session).toMatch(/Max-Age=\d+/);
   });

@@ -1217,8 +1217,10 @@ are all set. BetterAuth's `baseURL` and only trusted origin is `ENV_PUBLIC_ORIGI
   and sets `Max-Age` as the emailed link's route does; with the box clear it leaves a browser-session cookie. No cookie or
   address carries the choice.
 - **What is shared.** `CardShell.addProviderSharing` writes a sentence under each provider's button on the Login card, and
-  `CardShell.addOauthSharing` writes one line under the invitation card's buttons, from the configured providers. `signedIn=1` tells `app.js` to show "Logged in as" as a snackbar, and it removes
+  `CardShell.addOauthSharing` writes one line under the invitation card's buttons, from the configured providers. `signedIn=1` tells `app.js` to show "Logged in as" as a snackbar (an emailed-link login lands on it too, by `completeSignIn`), and it removes
   the parameter at once; `acceptTermsCard.js` shows the same words itself and takes the parameter out of `next`.
+  `showSignInNotice` ends the snackbar with an hourglass, an inline SVG coloured by the M3 tokens; its drain is timed by
+  `SIGN_IN_NOTICE_MS` (7 s), passed to `snackbar-m3.css` as `--m3-snackbar-timer`, the same constant that removes it.
 
 ### The Google profile picture
 

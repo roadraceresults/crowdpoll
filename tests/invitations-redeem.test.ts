@@ -136,7 +136,7 @@ describe("minted login (foundation)", () => {
       .set("Origin", "http://127.0.0.1")
       .send({ token, stay: false });
     expect(res.status).toBe(200);
-    expect(res.body.redirect).toBe("/");
+    expect(res.body.redirect).toBe("/?signedIn=1");
     const cookies = res.headers["set-cookie"] as unknown as string[];
     expect(cookies.some((c) => c.startsWith("session_token="))).toBe(true);
     const after = await userRow(invitee);
@@ -220,7 +220,7 @@ describe("US1: a new invitee reaches the poll from the invitation alone", () => 
     const token = await invite(poll._id, invitee);
     const res = await redeem({ pid: poll._id, token, stay: false, ...AGREE }, { ip: freshIp() });
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ redirect: `/?PID=${poll._id}` });
+    expect(res.body).toEqual({ redirect: `/?PID=${poll._id}&signedIn=1` });
     const cookie = sessionCookieOf(res);
     const user = await ctx.db
       .selectFrom("user")
@@ -309,7 +309,7 @@ describe("US2: an existing account holder reaches the poll in one click", () => 
     expect(info.body.hasAccount).toBe(true);
     const res = await redeem({ pid: poll._id, token, stay: false }, { ip: freshIp() });
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ redirect: `/?PID=${poll._id}` });
+    expect(res.body).toEqual({ redirect: `/?PID=${poll._id}&signedIn=1` });
     sessionCookieOf(res);
     const user = await ctx.db.selectFrom("user").select(["name"]).where("email", "=", invitee).executeTakeFirstOrThrow();
     expect(user.name).toBe("Maria");
@@ -384,7 +384,7 @@ describe("US4: a browser logged in as someone else", () => {
 
     const ok = await redeem({ pid: poll._id, token, stay: false, signOut: true, ...AGREE }, { ip: freshIp(), cookie: other.cookie });
     expect(ok.status).toBe(200);
-    expect(ok.body).toEqual({ redirect: `/?PID=${poll._id}` });
+    expect(ok.body).toEqual({ redirect: `/?PID=${poll._id}&signedIn=1` });
     sessionCookieOf(ok);
     expect(await ctx.db.selectFrom("session").select("id").where("userId", "=", other.userId).execute()).toHaveLength(0);
     const invited = await ctx.db.selectFrom("user").select("id").where("email", "=", invitee).executeTakeFirstOrThrow();

@@ -136,7 +136,7 @@ describe("both mode", () => {
       .send({ ...AGREED, email: "both-mode@example.com" });
     expect(created.status).toBe(200);
     const signedUp = await followSignInLink(ctx, extractLinkPath(ctx.sent.at(-1)!));
-    expect(signedUp.headers.location).toBe("/");
+    expect(signedUp.headers.location).toBe("/?signedIn=1");
 
     const requested = await request(ctx.app)
       .post("/api/auth/request-login-link")
@@ -144,7 +144,7 @@ describe("both mode", () => {
       .send({ email: "both-mode@example.com", staySignedIn: false });
     expect(requested.status).toBe(200);
     const signedIn = await followSignInLink(ctx, extractLinkPath(ctx.sent.at(-1)!));
-    expect(signedIn.headers.location).toBe("/");
+    expect(signedIn.headers.location).toBe("/?signedIn=1");
     const cookie = [signedIn.headers["set-cookie"]].flat().map(String).find((c) => c.startsWith("session_token="))!.split(";")[0]!;
 
     const change = await request(ctx.app)
