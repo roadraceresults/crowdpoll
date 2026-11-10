@@ -1,5 +1,5 @@
 {
-    "requirements_directory": "requirements/20261109-201638-allowlist-domain-wildcard",
+    "requirements_directory": "requirements/20261110-123524-who-voted-report",
     "last_written": {
         "requirements/20261019-153514-production-email/requirements.md": "e0bd2b0bf28c2fbd6699c99cdf364c1398d3b7aed8eb456198295f78d108ee08",
         "requirements/20261019-153514-production-email/requirements-report.md": "4f75f5e263fa092fc0fcedc4a7cdaa32128382e287f2ac0394e4957e8d8bd413",
@@ -68,6 +68,8 @@
         "requirements/20261109-114330-poll-notes/requirements.md": "11636b50c75cce32e822ec9e2dec52cea92488efdd4e974b3f892f7e93a67c96",
         "requirements/20261109-114330-poll-notes/requirements-report.md": "2f834a091390e187f8b0876288bfc61d52f5364c74863ad76e0371a26bddf2dd",
         "requirements/20261109-201638-allowlist-domain-wildcard/requirements.md": "eb93e3d4d2e667567549030be1f3fb08385f991e425b6611b381c784b66841fa",
-        "requirements/20261109-201638-allowlist-domain-wildcard/requirements-report.md": "ff1242870f4bb586916afef1503d3081037275d4ce9bd8cc1e0e240da369273a"
+        "requirements/20261109-201638-allowlist-domain-wildcard/requirements-report.md": "ff1242870f4bb586916afef1503d3081037275d4ce9bd8cc1e0e240da369273a",
+        "requirements/20261110-123524-who-voted-report/requirements-report.md": "ede014de035b6784185dea34d77342ee4857375dd853b695c9ee790e3d855206",
+        "requirements/20261110-123524-who-voted-report/requirements.md": "aff58de8a95993edaa426ea2af73f4c72b77ec091f598c88613da03e3e14c9f6"
     }
 }

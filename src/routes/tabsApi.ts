@@ -21,12 +21,13 @@ import {
 import { etagOf, readNewestObjects, readTrendingObjects } from "../trending/recompute.js";
 import type { Cache } from "../cache/cache.js";
 import { liveTabDelta } from "../live/liveTab.js";
-import { holdsPermission, NO_VIEW_PERMISSION, NO_VOTE_PERMISSION, type Caller } from "../polls/service.js";
+import { holdsPermission, isAdminEmail, NO_VIEW_PERMISSION, NO_VOTE_PERMISSION, type Caller } from "../polls/service.js";
 import { decideSharedLink, parsePid } from "../polls/sharedLink.js";
 import { adoptInvitations, markAccepted } from "../invitations/invitations.js";
 import { isPublished } from "../polls/store.js";
 import { ACCESS_COLUMNS, isIndexable, mayViewResults, mayWatchMany, reachableMany } from "../polls/access.js";
 import { serveLineGraph } from "../polls/lineGraph.js";
+import { readVoterReport } from "../polls/voters.js";
 import { homeTabListing } from "../polls/homeTab.js";
 import type { PersonalTab } from "../polls/userPolls.js";
 import type { RequestKind } from "../load/budget.js";
@@ -499,6 +500,36 @@ export function createTabsApiRouter(context: AppContext): Router {
         counts: counts.get(pid) ?? { voteCount: 0, choiceCounts: {}, countsVersion: 0 },
         overlay: { ...entry, mayWatch: watchable.has(pid), voteBlockedReason: blocks.get(pid) ?? null }
       });
+    })
+  );
+
+  // ---- Who voted for what, on a private poll whose votes are not anonymous ----
+
+  router.get(
+    "/api/me/polls/:pid/voters",
+    requireSession,
+    shedding.withKind("live"),
+    floors.enforceFloor("live", "voters"),
+    countBudget("live"),
+    wrap(async (req, res) => {
+      res.setHeader("Cache-Control", "private, no-store");
+      const pid = parsePid(req.params.pid);
+      const row = pid ? await db.selectFrom("polls").selectAll().where("id", "=", pid).executeTakeFirst() : undefined;
+      const showsVoters = row !== undefined && row.poll_visibility === "Private Poll" && row.vote_anonymity === "No";
+      const mayRead =
+        showsVoters &&
+        ((await mayViewResults({ db, config }, callerOf(res), row.id)) ||
+          (isAdminEmail(emailOf(res), config) && isPublished(row)));
+      if (!row || !mayRead) {
+        res.status(404).json({ error: "Not found" });
+        return;
+      }
+      const [{ voters, counted }, counts] = await Promise.all([
+        readVoterReport(db, row),
+        readOrRebuildCounts({ db, cache }, [row.id])
+      ]);
+      const liveCount = counts.get(row.id)?.voteCount ?? counted;
+      res.json({ voters, ...(liveCount !== counted ? { settleMs: config.voteQueueLagNoticeMs } : {}) });
     })
   );
 

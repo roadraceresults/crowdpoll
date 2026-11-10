@@ -186,6 +186,7 @@
     let retainedDetail = null;
     let graphPid = null;
     let notesShown = null;
+    let votersShown = null;
     let pinnedPid = null;
     const opts = Object.assign(
       {
@@ -225,6 +226,7 @@
         }
         syncLineGraph(pid, card, detail);
         syncNotes(pid, detail);
+        syncVoters(pid, detail);
       });
       Array.from(mounted.keys()).forEach((pid) => {
         if (seen.has(pid)) return;
@@ -281,6 +283,7 @@
       const detail = card.detail();
       if (detail && detail.lineGraphEnabled) mountLineGraph(pid, card, detail);
       syncNotes(pid, detail);
+      syncVoters(pid, detail);
       shownMaximizeButton(card.element).focus();
     }
 
@@ -324,6 +327,19 @@
         .catch(() => {});
     }
 
+    function syncVoters(pid, detail) {
+      if (pid !== maximizedPid || !detail) return;
+      if (votersShown && votersShown.pid === pid && votersShown.countsVersion === detail.countsVersion &&
+          votersShown.contentVersion === detail.contentVersion) return;
+      votersShown = { pid: pid, countsVersion: detail.countsVersion, contentVersion: detail.contentVersion };
+      window.WhoVoted?.show(maximizedEl.querySelector(".maximized-voters"), pid, detail);
+    }
+
+    function clearVoters() {
+      votersShown = null;
+      if (maximizedEl) window.WhoVoted?.hide(maximizedEl.querySelector(".maximized-voters"));
+    }
+
     function clearNotes() {
       notesShown = null;
       const area = maximizedEl && maximizedEl.querySelector(".maximized-notes");
@@ -337,6 +353,7 @@
       window.PollLineGraph?.unmount();
       graphPid = null;
       clearNotes();
+      clearVoters();
       const pid = maximizedPid;
       const card = mounted.get(pid);
       const leftTheTab = Boolean(options.left || retainedDetail);
@@ -405,6 +422,7 @@
       }
       retainedDetail = next;
       mounted.get(pid).applyPoll(next);
+      syncVoters(pid, next);
     }
 
     /* A poll no list holds, shown maximized: it stays until it is closed, whatever the
@@ -423,7 +441,9 @@
     function reapply(state, pid) {
       const card = mounted.get(pid);
       const detail = window.DeltaClient.toPollDetail(state, pid);
-      if (card && detail) card.applyPoll(detail);
+      if (!card || !detail) return;
+      card.applyPoll(detail);
+      syncVoters(pid, detail);
     }
 
     function clear() {

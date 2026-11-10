@@ -6,6 +6,24 @@ The full description, every earlier feature's decisions and the settings table a
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261110-123524-WHO-VOTED-REPORT/plan.md` (research R1–R9, `data-model.md` — no migration; the `votes` read,
+the `VoterReport` value and the panel states; the HTTP contract `contracts/api.md` A1–A2, the UI contracts
+`contracts/ui-contracts.md` C1–C4, and the quickstart live alongside it in `specs/20261110-123524-WHO-VOTED-REPORT/`).
+The requirements report is `requirements/20261110-123524-who-voted-report/requirements-report.md`: 3 diagrams and
+14 findings, all resolved.
+Decisions that are easy to get wrong:
+- **Names travel only on `GET /api/me/polls/:pid/voters`**, `private, no-store`, never in card, tab or delta payloads;
+  `404` unless a published private poll with `vote_anonymity = "No"` that the caller passes `mayViewResults` on, or an
+  administrator; names only, never an address (R1–R3, NC1, NC2).
+- **Its own floor bucket**: `enforceFloor("live", "voters")`, not `dynamic("live")`, which would take Live Results' token (R1).
+- **No projection field**: the browser asks only for maximized `Private Poll` OPEN/CLOSED polls, and a `404` stops it
+  until `contentVersion` changes; a new projection field would not reach polls whose cached copy is unchanged (R5).
+- **`settleMs`** is sent when the live counters count a vote the batched consumer has not written yet; the browser
+  refetches once after it (R4).
+- **Bar order** is `pct` descending, ties by `position`, as the card's bars; groups are `<tbody>`s with a
+  `<th scope="rowgroup">`; names go in as text, never `innerHTML` (R6, R7).
+No migration, setting, cookie, storage key or dependency; one route, one script, one sheet.
+The preceding feature is
 `specs/20261109-201638-ALLOWLIST-DOMAIN-WILDCARD/plan.md` (research R1–R7, `data-model.md` — no migration; the
 `Allowlist` value `{ keys, patterns }` and the admission rule; the contract `contracts/allowlist-setting.md` S1–S3, and the
 quickstart live alongside it in `specs/20261109-201638-ALLOWLIST-DOMAIN-WILDCARD/`). The requirements report is

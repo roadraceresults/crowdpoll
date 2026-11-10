@@ -92,13 +92,14 @@ flowchart TB
     Vote["voteClient.js<br/>submit, floor, retry once"]
     Card["pollCard.js<br/>render only: Vote, Live Results (add | remove), Bookmark, Maximize; bar colours"]
     Graph["lineGraph.js<br/>maximized view's vote-history graph: SVG, scales, crosshair, refresh timer"]
+    Voters["whoVoted.js<br/>maximized view's Who voted panel: two sorts, one retry"]
     Admin["adminList.js + adminCard.js<br/>admin list, structured search"]
     Notes["notesEditor.js<br/>the wizard's notes editor: contenteditable, serialize"]
   end
 
   subgraph Server["src"]
     Pipeline["load/: shedding, floors, budget, controller, pageLoads"]
-    TabsApi["routes/tabsApi.ts<br/>tabs, search, overlay, trending, live, line graph"]
+    TabsApi["routes/tabsApi.ts<br/>tabs, search, overlay, trending, live, line graph, voters"]
     LineGraph["polls/lineGraph.ts<br/>scales, UTC buckets, vote_history replay"]
     PollsApi["routes/pollsApi.ts<br/>vote, bookmarks, admin routes, admin search"]
     Api["routes/api.ts<br/>auth, profile, /api/config, /api/me"]
@@ -117,8 +118,9 @@ flowchart TB
     Db["db/: schema, client, migrations, partitions"]
   end
 
-  Tabs --> Delta & Card & Graph
+  Tabs --> Delta & Card & Graph & Voters
   Graph -- "GET line-graph" --> TabsApi
+  Voters -- "GET voters" --> TabsApi
   Trending & SearchTab & Live --> Tabs
   Card --> Vote
   Tabs -- "POST refresh" --> TabsApi
@@ -579,8 +581,8 @@ never steals the focus.
 Any card can be shown on its own, in the tab it belongs to: a click on its title, its subtitle,
 its notes' **Show more ⌄** or the maximize button at the right of its title row, on either face. The tab's grid (`createGrid` in `tabs.js`) moves **the same
 card instance** out of its `.card-grid` into a `.maximized-card-grid` cloned from the page's
-`<template id="maximizedCardGrid">`, beside the hidden grid, with the vote-history line graph
-(below) in the column beside it. While the card is maximized, its maximize buttons show a minimize
+`<template id="maximizedCardGrid">`, beside the hidden grid, with the poll's notes, the Who voted
+panel and the vote-history line graph (below), in that order, in the column beside it. While the card is maximized, its maximize buttons show a minimize
 icon and close the view. Nothing is copied or fetched: the card stays in the grid's mounted
 map, so refreshes, votes and bookmarks keep reaching it, and its face and unsubmitted selection go
 with it. The card's `setMaximized(true)` adds `maximized-card-viewport` / `maximized-card-flip`
@@ -623,12 +625,67 @@ and on an ever-voted poll waits in `pending_update` with the title, subtitle and
 | `/poll/:pid` | the rendered notes in `#poll-summary`, after the subtitle |
 
 The card shows the preview in `.poll-notes`, clamped to two lines, with **Show more ⌄** when `hasMoreNotes` is true
-or a `ResizeObserver` finds the text clamped. The maximized view's right column holds `.maximized-notes` above
-`.maximized-graph`: `tabs.js` fetches the one-card route when the poll has notes, again when a refresh brings a new
+or a `ResizeObserver` finds the text clamped. The maximized view's right column holds `.maximized-notes`, then
+`.maximized-voters` (below), then `.maximized-graph`: `tabs.js` fetches the one-card route when the poll has notes, again when a refresh brings a new
 `contentVersion`, and empties it in `restore`. In the wizard, `notesEditor.js` edits the notes in a `contenteditable`
 box loaded from `notesHtml`; formatting goes through one `execCommand` wrapper, pasted and dropped text is inserted
 as plain text, and `serialize` writes the stored format from the DOM's runs (bold > underline > italic), so the
 browser never parses the stored format. Only `notesPreviewHtml` and `notesHtml` reach `innerHTML`.
+
+### Who voted
+
+On a private poll with `vote_anonymity = "No"`, the maximized view's `.maximized-voters` section lists who voted
+for what. `GET /api/me/polls/:pid/voters` (in `tabsApi.ts`) is the only answer that carries voters' names:
+
+- `requireSession`, then `shedding.withKind("live")`, `floors.enforceFloor("live", "voters")` and
+  `countBudget("live")`. The floor has its own bucket, so the panel never spends Live Results' token; it is
+  `ENV_MIN_LIVE_REFRESH_INTERVAL`.
+- `404 { error: "Not found" }` unless the row is a `Private Poll` with `vote_anonymity = "No"` and the caller passes
+  `mayViewResults`, or is an administrator and the poll is published. Every answer is `private, no-store`.
+- `readVoterReport` (`src/polls/voters.ts`) reads `votes` (`user_name`, `choice_ids`, `voted_at`, never `email`),
+  skips invitations with no choice, and drops choice ids no longer on the poll: `{ voters: [{ name, choiceIds,
+  votedAt }] }`, names only.
+- The bars come from the live counters (`cnt:<pid>`), the names from `votes`, which the batched consumer writes a
+  moment later. When the counters' `voteCount` differs from the rows read, the answer adds `settleMs`
+  (`voteQueueLagNoticeMs`) and the browser asks once more after it.
+
+The card projection carries no anonymity field: a new projection field would not reach polls whose cached
+`poll:<pid>` and browser copy keep their `contentVersion`. So `whoVoted.js` asks only for maximized `Private Poll`
+OPEN or CLOSED polls, and a `404` stops it asking until the poll's `contentVersion` changes. `tabs.js` calls
+`WhoVoted.show` from `maximize`, and from `render`, `reapply` (the viewer's own vote) and `patchRetained` (a retained
+poll) when the maximized poll's `countsVersion` or `contentVersion` differs from the last `show`; `restore` calls
+`hide`. A reply to an older request, or after `hide`, is dropped; at most one retry (after `settleMs`, or a `429`'s
+`retryAfterMs`) is pending, and a `429` answering a retry schedules it once more. The two sorts redraw from the held
+answer without a request: Sort by Voter by `Intl.Collator` (base sensitivity, numeric), Sort by Choice in bar order
+(`pct` descending, ties by `position`). Each group is a `<tbody>` whose first row starts with
+`<th scope="rowgroup">`; names go in as text.
+
+```mermaid
+sequenceDiagram
+  participant V as Another voter
+  participant P as PollsApi / votePath
+  participant C as cnt:<pid>
+  participant Q as Consumer
+  participant DB as votes
+  participant B as tabs.js + whoVoted.js
+  participant T as TabsApi
+  V->>P: POST vote
+  P->>C: HINCRBY
+  P->>Q: enqueue
+  B->>T: refresh (live or tab)
+  T-->>B: new countsVersion, bars move
+  B->>T: GET /api/me/polls/:pid/voters
+  T->>DB: read rows
+  T->>C: read voteCount
+  alt consumer not done
+    T-->>B: voters + settleMs
+    Q->>DB: write the vote
+    B->>T: GET voters after settleMs
+    T-->>B: voters (new voter shown)
+  else written
+    T-->>B: voters (new voter shown)
+  end
+```
 
 ### The vote-history line graph
 

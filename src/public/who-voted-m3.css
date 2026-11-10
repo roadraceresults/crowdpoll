@@ -1,0 +1,125 @@
+/* ==========================================================================
+   The maximized view's Who voted panel (the right column whoVoted.js fills).
+   Material 3 tokens only.
+   ========================================================================== */
+
+.maximized-voters{
+  margin:0 0 16px;
+  padding:12px 16px;
+  border-radius:var(--md-sys-shape-corner-small);
+  background:var(--md-sys-color-surface-container-low);
+  color:var(--md-sys-color-on-surface);
+}
+.maximized-voters[hidden]{ display:none; }
+
+.who-voted-heading{
+  margin:0 0 12px;
+  font-family:var(--md-sys-typescale-font);
+  font-size:var(--md-sys-typescale-title-medium-size);
+  font-weight:var(--md-sys-typescale-title-medium-weight);
+  line-height:var(--md-sys-typescale-title-medium-line-height);
+  letter-spacing:var(--md-sys-typescale-title-medium-tracking);
+  color:var(--md-sys-color-on-surface);
+}
+
+.who-voted-empty{
+  margin:0;
+  font-size:var(--md-sys-typescale-body-medium-size);
+  line-height:var(--md-sys-typescale-body-medium-line-height);
+  letter-spacing:var(--md-sys-typescale-body-medium-tracking);
+  color:var(--md-sys-color-on-surface-variant);
+}
+
+/* Segmented button: https://m3.material.io/components/segmented-buttons/specs */
+.who-voted-sort{
+  display:inline-flex;
+  margin:0 0 12px;
+}
+
+.who-voted-segment{
+  appearance:none;
+  position:relative;
+  overflow:hidden;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  height:40px;
+  padding:0 12px;
+  margin:0;
+  border:1px solid var(--md-sys-color-outline);
+  border-radius:0;
+  background:transparent;
+  cursor:pointer;
+  font-family:var(--md-sys-typescale-font);
+  font-size:var(--md-sys-typescale-label-large-size);
+  font-weight:var(--md-sys-typescale-label-large-weight);
+  line-height:var(--md-sys-typescale-label-large-line-height);
+  letter-spacing:var(--md-sys-typescale-label-large-tracking);
+  color:var(--md-sys-color-on-surface);
+}
+.who-voted-segment + .who-voted-segment{ margin-left:-1px; }
+.who-voted-segment:first-child{
+  border-top-left-radius:var(--md-sys-shape-corner-full);
+  border-bottom-left-radius:var(--md-sys-shape-corner-full);
+}
+.who-voted-segment:last-child{
+  border-top-right-radius:var(--md-sys-shape-corner-full);
+  border-bottom-right-radius:var(--md-sys-shape-corner-full);
+}
+
+.who-voted-segment[aria-pressed="true"]{
+  background:var(--md-sys-color-secondary-container);
+  color:var(--md-sys-color-on-secondary-container);
+}
+
+.who-voted-check{
+  width:18px;
+  height:18px;
+  flex:none;
+  fill:currentColor;
+}
+
+.who-voted-segment::before{
+  content:'';
+  position:absolute;
+  inset:0;
+  background:currentColor;
+  opacity:0;
+  pointer-events:none;
+}
+.who-voted-segment:hover::before{ opacity:var(--md-sys-state-hover-state-layer-opacity); }
+.who-voted-segment:focus-visible::before{ opacity:var(--md-sys-state-focus-state-layer-opacity); }
+.who-voted-segment:active::before{ opacity:var(--md-sys-state-pressed-state-layer-opacity); }
+.who-voted-segment:focus-visible{
+  outline:3px solid var(--md-sys-color-secondary);
+  outline-offset:2px;
+}
+
+.who-voted-table{
+  width:100%;
+  border-collapse:collapse;
+  font-family:var(--md-sys-typescale-font);
+  font-size:var(--md-sys-typescale-body-medium-size);
+  line-height:var(--md-sys-typescale-body-medium-line-height);
+  letter-spacing:var(--md-sys-typescale-body-medium-tracking);
+  color:var(--md-sys-color-on-surface);
+  overflow-wrap:anywhere;
+}
+.who-voted-table th,
+.who-voted-table td{
+  padding:6px 8px;
+  text-align:left;
+  vertical-align:top;
+}
+.who-voted-table thead th{
+  font-size:var(--md-sys-typescale-label-large-size);
+  font-weight:var(--md-sys-typescale-label-large-weight);
+  line-height:var(--md-sys-typescale-label-large-line-height);
+  letter-spacing:var(--md-sys-typescale-label-large-tracking);
+  color:var(--md-sys-color-on-surface-variant);
+  border-bottom:1px solid var(--md-sys-color-outline-variant);
+}
+.who-voted-table tbody:nth-of-type(even){ background:var(--md-sys-color-surface-container); }
+.who-voted-table .who-voted-group{ font-weight:var(--md-sys-typescale-title-small-weight); }
+.who-voted-date{ white-space:nowrap; }
