@@ -408,6 +408,13 @@ They share one branded layout (`src/email/templates.ts`), come from
   anyone else is told CrowdPoll hasn't launched yet, and nothing is sent. In production it comes from `allowed_emails` in the
   git-ignored `infra/secrets.auto.tfvars`, as an encrypted variable, and is required there; at launch, remove its check from
   `infra/variables.tf` and leave it empty.
+  An entry may be a pattern holding `*`, which stands for any characters except `@`: `*@crowdpoll.vote` admits every
+  address at that domain, `qa-*@gmail.com` every Gmail address starting `qa-`, `*@*.crowdpoll.vote` its subdomains.
+  A pattern admits everyone with a matching mailbox, so a pattern on a public mail domain opens sign-up to its users.
+  Patterns are compared with the address as Gmail reads it (dots and `+tag` dropped), so `john.*@gmail.com` matches
+  nothing; write `john*@gmail.com`. An entry without an `@` (`*.crowdpoll.vote`) stops the app. Start-up logs the count
+  of each kind and of the administrators, who are always allowed,
+  `[auth] Sign-up allowlist on (2 addresses, 1 pattern; 3 administrators always allowed)`.
 - The three forms that send email carry a hidden field; a request that fills it sends nothing.
 - `privacy@crowdpoll.vote` is an ImprovMX alias set up by hand, like `support@`.
 - A new account or email change that is a `+tag` (or, for Gmail, dotted) variant of an existing address creates no
@@ -563,7 +570,7 @@ provider settings only with `oauth` or `both`, and administrator addresses are m
 | `ENV_EMAIL_FROM` | `CrowdPoll <no-reply@mail.crowdpoll.vote>` | Sender of every message |
 | `ENV_EMAIL_SEND_TIMEOUT` | `10000` | Longest one send may take before it counts as failed |
 | `ENV_EMAIL_ASSET_ORIGIN` | unset | Origin the email logo is loaded from (development: `https://crowdpoll.vote`, since mail apps cannot reach `localhost`); unset → the link's origin |
-| `ENV_ALLOWED_EMAILS` | unset | Comma-separated addresses allowed to create an account and log in before launch; administrators always are. Unset or empty: everyone. An invalid entry stops the app. Production: `allowed_emails` in the git-ignored `infra/secrets.auto.tfvars`, set as an encrypted variable |
+| `ENV_ALLOWED_EMAILS` | unset | Comma-separated addresses, or patterns with `*` (`*@crowdpoll.vote`), allowed to create an account and log in before launch; administrators always are. Unset or empty: everyone. An invalid entry stops the app. Production: `allowed_emails` in the git-ignored `infra/secrets.auto.tfvars`, set as an encrypted variable |
 | `ENV_OAUTH_GOOGLE_*`, `ENV_OAUTH_MICROSOFT_*`, `ENV_OAUTH_AMAZON_*` (`CLIENT_ID`, `CLIENT_SECRET`) | — | Login provider credentials; a provider is on when both are set |
 | `ENV_OAUTH_APPLE_CLIENT_ID` / `_TEAM_ID` / `_KEY_ID` / `_PRIVATE_KEY` | — | Sign in with Apple: the Services ID, team, key id and the key's PEM (`\n` pairs read as line breaks) |
 | `ENV_EMAIL_RATE_LIMIT_WINDOW_MINUTES` / `ENV_EMAIL_RATE_LIMIT_MAX_REQUESTS_PER_WINDOW` | `15` / `2` | Email-sending rate limit (window in **minutes**) |

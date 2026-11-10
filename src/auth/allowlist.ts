@@ -10,14 +10,24 @@ export const NOT_LAUNCHED = { error: NOT_LAUNCHED_MESSAGE, code: "not-launched" 
 export type RefusalPath = "create-account" | "login" | "email-change" | "session" | "redeem-invitation";
 
 export function isAllowed(email: string, config: AppConfig): boolean {
-  if (!config.allowedEmailKeys) return true;
+  if (!config.allowlist) return true;
   const address = email.trim().toLowerCase();
-  return config.admins.includes(address) || config.allowedEmailKeys.has(emailKeyOf(address));
+  if (config.admins.includes(address)) return true;
+  const key = emailKeyOf(address);
+  return config.allowlist.keys.has(key) || config.allowlist.patterns.some((pattern) => pattern.test(key));
 }
 
 export function allowlistStatus(config: AppConfig): string {
-  const size = config.allowedEmailKeys?.size;
-  return size ? `[auth] Sign-up allowlist on (${size} addresses)` : "[auth] Sign-up allowlist off";
+  if (!config.allowlist) return "[auth] Sign-up allowlist off";
+  const addresses = config.allowlist.keys.size;
+  const patterns = config.allowlist.patterns.length;
+  const parts = [
+    ...(addresses ? [`${addresses} addresses`] : []),
+    ...(patterns ? [`${patterns} ${patterns === 1 ? "pattern" : "patterns"}`] : [])
+  ];
+  const admins = config.admins.length;
+  const adminNote = admins ? `; ${admins} ${admins === 1 ? "administrator" : "administrators"} always allowed` : "";
+  return `[auth] Sign-up allowlist on (${parts.join(", ")}${adminNote})`;
 }
 
 export function logRefusal(path: RefusalPath, email: string): void {

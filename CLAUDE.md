@@ -6,6 +6,19 @@ The full description, every earlier feature's decisions and the settings table a
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261109-201638-ALLOWLIST-DOMAIN-WILDCARD/plan.md` (research R1–R7, `data-model.md` — no migration; the
+`Allowlist` value `{ keys, patterns }` and the admission rule; the contract `contracts/allowlist-setting.md` S1–S3, and the
+quickstart live alongside it in `specs/20261109-201638-ALLOWLIST-DOMAIN-WILDCARD/`). The requirements report is
+`requirements/20261109-201638-allowlist-domain-wildcard/requirements-report.md`: 3 diagrams and 12 findings, all resolved.
+Decisions that are easy to get wrong:
+- **`config.allowlist` replaces `allowedEmailKeys`** and is set whenever the list holds any entry, so a pattern-only list
+  turns test mode on; every "is the allowlist on?" check reads it (R1, R6).
+- **A pattern is an entry holding `*`**, valid when address-shaped (one `@`, something each side; `*@*` is valid);
+  `*.crowdpoll.vote` stops the app (R2, IN1, AM1).
+- **Matched literally against the email key**, `*` → `[^@]*`, the rest escaped; the pattern is not normalised, so
+  `john.*@gmail.com` matches no Gmail address (R3, UA7).
+No migration, setting, route or dependency; one config value, one matcher, one log line.
+The preceding feature is
 `specs/20261109-114330-POLL-NOTES/plan.md` (research R1–R14, `data-model.md` — migration 018; the `polls.notes`
 column, the redefined `search` column and `pending_update.notes`; the HTTP contracts `contracts/api.md` A1–A7, the UI
 contracts `contracts/ui-contracts.md` C1–C5, and the quickstart live alongside it in `specs/20261109-114330-POLL-NOTES/`).
