@@ -16,6 +16,8 @@ export interface PollProjection {
   voteMutability: string;
   pollVisibility: string;
   pollSharingMode: string;
+  /** A private poll with Anonymous Votes; the raw setting stays off the card. */
+  anonymousVotes: boolean;
   pollState: string;
   startAt: string | null;
   endAt: string | null;
@@ -37,6 +39,7 @@ export function projectPoll(row: PollRow): PollProjection {
     voteMutability: row.vote_mutability,
     pollVisibility: row.poll_visibility,
     pollSharingMode: row.poll_sharing_mode,
+    anonymousVotes: row.poll_visibility !== "Public Poll" && row.vote_anonymity === "Yes",
     // A poll under edit serves the state it held when the session began, so the
     // vote path and every voter-facing reader treat an open poll as OPEN while
     // its creator edits. The edit session itself reads the raw poll_state.

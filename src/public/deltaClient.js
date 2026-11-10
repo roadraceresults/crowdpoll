@@ -117,6 +117,7 @@
       voteMutability: card.voteMutability,
       pollVisibility: card.pollVisibility,
       pollSharingMode: card.pollSharingMode,
+      anonymousVotes: card.anonymousVotes,
       votersAddChoices: card.votersAddChoices === true,
       pollState: card.pollState,
       lineGraphEnabled: card.lineGraphEnabled === true,

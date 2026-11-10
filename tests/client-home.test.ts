@@ -309,6 +309,22 @@ describe("a bar's percentage", () => {
     const totals = page.document.querySelector('.tab-panel[data-panel="trending"] .card-front .poll-totals')!.textContent;
     expect(totals).toContain("2 voters");
   });
+
+  it("labels Submit in the plural on a multiple-choice poll, and the front's sizer with it", async () => {
+    await polls(ctx).insertMany([
+      makePoll({ title: "Pick any", choiceMode: "Multiple-Choice Poll" }),
+      makePoll({ title: "Pick one" }),
+    ]);
+    await trendingSweep(ctx, ctx.config, ctx.trendingPublisher);
+    page = await openPage(ctx, "index.html");
+    const labelsOf = (title: string) => {
+      const card = Array.from(page!.document.querySelectorAll('.tab-panel[data-panel="trending"] .card-viewport'))
+        .find((el) => el.querySelector(".card-back .question")!.textContent === title)!;
+      return [card.querySelector(".submit-vote-btn")!.textContent, card.querySelector(".btn-vote-sizer")!.textContent];
+    };
+    expect(labelsOf("Pick any")).toEqual(["Submit votes", "Submit votes"]);
+    expect(labelsOf("Pick one")).toEqual(["Submit vote", "Submit vote"]);
+  });
 });
 
 describe("a content change in a listed poll", () => {
@@ -1545,6 +1561,34 @@ describe("two visible windows on Live Results (FIX019)", () => {
       b?.close();
       await live.stop();
     }
+  });
+});
+
+describe("the voting side says when a vote will be anonymous", () => {
+  it("shows the note only on a private poll with Anonymous Votes", async () => {
+    const me = "anon-note@example.com";
+    const { cookie } = await forgeSession(ctx, me);
+    const link = { pollVisibility: "Private Poll" as const, pollSharingMode: "Anyone With The Link" as const };
+    const anonymous = makePoll({ title: "Anonymous one", ...link, voteAnonymity: "Yes" });
+    const named = makePoll({ title: "Named one", ...link, voteAnonymity: "No" });
+    const open = makePoll({ title: "Public one", voteAnonymity: "Yes" });
+    await polls(ctx).insertMany([anonymous, named, open]);
+    for (const poll of [anonymous, named, open]) {
+      await upsertRelation(ctx.db, me, poll._id, "linked");
+      await addBookmark(ctx, me, poll._id, 200);
+    }
+    page = await openPage(ctx, "index.html", { cookie, url: ON_TRENDING });
+    await page.settle(1250);
+    await page.click('.tab[data-tab="watching"]');
+    await page.settle(500);
+    const noteOf = (title: string) =>
+      Array.from(page!.document.querySelectorAll('.tab-panel[data-panel="watching"] .card-viewport'))
+        .find((el) => el.querySelector(".card-back .question")!.textContent === title)!
+        .querySelector(".card-back .poll-anonymous") as HTMLElement;
+    expect(noteOf("Anonymous one").textContent).toBe("Your vote will be anonymous.");
+    expect(noteOf("Anonymous one").hidden).toBe(false);
+    expect(noteOf("Named one").hidden).toBe(true);
+    expect(noteOf("Public one").hidden).toBe(true);
   });
 });
 

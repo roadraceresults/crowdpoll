@@ -58,7 +58,7 @@ delivery network.
   poll's live card on Trending, maximized; a logged-in visitor goes to the poll as before.
 - **Search** — type words in the box and press Enter: titles match first, then subtitles, then
   choices, then keywords and notes; a misspelt title is still found. At most 200 results are shown.
-- **Vote** — press **Vote** on a card, pick your choice(s) and **Submit vote**. The card shows
+- **Vote** — press **Vote** on a card, pick your choice(s) and **Submit vote** (**Submit votes** on a multiple-choice poll). The card shows
   the new counts at once. On a very busy site the card may say your vote is *queued*; it has
   been counted and will be stored within moments.
 - **Add Choice** — on a Private poll whose creator lets voters add choices, the voting side of
@@ -198,7 +198,8 @@ delivery network.
   rename, recolor or delete it. On a poll that shows who voted for what, the Choices step lists
   **Added by** with the voter's name for each choice a voter added; nothing is recorded on an
   anonymous poll, and the name goes when that account is deleted. Saving the wizard keeps any
-  choice a voter added while it was open; only the choices you removed are deleted.
+  choice a voter added while it was open; only the choices you removed are deleted. A duplicate keeps
+  the switch as it was, and its choices, but not who added them.
 - **Editing a poll** — select the part of the summary you want to change and the wizard opens
   at that step. Only what the poll's state allows can change: everything until the poll has
   votes. Once it has votes, the title, subtitle, notes, choices, dates and bar colors stay editable,
@@ -648,7 +649,7 @@ wizard, **Who can vote**. Its three options store these settings:
 |---|---|---|
 | **Poll Visibility** | `Public Poll` / `Private Poll` | A public poll can appear on TRENDING and in search results for everyone. A private poll reaches only the people it is shared with, through their My PRIVATE POLLS tab |
 | **Sharing Mode** (private polls only) | `Anyone With The Link` / `Invitation Only` | Whether anyone holding the poll's link may take part, or only the addresses on its invited list |
-| **Anonymous Votes** (private polls only) | `Yes` / `No` | Reserved for the poll-creator role: `Yes` hides who voted for which choice from the creator, `No` reveals it. Administrators always see who voted; ordinary voters never do. The setting is stored and shown but not yet enforced: a poll's creator, like an administrator, currently sees who voted on the results page |
+| **Anonymous Votes** (private polls only) | `Yes` / `No` | `Yes` hides who voted for which choice from the poll's creator: the results and the JSON export list who took part and the counts, but not their choices, and the voting side of the card says "Your vote will be anonymous." `No` reveals the choices. Administrators always see who voted for what; ordinary voters never do |
 
 **Anyone you send the link to** is `Private Poll` with `Anyone With The Link`, **Only people
 you invite** is `Private Poll` with `Invitation Only`, and **Everyone on CrowdPoll** is

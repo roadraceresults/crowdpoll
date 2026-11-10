@@ -185,7 +185,46 @@ describe("Participants, bans, and exports (US8)", () => {
     }
   });
 
-  it("returns identical results whatever voteAnonymity says — nothing reads it yet", async () => {
+  it("hides who chose what from the creator of an anonymous private poll, in the results and the JSON export", async () => {
+    const votes = [
+      { emailAddress: "a@example.com", userName: "A", choiceIds: ["c1"], votedAt: new Date(0) },
+      { emailAddress: "b@example.com", userName: "B", choiceIds: ["c2"], votedAt: new Date(0) }
+    ];
+    const anonymous = makePoll({ pollVisibility: "Private Poll", voteAnonymity: "Yes", currentVotes: votes });
+    const named = makePoll({ pollVisibility: "Private Poll", voteAnonymity: "No", currentVotes: votes });
+    const open = makePoll({ pollVisibility: "Public Poll", voteAnonymity: "Yes", currentVotes: votes });
+    await polls(ctx).insertMany([anonymous, named, open]);
+    const creator = await forgeSession(ctx, "anon-creator@example.com");
+    await ctx.db
+      .updateTable("polls")
+      .set({ created_by_id: creator.userId })
+      .where("id", "in", [anonymous._id, named._id, open._id])
+      .execute();
+    const results = (pid: string, cookie: string) =>
+      request(ctx.app).get(`/api/admin/polls/${pid}/results`).set("Cookie", cookie);
+    const exported = (pid: string, cookie: string) =>
+      request(ctx.app).get(`/api/admin/polls/${pid}/export.json`).set("Cookie", cookie);
+
+    const hidden = await results(anonymous._id, creator.cookie);
+    expect(hidden.status).toBe(200);
+    expect(hidden.body.voted).toEqual([
+      { emailAddress: "a@example.com", userName: "A" },
+      { emailAddress: "b@example.com", userName: "B" }
+    ]);
+    expect(hidden.body.choices.map((c: { count: number }) => c.count)).toEqual([1, 1]);
+    expect(hidden.body.totalVoted).toBe(2);
+    const hiddenExport = await exported(anonymous._id, creator.cookie);
+    expect(hiddenExport.body.participants.every((p: object) => !("choiceIds" in p))).toBe(true);
+
+    for (const pid of [named._id, open._id]) {
+      expect((await results(pid, creator.cookie)).body.voted[0].choiceIds).toEqual(["c1"]);
+      expect((await exported(pid, creator.cookie)).body.participants[0].choiceIds).toEqual(["c1"]);
+    }
+    expect((await results(anonymous._id, adminCookie)).body.voted[0].choiceIds).toEqual(["c1"]);
+    expect((await exported(anonymous._id, adminCookie)).body.participants[0].choiceIds).toEqual(["c1"]);
+  });
+
+  it("shows an administrator identical results whatever voteAnonymity says", async () => {
     const votes = [
       { emailAddress: "a@example.com", userName: "A", choiceIds: ["c1"], votedAt: new Date(0) },
       { emailAddress: "b@example.com", userName: "B", choiceIds: ["c2"], votedAt: new Date(0) }

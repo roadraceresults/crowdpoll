@@ -97,6 +97,27 @@ describe("the invitation card for a new address (C1)", () => {
     expect(isDisabled(button)).toBe(true);
   });
 
+  it("explains under the button why it is unavailable, until the Terms box is ticked", async () => {
+    page = await open({ linkInfo: { status: 200, body: { ...NEW_ADDRESS, signedInAs: "o•••@example.com" } } });
+    await page.settle();
+    const hint = page.document.querySelector(".card-shell-hint") as HTMLElement;
+    expect(hint.textContent).toBe("Click the Terms and Conditions checkbox above to continue.");
+    expect(hint.hidden).toBe(false);
+    const switchButton = hint.previousElementSibling as HTMLButtonElement;
+    expect(switchButton.textContent).toBe("Log out and continue as j•••@gmail.com");
+    expect(switchButton.getAttribute("aria-describedby")).toBe(hint.id);
+    tickTerms(page);
+    expect(hint.hidden).toBe(true);
+    tickTerms(page, false);
+    expect(hint.hidden).toBe(false);
+  });
+
+  it("shows no Terms hint for an existing account", async () => {
+    page = await open({ linkInfo: { status: 200, body: { ...NEW_ADDRESS, hasAccount: true } } });
+    await page.settle();
+    expect(page.document.querySelector(".card-shell-hint")).toBeNull();
+  });
+
   it("starts Stay logged in from staySignedInDefault", async () => {
     page = await open({ linkInfo: { status: 200, body: { ...NEW_ADDRESS, staySignedInDefault: true } } });
     await page.settle();

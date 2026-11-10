@@ -44,7 +44,8 @@ html[data-header-fit~="no-search"] .search-tab-form{ display:flex; }
     font-size:calc(var(--md-sys-typescale-body-medium-size) * 0.75);
   }
   .card-flip:not(.maximized-card-flip) .card-face .poll-totals,
-  .card-flip:not(.maximized-card-flip) .card-face .poll-voted{
+  .card-flip:not(.maximized-card-flip) .card-face .poll-voted,
+  .card-flip:not(.maximized-card-flip) .card-face .poll-anonymous{
     font-size:calc(var(--md-sys-typescale-label-large-size) * 0.75);
   }
   .card-flip:not(.maximized-card-flip) .card-face .btn-vote,

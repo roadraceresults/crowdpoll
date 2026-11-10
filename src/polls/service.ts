@@ -895,8 +895,11 @@ export function createRequirePollOwner({
 
 export const LIMITS = { TITLE_MAX, SUBTITLE_MAX, NOTES_MAX, CHOICE_LABEL_MAX, EMAIL_MAX, MAX_INVITED, KEYWORDS_MAX };
 
-/** FR-055: poll config + results only, excluding the voter roll. */
-export function exportPollData(poll: Pick<Poll, "_id" | "title" | "subtitle" | "notes" | "choices" | "currentVotes"> & Partial<Pick<Poll, "choiceMode">>) {
+/** FR-055: poll config + results only, excluding the voter roll; `hideChoices` leaves out who chose what (Anonymous Votes). */
+export function exportPollData(
+  poll: Pick<Poll, "_id" | "title" | "subtitle" | "notes" | "choices" | "currentVotes"> & Partial<Pick<Poll, "choiceMode">>,
+  hideChoices = false
+) {
   const results = computeResults(poll);
   return {
     pid: poll._id,
@@ -907,7 +910,7 @@ export function exportPollData(poll: Pick<Poll, "_id" | "title" | "subtitle" | "
     totalVoted: results.totalVoted,
     participants: poll.currentVotes
       .filter((v) => v.choiceIds.length > 0)
-      .map((v) => ({ emailAddress: v.emailAddress, userName: v.userName, choiceIds: v.choiceIds }))
+      .map((v) => ({ emailAddress: v.emailAddress, userName: v.userName, ...(hideChoices ? {} : { choiceIds: v.choiceIds }) }))
   };
 }
 
@@ -1237,7 +1240,7 @@ export function duplicatePoll(source: Poll, now: Date = new Date()): Poll {
     lineGraphEnabled: false,
     pendingUpdate: null,
     pendingRejectionReason: null,
-    votersAddChoices: false
+    votersAddChoices: source.votersAddChoices
   };
 }
 

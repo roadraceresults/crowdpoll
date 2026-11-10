@@ -544,6 +544,13 @@ describe("A disabled create control looks disabled (014 FR-037)", () => {
     const css = readFileSync("src/public/admin-card-m3.css", "utf8");
     expect(css).toMatch(/\.admin-create-btn\s*{[^}]*color:\s*var\(--md-sys-color-surface\)/);
   });
+
+  it("labels the card shell's actions in the surface colour, ahead of the disabled and running rules", () => {
+    const css = readFileSync("src/public/card-shell-m3.css", "utf8");
+    const label = css.search(/\.card-shell-face \.card-shell-action \.btn-primary\s*{[^}]*color:\s*var\(--md-sys-color-surface\)/);
+    expect(label).toBeGreaterThan(-1);
+    expect(label).toBeLessThan(css.indexOf(".card-shell-face .btn-primary.is-running"));
+  });
 });
 
 // Frozen mechanics show their value on the editing card (014): retired.

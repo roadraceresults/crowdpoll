@@ -59,6 +59,10 @@
   padding:0 24px;
 }
 .card-shell-face a.btn-vote{ text-decoration:none; }
+/* An action keeps production's --ink fill (on-surface); its fixed light label would vanish on the light
+   fill of the dark scheme, so the label takes the surface colour. The text, disabled and running rules
+   below are more specific or later, and keep their own colours. */
+.card-shell-face .card-shell-action .btn-primary{ color:var(--md-sys-color-surface); }
 .card-shell-face .card-shell-action .btn-primary:disabled,
 .card-shell-face .btn-primary.is-running{
   opacity:1;
@@ -68,6 +72,7 @@
 }
 
 /* ---------- 7. Status lines ---------- */
+.card-shell-face .card-shell-hint,
 .card-shell-face .card-shell-status{
   font-weight:var(--md-sys-typescale-body-small-weight);
   font-size:var(--md-sys-typescale-body-small-size);

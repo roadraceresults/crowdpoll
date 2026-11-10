@@ -93,7 +93,7 @@ describe("the cards", () => {
 
   it("show the vote count at the size of the Vote button's text", () => {
     const size = "font-size:calc(var(--md-sys-typescale-label-large-size) * 0.75);";
-    expect(inside).toContain(`.card-face .poll-totals, .card-flip:not(.maximized-card-flip) .card-face .poll-voted{ ${size}`);
+    expect(inside).toContain(`.card-face .poll-totals, .card-flip:not(.maximized-card-flip) .card-face .poll-voted, .card-flip:not(.maximized-card-flip) .card-face .poll-anonymous{ ${size}`);
     expect(inside).toContain(`.card-face .btn-vote, .card-flip:not(.maximized-card-flip) .card-face .live-link{ height:21px; ${size}`);
   });
 
