@@ -124,7 +124,7 @@ description: "Task list for the Who Voted Report"
 - [X] T023 [P] Update README.md: rewrite the **Anonymous Votes** row of "Poll visibility settings" (who sees names, where), and describe the Who voted panel of the maximized view; add `GET /api/me/polls/:pid/voters` where the API's per-viewer reads are listed (FR-020)
 - [X] T024 [P] Update ARCHITECTURE.md: the voters route (access, `no-store`, its floor bucket, `settleMs`) and the maximized view's right column (Notes, Who voted, line graph), with the sequence of a vote reaching the panel
 - [X] T025 [P] Add the feature's summary and easy-to-get-wrong decisions to CLAUDE_COMPLETE.md
-- [ ] T026 Run `npx tsc --noEmit` and `npm test`; run quickstart.md's manual steps 1–11 and record the results, including in step 6 the seconds from the bars moving to the new voter appearing (SC-002: within 5 s)
+- [X] T026 Run `npx tsc --noEmit` and `npm test`; run quickstart.md's manual steps 1–11 and record the results, including in step 6 the seconds from the bars moving to the new voter appearing (SC-002: within 5 s)
 - [X] T027 Add the development script `devScripts/populate/populate-test-poll.ts` (`npm run populate-test-poll [<file>]`, default `devScripts/populate/test-poll.json`): it creates or refreshes the creator's poll with the file's title (OPEN, *Anyone With The Link*, Anonymous Votes `No` when `showVoterChoices` on a private poll), creates missing voter accounts `<name>@crowdpolltest.test`, and casts random votes (multiple choice: 0…n choices, each count equally likely; single choice: one choice for 80%), linking a voter who picks nothing; `.gitignore`, `package.json` and `README-populate-poll-and-seed-poll.md` follow; tests in tests/populate-test-poll.test.ts (TWEAK01)
 
 ---

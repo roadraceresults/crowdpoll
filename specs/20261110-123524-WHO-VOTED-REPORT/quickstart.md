@@ -30,3 +30,10 @@ Expected: all pass. The route test covers [A1](contracts/api.md) case by case; t
 9. Narrow the window to phone width. Expect: card, Notes, Who voted, line graph, one under another; no inner scroll.
 10. Switch to dark mode and use a screen reader on a line of Bob's group. Expect: legible banding; "Bob" announced.
 11. Hover a date. Expect: the full date and time in your time zone.
+
+## Results
+
+2026-11-10: the developer ran manual steps 1–11 on the development server, and all passed, step 6 included (the new
+voter appeared within SC-002's 5 s; the exact seconds were not recorded). Automated: `npx tsc --noEmit` clean; the full
+`npm test` run passed apart from two `populate-test-poll` tests that read the editable `test-poll.json`; they now read
+their own fixture and pass 21/21.
