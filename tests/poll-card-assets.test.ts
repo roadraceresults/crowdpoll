@@ -103,6 +103,14 @@ describe("site.css poll card rules (008 FR-001/FR-002)", () => {
     // choices region loses half its space to an invisible sibling.
     expect(res.text).toContain(".poll-closed-message[hidden]");
   });
+  it("sets the voting side's ballot line in the front's italic note style", async () => {
+    const res = await request(ctx.app).get("/site.css");
+    expect(res.text).toMatch(/\.poll-voted,\s*\.poll-listed-because,\s*\.poll-ballot-rules\{[^}]*font-style:italic;/);
+    expect(res.text).toContain(".poll-ballot-rules[hidden]{ display:none; }");
+    const m3 = await request(ctx.app).get("/pollCard-m3.css");
+    expect(m3.text).toMatch(/\.card-face \.poll-listed-because,\s*\.card-face \.poll-ballot-rules\{ color:var\(--md-sys-color-outline\); \}/);
+    expect(m3.text).not.toMatch(/font-style:normal/);
+  });
 });
 
 describe("pollCard.js card template (008 FR-004)", () => {

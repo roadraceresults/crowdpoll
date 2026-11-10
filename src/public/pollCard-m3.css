@@ -176,6 +176,7 @@
 .card-face .poll-totals,
 .card-face .poll-voted,
 .card-face .poll-listed-because,
+.card-face .poll-ballot-rules,
 .card-face .poll-closed-message,
 .card-face .poll-editing-message,
 .card-face .poll-state-message,
@@ -189,7 +190,8 @@
   color:var(--md-sys-color-on-surface-variant);
 }
 .card-face .poll-voted,
-.card-face .poll-listed-because{ color:var(--md-sys-color-outline); }
+.card-face .poll-listed-because,
+.card-face .poll-ballot-rules{ color:var(--md-sys-color-outline); }
 .card-face .poll-vote-error{
   font-family:var(--md-sys-typescale-font);
   font-weight:500;

@@ -268,7 +268,8 @@
 .card-foot-row{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; }
 .card-foot .poll-totals{ margin:0; }
 .poll-voted,
-.poll-listed-because{
+.poll-listed-because,
+.poll-ballot-rules{
   font-family:'Inter', sans-serif;
   font-style:italic;
   font-weight:500;
@@ -279,9 +280,11 @@
   text-align:right;
 }
 .poll-voted{ flex:0 0 auto; margin-left:auto; }
-.poll-listed-because{ margin-top:2px; }
+.poll-listed-because,
+.poll-ballot-rules{ margin-top:2px; }
 .poll-voted[hidden],
-.poll-listed-because[hidden]{ display:none; }
+.poll-listed-because[hidden],
+.poll-ballot-rules[hidden]{ display:none; }
 
 /* 007-closed-state: pollCard.css's reference rules for these elements
    (.live-link, and .btn-primary which .vote-btn/.submit-vote-btn both

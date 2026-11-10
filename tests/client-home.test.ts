@@ -311,6 +311,28 @@ describe("a bar's percentage", () => {
   });
 });
 
+describe("the voting side says how its ballot works", () => {
+  it("names a multiple-choice poll and a changeable vote, on one line under the count", async () => {
+    await polls(ctx).insertMany([
+      makePoll({ title: "Both", choiceMode: "Multiple-Choice Poll", voteMutability: "Dynamic-Vote Poll" }),
+      makePoll({ title: "Multi only", choiceMode: "Multiple-Choice Poll", voteMutability: "Final-Vote Poll" }),
+      makePoll({ title: "Change only", choiceMode: "Single-Choice Poll", voteMutability: "Dynamic-Vote Poll" }),
+      makePoll({ title: "Neither", choiceMode: "Single-Choice Poll", voteMutability: "Final-Vote Poll" }),
+    ]);
+    await trendingSweep(ctx, ctx.config, ctx.trendingPublisher);
+    page = await openPage(ctx, "index.html");
+    const rulesOf = (title: string) =>
+      Array.from(page!.document.querySelectorAll('.tab-panel[data-panel="trending"] .card-viewport'))
+        .find((el) => el.querySelector(".card-back .question")!.textContent === title)!
+        .querySelector(".card-back .card-foot .poll-ballot-rules") as HTMLElement;
+    expect(rulesOf("Both").textContent).toBe("Multiple-choice poll · You may change your vote");
+    expect(rulesOf("Both").hidden).toBe(false);
+    expect(rulesOf("Multi only").textContent).toBe("Multiple-choice poll");
+    expect(rulesOf("Change only").textContent).toBe("You may change your vote");
+    expect(rulesOf("Neither").hidden).toBe(true);
+  });
+});
+
 describe("a content change in a listed poll", () => {
   it("is fetched by the next TRENDING refresh although the set of polls is the same", async () => {
     const a = makePoll({ title: "Before" });

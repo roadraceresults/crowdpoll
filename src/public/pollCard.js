@@ -1107,6 +1107,14 @@ function initPollCard(viewport, opts){
       because.textContent = parts.join(' · ');
       because.hidden = parts.length === 0;
     }
+    const rulesEl = viewport.querySelector('.poll-ballot-rules');
+    if (rulesEl){
+      const rules = [];
+      if (poll.choiceMode === 'Multiple-Choice Poll') rules.push('Multiple-choice poll');
+      if (poll.voteMutability === 'Dynamic-Vote Poll') rules.push('You may change your vote');
+      rulesEl.textContent = rules.join(' · ');
+      rulesEl.hidden = rules.length === 0;
+    }
   }
 
   // 007-closed-state FR-003: date-only, no time -- compact for the space
@@ -1734,6 +1742,9 @@ const POLL_CARD_TEMPLATE = `
                choices and results regions line up (FR-001). -->
           <div class="card-foot">
             <p class="poll-totals"></p>
+            <!-- How this ballot works, on its own line under the count, styled as the
+                 front's listed-because line. -->
+            <p class="poll-ballot-rules" hidden></p>
           </div>
 
         </div>

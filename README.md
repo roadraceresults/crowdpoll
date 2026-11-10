@@ -60,7 +60,8 @@ delivery network.
   choices, then keywords and notes; a misspelt title is still found. At most 200 results are shown.
 - **Vote** — press **Vote** on a card, pick your choice(s) and **Submit vote**. The card shows
   the new counts at once. On a very busy site the card may say your vote is *queued*; it has
-  been counted and will be stored within moments.
+  been counted and will be stored within moments. Under the count, the voting side says
+  *Multiple-choice poll* and *You may change your vote* when they apply.
 - **Add Choice** — on a Private poll whose creator lets voters add choices, the voting side of
   the card has an **Add Choice** button while the poll is open. Type a choice of up to 35
   characters and press **Save**: it appears last on the card at once, for every voter, and can be
