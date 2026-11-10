@@ -48,7 +48,7 @@ const PAGES: Record<string, PageAssets> = {
   "index.html": {
     sheets: ["tabs.css", "pollCard.css", "site.css"],
     scripts: ["app.js", "headerFit.js", "fixedChrome.js", "addChoiceDialog.js", "pollCard.js", "voteClient.js", "deltaClient.js", "lineGraph.js", "tabs.js", "trending.js", "newest.js", "searchTab.js", "liveResults.js", "tabBarScroll.js", "tabBarScrollArrows.js", "floatingActions.js", "backToTopFab.js"],
-    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "tabs-modal-m3.css", "add-choice-m3.css", "live-idle-prompt-m3.css", "empty-tab-line-m3.css", "pollCard-m3.css", "single-column-m3.css", "tab-bar-scroll-arrows-m3.css", "snackbar-m3.css", "footer-m3.css", "line-graph-m3.css"]
+    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "back-arrow-m3.css", "tabs-modal-m3.css", "add-choice-m3.css", "live-idle-prompt-m3.css", "empty-tab-line-m3.css", "pollCard-m3.css", "single-column-m3.css", "tab-bar-scroll-arrows-m3.css", "snackbar-m3.css", "footer-m3.css", "line-graph-m3.css"]
   },
   "profile.html": {
     sheets: ["tabs.css", "pollCard.css", "site.css"],
@@ -102,7 +102,7 @@ const PAGES: Record<string, PageAssets> = {
   },
   "admin.html": {
     sheets: ["styles.css", "tabs.css", "pollCard.css", "admin.css", "site.css"],
-    scripts: ["app.js", "headerFit.js", "fixedChrome.js", "adminCard.js", "adminList.js", "backToTopFab.js"],
+    scripts: ["app.js", "headerFit.js", "fixedChrome.js", "notesEditor.js", "adminCard.js", "adminList.js", "backToTopFab.js"],
     layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "back-arrow-m3.css", "tabs-modal-m3.css", "discard-dialog-m3.css", "admin-card-m3.css", "admin-search-m3.css", "snackbar-m3.css", "footer-m3.css"]
   },
   "admin-results.html": {

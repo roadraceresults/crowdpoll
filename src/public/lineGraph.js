@@ -1,6 +1,6 @@
 /*
   The maximized poll view's vote-history line graph. tabs.js mounts it into
-  .maximized-space-right on maximize and unmounts it on close; the series is
+  .maximized-graph on maximize and unmounts it on close; the series is
   computed by the service (GET /api/polls/:pid/line-graph) and rendered here
   as inline SVG. Line colours are data: the response's manual hex when a
   choice has one, else the colour the card assigned that choice
@@ -35,9 +35,14 @@
   }
 
   function surfaceHex() {
-    const match = /^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)$/.exec(getComputedStyle(state.el).backgroundColor);
-    if (!match || (match[4] !== undefined && Number(match[4]) !== 1)) return null;
-    return '#' + match.slice(1, 4).map((v) => Number(v).toString(16).padStart(2, '0')).join('');
+    for (let node = state.el; node; node = node.parentElement) {
+      const match = /^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)$/.exec(getComputedStyle(node).backgroundColor);
+      const alpha = match && match[4] !== undefined ? Number(match[4]) : 1;
+      if (!match || alpha === 0) continue;
+      if (alpha !== 1) return null;
+      return '#' + match.slice(1, 4).map((v) => Number(v).toString(16).padStart(2, '0')).join('');
+    }
+    return null;
   }
 
   function lineColorOf(choiceId, surface) {

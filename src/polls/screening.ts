@@ -14,6 +14,7 @@ export type ScreeningVerdict = string;
 export interface ScreeningInput {
   title: string;
   subtitle: string;
+  notes: string;
   choiceLabels: string[];
 }
 
@@ -38,11 +39,11 @@ function offendingTerms(text: string): string[] {
   return DENY_TERMS.filter((t) => new RegExp(`\\b${t}\\b`).test(lower));
 }
 
-export const localScreener: Screener = async ({ title, subtitle, choiceLabels }) => {
-  const found = offendingTerms([title, subtitle, ...choiceLabels].join(" \n "));
+export const localScreener: Screener = async ({ title, subtitle, notes, choiceLabels }) => {
+  const found = offendingTerms([title, subtitle, notes, ...choiceLabels].join(" \n "));
   if (found.length === 0) return "";
   const unique = [...new Set(found)].sort();
-  return `Acceptability Screening rejected this poll for unacceptable language (${unique.length} term${unique.length === 1 ? "" : "s"}). Please revise the title, subtitle and choices.`;
+  return `Acceptability Screening rejected this poll for unacceptable language (${unique.length} term${unique.length === 1 ? "" : "s"}). Please revise the title, subtitle, notes and choices.`;
 };
 
 /**

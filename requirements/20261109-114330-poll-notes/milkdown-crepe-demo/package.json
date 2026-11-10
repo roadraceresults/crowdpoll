@@ -1,0 +1,9 @@
+{
+  "name": "milkdown-crepe-vanilla-demo",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {"dev": "vite --host 127.0.0.1", "build": "vite build", "preview": "vite preview"},
+  "dependencies": {"@milkdown/crepe": "^7.23.0", "dompurify": "^3.2.6", "markdown-it": "^14.1.0"},
+  "devDependencies": {"vite": "^7.0.0"}
+}

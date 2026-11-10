@@ -172,6 +172,11 @@
     if (maximized) maximized.grid.restore(options);
   }
 
+  function setBackArrowShown(shown) {
+    const bar = document.getElementById("maximizedBack");
+    if (bar) bar.hidden = !shown;
+  }
+
   function createGrid(gridEl, cardOpts) {
     const mounted = new Map();
     let lastOrder = [];
@@ -180,6 +185,7 @@
     let returnScrollY = 0;
     let retainedDetail = null;
     let graphPid = null;
+    let notesShown = null;
     let pinnedPid = null;
     const opts = Object.assign(
       {
@@ -218,6 +224,7 @@
           card.applyPoll(detail);
         }
         syncLineGraph(pid, card, detail);
+        syncNotes(pid, detail);
       });
       Array.from(mounted.keys()).forEach((pid) => {
         if (seen.has(pid)) return;
@@ -264,6 +271,7 @@
       maximizedPid = pid;
       gridEl.hidden = true;
       view.hidden = false;
+      setBackArrowShown(true);
       view.insertBefore(card.element, view.querySelector(".col-rule"));
       card.setMaximized(true);
       const top = gridEl.parentNode.getBoundingClientRect().top;
@@ -272,6 +280,7 @@
       maximized = { grid: api, pid: pid };
       const detail = card.detail();
       if (detail && detail.lineGraphEnabled) mountLineGraph(pid, card, detail);
+      syncNotes(pid, detail);
       shownMaximizeButton(card.element).focus();
     }
 
@@ -280,7 +289,7 @@
     // until the view closes, and its own refresh then shows the results-unavailable note.
     function mountLineGraph(pid, card, detail) {
       graphPid = pid;
-      window.PollLineGraph?.mount(maximizedEl.querySelector(".maximized-space-right"), {
+      window.PollLineGraph?.mount(maximizedEl.querySelector(".maximized-graph"), {
         pid: pid,
         title: detail.title || "",
         subtitle: detail.subtitle || "",
@@ -293,10 +302,41 @@
       mountLineGraph(pid, card, detail);
     }
 
+    function syncNotes(pid, detail) {
+      if (pid !== maximizedPid || !detail) return;
+      if (!detail.notesPreviewHtml) {
+        if (notesShown) clearNotes();
+        return;
+      }
+      if (notesShown && notesShown.pid === pid && notesShown.contentVersion === detail.contentVersion) return;
+      const asked = { pid: pid, contentVersion: detail.contentVersion };
+      notesShown = asked;
+      const area = maximizedEl.querySelector(".maximized-notes");
+      const url = isSignedIn() ? "/api/me/polls/" + encodeURIComponent(pid) : "/api/polls/" + encodeURIComponent(pid) + "/card";
+      fetch(url)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((body) => {
+          const html = body && body.poll && body.poll.notesHtml;
+          if (notesShown !== asked || !html) return;
+          area.innerHTML = html;
+          area.hidden = false;
+        })
+        .catch(() => {});
+    }
+
+    function clearNotes() {
+      notesShown = null;
+      const area = maximizedEl && maximizedEl.querySelector(".maximized-notes");
+      if (!area) return;
+      area.replaceChildren();
+      area.hidden = true;
+    }
+
     function restore(options = {}) {
       if (!maximizedPid) return;
       window.PollLineGraph?.unmount();
       graphPid = null;
+      clearNotes();
       const pid = maximizedPid;
       const card = mounted.get(pid);
       const leftTheTab = Boolean(options.left || retainedDetail);
@@ -305,6 +345,7 @@
       maximized = null;
       gridEl.hidden = false;
       maximizedEl.hidden = true;
+      setBackArrowShown(false);
       if (card && retainedDetail) {
         card.unmount();
         mounted.delete(pid);
@@ -1211,6 +1252,7 @@
       });
     }
     applyGuestState();
+    document.querySelector("#maximizedBack .maximized-back")?.addEventListener("click", () => closeMaximized());
     document.addEventListener("keydown", (event) => {
       if (event.key !== "Escape" || !maximized) return;
       if (document.querySelector('[aria-modal="true"]')) return;

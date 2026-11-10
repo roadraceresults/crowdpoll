@@ -4,14 +4,15 @@ import { toDocument, type OpenSearchEngine } from "./openSearch.js";
 
 const DRAIN_BATCH = 500;
 
-/** The four fields the home search indexes, in the order the stored `search` column weighs them. */
-export function searchText(row: Pick<PollRow, "title" | "subtitle" | "choice_labels" | "keywords">): {
+/** The five fields the home search indexes, in the order the stored `search` column weighs them. */
+export function searchText(row: Pick<PollRow, "title" | "subtitle" | "choice_labels" | "keywords" | "notes">): {
   title: string;
   subtitle: string;
   choiceLabels: string;
   keywords: string;
+  notes: string;
 } {
-  return { title: row.title, subtitle: row.subtitle, choiceLabels: row.choice_labels, keywords: row.keywords };
+  return { title: row.title, subtitle: row.subtitle, choiceLabels: row.choice_labels, keywords: row.keywords, notes: row.notes };
 }
 
 /** One drain tick: pushes every changed poll to the index, coalesced per poll, and clears the outbox. */

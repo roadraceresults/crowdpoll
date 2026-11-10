@@ -10,6 +10,7 @@ import { readOrRebuildCounts } from "../polls/counters.js";
 import { parsePid } from "../polls/sharedLink.js";
 import { projectPoll } from "../polls/versions.js";
 import { renderPollPage } from "../seo/pollPage.js";
+import { renderNotesHtml } from "../polls/notes.js";
 import { createAssetServing } from "./assets.js";
 
 const publicDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "public");
@@ -146,7 +147,7 @@ export function createSeoRouter({ db, cache, config, sessions }: SeoDeps, { part
       }
       const counts = (await readOrRebuildCounts({ db, cache }, [pid])).get(pid) ?? { voteCount: 0, choiceCounts: {}, countsVersion: 0 };
       res.setHeader("Cache-Control", "no-cache");
-      res.type("html").send(renderPollPage(assets.pageHtml("index.html"), projectPoll(row), counts, origin));
+      res.type("html").send(renderPollPage(assets.pageHtml("index.html"), projectPoll(row), counts, origin, renderNotesHtml(row.notes)));
     })
   );
 

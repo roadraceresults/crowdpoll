@@ -164,6 +164,22 @@ describe("a poll's own page", () => {
     expect(html.indexOf('<main class="all-markets">')).toBeLessThan(html.indexOf('<article id="poll-summary">'));
   });
 
+  it("shows the rendered notes after the subtitle, escaped, and leaves the description alone", async () => {
+    await ctx.db.updateTable("polls").set({ notes: "**Bring** </script><img src=x> a *plate*\nline two" }).where("id", "=", open).execute();
+    await ctx.cache.del(`poll:${open}`);
+    const html = (await request(ctx.app).get(`/poll/${open}`)).text;
+    const summary = /<article id="poll-summary">([\s\S]*?)<\/article>/.exec(html)![1]!;
+    const notes = '<div class="poll-notes"><strong>Bring</strong> &lt;/script&gt;&lt;img src=x&gt; a <em>plate</em><br>line two</div>';
+    expect(summary).toContain(`<p>Pick one &lt;/script&gt;&lt;b&gt;now&lt;/b&gt;</p>${notes}<ul>`);
+    expect(html).toContain('<meta name="description" content="Pick one &lt;/script&gt;&lt;b&gt;now&lt;/b&gt;">');
+    expect(html).not.toContain("</script><img");
+  });
+
+  it("has no notes block for a poll without notes", async () => {
+    const html = (await request(ctx.app).get(`/poll/${open}`)).text;
+    expect(html).not.toContain('class="poll-notes"');
+  });
+
   it("says who made the poll nowhere", async () => {
     await ctx.db.updateTable("polls").set({ created_by_id: "maker-id", created_by_name: "Maker Name" }).where("id", "=", open).execute();
     const html = (await request(ctx.app).get(`/poll/${open}`)).text;

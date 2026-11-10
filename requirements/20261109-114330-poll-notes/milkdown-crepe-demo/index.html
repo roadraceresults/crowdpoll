@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Milkdown Crepe — Vanilla JS Demo</title>
+</head>
+<body>
+  <main class="page">
+    <header class="page-header">
+      <div><span class="eyebrow">VANILLA JAVASCRIPT · NO FRAMEWORK</span><h1>Notes editor</h1><p>Format your notes visually. Markdown stays behind the scenes.</p></div>
+      <span class="saved-indicator" id="saved-indicator">Saved locally</span>
+    </header>
+    <section class="panel" aria-label="Notes">
+      <div class="panel-header"><h2>Notes</h2><div class="actions">
+        <button id="edit-btn" class="primary" type="button">Edit notes</button>
+        <button id="cancel-btn" class="secondary" type="button" hidden>Cancel</button>
+        <button id="save-btn" class="primary" type="button" hidden>Save &amp; close</button>
+      </div></div>
+      <div id="viewer" class="prose"></div>
+      <div id="editor" hidden></div>
+    </section>
+    <details class="source-panel"><summary>Developer view: saved Markdown</summary><p>This is what you would send to your server or store in a database. Your users never need to see it.</p><pre id="markdown-output"></pre></details>
+    <footer>Changes are saved in this browser's localStorage for demonstration purposes.</footer>
+  </main>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

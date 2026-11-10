@@ -57,7 +57,7 @@ delivery network.
   `/poll/<id>`, that search engines can read. A guest who opens it, or a shared link to it, sees the
   poll's live card on Trending, maximized; a logged-in visitor goes to the poll as before.
 - **Search** — type words in the box and press Enter: titles match first, then subtitles, then
-  choices; a misspelt title is still found. At most 200 results are shown.
+  choices, then keywords and notes; a misspelt title is still found. At most 200 results are shown.
 - **Vote** — press **Vote** on a card, pick your choice(s) and **Submit vote**. The card shows
   the new counts at once. On a very busy site the card may say your vote is *queued*; it has
   been counted and will be stored within moments.
@@ -76,8 +76,11 @@ delivery network.
   inactive for six months; press it again to stop. Up to 200 polls. You can watch a poll you may
   see (public, or private and invited to or opened by you); a poll you lose access to leaves
   Watching and comes back if access returns. Voting never watches a poll.
-- **Maximize** — click a card's title or subtitle, or the maximize icon at the right of its title
-  (on either side of the card), to show that poll on its own, in the tab you are on, with every
+- **Notes** — a poll may have notes under its title: the card shows their first two lines, with
+  **Show more ⌄** when there is more. **Show more ⌄** opens the poll maximized, with the whole notes
+  above its line graph.
+- **Maximize** — click a card's title or subtitle, **Show more ⌄**, or the maximize icon at the right
+  of its title (on either side of the card), to show that poll on its own, in the tab you are on, with every
   choice visible at once and no scrolling inside the card. The card works exactly as it does in
   the grid. Close it with the same icon, now a minimize icon, the **Escape** key, or a click on the
   tab you are on; the tab comes back as you
@@ -165,6 +168,14 @@ delivery network.
   finish later; **Publish**, available once every step has been visited and the poll is complete,
   sends the poll to be reviewed. New polls are public and let voters change their vote unless
   you choose otherwise.
+- **Notes** — Title & Tags has a **Notes** field after Subtitle: up to 6000 characters of text with
+  **bold**, *italic* and underline (the toolbar, or Ctrl/⌘+B, I, U) and line breaks; pasted text
+  keeps no formatting. **... edit ⌄** opens the editor in place; **Done** keeps the notes in the
+  wizard, **Cancel** or **Escape** drops the change (asking first), and **Next >>** or a step circle
+  keeps it. The notes are saved with **Save**, **Publish** or **Save changes**, are screened with the
+  title, subtitle and choices, and on a poll with votes wait for review like a changed subtitle.
+  The read-only card shows their first two lines after the summary. Duplicates and both exports
+  carry them.
 - **View** — on the View step, the poll's creator or an administrator can choose a color for
   each choice from a fixed palette of eighteen, shown as a grid of named swatches. An administrator
   also sees **Show the line graph** at the top of this step; it is off by default, on every poll,
@@ -186,13 +197,13 @@ delivery network.
   choice a voter added while it was open; only the choices you removed are deleted.
 - **Editing a poll** — select the part of the summary you want to change and the wizard opens
   at that step. Only what the poll's state allows can change: everything until the poll has
-  votes. Once it has votes, the title, subtitle, choices, dates and bar colors stay editable,
+  votes. Once it has votes, the title, subtitle, notes, choices, dates and bar colors stay editable,
   a private poll can switch between *Anyone you send the link to* and *Only people you
   invite* (both ways), a single-choice poll can become
   multiple-choice (never back), and whether voters may change their vote switches both ways.
   Visibility (public/private), anonymity and keywords stay frozen. Editing never interrupts an
   open poll: voters keep voting while the wizard is open. **Save changes** applies everything
-  except a changed title, subtitle or choice list at once; those three wait as *changes pending
+  except a changed title, subtitle, notes or choice list at once; those four wait as *changes pending
   review* — the poll stays open and unchanged until the review approves them — and the card says
   so until it resolves (or shows *changes rejected* with the reason). Choices change by label:
   a kept line keeps its votes, a new line is added, and a removed line's votes are released —

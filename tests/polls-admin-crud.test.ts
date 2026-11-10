@@ -457,6 +457,26 @@ describe("Admin poll CRUD (US4)", () => {
     expect(detail.body.startAt).toBeNull();
   });
 
+  it("copies the notes into a duplicate, and writes them into both exports as stored", async () => {
+    const cookie = await adminCookie();
+    const poll = makePoll({ title: "Noted", subtitle: "Sub", notes: "**Bring** a *plate*\nand a fork", pollState: "CLOSED" });
+    const plain = makePoll({ title: "Plain", subtitle: "Sub", pollState: "CLOSED" });
+    await polls(ctx).insertMany([poll, plain]);
+
+    const dup = await request(ctx.app).post(`/api/admin/polls/${poll._id}/duplicate`).set("Cookie", cookie);
+    expect(dup.status).toBe(201);
+    expect((await polls(ctx).findOne({ _id: dup.body.pid }))!.notes).toBe("**Bring** a *plate*\nand a fork");
+
+    const json = await request(ctx.app).get(`/api/admin/polls/${poll._id}/export.json`).set("Cookie", cookie);
+    expect(Object.keys(json.body).slice(0, 4)).toEqual(["pid", "title", "subtitle", "notes"]);
+    expect(json.body.notes).toBe("**Bring** a *plate*\nand a fork");
+
+    const md = await request(ctx.app).get(`/api/admin/polls/${poll._id}/export.md`).set("Cookie", cookie);
+    expect(md.text.startsWith("# Noted\n\nSub\n\n**Bring** a *plate*\nand a fork\n\n| Choice |")).toBe(true);
+    const bare = await request(ctx.app).get(`/api/admin/polls/${plain._id}/export.md`).set("Cookie", cookie);
+    expect(bare.text.startsWith("# Plain\n\nSub\n\n| Choice |")).toBe(true);
+  });
+
   it("gives repeated duplicates of the same poll unique, incrementing titles (FR-001/002)", async () => {
     const cookie = await adminCookie();
     const poll = makePoll({ title: "Customer Satisfaction" });

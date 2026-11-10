@@ -128,7 +128,8 @@ describe("maximizing and restoring", () => {
       expect(view.querySelector(".maximized-card-close, .maximized-card-close-row")).toBeNull();
       expect(view.firstElementChild).toBe(card);
       const side = view.querySelector(".maximized-space-right")!;
-      expect(side.childElementCount).toBe(0);
+      expect(side.querySelector<HTMLElement>(".maximized-notes")!.hidden).toBe(true);
+      expect(side.querySelector(".maximized-graph")!.childElementCount).toBe(0);
       expect(side.textContent!.trim()).toBe("");
       expect(page.document.getElementById("tabBar")).not.toBeNull();
 
@@ -180,6 +181,31 @@ describe("maximizing and restoring", () => {
     expect(cardGrid(page, "trending").hidden).toBe(false);
     expect(gridOrder(page)).toEqual(before);
     expect(requestsTo(page, "/api/").length).toBe(sent);
+  });
+
+  it("shows the tab bar's Back arrow while maximized, which closes the view and focuses the card", async () => {
+    await seedThree();
+    page = await open();
+    expect(page.document.getElementById("maximizedBack")!.hidden).toBe(true);
+    const before = gridOrder(page);
+    const card = cardByTitle(page, "Bravo");
+    await clickIn(page, card.querySelector(".maximize-btn"));
+
+    const bar = page.document.getElementById("maximizedBack")!;
+    const view = maximizedGrid(page, "trending")!;
+    expect(bar.hidden).toBe(false);
+    expect(bar.classList.contains("back-arrow-bar")).toBe(true);
+    expect(bar.parentElement!.classList.contains("tab-bar-wrap")).toBe(true);
+    expect(view.contains(bar)).toBe(false);
+    const back = bar.querySelector<HTMLButtonElement>("button.back-arrow.maximized-back")!;
+    expect(back.getAttribute("aria-label")).toBe("Back");
+
+    await clickIn(page, back);
+    expect(view.hidden).toBe(true);
+    expect(bar.hidden).toBe(true);
+    expect(cardGrid(page, "trending").hidden).toBe(false);
+    expect(gridOrder(page)).toEqual(before);
+    expect(page.document.activeElement).toBe(card.querySelector(".card-front .maximize-btn"));
   });
 
   it("returns the page to its scroll position when closed", async () => {

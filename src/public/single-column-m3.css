@@ -117,6 +117,11 @@ html[data-header-fit~="no-search"] .search-tab-form{ display:flex; }
   .tab-bar-wrap{ margin-bottom:calc(40px + var(--refresh-gap)); }
   .tab-bar-wrap .tab-refresh--icon{ position:absolute; left:var(--tab-edge); top:calc(100% + 5px); width:30px; height:30px; }
   .tab-bar-wrap .tab-refresh--icon svg{ width:20px; height:20px; }
+  .tab-bar-wrap:has(> #maximizedBack:not([hidden])) .tab-refresh--icon{ left:auto; right:calc(var(--tab-edge) + 44px); }
+  .tab-bar-wrap .maximized-back-bar{ position:absolute; left:var(--tab-edge); right:auto; top:100%; max-width:none; margin:0; padding:2px 0; }
+  .tab-bar-wrap .maximized-back{ width:36px; height:36px; }
+  .tab-bar-wrap .maximized-back svg{ width:24px; height:24px; }
+  .maximized-card-grid{ padding-top:0; }
 
   .tab-menu-btn{
     position:relative;

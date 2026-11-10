@@ -1,6 +1,7 @@
 import type { Kysely } from "kysely";
 import type { Cache } from "../cache/cache.js";
 import type { Database, PollRow } from "../db/schema.js";
+import { renderNotesPreview } from "./notes.js";
 
 export const POLL_PROJECTION_KEY = (pid: string) => `poll:${pid}`;
 
@@ -9,6 +10,8 @@ export interface PollProjection {
   pid: string;
   title: string;
   subtitle: string;
+  notesPreviewHtml: string;
+  hasMoreNotes: boolean;
   choiceMode: string;
   voteMutability: string;
   pollVisibility: string;
@@ -23,10 +26,13 @@ export interface PollProjection {
 }
 
 export function projectPoll(row: PollRow): PollProjection {
+  const preview = renderNotesPreview(row.notes);
   return {
     pid: row.id,
     title: row.title,
     subtitle: row.subtitle,
+    notesPreviewHtml: preview.html,
+    hasMoreNotes: preview.hasMore,
     choiceMode: row.choice_mode,
     voteMutability: row.vote_mutability,
     pollVisibility: row.poll_visibility,

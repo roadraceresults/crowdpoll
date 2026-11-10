@@ -23,7 +23,7 @@ beforeEach(async () => {
   page = null;
   await polls(ctx).deleteMany({});
   await polls(ctx).insertOne(makePoll({ title: "Draft to edit", pollState: "OPEN" }));
-  page = await openPage(ctx, "admin.html", { cookie, url: "http://localhost/admin", scripts: ["m3-ripple.js", "app.js", "adminCard.js", "adminList.js"] });
+  page = await openPage(ctx, "admin.html", { cookie, url: "http://localhost/admin", scripts: ["m3-ripple.js", "app.js", "notesEditor.js", "adminCard.js", "adminList.js"] });
   page.window.HTMLElement.prototype.scrollIntoView = () => {};
   (page.window as unknown as { confirm: () => boolean }).confirm = () => {
     throw new Error("window.confirm must not be called");

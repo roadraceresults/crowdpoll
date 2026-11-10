@@ -2,6 +2,7 @@ import { Client } from "@opensearch-project/opensearch";
 import type { Search_RequestBody } from "@opensearch-project/opensearch/api/index.js";
 import type { PollRow } from "../db/schema.js";
 import type { SearchEngine, SearchHit } from "./search.js";
+import { notesPlainText } from "../polls/notes.js";
 
 export const POLLS_INDEX = "polls";
 const HEALTH_CACHE_MS = 5000;
@@ -12,6 +13,7 @@ export interface PollDocument {
   subtitle: string;
   choice_labels: string;
   keywords: string;
+  notes: string;
   vote_count: number;
   created_at: string;
   content_version: number;
@@ -25,6 +27,7 @@ export function toDocument(row: PollRow): PollDocument {
     subtitle: row.subtitle,
     choice_labels: row.choice_labels,
     keywords: row.keywords,
+    notes: notesPlainText(row.notes),
     vote_count: row.vote_count,
     created_at: new Date(row.created_at).toISOString(),
     content_version: row.content_version,
@@ -52,6 +55,7 @@ export function createOpenSearch(url: string): OpenSearchEngine {
         subtitle: { type: "text" as const, analyzer: "english" },
         choice_labels: { type: "text" as const, analyzer: "english" },
         keywords: { type: "text" as const, analyzer: "english" },
+        notes: { type: "text" as const, analyzer: "english" },
         vote_count: { type: "integer" as const },
         created_at: { type: "date" as const },
         content_version: { type: "long" as const },
@@ -63,7 +67,7 @@ export function createOpenSearch(url: string): OpenSearchEngine {
   function pass(text: string, variant: "and" | "or" | "fuzzy", size: number): Search_RequestBody {
     const multiMatch: Record<string, unknown> = {
       query: text,
-      fields: ["title^4", "subtitle^3", "choice_labels^2", "keywords"]
+      fields: ["title^4", "subtitle^3", "choice_labels^2", "keywords", "notes"]
     };
     if (variant === "and") multiMatch.minimum_should_match = "100%";
     if (variant === "or") multiMatch.minimum_should_match = "1";
@@ -92,7 +96,9 @@ export function createOpenSearch(url: string): OpenSearchEngine {
       if (!exists.body) {
         await client.indices.create({ index: POLLS_INDEX, body: mapping });
         console.log(`[search] Created the OpenSearch index "${POLLS_INDEX}"`);
+        return;
       }
+      await client.indices.putMapping({ index: POLLS_INDEX, body: { properties: { notes: mapping.mappings.properties.notes } } });
     },
     async healthy() {
       if (health && Date.now() - health.at < HEALTH_CACHE_MS) return health.ok;

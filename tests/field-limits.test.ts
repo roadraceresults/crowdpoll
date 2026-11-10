@@ -5,6 +5,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import * as service from "../src/polls/service.js";
+import { NOTES_MAX } from "../src/polls/notes.js";
 
 const adminCard = readFileSync("src/public/adminCard.js", "utf8");
 
@@ -22,6 +23,12 @@ describe("field length limits", () => {
   ])("%s is the same in the browser as on the server", (name, serverValue, expected) => {
     expect(serverValue).toBe(expected);
     expect(browserCopy(name)).toBe(serverValue);
+  });
+
+  it("NOTES_MAX is the same in the notes editor as on the server", () => {
+    expect(NOTES_MAX).toBe(6000);
+    const match = /const NOTES_MAX = (\d+);/.exec(readFileSync("src/public/notesEditor.js", "utf8"));
+    expect(Number(match?.[1])).toBe(NOTES_MAX);
   });
 
   it("has one choice-label limit", () => {

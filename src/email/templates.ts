@@ -1,3 +1,7 @@
+import { escapeHtml } from "../html.js";
+
+export { escapeHtml };
+
 const PRIMARY = "#2C6A46";
 const ON_PRIMARY = "#FFFFFF";
 const TEXT = "#1A1C19";
@@ -23,15 +27,6 @@ interface LayoutInput {
   paragraphs: string[];
   action?: { label: string; url: string };
   closing?: string[];
-}
-
-export function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
 }
 
 function paragraphHtml(text: string, color = TEXT, size = 16): string {
