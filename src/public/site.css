@@ -268,6 +268,7 @@
 .card-foot-row{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; }
 .card-foot .poll-totals{ margin:0; }
 .poll-voted,
+.poll-anonymous,
 .poll-listed-because,
 .poll-ballot-rules{
   font-family:'Inter', sans-serif;
@@ -279,10 +280,12 @@
   margin:0;
   text-align:right;
 }
-.poll-voted{ flex:0 0 auto; margin-left:auto; }
+.poll-voted,
+.poll-anonymous{ flex:0 0 auto; margin-left:auto; }
 .poll-listed-because,
 .poll-ballot-rules{ margin-top:2px; }
 .poll-voted[hidden],
+.poll-anonymous[hidden],
 .poll-listed-because[hidden],
 .poll-ballot-rules[hidden]{ display:none; }
 
@@ -569,6 +572,17 @@
   text-align:right;
 }
 .card-shell-status:empty{ display:none; }
+
+/* Why an action is unavailable, under its button (the invitation card's Terms hint). */
+.card-shell-hint{
+  font-family:'Inter', sans-serif;
+  font-size:clamp(11px, 1vw, 12.5px);
+  line-height:1.4;
+  color:var(--muted);
+  margin:0;
+  text-align:right;
+}
+.card-shell-hint[hidden]{ display:none; }
 
 /* An action awaiting its outcome (FR-046). */
 .btn-primary.is-running{

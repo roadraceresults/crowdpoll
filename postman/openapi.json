@@ -379,7 +379,7 @@
               "Yes",
               "No"
             ],
-            "description": "For a private poll, whether the poll creator may see who voted for which choice (No) or totals only (Yes). Always present; ignored while the poll is public. Not yet read by anything: enforcement arrives with the poll creator role. Frozen once the poll has ever been voted on."
+            "description": "For a private poll, whether the poll creator may see who voted for which choice (No) or totals only (Yes). Yes leaves choiceIds out of the results' voted list and the JSON export's participants for anyone but an administrator. Always present; ignored while the poll is public. Frozen once the poll has ever been voted on."
           },
           "createdAt": {
             "type": "string",
@@ -584,7 +584,7 @@
             "items": {
               "$ref": "#/components/schemas/Participant"
             },
-            "description": "Replaced by an empty array when the list is longer than ENV_MAX_PRIVATE_POLL_VOTERS; the poll's counts and aggregates stay accurate. The JSON export is exempt."
+            "description": "Replaced by an empty array when the list is longer than ENV_MAX_PRIVATE_POLL_VOTERS; the poll's counts and aggregates stay accurate. The JSON export is exempt. On a Private poll with voteAnonymity Yes, each entry has no choiceIds unless the caller is an administrator."
           },
           "notYetVoted": {
             "type": "array",
@@ -721,6 +721,10 @@
               "Final-Vote Poll",
               "Dynamic-Vote Poll"
             ]
+          },
+          "anonymousVotes": {
+            "type": "boolean",
+            "description": "True on a Private poll with Anonymous Votes: its creator does not see who voted for which choice (administrators still do), and the voting side says \"Votes are anonymous.\". The raw voteAnonymity setting is not on the card."
           },
           "pollVisibility": {
             "type": "string",
@@ -1139,6 +1143,10 @@
               "Final-Vote Poll",
               "Dynamic-Vote Poll"
             ]
+          },
+          "anonymousVotes": {
+            "type": "boolean",
+            "description": "True on a Private poll with Anonymous Votes: its creator does not see who voted for which choice (administrators still do), and the voting side says \"Votes are anonymous.\". The raw voteAnonymity setting is not on the card."
           },
           "pollState": {
             "type": "string",
@@ -3157,7 +3165,7 @@
         ],
         "responses": {
           "200": {
-            "description": "JSON file download: pid, title, subtitle, notes (as stored), choices, totalVoted and participants",
+            "description": "JSON file download: pid, title, subtitle, notes (as stored), choices, totalVoted and participants; on a Private poll with voteAnonymity Yes, participants carry no choiceIds unless the caller is an administrator",
             "content": {
               "application/json": {
                 "schema": {

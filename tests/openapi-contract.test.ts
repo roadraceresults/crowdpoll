@@ -181,6 +181,7 @@ describe("openapi.json describes the 012 model, not the retired one", () => {
     const voterFacing = Object.keys(schemaProperties(spec.components.schemas.Card));
     expect(voterFacing).toContain("pollSharingMode");
     expect(voterFacing).not.toContain("voteAnonymity");
+    expect(voterFacing).toContain("anonymousVotes");
   });
 
   it("documents isAdmin on the profile, and says it is only a hint", () => {

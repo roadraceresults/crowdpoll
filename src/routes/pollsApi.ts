@@ -15,7 +15,7 @@ import { localScreener, screenWithTimeout } from "../polls/screening.js";
 import { projectPoll } from "../polls/versions.js";
 import { renderNotesHtml, renderNotesPreview } from "../polls/notes.js";
 import { adminSearch, AdminSearchError, parseAdminSearch } from "../search/adminSearch.js";
-import { mayViewResults, mayWatch } from "../polls/access.js";
+import { hidesChoicesFrom, mayViewResults, mayWatch } from "../polls/access.js";
 import { addBookmark, BookmarkCapError, removeBookmark } from "../polls/bookmarks.js";
 import {
   countTitleCollisions,
@@ -1092,9 +1092,10 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
         return;
       }
       const results = computeResults(poll);
+      const hideChoices = hidesChoicesFrom(poll, (await callerEmail(sessions, req))?.email, config);
       const voted = poll.currentVotes
         .filter((v) => v.choiceIds.length > 0)
-        .map((v) => ({ emailAddress: v.emailAddress, userName: v.userName, choiceIds: v.choiceIds }))
+        .map((v) => ({ emailAddress: v.emailAddress, userName: v.userName, ...(hideChoices ? {} : { choiceIds: v.choiceIds }) }))
         .sort((a, b) => a.userName.localeCompare(b.userName));
       const body: Record<string, unknown> = {
         pid: poll._id,
@@ -1129,7 +1130,7 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
         return;
       }
       res.setHeader("Content-Disposition", `attachment; filename="${poll._id}.json"`);
-      res.json(exportPollData(poll));
+      res.json(exportPollData(poll, hidesChoicesFrom(poll, (await callerEmail(sessions, req))?.email, config)));
     })
   );
 

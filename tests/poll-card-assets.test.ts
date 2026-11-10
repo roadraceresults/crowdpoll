@@ -103,9 +103,9 @@ describe("site.css poll card rules (008 FR-001/FR-002)", () => {
     // choices region loses half its space to an invisible sibling.
     expect(res.text).toContain(".poll-closed-message[hidden]");
   });
-  it("sets the voting side's ballot line in the front's italic note style", async () => {
+  it("sets the voting side's notes in the front's italic note style", async () => {
     const res = await request(ctx.app).get("/site.css");
-    expect(res.text).toMatch(/\.poll-voted,\s*\.poll-listed-because,\s*\.poll-ballot-rules\{[^}]*font-style:italic;/);
+    expect(res.text).toMatch(/\.poll-voted,\s*\.poll-anonymous,\s*\.poll-listed-because,\s*\.poll-ballot-rules\{[^}]*font-style:italic;/);
     expect(res.text).toContain(".poll-ballot-rules[hidden]{ display:none; }");
     const m3 = await request(ctx.app).get("/pollCard-m3.css");
     expect(m3.text).toMatch(/\.card-face \.poll-listed-because,\s*\.card-face \.poll-ballot-rules\{ color:var\(--md-sys-color-outline\); \}/);
@@ -551,6 +551,13 @@ describe("A disabled create control looks disabled (014 FR-037)", () => {
   it("labels Create New Poll in the surface colour, so it reads on the --ink fill in both schemes", () => {
     const css = readFileSync("src/public/admin-card-m3.css", "utf8");
     expect(css).toMatch(/\.admin-create-btn\s*{[^}]*color:\s*var\(--md-sys-color-surface\)/);
+  });
+
+  it("labels the card shell's actions in the surface colour, ahead of the disabled and running rules", () => {
+    const css = readFileSync("src/public/card-shell-m3.css", "utf8");
+    const label = css.search(/\.card-shell-face \.card-shell-action \.btn-primary\s*{[^}]*color:\s*var\(--md-sys-color-surface\)/);
+    expect(label).toBeGreaterThan(-1);
+    expect(label).toBeLessThan(css.indexOf(".card-shell-face .btn-primary.is-running"));
   });
 });
 

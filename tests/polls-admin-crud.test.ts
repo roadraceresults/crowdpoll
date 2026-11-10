@@ -457,6 +457,33 @@ describe("Admin poll CRUD (US4)", () => {
     expect(detail.body.startAt).toBeNull();
   });
 
+  it("copies Voters may add choices into a duplicate, but not who added a choice", async () => {
+    const cookie = await adminCookie();
+    const poll = makePoll({
+      title: "Open list",
+      pollVisibility: "Private Poll",
+      pollSharingMode: "Anyone With The Link",
+      votersAddChoices: true,
+      choices: [
+        { id: "c1", label: "Pizza", position: 0 },
+        { id: "c2", label: "Sushi", position: 1, addedBy: "voter@example.com" }
+      ],
+      pollState: "CLOSED"
+    });
+    const closed = makePoll({ title: "Fixed list", pollVisibility: "Private Poll", pollSharingMode: "Anyone With The Link", pollState: "CLOSED" });
+    await polls(ctx).insertMany([poll, closed]);
+
+    const dup = await request(ctx.app).post(`/api/admin/polls/${poll._id}/duplicate`).set("Cookie", cookie);
+    expect(dup.status).toBe(201);
+    const copy = (await polls(ctx).findOne({ _id: dup.body.pid }))!;
+    expect(copy.votersAddChoices).toBe(true);
+    expect(copy.choices.map((c) => c.label)).toEqual(["Pizza", "Sushi"]);
+    expect(copy.choices.every((c) => c.addedBy === undefined)).toBe(true);
+
+    const plain = await request(ctx.app).post(`/api/admin/polls/${closed._id}/duplicate`).set("Cookie", cookie);
+    expect((await polls(ctx).findOne({ _id: plain.body.pid }))!.votersAddChoices).toBe(false);
+  });
+
   it("copies the notes into a duplicate, and writes them into both exports as stored", async () => {
     const cookie = await adminCookie();
     const poll = makePoll({ title: "Noted", subtitle: "Sub", notes: "**Bring** a *plate*\nand a fork", pollState: "CLOSED" });

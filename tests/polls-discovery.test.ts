@@ -57,6 +57,7 @@ describe("TRENDING scope", () => {
     expect(card.pollState).toBe("OPEN");
     expect(card).not.toHaveProperty("pollStateBeforeEditUpdate");
     expect(card).not.toHaveProperty("voteAnonymity");
+    expect(card.anonymousVotes).toBe(false);
     expect(card).not.toHaveProperty("invitedVoterList");
     expect(card).not.toHaveProperty("bannedVoterList");
   });

@@ -1,7 +1,7 @@
 import type { AppConfig } from "../config.js";
 import type { PollRow } from "../db/schema.js";
-import { holdsPermission, type Caller } from "./service.js";
-import { isPublished, type Db } from "./store.js";
+import { holdsPermission, isAdminEmail, type Caller } from "./service.js";
+import { isPublicVisibility, isPublished, type Db, type Poll } from "./store.js";
 
 export interface AccessDeps {
   db: Db;
@@ -123,4 +123,17 @@ export async function indexablePolls(db: Db): Promise<{ id: string; closed_at: D
     closed_at: row.closed_at ? new Date(row.closed_at) : null,
     launched_at: row.launched_at ? new Date(row.launched_at) : null
   }));
+}
+
+/**
+ * Anonymous Votes on a private poll hides who voted for which choice from everyone but the
+ * administrators: the poll's creator still sees who took part and the counts. A public poll
+ * ignores the setting.
+ */
+export function hidesChoicesFrom(
+  poll: Pick<Poll, "pollVisibility" | "voteAnonymity">,
+  email: string | undefined,
+  config: AppConfig
+): boolean {
+  return !isPublicVisibility(poll.pollVisibility) && poll.voteAnonymity === "Yes" && !isAdminEmail(email, config);
 }

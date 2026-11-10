@@ -175,6 +175,7 @@
 
 .card-face .poll-totals,
 .card-face .poll-voted,
+.card-face .poll-anonymous,
 .card-face .poll-listed-because,
 .card-face .poll-ballot-rules,
 .card-face .poll-closed-message,
@@ -190,6 +191,7 @@
   color:var(--md-sys-color-on-surface-variant);
 }
 .card-face .poll-voted,
+.card-face .poll-anonymous,
 .card-face .poll-listed-because,
 .card-face .poll-ballot-rules{ color:var(--md-sys-color-outline); }
 .card-face .poll-vote-error{

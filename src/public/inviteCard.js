@@ -202,8 +202,19 @@
       });
     }
 
+    /* A greyed-out button does not say why; while the Terms box is unticked, this line does. */
+    var hint = null;
+    if (terms) {
+      hint = el("p", "card-shell-hint");
+      hint.id = "invite-terms-hint";
+      hint.textContent = "Click the Terms and Conditions checkbox above to continue.";
+      action.button.after(hint);
+      action.button.setAttribute("aria-describedby", hint.id);
+    }
+
     function sync() {
       action.setEnabled(!terms || terms.checked);
+      if (hint) hint.hidden = terms.checked;
     }
     sync();
 

@@ -1078,6 +1078,11 @@ function initPollCard(viewport, opts){
     viewport.querySelectorAll('.question').forEach((el) => { el.textContent = poll.title; });
     viewport.querySelectorAll('.subtitle').forEach((el) => { el.textContent = poll.subtitle || ''; });
     setNotes(poll.notesPreviewHtml || '');
+    // A multiple-choice ballot submits several votes. The front's sizer carries the same
+    // label (008 FR-007), so Vote keeps Submit's width.
+    const submitLabel = poll.choiceMode === 'Multiple-Choice Poll' ? 'Submit votes' : 'Submit vote';
+    if (submitBtn) submitBtn.textContent = submitLabel;
+    viewport.querySelectorAll('.btn-vote-sizer').forEach((el) => { el.textContent = submitLabel; });
     // FR-022: totals alongside the results (app addition; see site.css).
     // 008 FR-004/FR-005: written to both faces' copies from one composition
     // in one call, so they can never show different values.
@@ -1100,6 +1105,9 @@ function initPollCard(viewport, opts){
       votedEl.textContent = voted ? 'You voted' : '';
       votedEl.hidden = !voted;
     }
+    // Anonymous Votes applies to private polls only; the server then hides who chose what from the creator.
+    const anonymousEl = viewport.querySelector('.poll-anonymous');
+    if (anonymousEl) anonymousEl.hidden = !poll.anonymousVotes;
     const because = viewport.querySelector('.poll-listed-because');
     if (because){
       const words = { invited: 'You were invited', linked: 'You opened the link', created: 'Your poll', bookmarked: 'You are watching', trending: 'Trending' };
@@ -1741,9 +1749,13 @@ const POLL_CARD_TEMPLATE = `
                (under the action row), so the two faces keep equal height and the
                choices and results regions line up (FR-001). -->
           <div class="card-foot">
-            <p class="poll-totals"></p>
-            <!-- How this ballot works, on its own line under the count, styled as the
-                 front's listed-because line. -->
+            <!-- The anonymity note shares the count's line, as "You voted" does on the front;
+                 how this ballot works takes a line of its own, like the front's
+                 listed-because line. -->
+            <div class="card-foot-row">
+              <p class="poll-totals"></p>
+              <p class="poll-anonymous" hidden>Votes are anonymous.</p>
+            </div>
             <p class="poll-ballot-rules" hidden></p>
           </div>
 
