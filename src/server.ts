@@ -13,7 +13,7 @@ import { createTermsGate } from "./legal/termsGate.js";
 import { createCache, type Cache } from "./cache/cache.js";
 import { createDb, closeDb, type Db } from "./db/client.js";
 import { migrateToLatest } from "./db/migrator.js";
-import { initMailer, maskAddress } from "./email/mailer.js";
+import { initMailer } from "./email/mailer.js";
 import { createBudget, type Budget } from "./load/budget.js";
 import { createFloors } from "./load/floors.js";
 import { createPageLoadBucket } from "./load/pageLoads.js";
@@ -156,8 +156,7 @@ function providerList(config: AppConfig): string {
 
 export function defaultsUsedLines(config: AppConfig): string[] {
   return config.defaultsUsed.map(({ name, value }) => {
-    const shown = name === "ENV_ADMINS" ? value.split(",").map((address) => maskAddress(address.trim())).join(", ") : value;
-    return `[config] ${name} was not found, using default value: ${shown}.`;
+    return `[config] ${name} was not found, using default value: ${value}.`;
   });
 }
 

@@ -20,7 +20,7 @@ All runtime configuration comes from `ENV_*` environment variables:
 | `ENV_VALKEY_URL` | unset | Valkey URL; unset → the in-process cache/queue/registry (development and tests). A remote host beside a `localhost` `ENV_DATABASE_URL` stops the app: a local server on a shared Valkey would trade votes and counter flushes with production and drop them |
 | `ENV_OPENSEARCH_URL` | unset | OpenSearch endpoint; unset → PostgreSQL full-text search |
 | `ENV_SPACES_BUCKET`, `ENV_SPACES_REGION`, `ENV_SPACES_KEY`, `ENV_SPACES_SECRET`, `ENV_SPACES_CDN_URL` | unset | Where the TRENDING objects and static assets are published; all five or none; unset → served from the instance |
-| `ENV_ADMINS` | `roadraceresults@gmail.com` | Comma-separated identifiers allowed on admin pages |
+| `ENV_ADMINS` | unset | Comma-separated identifiers allowed on admin pages; unset → no administrators. Production: `admins` in the git-ignored `infra/secrets.auto.tfvars` (a secret), never in a committed file |
 | `ENV_PROTOTYPES` | unset | Comma-separated folders of `prototypes/` served, unlisted and `noindex`, at `/prototypes/<name>/` (temporary). Unset → none, and those addresses answer `404`. Letters, digits, `_` and `-` only |
 | `ENV_MAX_SIGNIN_COOKIE_DURATION` | `2592000000` | Max stay-logged-in duration (ms; 30 days); the login card shows it as whole days (hours below a day) |
 | `ENV_STAY_SIGNED_IN` | `0` | `1` → the login page's "Stay logged in on this device" box starts ticked; any other value, or none, leaves it clear |

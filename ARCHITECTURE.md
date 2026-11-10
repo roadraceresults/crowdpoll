@@ -45,7 +45,7 @@ in-process implementation of the same interface. Configuration arrives entirely 
 
 The hosting is described by the Terraform configuration in `infra/`: the app `crowdpoll` (`web`, `fcaptcha`, the
 ingress and the `crowdpoll.vote` domain), the PostgreSQL 18 and Valkey 9 clusters with a firewall rule admitting only
-the app, the Spaces bucket and its CDN, and FCaptcha's two generated secrets. App Platform bindings such as
+the app (and, for PostgreSQL, the addresses in `database_trusted_ips`), the Spaces bucket and its CDN, and FCaptcha's two generated secrets. App Platform bindings such as
 `${valkey-tor1-crowdpoll.DATABASE_URL}` are written escaped (`$${...}`) so Terraform passes them to App Platform as
 text. Outside secrets come from the git-ignored `infra/secrets.auto.tfvars`, the state stays local and git-ignored, and
 OpenSearch is not provisioned, so search runs on PostgreSQL full-text search. Releases are started by

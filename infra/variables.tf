@@ -45,6 +45,15 @@ variable "spaces_secret_key" {
   }
 }
 
+variable "admins" {
+  type      = string
+  sensitive = true
+  validation {
+    condition     = length(trimspace(var.admins)) > 0
+    error_message = "admins must be set in infra/secrets.auto.tfvars."
+  }
+}
+
 variable "allowed_emails" {
   type      = string
   sensitive = true
@@ -131,4 +140,11 @@ variable "pg_node_count" {
 variable "valkey_size" {
   type    = string
   default = "db-s-1vcpu-1gb"
+}
+
+# Addresses outside the app allowed to reach PostgreSQL (e.g. a developer's machine); set in secrets.auto.tfvars.
+
+variable "database_trusted_ips" {
+  type    = list(string)
+  default = []
 }

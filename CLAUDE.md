@@ -185,7 +185,7 @@ npx vitest run -t "name of the test"   # tests matching a name
 - Intervals are in ms, except `ENV_EMAIL_RATE_LIMIT_WINDOW_MINUTES`.
 - The development templates (`.vscode/launch.json`, `devScripts/launch-dev.ps1`) are git-ignored; regenerate them from
   the `.example` files rather than committing them.
-- Production secrets (`ENV_OAUTH_*`, `ENV_ALLOWED_EMAILS`, keys) are in the git-ignored `infra/secrets.auto.tfvars`, never in a
+- Production secrets (`ENV_OAUTH_*`, `ENV_ADMINS`, `ENV_ALLOWED_EMAILS`, keys) are in the git-ignored `infra/secrets.auto.tfvars`, never in a
   committed file.
 - The full table is in `.claude/rules/environment.md`.
 
