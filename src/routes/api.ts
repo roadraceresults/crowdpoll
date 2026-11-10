@@ -514,7 +514,7 @@ export function createApiRouter(deps: ApiDeps): Router {
       const pid = parsePid(req.query.PID);
       const bind = typeof req.query.bind === "string" ? req.query.bind : "";
       const binding = bindingFrom(req);
-      if (config.allowedEmailKeys) {
+      if (config.allowlist) {
         const link = await pendingLink(token);
         if (link && !isAllowed(link.email, config)) {
           logRefusal("session", link.email);
@@ -567,7 +567,7 @@ export function createApiRouter(deps: ApiDeps): Router {
       }
       const token = typeof req.body?.token === "string" ? req.body.token : "";
       const pid = parsePid(req.body?.pid);
-      if (config.allowedEmailKeys) {
+      if (config.allowlist) {
         const link = await pendingLink(token);
         if (link && !isAllowed(link.email, config)) {
           logRefusal("session", link.email);

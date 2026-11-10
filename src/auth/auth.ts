@@ -223,7 +223,7 @@ export function createAuth(db: Db, config: AppConfig, cache?: Cache, store: Obje
           // activates a pending account (FR-001).
           before: async (session) => {
             const userId = String(session.userId);
-            if (config.allowedEmailKeys) {
+            if (config.allowlist) {
               const owner = await db.selectFrom("user").select("email").where("id", "=", userId).executeTakeFirst();
               if (owner && !isAllowed(owner.email, config)) refuseNotLaunched(owner.email);
             }

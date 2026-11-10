@@ -17,14 +17,23 @@ function configWith(env: Record<string, string>) {
 
 describe("allowlist setting", () => {
   it("is off when absent, empty or only separators", () => {
-    expect(configWith({}).allowedEmailKeys).toBeUndefined();
-    expect(configWith({ ENV_ALLOWED_EMAILS: "" }).allowedEmailKeys).toBeUndefined();
-    expect(configWith({ ENV_ALLOWED_EMAILS: " , " }).allowedEmailKeys).toBeUndefined();
+    expect(configWith({}).allowlist).toBeUndefined();
+    expect(configWith({ ENV_ALLOWED_EMAILS: "" }).allowlist).toBeUndefined();
+    expect(configWith({ ENV_ALLOWED_EMAILS: " , " }).allowlist).toBeUndefined();
   });
 
   it("holds the email key of each trimmed, lower-cased entry", () => {
-    const keys = configWith({ ENV_ALLOWED_EMAILS: " Tester@Example.org , John.Smith+x@googlemail.com" }).allowedEmailKeys;
-    expect([...keys!].sort()).toEqual(["johnsmith@gmail.com", "tester@example.org"]);
+    const keys = configWith({ ENV_ALLOWED_EMAILS: " Tester@Example.org , John.Smith+x@googlemail.com" }).allowlist!.keys;
+    expect([...keys].sort()).toEqual(["johnsmith@gmail.com", "tester@example.org"]);
+  });
+
+  it("is on with a pattern alone, and holds addresses and patterns apart", () => {
+    const alone = configWith({ ENV_ALLOWED_EMAILS: "*@CrowdPoll.vote" }).allowlist!;
+    expect(alone.keys.size).toBe(0);
+    expect(alone.patterns).toHaveLength(1);
+    const mixed = configWith({ ENV_ALLOWED_EMAILS: "tester@example.org, *@crowdpoll.vote" }).allowlist!;
+    expect([...mixed.keys]).toEqual(["tester@example.org"]);
+    expect(mixed.patterns).toHaveLength(1);
   });
 
   it("refuses an entry that is not an address, naming the setting", () => {
@@ -32,11 +41,37 @@ describe("allowlist setting", () => {
     expect(() => configWith({ ENV_ALLOWED_EMAILS: "not-an-address" })).toThrow(/ENV_ALLOWED_EMAILS/);
   });
 
+  it("refuses a pattern that is not shaped like an address, showing the accepted form", () => {
+    for (const entry of ["*.crowdpoll.vote", "*@", "@*", "a@b@*"]) {
+      expect(() => configWith({ ENV_ALLOWED_EMAILS: entry })).toThrow(
+        new ConfigError(`Invalid ENV_ALLOWED_EMAILS: "${entry}" is not an email address or a pattern such as "*@crowdpoll.vote".`)
+      );
+    }
+    expect(configWith({ ENV_ALLOWED_EMAILS: "*@*" }).allowlist!.patterns).toHaveLength(1);
+  });
+
   it("reports its state at startup by count, never by address", () => {
     expect(allowlistStatus(configWith({}))).toBe("[auth] Sign-up allowlist off");
     const on = allowlistStatus(configWith({ ENV_ALLOWED_EMAILS: "a@example.org,b@example.org" }));
-    expect(on).toBe("[auth] Sign-up allowlist on (2 addresses)");
+    expect(on).toBe("[auth] Sign-up allowlist on (2 addresses; 1 administrator always allowed)");
     expect(on).not.toContain("example.org");
+  });
+
+  it("counts patterns apart from addresses, naming neither", () => {
+    const status = (list: string) => allowlistStatus(configWith({ ENV_ALLOWED_EMAILS: list }));
+    expect(status("*@crowdpoll.vote")).toBe("[auth] Sign-up allowlist on (1 pattern; 1 administrator always allowed)");
+    expect(status("*@crowdpoll.vote,qa-*@gmail.com")).toBe("[auth] Sign-up allowlist on (2 patterns; 1 administrator always allowed)");
+    const mixed = status("a@example.org,b@example.org,*@crowdpoll.vote");
+    expect(mixed).toBe("[auth] Sign-up allowlist on (2 addresses, 1 pattern; 1 administrator always allowed)");
+    expect(mixed).not.toContain("crowdpoll.vote");
+  });
+
+  it("counts the administrators it always allows, naming none", () => {
+    const status = (admins: string) => allowlistStatus(configWith({ ENV_ALLOWED_EMAILS: "road*@gmail.com", ENV_ADMINS: admins }));
+    const three = status("devadmin01@crowdpoll.vote, devadmin02@crowdpoll.vote, devadmin03@crowdpoll.vote");
+    expect(three).toBe("[auth] Sign-up allowlist on (1 pattern; 3 administrators always allowed)");
+    expect(three).not.toContain("devadmin");
+    expect(status("")).toBe("[auth] Sign-up allowlist on (1 pattern)");
   });
 });
 
@@ -51,6 +86,31 @@ describe("isAllowed", () => {
     expect(isAllowed("JohnSmith+polls@googlemail.com", config)).toBe(true);
     expect(isAllowed(ADMIN, config)).toBe(true);
     expect(isAllowed("someone@example.org", config)).toBe(false);
+  });
+
+  it("allows every address at a domain pattern, in any case and with a plus-tag", () => {
+    const config = configWith({ ENV_ALLOWED_EMAILS: "*@crowdpoll.vote", ENV_ADMINS: ADMIN });
+    expect(isAllowed("qa1@crowdpoll.vote", config)).toBe(true);
+    expect(isAllowed("QA1@CrowdPoll.Vote", config)).toBe(true);
+    expect(isAllowed("qa+t@crowdpoll.vote", config)).toBe(true);
+    expect(isAllowed(ADMIN, config)).toBe(true);
+    expect(isAllowed("someone@example.org", config)).toBe(false);
+  });
+
+  it.each([
+    ["qa-*@gmail.com", "qa-anna@gmail.com", true],
+    ["qa-*@gmail.com", "anna@gmail.com", false],
+    ["*@*.crowdpoll.vote", "qa@mail.crowdpoll.vote", true],
+    ["*@*.crowdpoll.vote", "qa@crowdpoll.vote", false],
+    ["*@gmail.com", "someone@googlemail.com", true],
+    ["john*@gmail.com", "john.smith@gmail.com", true],
+    ["john.*@gmail.com", "john.smith@gmail.com", false],
+    ["qa*@x.org", "qa@x.org", true],
+    ["*@x.org", "qa@xyorg", false],
+    ["a*@x.org", "a@b@x.org", false],
+    ["*@*", "anyone@anywhere.example", true]
+  ])("matches %s against %s: %s", (entry, address, admitted) => {
+    expect(isAllowed(address, configWith({ ENV_ALLOWED_EMAILS: entry }))).toBe(admitted);
   });
 });
 
@@ -258,6 +318,71 @@ describe("with the list on", () => {
       const row = await ctx.db.selectFrom("user").select("email").where("id", "=", userId).executeTakeFirst();
       expect(row!.email).toBe("linked@example.org");
     });
+  });
+});
+
+describe("with a pattern-only list", () => {
+  let ctx: TestContext;
+  let next = 1;
+  const freshIp = () => `10.9.1.${next++}`;
+
+  beforeAll(async () => {
+    ctx = await startTestContext({
+      ENV_SIGNIN_METHOD: "both",
+      ENV_OAUTH_GOOGLE_CLIENT_ID: "google-client",
+      ENV_OAUTH_GOOGLE_CLIENT_SECRET: "google-secret",
+      ENV_ALLOWED_EMAILS: "*@crowdpoll.vote",
+      ENV_EMAIL_RATE_LIMIT_MAX_REQUESTS_PER_WINDOW: "1000"
+    });
+  });
+  afterAll(async () => {
+    await ctx.stop();
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("sends a login link to an address the pattern covers, and refuses one it does not", async () => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    const before = ctx.sent.length;
+    const covered = await request(ctx.app).post("/api/auth/request-login-link").set("x-forwarded-for", freshIp()).send({ email: "qa1@crowdpoll.vote" });
+    expect(covered.status).toBe(200);
+    expect(ctx.sent.length).toBe(before + 1);
+    const other = await request(ctx.app).post("/api/auth/request-login-link").set("x-forwarded-for", freshIp()).send({ email: "someone@example.org" });
+    expect(other.status).toBe(403);
+    expect(other.body.code).toBe("not-launched");
+    expect(ctx.sent.length).toBe(before + 1);
+  });
+
+  it("creates the account and starts the session of a provider address the pattern covers", async () => {
+    const start = await request(ctx.app).post("/api/auth/sign-in/social").send({ provider: "google", callbackURL: "/" });
+    expect(start.status).toBe(200);
+    const state = new URL(start.body.url).searchParams.get("state")!;
+    const stateCookie = [start.headers["set-cookie"]].flat().map((cookie) => String(cookie).split(";")[0]).join("; ");
+
+    const realFetch = globalThis.fetch;
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+      const url = String(input instanceof Request ? input.url : input);
+      const json = (body: unknown) => new Response(JSON.stringify(body), { status: 200, headers: { "content-type": "application/json" } });
+      if (url === "https://oauth2.googleapis.com/token") {
+        const claims = { sub: "4343", name: "Tester", email: "qa2@crowdpoll.vote", email_verified: true };
+        const part = (value: object) => Buffer.from(JSON.stringify(value)).toString("base64url");
+        return json({ access_token: "ya29.test", token_type: "Bearer", id_token: `${part({ alg: "none" })}.${part(claims)}.` });
+      }
+      return realFetch(input, init);
+    });
+    vi.spyOn(console, "log").mockImplementation(() => {});
+
+    const res = await request(ctx.app)
+      .get(`/api/auth/callback/google?code=test-code&state=${encodeURIComponent(state)}`)
+      .set("Cookie", stateCookie)
+      .redirects(0);
+    expect(res.status).toBe(302);
+    expect(res.headers.location).not.toMatch(/error=not-launched/);
+    const user = await ctx.db.selectFrom("user").select("id").where("email", "=", "qa2@crowdpoll.vote").executeTakeFirst();
+    expect(user).toBeDefined();
+    const sessions = await ctx.db.selectFrom("session").select("id").where("userId", "=", user!.id).execute();
+    expect(sessions).toHaveLength(1);
   });
 });
 

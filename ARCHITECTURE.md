@@ -1171,7 +1171,10 @@ sides and backed by the non-unique expression index of migration `008-email-key`
 and existing accounts that share a key keep working.
 
 **Pre-launch allowlist.** While `ENV_ALLOWED_EMAILS` is set, `isAllowed` (`src/auth/allowlist.ts`) admits only the listed
-addresses, compared by `emailKeyOf` (the TypeScript twin of `emailKey`), and the `ENV_ADMINS` addresses. Create-account,
+addresses, compared by `emailKeyOf` (the TypeScript twin of `emailKey`), and the `ENV_ADMINS` addresses.
+`loadConfig` reads the list into `config.allowlist`: the email keys of plain addresses, and each entry holding `*` compiled
+once to an anchored expression (`*` → `[^@]*`, everything else literal). `isAllowed` tries the administrators, then the
+keys, then the patterns against the address's email key; every check below goes through it, so patterns reach them all. Create-account,
 request-login-link and email change check it after the honeypot, validation and rate limit, and answer `403
 { error, code: "not-launched" }` without creating or sending anything; verify and confirm-signin check the link's address
 before `completeSignIn`, so a refused link is not consumed; the email-change link checks the new address before applying

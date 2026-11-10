@@ -136,8 +136,8 @@ describe("A2 add", () => {
 
   it("refuses an address the allowlist does not hold", async () => {
     const poll = await seed();
-    const saved = ctx.config.allowedEmailKeys;
-    (ctx.config as { allowedEmailKeys: Set<string> | null }).allowedEmailKeys = new Set([emailKeyOf("ok@example.com")]);
+    const saved = ctx.config.allowlist;
+    ctx.config.allowlist = { keys: new Set([emailKeyOf("ok@example.com")]), patterns: [] };
     try {
       const res = await post(poll._id, { add: "ok@example.com kim@example.com" });
       expect(outcomes(res.body)).toEqual([
@@ -146,7 +146,7 @@ describe("A2 add", () => {
       ]);
       expect(res.body.results[1].reason).toBe("CrowdPoll has not launched for this address yet.");
     } finally {
-      (ctx.config as { allowedEmailKeys: Set<string> | null }).allowedEmailKeys = saved;
+      ctx.config.allowlist = saved;
     }
   });
 

@@ -27,6 +27,12 @@ export interface OAuthProviders {
   amazon?: OAuthClient;
 }
 
+/** The pre-launch allowlist: email keys of the listed addresses, and the `*` patterns compiled. */
+export interface Allowlist {
+  keys: Set<string>;
+  patterns: RegExp[];
+}
+
 export interface AppConfig {
   port: number;
   databaseUrl: string;
@@ -98,8 +104,8 @@ export interface AppConfig {
   emailFrom: string;
   /** Origin the email logo is loaded from (ENV_EMAIL_ASSET_ORIGIN); unset → each link's own origin. */
   emailAssetOrigin?: string;
-  /** Email keys allowed to sign up and log in before launch (ENV_ALLOWED_EMAILS); unset → everyone. */
-  allowedEmailKeys?: Set<string>;
+  /** Addresses and patterns allowed to sign up and log in before launch (ENV_ALLOWED_EMAILS); unset → everyone. */
+  allowlist?: Allowlist;
   /** The self-hosted FCaptcha check before login (ENV_FCAPTCHA_*); null → off. */
   humanCheck: HumanCheckConfig | null;
   emailSendTimeoutMs: number;
@@ -409,8 +415,8 @@ export function loadConfig(env: Env = process.env): AppConfig {
   if (openSearchUrl === undefined) read.none("ENV_OPENSEARCH_URL", "none (PostgreSQL full-text search)");
   const emailAssetOrigin = originVar(env, "ENV_EMAIL_ASSET_ORIGIN");
   if (emailAssetOrigin === undefined) read.none("ENV_EMAIL_ASSET_ORIGIN", "none (each link's own origin)");
-  const allowedKeys = allowedEmailKeys(env);
-  if (allowedKeys === undefined) read.none("ENV_ALLOWED_EMAILS", "none (allowlist off: everyone may log in)");
+  const allowlist = allowlistFrom(env);
+  if (allowlist === undefined) read.none("ENV_ALLOWED_EMAILS", "none (allowlist off: everyone may log in)");
   const humanCheck = humanCheckConfig(env);
   if (humanCheck === null) read.none("ENV_FCAPTCHA_ENABLED", "off (no human check before login)");
   if (!env.ENV_STAY_SIGNED_IN?.trim()) read.none("ENV_STAY_SIGNED_IN", "0 (the Stay logged in box starts clear)");
@@ -461,7 +467,7 @@ export function loadConfig(env: Env = process.env): AppConfig {
     ses: emailTransport === "ses" ? sesConfig(env) : undefined,
     emailFrom: read.text("ENV_EMAIL_FROM", "CrowdPoll <no-reply@mail.crowdpoll.vote>"),
     emailAssetOrigin,
-    allowedEmailKeys: allowedKeys,
+    allowlist,
     humanCheck,
     emailSendTimeoutMs: read.int("ENV_EMAIL_SEND_TIMEOUT", 10_000),
     sessionCacheTtlMs: read.int("ENV_SESSION_CACHE_TTL", 300_000),
@@ -597,18 +603,36 @@ function oauthProvidersOf(env: Env, read: SettingsReader): OAuthProviders {
   return providers;
 }
 
-function allowedEmailKeys(env: Env): Set<string> | undefined {
+const WILDCARD_SHAPE = /^[^\s@]+@[^\s@]+$/;
+
+function allowlistFrom(env: Env): Allowlist | undefined {
   const entries = (env.ENV_ALLOWED_EMAILS ?? "")
     .split(",")
     .map((entry) => entry.trim().toLowerCase())
     .filter((entry) => entry.length > 0);
   if (entries.length === 0) return undefined;
+  const allowlist: Allowlist = { keys: new Set(), patterns: [] };
   for (const entry of entries) {
-    if (!EMAIL_PATTERN.test(entry)) {
-      throw new ConfigError(`Invalid ENV_ALLOWED_EMAILS: "${entry}" is not an email address.`);
+    if (entry.includes("*")) {
+      if (!WILDCARD_SHAPE.test(entry)) {
+        throw new ConfigError(
+          `Invalid ENV_ALLOWED_EMAILS: "${entry}" is not an email address or a pattern such as "*@crowdpoll.vote".`
+        );
+      }
+      allowlist.patterns.push(wildcardPattern(entry));
+    } else {
+      if (!EMAIL_PATTERN.test(entry)) {
+        throw new ConfigError(`Invalid ENV_ALLOWED_EMAILS: "${entry}" is not an email address.`);
+      }
+      allowlist.keys.add(emailKeyOf(entry));
     }
   }
-  return new Set(entries.map(emailKeyOf));
+  return allowlist;
+}
+
+function wildcardPattern(entry: string): RegExp {
+  const literal = entry.split("*").map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  return new RegExp(`^${literal.join("[^@]*")}$`);
 }
 
 function sesConfig(env: Env): SesConfig {
