@@ -53,7 +53,8 @@ Expected:
 **Q7. A voted poll.** Change the notes of a poll with votes. Expected: voters see the old notes until screening applies
 the update. A notes text with a screened word is refused with the new message.
 
-**Q8. Search and the public page.**
+**Q8. Search and the public page.** Use a public, open poll: the home search and `/poll/<pid>` leave private polls
+out, while Poll Administration's search finds them too.
 1. Search for a word that is only in a poll's notes. Expected: the poll is found.
 2. Log out and open `/poll/<pid>`. Expected: the notes are under the summary, and the page source's meta description is
    unchanged.

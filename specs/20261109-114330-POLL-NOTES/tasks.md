@@ -224,7 +224,7 @@ description: "Tasks for the Poll Notes feature"
 - [X] T046 [P] Add to `CLAUDE.md`'s Cross-feature invariants: notes reach HTML only through `src/polls/notes.ts`, and only `notesPreviewHtml` and `notesHtml` may reach `innerHTML`. Add the feature's notes to `CLAUDE_COMPLETE.md`
 - [X] T047 [P] Update `README.md` and `ARCHITECTURE.md` per the constitution's Documentation Deliverables: notes, the editor and the preview/full split
 - [X] T048 Run `npx tsc --noEmit`, `npm test` and `tests/openapi-contract.test.ts`, and fix what fails
-- [ ] T049 Run the manual checks of `specs/20261109-114330-POLL-NOTES/quickstart.md` in Chrome, Firefox and Safari or Edge, and record anything a browser's editing does differently. Time Q1 and record whether writing and saving formatted notes took under one minute without leaving step 2 (SC-001)
+- [X] T049 Run the manual checks of `specs/20261109-114330-POLL-NOTES/quickstart.md` in Chrome, Firefox and Safari or Edge, and record anything a browser's editing does differently. Time Q1 and record whether writing and saving formatted notes took under one minute without leaving step 2 (SC-001)
 
 ---
 
