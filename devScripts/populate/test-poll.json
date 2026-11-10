@@ -1,0 +1,34 @@
+{
+  "creator": "devadmin01@crowdpoll.vote",
+  "voters": [
+    "testuser01",
+    "testuser02",
+    "testuser03",
+    "testuser04",
+    "testuser05",
+    "testuser06",
+    "testuser07",
+    "testuser08",
+    "testuser09",
+    "testuser10"
+  ],
+  "poll": {
+    "title": "Test Poll 02 anonymous",
+    "subtitle": "This is a test poll",
+    "choices": [
+      "Choice 1",
+      "Choice 2",
+      "Choice 3",
+      "Choice 4",
+      "Choice 5",
+      "Choice 6",
+      "Choice 7",
+      "Choice 8",
+      "Choice 9",
+      "Choice 10"
+    ],
+    "type": "multiple-choice",
+    "visibility": "private",
+    "showVoterChoices": false
+  }
+}

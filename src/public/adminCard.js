@@ -1114,8 +1114,7 @@
 
     // ── "Users can see who voted for what" ──
     // A Material 3 switch in one row after the radio list, for private polls only.
-    // Off (the default) is voteAnonymity "Yes"; on is "No". Who sees the names is
-    // unchanged: administrators only.
+    // Off (the default) is voteAnonymity "Yes"; on is "No".
     const VOTERS_SWITCH_LABEL = "Users can see who voted for what";
     const VOTERS_SWITCH_HELP = "Off (the default): votes are anonymous. Everyone sees how many votes " +
       "each choice has, but not who cast them. On: the names of voters are shown next to the choices " +

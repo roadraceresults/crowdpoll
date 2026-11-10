@@ -15,6 +15,7 @@
     "reconcile": "tsx devScripts/reconcile.ts",
     "populate-poll": "tsx devScripts/populate/populate-poll.ts",
     "populate-all-polls": "tsx devScripts/populate/populate-all-polls.ts",
+    "populate-test-poll": "tsx devScripts/populate/populate-test-poll.ts",
     "fix-migrations": "tsx devScripts/fix-migrations.ts",
     "publish-assets": "tsx devScripts/publish-assets.ts",
     "deploy": "tsx devScripts/deploy-app.ts",

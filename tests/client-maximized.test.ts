@@ -46,12 +46,17 @@ const DEFAULT_SCRIPTS = ["app.js", "pollCard.js", "voteClient.js", "deltaClient.
 const WITH_FIXED_CHROME = ["app.js", "fixedChrome.js", ...DEFAULT_SCRIPTS.slice(1)];
 
 /** Opens the home page with window.scrollTo and scrollY stubbed; jsdom implements neither. */
-async function open(cookie?: string, scripts: string[] = DEFAULT_SCRIPTS): Promise<BrowserPage> {
+async function open(
+  cookie?: string,
+  scripts: string[] = DEFAULT_SCRIPTS,
+  beforeScripts: (window: BrowserPage["window"]) => void = () => {}
+): Promise<BrowserPage> {
   const opened = await openPage(ctx, "index.html", {
     cookie,
     url: ON_TRENDING,
     scripts,
     beforeScripts: (window) => {
+      beforeScripts(window);
       const scrollable = window as unknown as ScrollWindow;
       scrollable.scrollCalls = [];
       Object.defineProperty(window, "scrollY", { value: 0, writable: true, configurable: true });
@@ -704,5 +709,88 @@ describe("keyboard and focus", () => {
     await clickIn(page, maximizedGrid(page, "trending")!.querySelector(".maximize-btn"));
     expect(page.window.location.href).toBe(href);
     expect(page.window.history.length).toBe(length);
+  });
+});
+
+describe("the Who voted panel follows the maximized poll", () => {
+  type Call = [string, string?, number?, number?];
+  const spyOn = (calls: Call[]) => (window: BrowserPage["window"]) => {
+    (window as unknown as { WhoVoted: unknown }).WhoVoted = {
+      show: (_section: unknown, pid: string, detail: { countsVersion: number; contentVersion: number }) =>
+        calls.push(["show", pid, detail.countsVersion, detail.contentVersion]),
+      hide: () => calls.push(["hide"])
+    };
+  };
+  const shows = (calls: Call[]) => calls.filter((call) => call[0] === "show");
+
+  it("shows on maximize, again only when the counts change, and hides on close", async () => {
+    const poll = await seedPoll("Followed", 2);
+    await sweeps();
+    const calls: Call[] = [];
+    page = await open(undefined, DEFAULT_SCRIPTS, spyOn(calls));
+    const card = cardByTitle(page, "Followed");
+    await clickIn(page, card.querySelector(".maximize-btn"));
+    expect(shows(calls)).toHaveLength(1);
+    expect(shows(calls)[0]![1]).toBe(poll._id);
+    const [, , countsVersion, contentVersion] = shows(calls)[0]!;
+
+    await page.settle(1250);
+    await page.click("#refreshBtn");
+    await page.settle(50);
+    expect(shows(calls)).toHaveLength(1);
+
+    await countVote(ctx.cache, poll._id, ["c2"], [], true);
+    await sweeps();
+    await page.settle(1250);
+    await page.click("#refreshBtn");
+    await page.settle(50);
+    expect(shows(calls)).toHaveLength(2);
+    expect(shows(calls)[1]![2]).not.toBe(countsVersion);
+    expect(shows(calls)[1]![3]).toBe(contentVersion);
+
+    await clickIn(page, maximizedGrid(page, "trending")!.querySelector(".maximize-btn"));
+    expect(calls[calls.length - 1]).toEqual(["hide"]);
+    expect(shows(calls)).toHaveLength(2);
+  });
+
+  it("shows once more when the viewer votes in the maximized card", async () => {
+    await seedPoll("Own vote", 2);
+    await sweeps();
+    const calls: Call[] = [];
+    page = await open((await forgeSession(ctx, "own-vote@example.com")).cookie, DEFAULT_SCRIPTS, spyOn(calls));
+    const card = cardByTitle(page, "Own vote");
+    await clickIn(page, card.querySelector(".maximize-btn"));
+    await clickIn(page, card.querySelector(".vote-btn"));
+    await clickIn(page, card.querySelector(".voting-list > .vote-row"));
+    await clickIn(page, card.querySelector(".submit-vote-btn"));
+    await page.settle(50);
+    expect(shows(calls)).toHaveLength(2);
+  });
+
+  it("shows once when a retained poll's counts change through its own vote", async () => {
+    await seedPoll("Oldest", 2, { createdAt: new Date(Date.now() - 40_000) });
+    await seedPoll("Third", 2, { createdAt: new Date(Date.now() - 30_000) });
+    await seedPoll("Second", 2, { createdAt: new Date(Date.now() - 20_000) });
+    await seedPoll("First", 2, { createdAt: new Date(Date.now() - 10_000) });
+    await sweeps();
+    const calls: Call[] = [];
+    page = await open((await forgeSession(ctx, "retained-voters@example.com")).cookie, DEFAULT_SCRIPTS, spyOn(calls));
+    const card = cardByTitle(page, "Third");
+    await clickIn(page, card.querySelector(".maximize-btn"));
+
+    const rows = await ctx.db.selectFrom("polls").select(["id", "title"]).execute();
+    const oldestId = rows.find((r) => r.title === "Oldest")!.id;
+    for (let i = 0; i < 3; i++) await countVote(ctx.cache, oldestId, ["c1"], [], true);
+    await sweeps();
+    await page.settle(1250);
+    await page.click("#refreshBtn");
+    await page.settle(50);
+    expect(shows(calls)).toHaveLength(1);
+
+    await clickIn(page, card.querySelector(".vote-btn"));
+    await clickIn(page, card.querySelector(".voting-list > .vote-row"));
+    await clickIn(page, card.querySelector(".submit-vote-btn"));
+    await page.settle(50);
+    expect(shows(calls)).toHaveLength(2);
   });
 });

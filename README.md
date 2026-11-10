@@ -86,6 +86,14 @@ delivery network.
   tab you are on; the tab comes back as you
   left it. Switching tabs or searching closes it too. A poll that leaves Trending or Newest while
   you have it open stays open until you close it.
+- **Who voted** — on a private poll whose **Users can see who voted for what** switch is on, the
+  maximized view shows who voted for what, below the notes and above the line graph, to everyone who
+  may see the poll's results (and to administrators). It lists current votes only, by name (never an
+  address), each with its date; hover over a date for the time. **Sort by Voter** (the default) groups
+  each voter's choices; **Sort by Choice** groups each choice's voters, in the order of the bars, and
+  leaves out choices nobody picked. The sort lasts while the poll stays open. The panel grows to fit
+  the list and follows the bars: when the counts change it is fetched again, so a new vote appears a
+  moment after the bars move. A poll nobody has voted on shows **No votes yet.**
 - **Vote history graph** — beside a maximized poll, a line graph shows how each choice's share of
   the vote has moved over time, in the same colours as its bars (a colour too faint for the light or
   dark theme is drawn in a deeper or brighter shade of itself, so every line stays visible), with a
@@ -649,7 +657,7 @@ wizard, **Who can vote**. Its three options store these settings:
 |---|---|---|
 | **Poll Visibility** | `Public Poll` / `Private Poll` | A public poll can appear on TRENDING and in search results for everyone. A private poll reaches only the people it is shared with, through their My PRIVATE POLLS tab |
 | **Sharing Mode** (private polls only) | `Anyone With The Link` / `Invitation Only` | Whether anyone holding the poll's link may take part, or only the addresses on its invited list |
-| **Anonymous Votes** (private polls only) | `Yes` / `No` | `Yes` hides who voted for which choice from the poll's creator: the results and the JSON export list who took part and the counts, but not their choices, and the voting side of the card says "Your vote will be anonymous." `No` reveals the choices. Administrators always see who voted for what; ordinary voters never do |
+| **Anonymous Votes** (private polls only) | `Yes` / `No` | `Yes` (the default) hides who voted for which choice from everyone but administrators: the creator's results and JSON export list who took part and the counts, but not their choices, and the voting side of the card says "Your vote will be anonymous." `No` reveals the choices to the creator, and shows the names, without addresses, in the **Who voted** panel of the maximized poll to everyone who may see its results — its creator, its invitees, people it was shared with by link — and to administrators. Administrators always see who voted for what. A public poll never shows names |
 
 **Anyone you send the link to** is `Private Poll` with `Anyone With The Link`, **Only people
 you invite** is `Private Poll` with `Invitation Only`, and **Everyone on CrowdPoll** is
@@ -666,3 +674,7 @@ something — votes, searches, tab refreshes, Live Results — answer `429 too-s
 before that visitor's floor and `503 busy` when an instance is overloaded; both carry
 `retryAfterMs` and a `Retry-After` header, and every successful answer carries
 `nextRefreshMs`, the interval the visitor should wait before the next request of that kind.
+
+`GET /api/me/polls/:pid/voters` is the only answer that carries voters' names: signed in, `private, no-store`,
+and `404` unless the poll is a published private poll with **Anonymous Votes** `No` that the caller may see the
+results of (or the caller is an administrator).

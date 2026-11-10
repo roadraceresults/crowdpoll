@@ -1369,6 +1369,45 @@
             ]
           }
         }
+      },
+      "VoterReport": {
+        "type": "object",
+        "required": [
+          "voters"
+        ],
+        "properties": {
+          "voters": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "name",
+                "choiceIds",
+                "votedAt"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "The name recorded with the vote; \"Deleted user\" after account deletion"
+                },
+                "choiceIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "votedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              }
+            }
+          },
+          "settleMs": {
+            "type": "integer",
+            "description": "Present while the live counters are ahead of the stored votes (ENV_VOTE_QUEUE_LAG_NOTICE)"
+          }
+        }
       }
     },
     "responses": {
@@ -4853,6 +4892,62 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/me/polls/{pid}/voters": {
+      "get": {
+        "tags": [
+          "home"
+        ],
+        "operationId": "getPollVoters",
+        "summary": "Who voted for what, on a private poll whose votes are not anonymous",
+        "description": "Each current vote of a published Private Poll with Anonymous Votes = No, by the name recorded with it: names only, never an address. Choice ids are limited to the poll's voter-facing choices, and a vote left with none is omitted; entries are ordered by name, then vote time. settleMs is present while the live counters count a vote the batched consumer has not written yet: ask again after it. Its own floor bucket at the Live Results pace (ENV_MIN_LIVE_REFRESH_INTERVAL). Every answer is Cache-Control: private, no-store.",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "pid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The poll's current votes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoterReport"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/TermsRequired"
+          },
+          "404": {
+            "description": "Unknown poll, a public or anonymous poll, one not published, or one the caller may not see the results of and is not an administrator for — all the same answer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/TooSoon"
           }
         }
       }
