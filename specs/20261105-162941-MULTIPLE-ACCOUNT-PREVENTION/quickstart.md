@@ -44,6 +44,14 @@ npm test
 | Q16 | Read `/privacy` and `/terms` | The wording of C4–C6; "In short", the section and the retention table agree |
 | Q17 | Wait for, or run, the retention sweep | `[device-events] last 24h: …` in the log with counts only; a partition past its age is dropped |
 
+## Manual results
+
+Q1–Q17 above were run in real browsers and all passed (developer, 2026-11-10).
+
+### SC-004
+
+Measured locally on 2026-11-10 by the developer: pressing Vote and seeing the result with collection off and on showed no noticeable difference, and no new step, message or permission prompt appeared. SC-004 holds.
+
 ## Turning collection on in production (FR-025)
 
 1. Confirm that every account is a test user. Compare the result of this query with `ENV_ALLOWED_EMAILS`:

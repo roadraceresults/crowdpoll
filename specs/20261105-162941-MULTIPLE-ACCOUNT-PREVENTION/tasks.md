@@ -161,8 +161,8 @@ description: "Task list for Multiple Account Prevention"
 - [X] T040 [P] Update `README.md` (what is collected, the setting and the secret, how to turn it on) and `ARCHITECTURE.md` (the vote path's new fields, the sign-in report, `device_events`, retention), without referring to specs
 - [X] T041 Add the feature's decisions to `CLAUDE_COMPLETE.md` as the earlier features' are, and add `device_events` to any cross-feature list there
 - [X] T042 Run `npx tsc --noEmit` and `npm test`, and fix what they find
-- [ ] T043 Run `quickstart.md` Q1–Q17 in real browsers, recording in particular what Q3 shows about the hardware value across browsers (R3)
-- [ ] T044 Measure SC-004 locally: the time from pressing Vote to seeing the result with collection off and on, and record the result in `quickstart.md`
+- [x] T043 Run `quickstart.md` Q1–Q17 in real browsers, recording in particular what Q3 shows about the hardware value across browsers (R3)
+- [x] T044 Measure SC-004 locally: the time from pressing Vote to seeing the result with collection off and on, and record the result in `quickstart.md`
 - [X] T045 Draft the message telling test users what is recorded and why, and record FR-025, FR-026 and FR-028 as a release checklist, in `specs/20261105-162941-MULTIPLE-ACCOUNT-PREVENTION/quickstart.md`
 
 ---

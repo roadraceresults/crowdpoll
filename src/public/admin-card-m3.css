@@ -897,6 +897,9 @@
 .poll-admin-card :is(.m3-filled-btn, .btn-header-primary):hover{ background:var(--md-sys-color-primary); }
 .poll-admin-card .m3-tonal-btn:hover{ background:var(--md-sys-color-secondary-container); }
 .poll-admin-card .btn-header-ghost:hover{ background:transparent; }
+/* Create New Poll keeps production's --ink fill (on-surface); its fixed light label would vanish on the
+   light fill of the dark scheme, so the label takes the surface colour instead. */
+.admin-create-btn{ color:var(--md-sys-color-surface); }
 @media (max-width: 359.98px){
   .poll-admin-card .wizard-footer :is(.btn-header-ghost, .btn-header-primary){ padding:0 12px; }
 }

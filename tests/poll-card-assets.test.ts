@@ -539,6 +539,11 @@ describe("A disabled create control looks disabled (014 FR-037)", () => {
     const css = readFileSync("src/public/admin.css", "utf8");
     expect(css).toMatch(/\.admin-create-btn:disabled\s*{[^}]*opacity/);
   });
+
+  it("labels Create New Poll in the surface colour, so it reads on the --ink fill in both schemes", () => {
+    const css = readFileSync("src/public/admin-card-m3.css", "utf8");
+    expect(css).toMatch(/\.admin-create-btn\s*{[^}]*color:\s*var\(--md-sys-color-surface\)/);
+  });
 });
 
 // Frozen mechanics show their value on the editing card (014): retired.
