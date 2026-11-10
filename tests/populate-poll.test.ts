@@ -7,6 +7,7 @@ import { writeBatch } from "../src/votes/consumer.js";
 import { clearPolls, startTestContext, type TestContext } from "./helpers/setup.js";
 import {
   InputError,
+  keepRecent,
   parsePollData,
   populatePoll,
   readArguments,
@@ -76,6 +77,12 @@ describe("parsePollData", () => {
     );
     expect(data.choices.map((c) => c.key)).toEqual(["choice_a", "choice_b", "choice_z", "choice_aa"]);
   });
+
+  it("reads no oldest_age_in_days as null, and a whole number as itself", () => {
+    expect(parsePollData(fixture, bounds).oldestAgeInDays).toBeNull();
+    expect(parsePollData({ ...fixture, oldest_age_in_days: 0 }, bounds).oldestAgeInDays).toBe(0);
+    expect(parsePollData({ ...fixture, oldest_age_in_days: 30 }, bounds).oldestAgeInDays).toBe(30);
+  });
 });
 
 describe("shiftDates", () => {
@@ -95,6 +102,30 @@ describe("shiftDates", () => {
     expect(moved[1]!.date).toEqual(new Date(2026, 10, 20));
     expect(moved[0]!.date).toEqual(new Date(2026, 5, 22));
     for (const p of moved) expect([p.date.getHours(), p.date.getMinutes()]).toEqual([0, 0]);
+  });
+});
+
+describe("keepRecent", () => {
+  const today = new Date(2026, 9, 26, 15, 30);
+  const point = (day: number) => ({ date: new Date(2026, 9, day), percentages: [1] });
+  const days = (points: { date: Date }[]) => points.map((p) => p.date.getDate());
+
+  it("keeps a point exactly N days old and drops one N + 1 days old", () => {
+    expect(days(keepRecent([point(15), point(16), point(20), point(26)], today, 10))).toEqual([16, 20, 26]);
+  });
+
+  it("keeps only today's point with 0", () => {
+    expect(days(keepRecent([point(24), point(25), point(26)], today, 0))).toEqual([26]);
+  });
+
+  it("keeps every point, in order, when the limit is larger than the span", () => {
+    expect(days(keepRecent([point(20), point(23), point(26)], today, 30))).toEqual([20, 23, 26]);
+  });
+
+  it("counts calendar days across a daylight-saving change", () => {
+    const now = new Date(2026, 10, 3, 8);
+    const points = [new Date(2026, 9, 29), new Date(2026, 9, 30), new Date(2026, 10, 3)].map((date) => ({ date, percentages: [1] }));
+    expect(keepRecent(points, now, 4).map((p) => p.date)).toEqual([new Date(2026, 9, 30), new Date(2026, 10, 3)]);
   });
 });
 
@@ -245,6 +276,34 @@ describe("populatePoll — create", () => {
 
     expect(summary.votesWritten).toBe(history.length);
     expect(summary.final.reduce((a, f) => a + f.percent, 0)).toBeCloseTo(100, 0);
+    expect(lines.some((l) => l.startsWith("[populate] Kept"))).toBe(false);
+  });
+
+  it("replays only the points no older than oldest_age_in_days", async () => {
+    const data = parsePollData({ ...fixture, oldest_age_in_days: 2 }, ctx.config);
+    const now = new Date(2026, 9, 26, 12);
+    const lines: string[] = [];
+    const summary = await populatePoll({ db: ctx.db, cache: ctx.cache, config: ctx.config }, data, runOptions(now, lines));
+
+    const poll = await ctx.db.selectFrom("polls").selectAll().executeTakeFirstOrThrow();
+    const firstKept = new Date(2026, 9, 24);
+    for (const column of [poll.created_at, poll.start_at, poll.launched_at]) expect(new Date(column as Date)).toEqual(firstKept);
+    const history = await ctx.db.selectFrom("vote_history").select("voted_at").where("poll_id", "=", poll.id).execute();
+    expect(new Set(history.map((r) => localDay(new Date(r.voted_at))))).toEqual(new Set(["2026-10-24", "2026-10-26"]));
+    expect(summary.votesWritten).toBe(history.length);
+    expect(lines[1]).toBe("[populate] Kept 2 of 3 data points (oldest_age_in_days 2)");
+    expect(lines[0]).toMatch(/^\[populate\] Target:/);
+    expect(summary.notes.some((n) => n.includes("12 months"))).toBe(false);
+  });
+
+  it("replays every point and prints no Kept line when the limit is larger than the span", async () => {
+    const data = parsePollData({ ...fixture, oldest_age_in_days: 10 }, ctx.config);
+    const lines: string[] = [];
+    const summary = await populatePoll({ db: ctx.db, cache: ctx.cache, config: ctx.config }, data, runOptions(new Date(2026, 9, 26, 12), lines));
+    const history = await ctx.db.selectFrom("vote_history").select("voted_at").execute();
+    expect(new Set(history.map((r) => localDay(new Date(r.voted_at))))).toEqual(new Set(["2026-10-22", "2026-10-24", "2026-10-26"]));
+    expect(summary.votesWritten).toBe(history.length);
+    expect(lines.some((l) => l.startsWith("[populate] Kept"))).toBe(false);
   });
 });
 
@@ -307,6 +366,25 @@ describe("populatePoll — rerun", () => {
     expect(votes.some((v) => v.choice_ids.includes(disapprove!.id))).toBe(false);
     const row = await ctx.db.selectFrom("polls").select("vote_count").where("id", "=", first.pollId).executeTakeFirstOrThrow();
     expect(row.vote_count).toBe(votes.length);
+  });
+
+  it("leaves no simulated vote older than the limit when rerun with one", async () => {
+    const first = await populatePoll(deps(), parsePollData(fixture, ctx.config), runOptions(firstNow, []));
+    const lines: string[] = [];
+    await populatePoll(deps(), parsePollData({ ...fixture, oldest_age_in_days: 2 }, ctx.config), runOptions(secondNow, lines));
+    expect(lines).toContain("[populate] Kept 2 of 3 data points (oldest_age_in_days 2)");
+
+    const firstKept = new Date(2026, 9, 25);
+    const history = await ctx.db.selectFrom("vote_history").select(["voted_at", "email"]).where("poll_id", "=", first.pollId).execute();
+    expect(history.length).toBeGreaterThan(0);
+    for (const row of history) expect(new Date(row.voted_at) >= firstKept).toBe(true);
+    const votes = await ctx.db.selectFrom("votes").select("voted_at").where("poll_id", "=", first.pollId).execute();
+    for (const vote of votes) expect(new Date(vote.voted_at as Date) >= firstKept).toBe(true);
+
+    const row = await ctx.db.selectFrom("polls").selectAll().where("id", "=", first.pollId).executeTakeFirstOrThrow();
+    expect(new Date(row.start_at as Date)).toEqual(firstKept);
+    expect(new Date(row.launched_at as Date)).toEqual(firstKept);
+    expect(new Date(row.created_at)).toEqual(new Date(2026, 9, 22));
   });
 
   it("clears the subtitle when the data's subtitle is empty", async () => {
@@ -388,7 +466,11 @@ describe("parsePollData — input errors", () => {
     ["an unknown key", withPoints([{ date: "10/01/26", choice_a: 1, choice_d: 2 }]), /0.*choice_d/],
     ["a string percentage", withPoints([{ date: "10/01/26", choice_a: "40" }]), /0.*choice_a/],
     ["a negative percentage", withPoints([{ date: "10/01/26", choice_a: -1, choice_b: 5 }]), /0.*choice_a/],
-    ["percentages adding up to 0", withPoints([{ date: "10/01/26", choice_a: 0 }]), /0.*10\/01\/26/]
+    ["percentages adding up to 0", withPoints([{ date: "10/01/26", choice_a: 0 }]), /0.*10\/01\/26/],
+    ["oldest_age_in_days -1", { ...valid(), oldest_age_in_days: -1 }, /^"oldest_age_in_days" must be a whole number of at least 0, not -1$/],
+    ["oldest_age_in_days 2.5", { ...valid(), oldest_age_in_days: 2.5 }, /^"oldest_age_in_days" must be a whole number of at least 0, not 2\.5$/],
+    ["oldest_age_in_days as a string", { ...valid(), oldest_age_in_days: "30" }, /^"oldest_age_in_days" must be a whole number of at least 0, not "30"$/],
+    ["oldest_age_in_days null", { ...valid(), oldest_age_in_days: null }, /^"oldest_age_in_days" must be a whole number of at least 0, not null$/]
   ];
   const present = (json: Record<string, unknown>) => Object.fromEntries(Object.entries(json).filter(([, v]) => v !== undefined));
   for (const [name, json, message] of cases) {

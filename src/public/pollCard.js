@@ -899,8 +899,7 @@ function renderVotingOptions(wrap, list, upRow, downRow, data, layoutFor){
       + (compact ? ' is-compact' : '');
     row.style.height = barHeight + 'px';
     row.dataset.index = i;
-    // TWEAK02: a temporary diagnostic, the choice's vote count after its label.
-    const labelText = item.label + ' (' + (item.count || 0) + ')';
+    const labelText = item.label;
     row.title = labelText;
 
     const radio = document.createElement('span');
@@ -1645,6 +1644,7 @@ const POLL_CARD_TEMPLATE = `
             </button>
             <ul class="results-list"></ul>
             <button class="arrow-row arrow-row-down" type="button" aria-label="Scroll down">
+              <span class="arrow-row-label">more choices</span>
               <svg viewBox="0 128 256 128" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M184.49 167.51a12 12 0 0 1 0 17l-48 48a12 12 0 0 1-17 0l-48-48a12 12 0 0 1 17-17L128 207l39.51-39.52a12 12 0 0 1 16.98.03m-96-79L128 49l39.51 39.52a12 12 0 0 0 17-17l-48-48a12 12 0 0 0-17 0l-48 48a12 12 0 0 0 17 17Z"/></svg>
             </button>
             </div>
@@ -1707,6 +1707,7 @@ const POLL_CARD_TEMPLATE = `
             </button>
             <ul class="voting-list"></ul>
             <button class="arrow-row arrow-row-down" type="button" aria-label="Scroll down">
+              <span class="arrow-row-label">more choices</span>
               <svg viewBox="0 128 256 128" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M184.49 167.51a12 12 0 0 1 0 17l-48 48a12 12 0 0 1-17 0l-48-48a12 12 0 0 1 17-17L128 207l39.51-39.52a12 12 0 0 1 16.98.03m-96-79L128 49l39.51 39.52a12 12 0 0 0 17-17l-48-48a12 12 0 0 0-17 0l-48 48a12 12 0 0 0 17 17Z"/></svg>
             </button>
             </div>

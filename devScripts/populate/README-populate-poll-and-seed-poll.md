@@ -44,6 +44,7 @@ extension and does not exist, the same path with `.json` added is used.
 | `subtitle` | the poll's subtitle, shown under the title and on the maximized view's line graph, at most 30 characters; `""` for none |
 | `choice_a`, `choice_b`, … | the choice labels, ordered by key (`choice_a` … `choice_z`, `choice_aa`, …) |
 | `vote_count` | the average number of votes per data point, a whole number of at least 1 |
+| `oldest_age_in_days` | optional; a whole number ≥ 0; only the data points no older than this many days, counted back from the latest point, which falls on today, are replayed; absent: every point |
 | `data_points` | `[{ "date": "MM/DD/YY", "choice_a": 41.2, "choice_b": 55.0 }, …]`; a missing choice counts as 0 |
 
 On each data point, about `vote_count` votes (±15%) are cast on that day by voters
@@ -51,6 +52,10 @@ On each data point, about `vote_count` votes (±15%) are cast on that day by vot
 the data point's percentages scaled to their sum. A voter who votes again on a later
 date changes their vote, so the poll's total stays at about one data point's votes
 and the final bars match the latest data point.
+
+With `oldest_age_in_days`, the older points are ignored as if they were not in the
+file: the poll starts on the first kept day, and the run prints, after the `Target:`
+line, e.g. `[populate] Kept 31 of 3,446 data points (oldest_age_in_days 30)`.
 
 A rerun finds the creator's newest poll with the same title and keeps its id. It
 deletes that poll's earlier simulated votes, history rows and relations, but no one
