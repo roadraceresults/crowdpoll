@@ -588,3 +588,16 @@ describe("pollCard.css title wrapping (032 FIX05)", () => {
     expect(rule(".subtitle")).toContain("overflow-wrap:anywhere;");
   });
 });
+
+describe("pollCard.js down arrow row label", () => {
+  it("writes \"more choices\" left of the centred chevron on both faces' down rows, hidden on a compact row", async () => {
+    const js = await request(ctx.app).get("/pollCard.js");
+    expect(js.status).toBe(200);
+    const down = '<button class="arrow-row arrow-row-down" type="button" aria-label="Scroll down">\n              <span class="arrow-row-label">more choices</span>\n              <svg';
+    expect(js.text.split(down).length - 1).toBe(2);
+    const css = await request(ctx.app).get("/pollCard.css");
+    expect(css.text).toContain(".arrow-row.is-compact .arrow-row-label{ display:none; }");
+    // Out of the flow, so the chevron alone is centred.
+    expect(css.text).toMatch(/\.arrow-row-label\{\s*position:absolute;\s*top:50%;\s*right:calc\(50% \+ 11px \+ 16px\);/);
+  });
+});

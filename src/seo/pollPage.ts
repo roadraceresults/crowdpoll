@@ -1,4 +1,4 @@
-import { escapeHtml } from "../email/templates.js";
+import { escapeHtml } from "../html.js";
 import type { LiveCounts } from "../polls/counters.js";
 import type { PollProjection } from "../polls/versions.js";
 
@@ -51,14 +51,15 @@ function headTags(poll: PollProjection, counts: LiveCounts, url: string): string
     .trimStart();
 }
 
-function summary(poll: PollProjection, counts: LiveCounts): string {
+function summary(poll: PollProjection, counts: LiveCounts, notesHtml: string): string {
   const shares = percentages(poll, counts);
   const choices = poll.choices
     .map((choice) => `<li><span class="poll-summary-choice">${escapeHtml(choice.label)}</span> <span class="poll-summary-share">${shares.get(choice.id)}%</span></li>`)
     .join("");
   const votes = `${counts.voteCount} ${counts.voteCount === 1 ? "vote" : "votes"}`;
   const description = poll.subtitle.trim() ? `<p>${escapeHtml(poll.subtitle)}</p>` : "";
-  return `<article id="poll-summary"><h1>${escapeHtml(poll.title)}</h1>${description}<ul>${choices}</ul><p>${votes}</p></article>`;
+  const notes = notesHtml ? `<div class="poll-notes">${notesHtml}</div>` : "";
+  return `<article id="poll-summary"><h1>${escapeHtml(poll.title)}</h1>${description}${notes}<ul>${choices}</ul><p>${votes}</p></article>`;
 }
 
 /**
@@ -66,11 +67,11 @@ function summary(poll: PollProjection, counts: LiveCounts): string {
  * structured data in the head, and a plain summary of the poll at the start of the main region, which the
  * browser replaces with the live card.
  */
-export function renderPollPage(indexHtml: string, poll: PollProjection, counts: LiveCounts, origin: string): string {
+export function renderPollPage(indexHtml: string, poll: PollProjection, counts: LiveCounts, origin: string, notesHtml: string): string {
   const url = `${origin}/poll/${poll.pid}`;
   return indexHtml
     .replace(/<meta name="description"[^>]*>\s*/, "")
     .replace(/<title>[^<]*<\/title>/, () => headTags(poll, counts, url))
     .replace(/<body([^>]*)>/, (_m, attrs: string) => `<body${attrs} data-poll-page="${escapeHtml(poll.pid)}">`)
-    .replace(/<main class="all-markets">/, (m) => `${m}\n${summary(poll, counts)}`);
+    .replace(/<main class="all-markets">/, (m) => `${m}\n${summary(poll, counts, notesHtml)}`);
 }

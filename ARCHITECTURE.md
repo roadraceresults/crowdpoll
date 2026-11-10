@@ -93,6 +93,7 @@ flowchart TB
     Card["pollCard.js<br/>render only: Vote, Live Results (add | remove), Bookmark, Maximize; bar colours"]
     Graph["lineGraph.js<br/>maximized view's vote-history graph: SVG, scales, crosshair, refresh timer"]
     Admin["adminList.js + adminCard.js<br/>admin list, structured search"]
+    Notes["notesEditor.js<br/>the wizard's notes editor: contenteditable, serialize"]
   end
 
   subgraph Server["src"]
@@ -166,8 +167,9 @@ erDiagram
     text id PK
     text title
     text subtitle
+    text notes "stored format; '' when none"
     jsonb choices
-    tsvector search "generated: A title, B subtitle, C choices, D keywords"
+    tsvector search "generated: A title, B subtitle, C choices, D keywords and notes"
     boolean home_listable "generated: public and listable state"
     text poll_state
     text poll_visibility
@@ -550,8 +552,8 @@ never steals the focus.
 
 ### The maximized card
 
-Any card can be shown on its own, in the tab it belongs to: a click on its title, its subtitle or
-the maximize button at the right of its title row, on either face. The tab's grid (`createGrid` in `tabs.js`) moves **the same
+Any card can be shown on its own, in the tab it belongs to: a click on its title, its subtitle,
+its notes' **Show more ⌄** or the maximize button at the right of its title row, on either face. The tab's grid (`createGrid` in `tabs.js`) moves **the same
 card instance** out of its `.card-grid` into a `.maximized-card-grid` cloned from the page's
 `<template id="maximizedCardGrid">`, beside the hidden grid, with the vote-history line graph
 (below) in the column beside it. While the card is maximized, its maximize buttons show a minimize
@@ -566,7 +568,7 @@ overrides put the bars back in flow so the card grows and the page scrolls.
 ```mermaid
 stateDiagram-v2
   [*] --> Grid
-  Grid --> Maximized: title, subtitle or maximize button
+  Grid --> Maximized: title, subtitle, Show more or maximize button
   Maximized --> Grid: minimize button, Escape, the active tab (scroll and focus restored)
   Maximized --> Grid: another tab, a search, a login change (quiet: neither restored)
   Maximized --> Grid: the poll leaves the tab's list (any tab but Trending and Newest)
@@ -580,10 +582,34 @@ browser cannot tell a recompute from a deletion, and a dropped poll stays shown 
 closed; its own votes and bookmarks are applied to it by `patchRetained`. Every other tab closes
 the view at once when its poll leaves. The address and the browser history are never changed.
 
+### Poll notes
+
+A poll's notes are `polls.notes` (migration `018-poll-notes`, `text not null default ''`), up to 6000 UTF-16 units
+of plain text in a stored format: `**bold**`, `*italic*`, `++underline++`, `\` escaping the next character, and a
+newline for a line break; an unbalanced mark is shown as typed. `src/polls/notes.ts` is the one reader of the
+format: it escapes everything and writes only `<strong>`, `<em>`, `<u>` and `<br>` (`renderNotesHtml`), a 300-character
+preview cut at a space with its marks closed and "…" when there is more (`renderNotesPreview`), and the plain text
+that screening and OpenSearch read (`notesPlainText`). Notes are a content field: a change bumps `content_version`,
+and on an ever-voted poll waits in `pending_update` with the title, subtitle and choices.
+
+| Reader | Carries |
+|---|---|
+| The card projection (`projectPoll`), every listing and delta, admin list rows | `notesPreviewHtml`, `hasMoreNotes` |
+| `GET /api/polls/:pid/card`, `GET /api/me/polls/:pid`, the admin detail and edit session | `notesHtml` too (the admin detail also `notes`) |
+| `/poll/:pid` | the rendered notes in `#poll-summary`, after the subtitle |
+
+The card shows the preview in `.poll-notes`, clamped to two lines, with **Show more ⌄** when `hasMoreNotes` is true
+or a `ResizeObserver` finds the text clamped. The maximized view's right column holds `.maximized-notes` above
+`.maximized-graph`: `tabs.js` fetches the one-card route when the poll has notes, again when a refresh brings a new
+`contentVersion`, and empties it in `restore`. In the wizard, `notesEditor.js` edits the notes in a `contenteditable`
+box loaded from `notesHtml`; formatting goes through one `execCommand` wrapper, pasted and dropped text is inserted
+as plain text, and `serialize` writes the stored format from the DOM's runs (bold > underline > italic), so the
+browser never parses the stored format. Only `notesPreviewHtml` and `notesHtml` reach `innerHTML`.
+
 ### The vote-history line graph
 
 The maximized view's right column shows how each choice's share moved over time. `tabs.js` calls
-`window.PollLineGraph?.mount(column, { pid, title, subtitle, card })` after `setMaximized(true)`,
+`window.PollLineGraph?.mount(graph, { pid, title, subtitle, card })`, `graph` being the column's `.maximized-graph`, after `setMaximized(true)`,
 and `restore()`, the one way out, calls `unmount()`, which also stops the refresh timer.
 
 The graph is drawn only while the poll's setting is on. The setting is `polls.line_graph_enabled`
@@ -808,7 +834,7 @@ cards whether or not the tab holds one.
 ## Search
 
 Home search is one interface, `search(scope, text, limit)`, with two engines: OpenSearch
-(BM25 over `title^4, subtitle^3, choice_labels^2, keywords`, an AND pass, an OR pass and a
+(BM25 over `title^4, subtitle^3, choice_labels^2, keywords, notes`, the notes as plain text, an AND pass, an OR pass and a
 fuzzy pass) and PostgreSQL full-text search (the generated `search` tsvector with the same
 three passes, each bounded to the 5,000 newest listable polls; the typo pass uses a trigram
 index on the title). A health probe cached for five seconds selects the engine; a search
@@ -890,8 +916,8 @@ admin list row carries — and any other poll takes Cancel and Save changes. Sav
 Publish and Save changes go to `/publish`. A never-voted poll is sent to screening
 (`AWAITING APPROVAL`), held back as `INITIALIZED` for still carrying its starter choices only
 while it has never been published. The save of an ever-voted published poll never changes
-`pollState` and never interrupts voting: fields other than the title, subtitle and choices
-apply in the save transaction, while a changed title, subtitle or choice list waits in
+`pollState` and never interrupts voting: fields other than the title, subtitle, notes and choices
+apply in the save transaction, while a changed title, subtitle, notes or choice list waits in
 `polls.pending_update` (`pending_rejection_reason` carries a refusal) until the approval sweep
 resolves it — the same sweep and claim columns, drawing from two disjoint pools
 (`AWAITING APPROVAL` polls and polls with a pending update), screening the content as it would
@@ -1314,7 +1340,7 @@ sequenceDiagram
   (and `seo:sitemap:<n>` per part above 50,000 addresses); `lastmod` is `closed_at`, else `launched_at`.
 - **The poll page**: for a guest and an indexable poll, `renderPollPage` (`src/seo/pollPage.ts`) serves `index.html`
   with the poll's title, description, canonical, Open Graph and JSON-LD `Question` tags, `data-poll-page` on `<body>`
-  and an escaped `#poll-summary` at the start of `<main>`, with the published percentages from the live counters. In
+  and an escaped `#poll-summary` at the start of `<main>` (the rendered notes after the subtitle), with the published percentages from the live counters. In
   the browser, `tabs.js` opens Trending, fetches `GET /api/polls/:pid/card` (guest, shed as refresh), mounts and
   maximizes the card and removes the summary. A logged-in visitor is redirected to `/?PID=<pid>`; a guest opening
   `/?PID=` for an indexable poll is redirected to `/poll/<pid>`, and for any other poll to log in as before. Anything

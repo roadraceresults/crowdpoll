@@ -329,6 +329,21 @@ body.card-demo-page .page-decor{
     pointer-events:auto;
   }
   .arrow-row svg{ width:22px; height:11px; }
+  /* The down row says what it reveals: "more choices" to the left of the
+     chevron, which stays centred (the label is taken out of the flow and
+     ends 16px left of the 22px chevron). A compact row is too short for text. */
+  .arrow-row-down{ position:relative; }
+  .arrow-row-label{
+    position:absolute;
+    top:50%;
+    right:calc(50% + 11px + 16px);
+    transform:translateY(-50%);
+    font-size:12px;
+    font-style:italic;
+    line-height:1;
+    white-space:nowrap;
+  }
+  .arrow-row.is-compact .arrow-row-label{ display:none; }
 
   .question-wrap{ margin-bottom:8px; }
 

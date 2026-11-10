@@ -5,6 +5,33 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261109-114330-POLL-NOTES/plan.md` (research R1–R14, `data-model.md` — migration 018; the `polls.notes`
+column, the redefined `search` column and `pending_update.notes`; the HTTP contracts `contracts/api.md` A1–A7, the UI
+contracts `contracts/ui-contracts.md` C1–C5, and the quickstart live alongside it in `specs/20261109-114330-POLL-NOTES/`).
+The requirements report is `requirements/20261109-114330-poll-notes/requirements-report.md`: 3 diagrams and 23 findings,
+21 resolved and 2 no longer applicable.
+Decisions that are easy to get wrong:
+- **Stored format**: plain text with `**bold**`, `*italic*`, `++underline++` and `\` escapes; unbalanced marks show as
+  typed; one server module, `src/polls/notes.ts`, renders it (escape all, then four tags) (R1, R2).
+- **Payloads**: the projection and admin list rows carry `notesPreviewHtml`/`hasMoreNotes`; only the one-card routes
+  and the admin details carry `notesHtml`; only those two fields ever reach `innerHTML` (R4, R6).
+- **6000 counts UTF-16 units**, like every field (R3). **No stash**: in UPDATE mode notes join `pending_update` (R7).
+- **The editor** (`notesEditor.js`, `contenteditable`, one `execCommand` wrapper) loads `notesHtml` and writes through
+  `serialize`; it never parses the stored format (R5). **The line graph mounts into `.maximized-graph`** (R9).
+No route, setting, cookie or dependency; one migration, one module, one script.
+The preceding feature is
+`specs/20261109-083912-POPULATE-OLDEST-AGE/plan.md` (research R1–R7, `data-model.md` — no migration; the optional
+`oldest_age_in_days` key of a poll data file; the contract `contracts/data-file.md` D1–D3, and the quickstart live
+alongside it in `specs/20261109-083912-POPULATE-OLDEST-AGE/`). The requirements report is
+`requirements/20261109-083912-populate-oldest-age/requirements-report.md`: 3 diagrams and 6 findings, all resolved.
+Decisions that are easy to get wrong:
+- **A key of the data file, spelled `oldest_age_in_days`**, not a command-line option; `populate-all-polls` does not
+  change, a changed key changes the file's SHA-256 (AM1, AM2).
+- **Filter after `shiftDates`**: keep a point when its calendar day ≥ today − N (inclusive; `0` keeps today only); the
+  kept points set the poll's dates and the 12-month note (R3, R4).
+- **A whole number ≥ 0, validated in `parsePollData`**; `null`, `"30"`, `2.5`, `-1` are input errors (R2).
+No migration, setting, route or dependency; one key, one function, one log line.
+Before it came
 `specs/20261108-193031-SNACKBAR-HOURGLASS/plan.md` (research R1–R10, `data-model.md` — no migration; the
 `SIGN_IN_NOTICE_MS` constant and the notice's markup; the UI contracts `contracts/ui-contracts.md` C1–C5, and the
 quickstart live alongside it in `specs/20261108-193031-SNACKBAR-HOURGLASS/`). The requirements report is
@@ -35,7 +62,7 @@ Decisions that are easy to get wrong:
 - **`signedIn=1` on the provider `callbackURL`** drives the snackbar; `app.js` removes it, and `acceptTermsCard.js`
   takes it out of `next` (R7).
 No setting, route, cookie or dependency; one migration, one sweep, one sheet, a new `TERMS_VERSION`.
-The preceding feature is
+Before it came
 `specs/20261104-180032-LEGAL-PAGE-UPDATES/plan.md` (research R1–R8, `data-model.md` — no migration; the shared policy
 version and the `history.state.legalDepth` step count; the UI contracts `contracts/ui-contracts.md` C1–C6, and the
 quickstart live alongside it in `specs/20261104-180032-LEGAL-PAGE-UPDATES/`). The requirements report is

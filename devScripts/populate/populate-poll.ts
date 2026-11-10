@@ -22,6 +22,7 @@ export interface PollData {
   subtitle: string;
   choices: { key: string; label: string }[];
   voteCount: number;
+  oldestAgeInDays: number | null;
   dataPoints: { date: Date; percentages: number[] }[];
 }
 
@@ -101,6 +102,11 @@ export function parsePollData(json: unknown, bounds: Bounds): PollData {
     throw new InputError(`"vote_count" must be a whole number of at least 1, not ${JSON.stringify(voteCount)}`);
   }
 
+  const oldestAgeInDays = file.oldest_age_in_days;
+  if (oldestAgeInDays !== undefined && (typeof oldestAgeInDays !== "number" || !Number.isInteger(oldestAgeInDays) || oldestAgeInDays < 0)) {
+    throw new InputError(`"oldest_age_in_days" must be a whole number of at least 0, not ${JSON.stringify(oldestAgeInDays)}`);
+  }
+
   const rawPoints = file.data_points;
   if (!Array.isArray(rawPoints) || rawPoints.length === 0) throw new InputError(`"data_points" is missing or empty`);
   const keys = new Set(choices.map((c) => c.key));
@@ -126,7 +132,7 @@ export function parsePollData(json: unknown, bounds: Bounds): PollData {
     })
     .sort((a, b) => a.date.getTime() - b.date.getTime());
 
-  return { creatorEmail, title, subtitle, choices: choices.map((c) => ({ key: c.key, label: c.label as string })), voteCount, dataPoints };
+  return { creatorEmail, title, subtitle, choices: choices.map((c) => ({ key: c.key, label: c.label as string })), voteCount, oldestAgeInDays: oldestAgeInDays ?? null, dataPoints };
 }
 
 export function readArguments(argv: string[]): string {
@@ -149,6 +155,11 @@ export function shiftDates(points: DataPoint[], today: Date): DataPoint[] {
     date: new Date(p.date.getFullYear(), p.date.getMonth(), p.date.getDate() + offset),
     percentages: p.percentages
   }));
+}
+
+export function keepRecent(points: DataPoint[], today: Date, oldestAgeInDays: number): DataPoint[] {
+  const oldest = calendarDay(today) - oldestAgeInDays;
+  return points.filter((p) => calendarDay(p.date) >= oldest);
 }
 
 export function voteCountFor(base: number, random: () => number): number {
@@ -217,7 +228,11 @@ export async function populatePoll(deps: Deps, data: PollData, options: Options 
     .orderBy("created_at", "desc")
     .orderBy("id")
     .execute();
-  const points = shiftDates(data.dataPoints, now);
+  const shifted = shiftDates(data.dataPoints, now);
+  const points = data.oldestAgeInDays === null ? shifted : keepRecent(shifted, now, data.oldestAgeInDays);
+  if (points.length < shifted.length) {
+    log(`[populate] Kept ${grouped(points.length)} of ${grouped(shifted.length)} data points (oldest_age_in_days ${data.oldestAgeInDays})`);
+  }
   const firstDay = points[0]!.date;
   const lastDay = points[points.length - 1]!.date;
 

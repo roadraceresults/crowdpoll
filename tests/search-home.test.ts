@@ -50,6 +50,28 @@ describe("home search on PostgreSQL full-text", () => {
     expect(res.body.results[0].counts).toEqual({ voteCount: 0, choiceCounts: {}, countsVersion: 0 });
   });
 
+  it("finds a word only in the notes, below a title, subtitle and choice match", async () => {
+    const inTitle = makePoll({ title: "Gazebo booking" });
+    const inSubtitle = makePoll({ title: "Garden", subtitle: "Which gazebo" });
+    const inChoices = makePoll({ title: "Shelter", choices: [{ id: "c1", label: "Gazebo", position: 0 }, { id: "c2", label: "Tent", position: 1 }] });
+    const inNotes = makePoll({ title: "Picnic", notes: "Meet by the **gazebo** at noon" });
+    for (const p of [inNotes, inChoices, inSubtitle, inTitle]) await polls(ctx).insertOne(p);
+    const res = await search("gazebo");
+    expect(pids(res)).toEqual([inTitle._id, inSubtitle._id, inChoices._id]);
+    expect(res.body.truncated).toBe(true);
+
+    await polls(ctx).deleteMany({});
+    await polls(ctx).insertOne(inNotes);
+    for (const key of await ctx.cache.scan("search:*")) await ctx.cache.del(key);
+    for (const key of await ctx.cache.scan("floor:*")) await ctx.cache.del(key);
+    expect(pids(await search("gazebo", "198.51.100.2"))).toEqual([inNotes._id]);
+  });
+
+  it("makes no search terms of the marks and escapes in the notes", async () => {
+    const { rows } = await sql<{ terms: string }>`select to_tsvector('english', ${"** ++ \* \\ * +"})::text as terms`.execute(ctx.db);
+    expect(rows[0]!.terms).toBe("");
+  });
+
   it("answers an AND match first, then OR matches, then a misspelt title", async () => {
     const both = makePoll({ title: "Coffee and tea preferences" });
     const coffeeOnly = makePoll({ title: "Coffee strength" });
@@ -120,7 +142,7 @@ describe("home search on PostgreSQL full-text", () => {
   });
 
   it("the application's search text equals the input of the stored search expression", async () => {
-    const poll = makePoll({ title: "Weighted text", subtitle: "A subtitle", choices: [{ id: "c1", label: "Alpha", position: 0 }, { id: "c2", label: "Beta", position: 1 }] });
+    const poll = makePoll({ title: "Weighted text", subtitle: "A subtitle", notes: "**Bold** ++notes++ \* here", choices: [{ id: "c1", label: "Alpha", position: 0 }, { id: "c2", label: "Beta", position: 1 }] });
     await polls(ctx).insertOne(poll);
     const row = await ctx.db.selectFrom("polls").selectAll().where("id", "=", poll._id).executeTakeFirstOrThrow();
     const text = searchText(row);
@@ -129,7 +151,8 @@ describe("home search on PostgreSQL full-text", () => {
         setweight(to_tsvector('english', ${text.title}), 'A') ||
         setweight(to_tsvector('english', ${text.subtitle}), 'B') ||
         setweight(to_tsvector('english', ${text.choiceLabels}), 'C') ||
-        setweight(to_tsvector('english', ${text.keywords}), 'D')
+        setweight(to_tsvector('english', ${text.keywords}), 'D') ||
+        setweight(to_tsvector('english', ${text.notes}), 'D')
       )::text = (select search::text from polls where id = ${poll._id}) as same`.execute(ctx.db);
     expect(rows[0]!.same).toBe(true);
   });

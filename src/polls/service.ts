@@ -6,6 +6,7 @@ import { randomUUID } from "node:crypto";
 import type { RequestHandler, Response } from "express";
 import type { AppConfig } from "../config.js";
 import { isPaletteColor, normalizeColor } from "./barPalette.js";
+import { NOTES_MAX, normalizeNotes } from "./notes.js";
 import type { SessionCache } from "../auth/sessionCache.js";
 import type {
   Choice,
@@ -98,6 +99,7 @@ export function createDefaultPoll(now: Date = new Date()): Poll {
     _id: randomUUID(),
     title: `New Poll ${timestamp}`,
     subtitle: "",
+    notes: "",
     keywords: "",
     choiceMode: "Single-Choice Poll",
 
@@ -500,6 +502,9 @@ export function validatePollFields(
   if (body.subtitle !== undefined) {
     $set.subtitle = validateFieldLength(body.subtitle, SUBTITLE_MAX, "Subtitle");
   }
+  if (body.notes !== undefined) {
+    $set.notes = normalizeNotes(validateFieldLength(body.notes, NOTES_MAX, "Notes"));
+  }
 
   if (body.choiceMode !== undefined) {
     if (body.choiceMode !== "Single-Choice Poll" && body.choiceMode !== "Multiple-Choice Poll") {
@@ -888,15 +893,16 @@ export function createRequirePollOwner({
   };
 }
 
-export const LIMITS = { TITLE_MAX, SUBTITLE_MAX, CHOICE_LABEL_MAX, EMAIL_MAX, MAX_INVITED, KEYWORDS_MAX };
+export const LIMITS = { TITLE_MAX, SUBTITLE_MAX, NOTES_MAX, CHOICE_LABEL_MAX, EMAIL_MAX, MAX_INVITED, KEYWORDS_MAX };
 
 /** FR-055: poll config + results only, excluding the voter roll. */
-export function exportPollData(poll: Pick<Poll, "_id" | "title" | "subtitle" | "choices" | "currentVotes"> & Partial<Pick<Poll, "choiceMode">>) {
+export function exportPollData(poll: Pick<Poll, "_id" | "title" | "subtitle" | "notes" | "choices" | "currentVotes"> & Partial<Pick<Poll, "choiceMode">>) {
   const results = computeResults(poll);
   return {
     pid: poll._id,
     title: poll.title,
     subtitle: poll.subtitle,
+    notes: poll.notes,
     choices: results.choices,
     totalVoted: results.totalVoted,
     participants: poll.currentVotes
@@ -905,10 +911,11 @@ export function exportPollData(poll: Pick<Poll, "_id" | "title" | "subtitle" | "
   };
 }
 
-export function exportPollMarkdown(poll: Pick<Poll, "_id" | "title" | "subtitle" | "choices" | "currentVotes"> & Partial<Pick<Poll, "choiceMode">>): string {
+export function exportPollMarkdown(poll: Pick<Poll, "_id" | "title" | "subtitle" | "notes" | "choices" | "currentVotes"> & Partial<Pick<Poll, "choiceMode">>): string {
   const data = exportPollData(poll);
   let md = `# ${data.title}\n\n`;
   if (data.subtitle) md += `${data.subtitle}\n\n`;
+  if (data.notes) md += `${data.notes}\n\n`;
   md += `| Choice | Votes | % |\n|---|---|---|\n`;
   data.choices.forEach((c) => {
     md += `| ${c.label} | ${c.count} | ${c.pct}% |\n`;
@@ -1194,6 +1201,7 @@ export function duplicatePoll(source: Poll, now: Date = new Date()): Poll {
     _id: randomUUID(),
     title: source.title,
     subtitle: source.subtitle,
+    notes: source.notes,
     keywords: source.keywords,
     choiceMode: source.choiceMode,
     voteMutability: source.voteMutability,

@@ -242,8 +242,8 @@ describe("the dialog", () => {
     const front = card(page)!.querySelector(".card-front")!.textContent!.replace(/\s+/g, " ");
     expect(front).toContain("Tacos100%");
     expect(front).toContain("1 vote");
-    // TWEAK02: each voting row ends with its choice's vote count.
-    expect([...votingLabels(page)].sort()).toEqual(["Pizza (0)", "Sushi (0)", "Tacos (1)"]);
+    // Each voting row shows only its choice's label, with no vote count after it.
+    expect([...votingLabels(page)].sort()).toEqual(["Pizza", "Sushi", "Tacos"]);
     await flushDirty({ db: ctx.db, cache: ctx.cache });
     const list = await request(ctx.app).get("/api/admin/polls").set("Cookie", voter.cookie);
     expect(list.body.polls.find((p: { pid: string }) => p.pid === poll._id).voteCount).toBe(1);

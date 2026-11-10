@@ -899,8 +899,7 @@ function renderVotingOptions(wrap, list, upRow, downRow, data, layoutFor){
       + (compact ? ' is-compact' : '');
     row.style.height = barHeight + 'px';
     row.dataset.index = i;
-    // TWEAK02: a temporary diagnostic, the choice's vote count after its label.
-    const labelText = item.label + ' (' + (item.count || 0) + ')';
+    const labelText = item.label;
     row.title = labelText;
 
     const radio = document.createElement('span');
@@ -1002,6 +1001,9 @@ function initPollCard(viewport, opts){
   const blockedMessageFront = viewport.querySelector('.card-front .poll-blocked-message');
   const closedMessageBack = viewport.querySelector('.poll-closed-message--back');
   const voteErrorBack = viewport.querySelector('.card-back .poll-vote-error');
+  const notesBox = viewport.querySelector('.card-front .poll-notes');
+  const notesText = notesBox?.querySelector('.poll-notes-text');
+  const notesMore = notesBox?.querySelector('.poll-notes-more');
 
   initScrollArrows(resultsWrap, resultsList, resultsUp, resultsDown);
   initScrollArrows(votingWrap, votingList, votingUp, votingDown);
@@ -1053,9 +1055,29 @@ function initPollCard(viewport, opts){
     if (voteErrorBack) voteErrorBack.hidden = true;
   }
 
+  let shownNotesHtml = '';
+
+  function setNotes(html){
+    if (!notesBox) return;
+    if (html !== shownNotesHtml){
+      notesText.innerHTML = html;
+      shownNotesHtml = html;
+    }
+    notesBox.hidden = !html;
+    decideNotesMore();
+  }
+
+  function decideNotesMore(){
+    if (!notesBox || notesBox.hidden) return;
+    notesMore.hidden = !(poll && poll.hasMoreNotes) && notesText.scrollHeight <= notesText.clientHeight;
+  }
+
+  if (notesText && typeof ResizeObserver === 'function') new ResizeObserver(decideNotesMore).observe(notesText);
+
   function setText(){
     viewport.querySelectorAll('.question').forEach((el) => { el.textContent = poll.title; });
     viewport.querySelectorAll('.subtitle').forEach((el) => { el.textContent = poll.subtitle || ''; });
+    setNotes(poll.notesPreviewHtml || '');
     // FR-022: totals alongside the results (app addition; see site.css).
     // 008 FR-004/FR-005: written to both faces' copies from one composition
     // in one call, so they can never show different values.
@@ -1262,6 +1284,7 @@ function initPollCard(viewport, opts){
       const line = next.createdByName ? 'Shared by ' + next.createdByName : 'Shared with you';
       viewport.querySelectorAll('.question').forEach((el) => { el.textContent = line; });
       viewport.querySelectorAll('.subtitle').forEach((el) => { el.textContent = ''; });
+      setNotes('');
       return;
     }
     if (cardFlip.classList.contains('is-flipped')) pendingSelection = selectedIds();
@@ -1343,6 +1366,7 @@ function initPollCard(viewport, opts){
   viewport.querySelectorAll('.question, .subtitle').forEach((el) => {
     el.addEventListener('click', requestMaximize);
   });
+  notesMore?.addEventListener('click', requestMaximize);
 
   viewport.querySelectorAll('.maximize-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -1608,6 +1632,11 @@ const POLL_CARD_TEMPLATE = `
             <p class="subtitle"></p>
           </div>
 
+          <div class="poll-notes" hidden>
+            <div class="poll-notes-text"></div>
+            <button type="button" class="poll-notes-more" hidden>Show more<svg class="poll-notes-more-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m6 9 6 6 6-6"/></svg></button>
+          </div>
+
           <div class="bar-scroll-wrap results-scroll-wrap">
             <div class="bar-scroll-inner">
             <button class="arrow-row arrow-row-up" type="button" aria-label="Scroll up">
@@ -1615,6 +1644,7 @@ const POLL_CARD_TEMPLATE = `
             </button>
             <ul class="results-list"></ul>
             <button class="arrow-row arrow-row-down" type="button" aria-label="Scroll down">
+              <span class="arrow-row-label">more choices</span>
               <svg viewBox="0 128 256 128" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M184.49 167.51a12 12 0 0 1 0 17l-48 48a12 12 0 0 1-17 0l-48-48a12 12 0 0 1 17-17L128 207l39.51-39.52a12 12 0 0 1 16.98.03m-96-79L128 49l39.51 39.52a12 12 0 0 0 17-17l-48-48a12 12 0 0 0-17 0l-48 48a12 12 0 0 0 17 17Z"/></svg>
             </button>
             </div>
@@ -1677,6 +1707,7 @@ const POLL_CARD_TEMPLATE = `
             </button>
             <ul class="voting-list"></ul>
             <button class="arrow-row arrow-row-down" type="button" aria-label="Scroll down">
+              <span class="arrow-row-label">more choices</span>
               <svg viewBox="0 128 256 128" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M184.49 167.51a12 12 0 0 1 0 17l-48 48a12 12 0 0 1-17 0l-48-48a12 12 0 0 1 17-17L128 207l39.51-39.52a12 12 0 0 1 16.98.03m-96-79L128 49l39.51 39.52a12 12 0 0 0 17-17l-48-48a12 12 0 0 0-17 0l-48 48a12 12 0 0 0 17 17Z"/></svg>
             </button>
             </div>
@@ -1713,7 +1744,8 @@ const POLL_CARD_TEMPLATE = `
 
 window.M3Ripple?.add(
   '.card-face .btn-vote, .card-face .icon-btn, .card-face .bookmark-btn, .card-face .maximize-btn, ' +
-  '.card-face .live-link, .card-face .arrow-row, .card-face .vote-row, .maximized-card-close, .card-face .add-choice-btn'
+  '.card-face .live-link, .card-face .arrow-row, .card-face .vote-row, .maximized-card-close, .card-face .add-choice-btn, ' +
+  '.card-face .poll-notes-more'
 );
 
 window.PollCard = {

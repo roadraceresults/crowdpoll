@@ -12,6 +12,7 @@ import { assertMayAddChoice, castVote } from "../votes/votePath.js";
 import { randomUUID } from "node:crypto";
 import { localScreener, screenWithTimeout } from "../polls/screening.js";
 import { projectPoll } from "../polls/versions.js";
+import { renderNotesHtml, renderNotesPreview } from "../polls/notes.js";
 import { adminSearch, AdminSearchError, parseAdminSearch } from "../search/adminSearch.js";
 import { mayViewResults, mayWatch } from "../polls/access.js";
 import { addBookmark, BookmarkCapError, removeBookmark } from "../polls/bookmarks.js";
@@ -248,7 +249,7 @@ export function createVoteRouter(context: AppContext): Router {
         const label = validateAddedChoice(row, req.body?.label, config);
         let verdict: string;
         try {
-          verdict = await screenWithTimeout(localScreener, { title: "", subtitle: "", choiceLabels: [label] }, config.screeningCallTimeoutMs);
+          verdict = await screenWithTimeout(localScreener, { title: "", subtitle: "", notes: "", choiceLabels: [label] }, config.screeningCallTimeoutMs);
         } catch (err) {
           console.log(`[choices] Screening failed for poll ${pid}: ${err instanceof Error ? err.message : String(err)}`);
           throw new ChoiceError(503, "Couldn't check this choice. Try again.", "SCREENING_UNAVAILABLE");
@@ -325,6 +326,7 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
     return {
       pid: _id,
       ...rest,
+      notesHtml: renderNotesHtml(rest.notes),
       invitedVoterList: withinDisplayLimit(rest.invitedVoterList),
       bannedVoterList: withinDisplayLimit(rest.bannedVoterList)
     };
@@ -633,7 +635,7 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
       // it invalidates nothing — and a poll filling up is exactly when an
       // administrator needs to raise it.
       const UPDATE_FIELDS = [
-        "title", "subtitle", "startAt", "endAt",
+        "title", "subtitle", "notes", "startAt", "endAt",
         "invitedVoterList", "bannedVoterList", "voterCountLimit", "colors", "lineGraphEnabled",
         "labels", "pollSharingMode", "choiceMode", "voteMutability", "votersAddChoices"
       ];
@@ -702,10 +704,10 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
 
       // An ever-voted, already published poll never goes back through
       // AWAITING APPROVAL: the non-text fields apply now, with no state change,
-      // and a changed title or subtitle waits in `pending_update` for the
+      // and a changed title, subtitle or notes waits in `pending_update` for the
       // approval sweep. The poll keeps serving its pre-save content meanwhile.
       if (decision.mode === "UPDATE" && effectiveState !== "INITIALIZED") {
-        const pending: { title?: string; subtitle?: string; choices?: Choice[] } = {};
+        const pending: { title?: string; subtitle?: string; notes?: string; choices?: Choice[] } = {};
         if ($set.title !== undefined) {
           if ($set.title !== poll.title) pending.title = $set.title;
           delete $set.title;
@@ -713,6 +715,10 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
         if ($set.subtitle !== undefined) {
           if ($set.subtitle !== poll.subtitle) pending.subtitle = $set.subtitle;
           delete $set.subtitle;
+        }
+        if ($set.notes !== undefined) {
+          if ($set.notes !== poll.notes) pending.notes = $set.notes;
+          delete $set.notes;
         }
         if (mergedChoices) {
           const byPosition = (list: Choice[]) => [...list].sort((a, b) => a.position - b.position);
@@ -747,7 +753,7 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
         }
         console.log(
           hasPending
-            ? `[admin] Saved poll ${poll._id}; title/subtitle changes sent for review`
+            ? `[admin] Saved poll ${poll._id}; title/subtitle/notes changes sent for review`
             : `[admin] Saved poll ${poll._id} with no change needing review`
         );
         res.json({ ...await namedAdminPollDetail(saved), pending: hasPending });
@@ -870,6 +876,11 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
     })
   );
 
+  function notesPreviewFields(notes: string) {
+    const preview = renderNotesPreview(notes);
+    return { notesPreviewHtml: preview.html, hasMoreNotes: preview.hasMore };
+  }
+
   function adminListRow(p: PollRow, hasEverBeenVotedOn: boolean, createdByEmail: string, accepted: Map<string, number>, totals: Map<string, number>, names: Map<string, string>, callerId?: string) {
     const forRules = {
       pollState: p.poll_state as Poll["pollState"],
@@ -880,6 +891,7 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
       pid: p.id,
       title: p.title,
       subtitle: p.subtitle,
+      ...notesPreviewFields(p.notes),
       keywords: p.keywords,
       pollState: p.poll_state,
       pollStateBeforeEditUpdate: p.poll_state_before_edit_update,

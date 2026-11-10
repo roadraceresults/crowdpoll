@@ -5,6 +5,7 @@ import type { PollRow } from "../db/schema.js";
 import { readOrRebuildCounts } from "../polls/counters.js";
 import { overlay, sharedWithYouKept, sharedWithYouTab, watchingTab, yourPollsTab, yourVotesTab, type OverlayEntry } from "../polls/userPolls.js";
 import { POLL_PROJECTION_KEY, projectPoll, refreshProjection, type PollProjection } from "../polls/versions.js";
+import { renderNotesHtml } from "../polls/notes.js";
 import { computeDelta, parseClientVersions, type ClientVersions, type CurrentListing, type Delta } from "../refresh/deltas.js";
 import {
   countStat,
@@ -463,7 +464,7 @@ export function createTabsApiRouter(context: AppContext): Router {
       }
       const counts = await readOrRebuildCounts({ db, cache }, [pid]);
       res.json({
-        poll: projectPoll(row),
+        poll: { ...projectPoll(row), notesHtml: renderNotesHtml(row.notes) },
         counts: counts.get(pid) ?? { voteCount: 0, choiceCounts: {}, countsVersion: 0 },
         overlay: { voted: false, bookmarked: false, mayWatch: false, voteBlockedReason: null }
       });
@@ -494,7 +495,7 @@ export function createTabsApiRouter(context: AppContext): Router {
       const entry: OverlayEntry = mine[pid] ?? { voted: false, bookmarked: false };
       const watchable = await mayWatchMany({ db, config }, callerOf(res), [row]);
       res.json({
-        poll: projectPoll(row),
+        poll: { ...projectPoll(row), notesHtml: renderNotesHtml(row.notes) },
         counts: counts.get(pid) ?? { voteCount: 0, choiceCounts: {}, countsVersion: 0 },
         overlay: { ...entry, mayWatch: watchable.has(pid), voteBlockedReason: blocks.get(pid) ?? null }
       });
