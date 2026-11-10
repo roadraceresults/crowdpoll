@@ -31,6 +31,36 @@
   transform:translate(-50%, -8px);
 }
 .m3-snackbar.is-shown{ opacity:1; transform:translate(-50%, 0); }
+
+/* The drain hangs on m3-snackbar--timed rather than is-shown, so the closing fade leaves the sand empty. */
+.m3-snackbar--timed{ padding-block:8px; }
+.m3-snackbar-text{ flex:1 1 auto; min-width:0; overflow-wrap:anywhere; }
+.m3-snackbar-hourglass{ flex:none; width:22px; height:32px; margin-inline-start:12px; }
+.m3-snackbar-hourglass .hourglass-frame{
+  fill:none;
+  stroke:var(--md-sys-color-inverse-on-surface);
+  stroke-width:1.5;
+  stroke-linejoin:round;
+  stroke-linecap:round;
+}
+.m3-snackbar-hourglass .hourglass-part{ fill:var(--md-sys-color-inverse-primary); }
+.m3-snackbar-hourglass .hourglass-top{ transform:scaleY(1); transform-origin:50% 100%; }
+.m3-snackbar-hourglass .hourglass-bottom{ transform:scaleY(0); transform-origin:50% 100%; }
+.m3-snackbar-hourglass .hourglass-stream{ opacity:0; }
+.m3-snackbar--timed .hourglass-part{
+  transform-box:fill-box;
+  animation-duration:var(--m3-snackbar-timer);
+  animation-timing-function:linear;
+  animation-fill-mode:forwards;
+  animation-iteration-count:1;
+}
+.m3-snackbar--timed .hourglass-top{ animation-name:m3-hourglass-top; }
+.m3-snackbar--timed .hourglass-bottom{ animation-name:m3-hourglass-bottom; }
+.m3-snackbar--timed .hourglass-stream{ animation-name:m3-hourglass-stream; }
+@keyframes m3-hourglass-top{ from{ transform:scaleY(1); } to{ transform:scaleY(0); } }
+@keyframes m3-hourglass-bottom{ from{ transform:scaleY(0); } to{ transform:scaleY(1); } }
+@keyframes m3-hourglass-stream{ 0%, 98%{ opacity:1; } 100%{ opacity:0; } }
 @media (prefers-reduced-motion: reduce){
   .m3-snackbar{ transition:none; }
+  .m3-snackbar--timed .hourglass-part{ animation:none; }
 }

@@ -223,6 +223,24 @@ describe("Material 3 page assets", () => {
     expect(read("admin-card-m3.css")).not.toContain(".m3-snackbar");
   });
 
+  it("sizes, colours and drains the timed snackbar's hourglass by the notice's own timer", () => {
+    const css = read("snackbar-m3.css");
+    expect(css).toMatch(/\.m3-snackbar--timed\{[^}]*padding-block:8px;/);
+    expect(css).toMatch(/\.m3-snackbar-text\{[^}]*flex:1 1 auto;[^}]*min-width:0;[^}]*overflow-wrap:anywhere;/);
+    expect(css).toMatch(/\.m3-snackbar-hourglass\{[^}]*flex:none;[^}]*width:22px;[^}]*height:32px;[^}]*margin-inline-start:12px;/);
+    expect(css).toMatch(/\.hourglass-frame\{[^}]*stroke:var\(--md-sys-color-inverse-on-surface\);/);
+    expect(css).toMatch(/\.hourglass-part\{[^}]*fill:var\(--md-sys-color-inverse-primary\);/);
+    const timed = css.match(/\.m3-snackbar--timed \.hourglass-part\{[^}]*\}/)?.[0] ?? "";
+    expect(timed).toContain("transform-box:fill-box;");
+    expect(timed).toContain("animation-duration:var(--m3-snackbar-timer);");
+    expect(timed).toContain("animation-timing-function:linear;");
+    expect(timed).toContain("animation-fill-mode:forwards;");
+    const selectors = css.replace(/\/\*[\s\S]*?\*\//g, "").match(/[^{}]+(?=\{)/g) ?? [];
+    expect(selectors.filter((s) => s.includes("is-shown") && s.includes("hourglass"))).toEqual([]);
+    const reducedMotion = css.match(/@media \(prefers-reduced-motion: reduce\)\{[\s\S]*?\n\}/)?.[0] ?? "";
+    expect(reducedMotion).toContain(".m3-snackbar--timed .hourglass-part{ animation:none; }");
+  });
+
   it("scales the card title between 18px and Title Large's 20px", () => {
     expect(read("pollCard-m3.css")).toContain("font-size:clamp(18px, 1.8vw, var(--md-sys-typescale-title-large-size));");
     expect(read("m3-tokens.css")).toContain("--md-sys-typescale-title-large-size:20px;");

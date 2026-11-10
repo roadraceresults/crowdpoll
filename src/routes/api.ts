@@ -482,7 +482,7 @@ export function createApiRouter(deps: ApiDeps): Router {
     }
     res.setHeader("Set-Cookie", [attrs.join("; "), bindingCookie("", 0)]);
     console.log(`[auth] Login completed (staySignedIn=${stay})`);
-    return pid ? `/?PID=${pid}` : "/";
+    return pid ? `/?PID=${pid}&signedIn=1` : "/?signedIn=1";
   }
 
   /** The account and request time of an unused, unexpired login link; reads only (A5). */

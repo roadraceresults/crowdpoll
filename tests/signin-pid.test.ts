@@ -31,7 +31,7 @@ describe("the poll id through login", () => {
     expect(new URL(link).searchParams.get("PID")).toBe(pid);
     const verified = await followSignInLink(ctx, extractLinkPath(ctx.sent.at(-1)!)).redirects(0);
     expect(verified.status).toBe(302);
-    expect(verified.headers.location).toBe(`/?PID=${pid}`);
+    expect(verified.headers.location).toBe(`/?PID=${pid}&signedIn=1`);
     expect(verified.headers["set-cookie"]?.some((c: string) => c.startsWith("session_token="))).toBe(true);
   });
 
@@ -41,7 +41,7 @@ describe("the poll id through login", () => {
     const mail = ctx.sent.at(-1)!;
     expect(new URL(extractLink(mail)).searchParams.has("PID")).toBe(false);
     const verified = await followSignInLink(ctx, extractLinkPath(mail)).redirects(0);
-    expect(verified.headers.location).toBe("/");
+    expect(verified.headers.location).toBe("/?signedIn=1");
   });
 
   it("an expired or used link keeps the pid on the invalid-link page", async () => {
@@ -90,7 +90,7 @@ describe("the poll id through login", () => {
     const mail = ctx.sent.at(-1)!;
     expect(new URL(extractLink(mail)).searchParams.has("PID")).toBe(false);
     const verified = await followSignInLink(ctx, `${extractLinkPath(mail)}&PID=${encodeURIComponent(bad)}`).redirects(0);
-    expect(verified.headers.location).toBe("/");
+    expect(verified.headers.location).toBe("/?signedIn=1");
 
     const { cookie } = await forgeSession(ctx, "pid-bad-signed@example.com");
     for (const path of [`/login?PID=${encodeURIComponent(bad)}`, "/login?PID=//evil.example"]) {

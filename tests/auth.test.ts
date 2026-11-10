@@ -150,7 +150,7 @@ describe("GET /api/auth/verify", () => {
 
     const res = await followSignInLink(ctx, link);
     expect(res.status).toBe(302);
-    expect(res.headers.location).toBe("/");
+    expect(res.headers.location).toBe("/?signedIn=1");
     const cookies = res.headers["set-cookie"] ?? [];
     expect(cookies.some((c: string) => c.startsWith("session_token="))).toBe(true);
 
@@ -162,7 +162,7 @@ describe("GET /api/auth/verify", () => {
     const link = await issueLink("bob@example.com", freshIp());
     const first = await followSignInLink(ctx, link);
     expect(first.status).toBe(302);
-    expect(first.headers.location).toBe("/");
+    expect(first.headers.location).toBe("/?signedIn=1");
 
     const again = await followSignInLink(ctx, link);
     expect(again.status).toBe(302);
@@ -188,7 +188,7 @@ describe("GET /api/auth/verify", () => {
     expect(res.headers.location).toBe("/login?error=invalid-link");
 
     const ok = await followSignInLink(ctx, newLink);
-    expect(ok.headers.location).toBe("/");
+    expect(ok.headers.location).toBe("/?signedIn=1");
   });
 
   it("refuses a malformed link", async () => {

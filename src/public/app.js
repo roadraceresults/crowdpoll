@@ -607,9 +607,9 @@
   window.SiteGlyphs = { settings: SETTINGS_GLYPH };
 
 
-  const SIGN_IN_NOTICE_MS = 6000;
+  const SIGN_IN_NOTICE_MS = 7000;
 
-  /* A provider login's callbackURL carries the mark; it goes at once, so a reload shows nothing. */
+  /* A login lands with the mark in its address; it goes at once, so a reload shows nothing. */
   function takeSignInMark() {
     const params = new URLSearchParams(location.search);
     const mark = params.get("signedIn");
@@ -620,14 +620,45 @@
     return mark === "1";
   }
 
+  function svgElement(name, attributes) {
+    const element = document.createElementNS("http://www.w3.org/2000/svg", name);
+    for (const [key, value] of Object.entries(attributes)) element.setAttribute(key, value);
+    return element;
+  }
+
+  function buildHourglass() {
+    const svg = svgElement("svg", {
+      class: "m3-snackbar-hourglass",
+      viewBox: "0 0 22 32",
+      width: "22",
+      height: "32",
+      "aria-hidden": "true",
+      focusable: "false"
+    });
+    svg.append(
+      svgElement("path", {
+        class: "hourglass-frame",
+        d: "M2 1.5H20M2 30.5H20M4 1.5C3.5 9.5 10 11.5 10 16C10 20.5 3.5 22.5 4 30.5M18 1.5C18.5 9.5 12 11.5 12 16C12 20.5 18.5 22.5 18 30.5"
+      }),
+      svgElement("path", { class: "hourglass-top hourglass-part", d: "M5 4H17C16.9 9.5 11.6 11.8 11.3 15.5H10.7C10.4 11.8 5.1 9.5 5 4Z" }),
+      svgElement("rect", { class: "hourglass-stream hourglass-part", x: "10.5", y: "15.5", width: "1", height: "7.5" }),
+      svgElement("path", { class: "hourglass-bottom hourglass-part", d: "M5.2 29.2C6 25.4 9 23.5 11 23.1C13 23.5 16 25.4 16.8 29.2Z" })
+    );
+    return svg;
+  }
+
   function showSignInNotice(me) {
     if (!takeSignInMark() || !me || me.termsAccepted === false || !me.emailAddress) return;
     const bar = document.createElement("div");
-    bar.className = "m3-snackbar m3-snackbar--top";
+    bar.className = "m3-snackbar m3-snackbar--top m3-snackbar--timed";
     bar.setAttribute("role", "status");
+    bar.style.setProperty("--m3-snackbar-timer", SIGN_IN_NOTICE_MS + "ms");
     document.body.appendChild(bar);
     requestAnimationFrame(() => {
-      bar.textContent = "Logged in as " + me.emailAddress;
+      const text = document.createElement("span");
+      text.className = "m3-snackbar-text";
+      text.textContent = "Logged in as " + me.emailAddress;
+      bar.append(text, buildHourglass());
       bar.classList.add("is-shown");
       setTimeout(() => bar.classList.remove("is-shown"), SIGN_IN_NOTICE_MS);
     });

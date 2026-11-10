@@ -421,8 +421,8 @@ They share one branded layout (`src/email/templates.ts`), come from
   are any, and a provider login with it ticked lasts as long as an emailed link's (30 days by default). Left clear, a
   login lasts until the browser closes, or 24 hours at most.
 - The Login card says under each provider's button what that provider shares, and the invitation card says it under its
-  buttons. After a provider
-  login, "Logged in as" and the address appear on the Accept Terms card, or for about 6 seconds on the first page.
+  buttons. After a login, by a provider or an emailed link, "Logged in as" and the address appear on the Accept Terms card, or for 7 seconds on the first page, beside an
+  hourglass whose sand runs out as the message goes.
 - Apple's client secret is a JWT the app signs with the Sign in with Apple key (`node:crypto`, ES256) at start-up and
   every 30 days; `GET /.well-known/apple-developer-domain-association.txt` serves the file Apple asks for, once committed
   to `src/public/.well-known/`.

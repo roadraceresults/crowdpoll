@@ -5,7 +5,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { forgeSession, startTestContext, withoutAgreement, type TestContext } from "./helpers/setup.js";
 import { openPage, type BrowserPage } from "./helpers/browser.js";
 
-const NOTICE_MS = 6000;
+const NOTICE_MS = 7000;
 const PID = "6f1c2b9e-3d4a-4f5b-8c7d-9e0a1b2c3d4e";
 
 let ctx: TestContext;
@@ -28,7 +28,7 @@ async function account() {
   return { ...(await forgeSession(ctx, email)), email };
 }
 
-/** Holds back the notice's timer, so a suite need not wait out its six seconds. */
+/** Holds back the notice's timer, so a suite need not wait out its seven seconds. */
 async function openHome(query: string, cookie?: string) {
   const held: (() => void)[] = [];
   page = await openPage(ctx, "index.html", {
@@ -53,7 +53,7 @@ async function openHome(query: string, cookie?: string) {
 const snackbar = (p: BrowserPage) => p.document.querySelector<HTMLElement>(".m3-snackbar");
 
 describe("the snackbar (C4)", () => {
-  it("shows the address once, politely and with no action, for six seconds", async () => {
+  it("shows the address once, politely and with no action, for seven seconds", async () => {
     const { cookie, email } = await account();
     const { page: p, held } = await openHome("?signedIn=1", cookie);
     const bar = snackbar(p)!;
@@ -65,6 +65,34 @@ describe("the snackbar (C4)", () => {
     expect(held).toHaveLength(1);
     held[0]!();
     expect(bar.classList.contains("is-shown")).toBe(false);
+  });
+
+  it("ends with an hourglass timed by the notice's own duration, after the unchanged text", async () => {
+    const { cookie, email } = await account();
+    const { page: p } = await openHome("?signedIn=1", cookie);
+    const bar = snackbar(p)!;
+    expect(bar.classList.contains("m3-snackbar--timed")).toBe(true);
+    expect(bar.style.getPropertyValue("--m3-snackbar-timer")).toBe(`${NOTICE_MS}ms`);
+    const text = bar.firstElementChild!;
+    expect(text.matches("span.m3-snackbar-text")).toBe(true);
+    expect(text.textContent).toBe(`Logged in as ${email}`);
+    const hourglass = bar.lastElementChild!;
+    expect(hourglass.matches("svg.m3-snackbar-hourglass")).toBe(true);
+    expect(hourglass.getAttribute("viewBox")).toBe("0 0 22 32");
+    expect(hourglass.querySelectorAll(".hourglass-frame")).toHaveLength(1);
+    for (const part of ["hourglass-top", "hourglass-stream", "hourglass-bottom"]) {
+      expect(hourglass.querySelectorAll(`.${part}.hourglass-part`)).toHaveLength(1);
+    }
+    expect(bar.textContent).toBe(`Logged in as ${email}`);
+  });
+
+  it("hides the hourglass from assistive technology, with nothing of its own to announce", async () => {
+    const { cookie } = await account();
+    const { page: p } = await openHome("?signedIn=1", cookie);
+    const hourglass = snackbar(p)!.querySelector("svg.m3-snackbar-hourglass")!;
+    expect(hourglass.getAttribute("aria-hidden")).toBe("true");
+    expect(hourglass.getAttribute("focusable")).toBe("false");
+    expect(hourglass.querySelector("title, text")).toBeNull();
   });
 
   it("removes the parameter, keeping a shared poll's, so a reload shows nothing", async () => {
@@ -92,7 +120,7 @@ describe("the snackbar (C4)", () => {
     expect(p.window.location.search).toBe("");
   });
 
-  it("shows nothing with no parameter, as after an emailed link", async () => {
+  it("shows nothing with no parameter, as on a reload or an ordinary visit", async () => {
     const { cookie } = await account();
     const { page: p } = await openHome("", cookie);
     expect(snackbar(p)).toBeNull();
