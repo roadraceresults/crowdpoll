@@ -152,8 +152,13 @@ delivery network.
   Creating an account needs the "I agree to the Terms of Service" box ticked; when the Terms change,
   you are asked to accept them again on your next visit before you can do anything else.
   Opened from another CrowdPoll page in the same tab, the Privacy Policy and the Terms show a **Back**
-  arrow under the header, in line with the logo; it returns to that page, past any section links
-  you followed. Opened in a new tab or from another site, they show no arrow.
+  arrow under the header, in line with the logo (on a phone, above the title); it returns to that page, past any
+  section links you followed. Opened in a new tab or from another site, they show no arrow. The home page keeps
+  the tab you are on in its address (`/?tab=your-votes`, for example), so a return by the Back arrow, the
+  browser's Back button, a reload or a bookmark shows that tab again; a tab you may not use while logged out
+  shows Trending instead. The Delete Account dialog's **Cancel** (or Escape) takes you back to the page you came
+  from the same way, and so does the Poll Administration page's Back arrow; opened directly, Cancel closes the
+  dialog in place and the admin arrow opens the home page.
 - **Device evidence** — when collection is on, CrowdPoll records a fingerprint of your device and browser each
   time you log in and vote, to help uphold one account per person. Nothing you see changes, and a fingerprint
   never stops you voting. It is kept about 4 months at most and goes with your account; the Privacy Policy's

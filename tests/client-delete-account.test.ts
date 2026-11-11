@@ -19,13 +19,22 @@ afterEach(() => {
   page = null;
 });
 
-async function profile(email: string, hash = ""): Promise<BrowserPage> {
+type Recorded = BrowserPage["window"] & { backCalls: number };
+
+async function profile(email: string, hash = "", options: { referrer?: string; earlierEntry?: boolean } = {}): Promise<BrowserPage> {
   const { cookie } = await forgeSession(ctx, email);
   const opened = await openPage(ctx, "profile.html", {
     cookie,
     url: `http://localhost/profile${hash}`,
-    scripts: ["app.js", "cardShell.js", "profileCard.js"],
+    referrer: options.referrer,
+    scripts: ["app.js", "backArrow.js", "cardShell.js", "profileCard.js"],
     beforeScripts: (window) => {
+      if (options.earlierEntry) window.history.pushState(null, "", `/profile${hash}`);
+      const w = window as Recorded;
+      w.backCalls = 0;
+      window.history.back = (() => {
+        w.backCalls += 1;
+      }) as typeof window.history.back;
       const sameOrigin = window.fetch;
       window.fetch = ((input: RequestInfo | URL, init?: RequestInit) =>
         sameOrigin(input, { ...init, headers: { ...(init?.headers as Record<string, string>), Host: "127.0.0.1", Origin: "http://127.0.0.1" } })) as typeof window.fetch;
@@ -33,6 +42,14 @@ async function profile(email: string, hash = ""): Promise<BrowserPage> {
   });
   await opened.settle();
   return opened;
+}
+
+const backCalls = (p: BrowserPage) => (p.window as Recorded).backCalls;
+const dialogOf = (p: BrowserPage) => p.document.querySelector('[role="dialog"]') as HTMLElement | null;
+const CAME_FROM_HOME = { referrer: "http://localhost/?tab=your-votes", earlierEntry: true };
+
+function pressEscape(p: BrowserPage): void {
+  p.document.dispatchEvent(new p.window.KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
 }
 
 function button(p: BrowserPage, label: string, within: ParentNode = p.document): HTMLButtonElement {
@@ -94,6 +111,56 @@ describe("the delete dialog (C7)", () => {
     page.document.dispatchEvent(new page.window.KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
     expect(page.document.querySelector('[role="dialog"]')).toBeNull();
     expect(page.document.activeElement?.tagName).toBe("INPUT");
+  });
+
+  it("returns to the page the visitor came from on Cancel, when the address opened it from a CrowdPoll page (C3)", async () => {
+    page = await profile("cancel-back@example.org", "#delete-account", CAME_FROM_HOME);
+    expect(dialogOf(page)).not.toBeNull();
+    button(page, "Cancel", dialogOf(page)!).click();
+    expect(dialogOf(page)).toBeNull();
+    expect(backCalls(page)).toBe(1);
+  });
+
+  it("returns on Escape too", async () => {
+    page = await profile("escape-back@example.org", "#delete-account", CAME_FROM_HOME);
+    pressEscape(page);
+    expect(dialogOf(page)).toBeNull();
+    expect(backCalls(page)).toBe(1);
+  });
+
+  for (const [name, options] of [
+    ["no previous page", {}],
+    ["a page on another site", { referrer: "https://example.com/", earlierEntry: true }],
+    ["a CrowdPoll referrer but no earlier entry", { referrer: "http://localhost/?tab=home" }]
+  ] as const) {
+    it(`closes in place for ${name}, with focus back on the name field`, async () => {
+      page = await profile(`in-place-${name.replace(/\W+/g, "-")}@example.org`, "#delete-account", options);
+      button(page, "Cancel", dialogOf(page)!).click();
+      expect(dialogOf(page)).toBeNull();
+      expect(backCalls(page)).toBe(0);
+      expect(page.document.activeElement?.tagName).toBe("INPUT");
+      expect(page.document.activeElement?.id).toBe("userName");
+    });
+  }
+
+  it("closes in place when opened by the Profile page's own footer link, again and again", async () => {
+    page = await profile("own-footer@example.org", "", CAME_FROM_HOME);
+    for (let round = 0; round < 2; round++) {
+      page.window.location.hash = "#delete-account";
+      await page.settle();
+      expect(dialogOf(page)).not.toBeNull();
+      button(page, "Cancel", dialogOf(page)!).click();
+      expect(dialogOf(page)).toBeNull();
+      expect(backCalls(page)).toBe(0);
+      expect(page.document.activeElement?.id).toBe("userName");
+    }
+  });
+
+  it("ignores a click on the dimmed background", async () => {
+    page = await profile("scrim@example.org", "#delete-account", CAME_FROM_HOME);
+    (page.document.querySelector(".delete-dialog-scrim") as HTMLElement).click();
+    expect(dialogOf(page)).not.toBeNull();
+    expect(backCalls(page)).toBe(0);
   });
 
   it("deletes the account and goes home", async () => {

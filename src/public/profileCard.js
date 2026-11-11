@@ -280,7 +280,7 @@
 
   var DELETE_ACCOUNT_HASH = "#delete-account";
 
-  function openDeleteDialog(opener) {
+  function openDeleteDialog(opener, returns) {
     var scrim = el("div", "delete-dialog-scrim");
     var dialog = el("div", "delete-dialog");
     dialog.setAttribute("role", "dialog");
@@ -318,15 +318,16 @@
     document.body.appendChild(scrim);
     field.focus();
 
-    function close() {
+    function dismiss() {
       document.removeEventListener("keydown", onKey, true);
       scrim.remove();
-      opener.focus();
+      if (returns) history.back();
+      else opener.focus();
     }
     function onKey(event) {
       if (event.key === "Escape") {
         event.preventDefault();
-        close();
+        dismiss();
         return;
       }
       if (event.key !== "Tab") return;
@@ -343,7 +344,7 @@
     }
     document.addEventListener("keydown", onKey, true);
     field.addEventListener("input", function () { confirm.disabled = field.value !== "DELETE"; });
-    cancel.addEventListener("click", close);
+    cancel.addEventListener("click", dismiss);
     confirm.addEventListener("click", function () {
       confirm.disabled = true;
       fetch("/api/me", {
@@ -422,10 +423,13 @@
       .catch(function () { return { signinMethod: "native" }; });
   }
 
-  function openDeleteDialogWhenAsked() {
+  /* Cancel returns to the page the visitor came from only when the dialog was asked for by the
+     address the page loaded with; the Profile page's own footer link opens it in place. */
+  function openDeleteDialogWhenAsked(fromLoad) {
     if (location.hash !== DELETE_ACCOUNT_HASH) return;
     history.replaceState(history.state, "", location.pathname + location.search);
-    openDeleteDialog(ui.nameInput);
+    var returns = fromLoad === true && Boolean(window.SiteBack && window.SiteBack.canReturn());
+    openDeleteDialog(ui.nameInput, returns);
   }
 
   function start() {
@@ -445,8 +449,8 @@
         }
         if (!ui) ui = buildProfileCard(me);
         applyProfile(me, config);
-        openDeleteDialogWhenAsked();
-        window.addEventListener("hashchange", openDeleteDialogWhenAsked);
+        openDeleteDialogWhenAsked(true);
+        window.addEventListener("hashchange", function () { openDeleteDialogWhenAsked(false); });
         /* FR-007: a link followed in the browser that requested it is reported
            on the card, in the status line of the action it concerns. */
         if (result && ui.sendAction.status.textContent === "") {

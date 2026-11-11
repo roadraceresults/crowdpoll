@@ -7,7 +7,13 @@
   line-height:1.6;
 }
 
-.legal-doc{ box-sizing:border-box; padding-inline-start:max(0px, calc(56px - (100% - 72ch) / 2)); }
+@media (min-width: 640px){
+  .legal-doc{ box-sizing:border-box; padding-inline-start:max(0px, calc(56px - (100% - 72ch) / 2)); }
+}
+
+@media (max-width: 639.98px){
+  .back-arrow-bar{ position:static; max-width:none; margin:0 0 12px; padding-inline:0; }
+}
 
 .legal-doc h1{ font-size:var(--md-sys-typescale-headline-small-size); margin:0 0 4px; }
 

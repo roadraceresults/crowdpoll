@@ -84,7 +84,7 @@ a fresh connection — the process never sees it as an uncaught exception.
 flowchart TB
   subgraph Client["src/public"]
     App["app.js<br/>session snapshot, header, one /api/config"]
-    Tabs["tabs.js<br/>nine tabs, held copies, floors, 429/503, retry, the maximized view, the poll-link landing"]
+    Tabs["tabs.js<br/>nine tabs, held copies, floors, 429/503, retry, the maximized view, the poll-link landing, the tab in the address"]
     Trending["trending.js / newest.js<br/>two objects each, sessionStorage copy, overlay"]
     SearchTab["searchTab.js"]
     Live["liveResults.js<br/>LRU, timer, hidden pause, idle prompt"]
@@ -565,6 +565,15 @@ successful verify lands on `/?PID=` again. A logged-in visitor is redirected to 
 fixed set of landings (`open`, `tab`, `notice`), which the page applies; a poll no list holds is
 fetched from `GET /api/me/polls/:pid` and mounted as a retained maximized card.
 
+The home page keeps the tab it shows in its address: `select` in `tabs.js` writes `/?tab=<name>` with
+`history.replaceState` (no new history entry, `history.state` and the other parameters kept, `q` dropped unless
+the tab is Search), and `init` reads the name back for all nine tabs, so a return from a legal page, the
+browser's Back button, a reload, a bookmark or a shared link shows the tab the visitor left. A guest's personal
+tab becomes Trending (`tabFromAddress`), never a redirect to `/login`; a name that is not a tab gives the
+default (Home logged in, Trending not). Only the tab is restored, never a maximized card: `open` is honoured
+only when the link carries it. Search terms in the address (`?q=`) run the search when no tab, or the Search
+tab, is named, and leave the address with the Search tab.
+
 The card's bottom-row **Live Results** link is one control in two forms. Where the tab supplies no
 remove handler it shows three animated bars, reads "Add to Live Results" and adds the poll; on the
 Live Results tab, whose grid supplies one, it shows a plain X, reads "Remove from Live Results"
@@ -869,15 +878,23 @@ flowchart TB
   underneath it. `backToTopFab.js` injects one button, at the bottom of the viewport on the container's left edge, shown
   past 600px of scroll and hidden again below 400px, that returns the page to the top (instantly
   under reduced motion).
-- **Back arrow.** On `/privacy` and `/terms`, `backArrow.js` decides once at load whether to show a
-  Back arrow: only when `document.referrer` has the page's own origin and `history.length > 1`, so a
-  page opened in a new tab or from another site gets none. It numbers each history entry it lands
-  on as `history.state.legalDepth` (0 at load, one more per in-page anchor step, kept on a reload or
-  when going back to an entry), and a press calls `history.go(-(legalDepth + 1))`, back past the
-  anchor steps to the page the reader came from. The arrow sits in a fixed `.back-arrow-bar` built
-  like `#site-header`, so it lines up with the logo; on a narrow screen `legal-m3.css` widens the
-  text's start padding so the arrow never covers it. Its look, in `back-arrow-m3.css`, is shared with
-  the admin page's back link.
+- **One back rule.** `backArrow.js` decides once at load whether the visitor came from a CrowdPoll page in
+  this browser tab, only when `document.referrer` has the page's own origin and `history.length > 1`, and
+  exposes it as `window.SiteBack`: `canReturn()` and `leave(fallback)` (`history.back()` when it can return,
+  else `location.assign(fallback)` when one is given, else nothing). Three controls use it. On `/privacy` and
+  `/terms` (`<body data-back-arrow>`) it draws the Back arrow only when it can return, so a page opened in a
+  new tab or from another site gets none; it numbers each history entry it lands on as
+  `history.state.legalDepth` (0 at load, one more per in-page anchor step, kept on a reload or when going back
+  to an entry), and a press calls `history.go(-(legalDepth + 1))`, back past the anchor steps to the page the
+  reader came from. The Delete Account dialog (`profileCard.js`) decides when it opens: asked for by the
+  address the page loaded with and able to return, Cancel and Escape remove the dialog and go back; otherwise,
+  and always when the Profile page's own footer link opened it (`hashchange`), they close it in place with
+  focus on the name field. The admin page's arrow stays `<a href="/">`; `adminList.js`'s navigation guard
+  runs the discard check as for any link and then `SiteBack.leave("/")`. From 640 px up the legal arrow sits
+  in a fixed `.back-arrow-bar` built like `#site-header`, so it lines up with the logo, and `legal-m3.css`
+  widens the text's start padding so the arrow never covers it; below 640 px the bar is static in the page
+  flow above the title and the text takes the full width. Its look, in `back-arrow-m3.css`, is shared with
+  the admin page's arrow.
 
 The tab bar itself is nine buttons in `index.html` — Home (hidden, not disabled, for a guest), Your Polls, Shared With You, Your Votes,
 Trending, Newest, Watching, Live Results, Search — each with an inline SVG icon before its label
@@ -1118,7 +1135,7 @@ account (`signOut: true` ends it first, else `409 other-account`). It then creat
 recorded), mints a magic-link token server-side (`sendMagicLink` stores it in a map instead of emailing when
 `metadata.mint` is set), marks the invitation token used with a conditional update, and consumes the minted token
 through `completeSignIn`, so the address is confirmed and the session hooks run exactly as for an emailed link. A
-landed poll is always maximized: `applyLanding` maximizes after `mountLinkedPoll` too.
+landed poll is always maximized: `showLandingPoll` maximizes after `mountLinkedPoll` too.
 
 ### Grants
 

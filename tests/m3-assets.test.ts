@@ -53,7 +53,7 @@ const PAGES: Record<string, PageAssets> = {
   },
   "profile.html": {
     sheets: ["tabs.css", "pollCard.css", "site.css"],
-    scripts: ["app.js", "headerFit.js", "fixedChrome.js", "deviceEvidence.js", "cardShell.js", "profileCard.js", "backToTopFab.js"],
+    scripts: ["app.js", "headerFit.js", "fixedChrome.js", "backArrow.js", "deviceEvidence.js", "cardShell.js", "profileCard.js", "backToTopFab.js"],
     layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "card-shell-m3.css", "profile-editor-m3.css", "footer-m3.css"]
   },
   "settings.html": {
@@ -103,7 +103,7 @@ const PAGES: Record<string, PageAssets> = {
   },
   "admin.html": {
     sheets: ["styles.css", "tabs.css", "pollCard.css", "admin.css", "site.css"],
-    scripts: ["app.js", "headerFit.js", "fixedChrome.js", "notesEditor.js", "deviceEvidence.js", "adminCard.js", "adminList.js", "backToTopFab.js"],
+    scripts: ["app.js", "headerFit.js", "fixedChrome.js", "backArrow.js", "notesEditor.js", "deviceEvidence.js", "adminCard.js", "adminList.js", "backToTopFab.js"],
     layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "back-arrow-m3.css", "tabs-modal-m3.css", "discard-dialog-m3.css", "admin-card-m3.css", "admin-search-m3.css", "snackbar-m3.css", "footer-m3.css"]
   },
   "admin-results.html": {

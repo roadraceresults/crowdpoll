@@ -6,25 +6,23 @@ The full description, every earlier feature's decisions and the settings table a
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-`specs/20261110-160141-INVITATION-CUSTOM-MESSAGE/plan.md` (research R1–R9, `data-model.md` — migration
-`020-invitation-message`; the HTTP contract `contracts/api.md` A1–A4, the UI and email contracts
-`contracts/ui-contracts.md` C1–C4, and the quickstart live alongside it in
-`specs/20261110-160141-INVITATION-CUSTOM-MESSAGE/`).
-The requirements report is `requirements/20261110-160141-invitation-custom-message/requirements-report.md`: 3 diagrams
-and 9 findings, all resolved.
+`specs/20261111-091956-FOOTER-LINKS/plan.md` (research R1–R8, `data-model.md` — the address parameters, history state
+and `window.SiteBack`; the UI contracts `contracts/ui-contracts.md` C1–C6, and the quickstart live alongside it in
+`specs/20261111-091956-FOOTER-LINKS/`).
+The requirements report is `requirements/20261111-091956-footer-links/requirements-report.md`: 4 diagrams
+and 7 findings, all resolved.
 Decisions that are easy to get wrong:
-- **Admin-only**: `invitationMessage` is in `NON_CONTENT_FIELDS` and only on the admin detail (with
-  `invitationMessageHtml`); never in projections, card, tab, delta, admin list (which has only the boolean `hasInvitationMessage`), SEO,
-  exports or `search` (R1, R2, TWEAK02).
-- **Reviewed like notes**: screened with them (`ScreeningInput.invitationMessage`), and on an ever-voted published poll
-  held in `pending_update`; emails read only the approved column (R4).
-- **HTML only via `renderNotesHtml`**, passed from `sender.ts` as `messageBox` after the first paragraph; text part
-  uses `notesPlainText`; no message → today's email unchanged (R5).
-- **Kept when hidden**: the wizard always sends `invitationMessage`; the Step 1 field shows only for "Only people you
-  invite" (R7, AM2).
-- **Limit 1000** counts stored text, markup included; `NotesEditor.open` takes `max` and `label` (R3, R7).
-One migration and one setting, `ENV_INVITATION_RESEND_WAIT` (the reminder wait, default 24 h; TWEAK03); no route,
-cookie, storage key, stylesheet or dependency.
+- **One back rule**: `backArrow.js` exposes `window.SiteBack` (`canReturn()` decided at load from `history.length > 1`
+  and a same-origin `document.referrer`; `leave(fallback)`), used by the legal arrow (drawn only on
+  `<body data-back-arrow>`), the Delete Account dialog's Cancel/Escape (no fallback: closes in place; decided when the
+  dialog opens, and always in place when opened by `hashchange` on the Profile page) and the admin arrow (fallback `/`,
+  through `adminList.js`'s `guardNavigation`) (R2, R6, R7).
+- **The tab in the address**: `tabs.js` `select(name)` writes `/?tab=<name>` with `history.replaceState` (never
+  `pushState`), drops `q` unless the tab is `search`, keeps other parameters; on load all nine names are honoured, a
+  guest's personal tab falls back to Trending (never `/login`), the card is not re-maximized (R3, R4, R5).
+- **Phone layout**: the `legal-m3.css` gutter rule is kept verbatim under `@media (min-width: 640px)`; below, the
+  `.back-arrow-bar` is static in the flow and there is no gutter (R1). No new stylesheet.
+No migration, route, setting, cookie, storage key, stylesheet or dependency; the Cookie Use table is unchanged.
 <!-- SPECKIT END -->
 
 ## Project Overview
