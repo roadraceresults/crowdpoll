@@ -11,6 +11,7 @@ import { pollsAwaitingApprovalSweep } from "../src/polls/sweeps.js";
 import { computeResults, mergeChoices } from "../src/polls/service.js";
 import { readLiveCounts } from "../src/polls/counters.js";
 import { readProjection } from "../src/polls/versions.js";
+import { buildInvitation } from "../src/invitations/sender.js";
 
 const DEPS = { maxAttempts: 10, callTimeoutMs: 10_000 };
 const BOUNDS = { minChoices: 2, maxChoices: 5 };
@@ -544,5 +545,70 @@ describe("notes on an ever-voted poll", () => {
     expect(applied.pending_update).toBeNull();
     expect(Number(applied.content_version)).toBeGreaterThan(Number(before.content_version));
     expect((await readProjection(ctx.cache, ctx.db, poll._id))!.notesPreviewHtml).toBe("<strong>New</strong> notes");
+  });
+});
+
+describe("the custom email message on an ever-voted poll", () => {
+  let ctx: TestContext;
+  let cookie: string;
+  beforeAll(async () => {
+    ctx = await startTestContext();
+    ({ cookie } = await forgeSession(ctx, ctx.config.admins[0]!));
+  });
+  afterAll(async () => {
+    await ctx.stop();
+  });
+  beforeEach(async () => {
+    await polls(ctx).deleteMany({});
+    await voteHistory(ctx).deleteMany({});
+  });
+
+  const row = (pid: string) =>
+    ctx.db.selectFrom("polls").select(["invitation_message", "pending_update", "poll_state"]).where("id", "=", pid)
+      .executeTakeFirstOrThrow();
+  const emailHtml = async (pid: string) =>
+    (await buildInvitation(ctx.db, ctx.config, pid, false))!.render("https://example.test/link").html;
+
+  async function votedInvitePoll(invitationMessage: string) {
+    const poll = makePoll({
+      pollState: "OPEN", pollVisibility: "Private Poll", pollSharingMode: "Invitation Only", invitationMessage
+    });
+    await polls(ctx).insertOne(poll);
+    await voteHistory(ctx).insertOne({ pid: poll._id, emailAddress: "v@example.com", userName: "v", choiceIds: ["c1"], votedAt: new Date() });
+    return poll;
+  }
+
+  const save = (pid: string, body: Record<string, unknown>) =>
+    request(ctx.app).post(`/api/admin/polls/${pid}/publish`).set("Cookie", cookie).send(body);
+
+  it("waits in the pending update, and emails carry the approved message until the sweep applies it", async () => {
+    const poll = await votedInvitePoll("**Old** words");
+    const res = await save(poll._id, { invitationMessage: "**New** words" });
+    expect(res.status).toBe(200);
+    expect(res.body.pending).toBe(true);
+    expect(res.body.pendingUpdate).toEqual({ invitationMessage: "**New** words" });
+    const pending = await row(poll._id);
+    expect(pending.invitation_message).toBe("**Old** words");
+    expect(pending.pending_update).toEqual({ invitationMessage: "**New** words" });
+    expect(await emailHtml(poll._id)).toContain("<strong>Old</strong> words");
+
+    expect(await pollsAwaitingApprovalSweep(ctx, DEPS)).toBe(1);
+    const applied = await row(poll._id);
+    expect(applied.invitation_message).toBe("**New** words");
+    expect(applied.pending_update).toBeNull();
+    expect(await emailHtml(poll._id)).toContain("<strong>New</strong> words");
+  });
+
+  it("rejects an offending pending message and keeps the approved one", async () => {
+    const poll = await votedInvitePoll("Fine");
+    expect((await save(poll._id, { invitationMessage: "you fuck" })).body.pending).toBe(true);
+    expect(await pollsAwaitingApprovalSweep(ctx, DEPS)).toBe(1);
+    const after = await row(poll._id);
+    expect(after.invitation_message).toBe("Fine");
+    expect(after.pending_update).toBeNull();
+    expect(after.poll_state).toBe("OPEN");
+    expect((await polls(ctx).findOne({ _id: poll._id }))!.pendingRejectionReason).toBe(
+      "Acceptability Screening rejected this poll for unacceptable language (1 term). Please revise the title, subtitle, notes, custom email message and choices."
+    );
   });
 });

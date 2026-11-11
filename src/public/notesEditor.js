@@ -117,11 +117,13 @@
   }
 
   function open(host, options) {
+    const max = options.max ?? NOTES_MAX;
+    const label = options.label ?? "Notes";
     const root = el("section", "notes-editor");
-    root.setAttribute("aria-label", "Notes editor");
+    root.setAttribute("aria-label", label + " editor");
 
     const bar = el("div", "notes-editor-bar");
-    const heading = el("h3", "notes-editor-heading", "Notes");
+    const heading = el("h3", "notes-editor-heading", label);
     const actions = el("div", "notes-editor-actions");
     const cancel = el("button", "notes-editor-cancel", "Cancel");
     const done = el("button", "notes-editor-done", "Done");
@@ -148,7 +150,7 @@
     text.tabIndex = 0;
     text.setAttribute("role", "textbox");
     text.setAttribute("aria-multiline", "true");
-    text.setAttribute("aria-label", "Notes");
+    text.setAttribute("aria-label", label);
     text.innerHTML = options.html || "";
 
     const counter = el("p", "notes-editor-counter");
@@ -161,14 +163,14 @@
     let closed = false;
 
     function overLimit() {
-      return serialize(text).length > NOTES_MAX;
+      return serialize(text).length > max;
     }
 
     function refresh() {
       const length = serialize(text).length;
-      counter.textContent = length + " / " + NOTES_MAX;
-      done.setAttribute("aria-disabled", String(length > NOTES_MAX));
-      counter.classList.toggle("is-error", length > NOTES_MAX);
+      counter.textContent = length + " / " + max;
+      done.setAttribute("aria-disabled", String(length > max));
+      counter.classList.toggle("is-error", length > max);
     }
 
     function refreshMarks() {

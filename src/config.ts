@@ -148,6 +148,7 @@ export interface AppConfig {
   searchCacheTtlMs: number;
   outboxDrainSweepIntervalMs: number;
   invitationSweepIntervalMs: number;
+  invitationResendWaitMs: number;
   maxBookmarksPerUser: number;
   bookmarkExpiryMonths: number;
   pageLoadsPerMinute: number;
@@ -516,6 +517,7 @@ export function loadConfig(env: Env = process.env): AppConfig {
     searchCacheTtlMs: read.int("ENV_SEARCH_CACHE_TTL", 10_000),
     outboxDrainSweepIntervalMs: read.int("ENV_OUTBOX_DRAIN_SWEEP_INTERVAL", 15_000),
     invitationSweepIntervalMs: read.int("ENV_INVITATION_SWEEP_INTERVAL", 30_000),
+    invitationResendWaitMs: read.int("ENV_INVITATION_RESEND_WAIT", 86_400_000),
     maxBookmarksPerUser: read.int("ENV_MAX_BOOKMARKS_PER_USER", 200),
     bookmarkExpiryMonths: read.int("ENV_BOOKMARK_EXPIRY_MONTHS", 6),
     pageLoadsPerMinute: read.int("ENV_PAGE_LOADS_PER_MINUTE", 120),

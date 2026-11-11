@@ -87,6 +87,7 @@ export interface PollTable {
   title: string;
   subtitle: string;
   notes: Generated<string>;
+  invitation_message: Generated<string>;
   choices: JSONColumnType<PollChoiceJson[]>;
   choice_labels: string;
   keywords: Generated<string>;
@@ -131,6 +132,7 @@ export interface PendingUpdateJson {
   title?: string;
   subtitle?: string;
   notes?: string;
+  invitationMessage?: string;
   choices?: PollChoiceJson[];
 }
 

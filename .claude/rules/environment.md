@@ -83,6 +83,7 @@ All runtime configuration comes from `ENV_*` environment variables:
 | `ENV_SHED_RETRY_AFTER` | `2000` | `Retry-After` handed out with a `503` (ms) |
 | `ENV_COUNTER_FLUSH_SWEEP_INTERVAL` | `10000` | How often live vote counters are written to poll rows (ms); nothing a visitor sees reads them, the tabs read the live counters |
 | `ENV_INVITATION_SWEEP_INTERVAL` | `30000` | How often pending invitation emails of open polls are picked up (ms); saving an open poll sends its new invitations at once |
+| `ENV_INVITATION_RESEND_WAIT` | `86400000` | How long after an invitation email its one reminder may be sent (ms; 24 hours); a failed delivery may be resent at once. Lower it (e.g. `60000`) to try reminders while testing |
 | `ENV_VOTE_BATCH_SIZE` | `500` | Votes the consumer inserts per batch |
 | `ENV_VOTE_QUEUE_LAG_NOTICE` | `2000` | Consumer lag (ms) above which a vote response says `queued` |
 | `ENV_SEARCH_CACHE_TTL` | `10000` | How long an identical search is answered from the cache (ms) |

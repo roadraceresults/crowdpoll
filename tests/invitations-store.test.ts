@@ -139,4 +139,20 @@ describe("listInvitees", () => {
     expect(new Set(closed.invitees.map((i) => i.resendBlockedReason))).toEqual(new Set(["The poll is closed."]));
     expect(closed.editable).toBe(false);
   });
+
+  it("waits ENV_INVITATION_RESEND_WAIT before a reminder, and words the reason from it", async () => {
+    const poll = invitationPoll({ invitedVoterList: ["a@example.org", "b@example.org"] });
+    await polls(ctx).insertOne(poll);
+    const now = new Date();
+    const set = (email: string, sent: Date) =>
+      ctx.db.updateTable("poll_invitations").set({ sent_at: sent }).where("poll_id", "=", poll._id).where("email", "=", email).execute();
+    await set("a@example.org", new Date(now.getTime() - 61_000));
+    await set("b@example.org", new Date(now.getTime() - 59_000));
+    const stored = (await findPoll(ctx.db, poll._id))!;
+    const reasons = async (waitMs: number) => Object.fromEntries((await listInvitees(ctx.db, stored,
+      { ...ctx.config, invitationResendWaitMs: waitMs }, now)).invitees.map((i) => [i.email, i.resendBlockedReason]));
+    expect(await reasons(60_000)).toEqual({ "a@example.org": null, "b@example.org": "b@example.org was emailed less than 1 minute ago." });
+    expect((await reasons(7_200_000))["a@example.org"]).toBe("a@example.org was emailed less than 2 hours ago.");
+    expect((await reasons(90_500))["a@example.org"]).toBe("a@example.org was emailed less than 91 seconds ago.");
+  });
 });

@@ -15,6 +15,7 @@ export interface ScreeningInput {
   title: string;
   subtitle: string;
   notes: string;
+  invitationMessage: string;
   choiceLabels: string[];
 }
 
@@ -39,11 +40,11 @@ function offendingTerms(text: string): string[] {
   return DENY_TERMS.filter((t) => new RegExp(`\\b${t}\\b`).test(lower));
 }
 
-export const localScreener: Screener = async ({ title, subtitle, notes, choiceLabels }) => {
-  const found = offendingTerms([title, subtitle, notes, ...choiceLabels].join(" \n "));
+export const localScreener: Screener = async ({ title, subtitle, notes, invitationMessage, choiceLabels }) => {
+  const found = offendingTerms([title, subtitle, notes, invitationMessage, ...choiceLabels].join(" \n "));
   if (found.length === 0) return "";
   const unique = [...new Set(found)].sort();
-  return `Acceptability Screening rejected this poll for unacceptable language (${unique.length} term${unique.length === 1 ? "" : "s"}). Please revise the title, subtitle, notes and choices.`;
+  return `Acceptability Screening rejected this poll for unacceptable language (${unique.length} term${unique.length === 1 ? "" : "s"}). Please revise the title, subtitle, notes${invitationMessage ? ", custom email message" : ""} and choices.`;
 };
 
 /**

@@ -490,7 +490,7 @@ describe("UPDATE-mode publish rejects fields it may not change (011 FR-009, T030
       .set("Cookie", cookie)
       .send({ clientGuid: "tab-A", somethingElse: "anything" });
     expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/only title, subtitle, notes, startAt, endAt/i);
+    expect(res.body.error).toMatch(/only title, subtitle, notes, invitationMessage, startAt, endAt/i);
 
     await polls(ctx).deleteMany({});
     await voteHistory(ctx).deleteMany({});

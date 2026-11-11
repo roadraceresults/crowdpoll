@@ -6,7 +6,7 @@ import { randomUUID } from "node:crypto";
 import type { RequestHandler, Response } from "express";
 import type { AppConfig } from "../config.js";
 import { isPaletteColor, normalizeColor } from "./barPalette.js";
-import { NOTES_MAX, normalizeNotes } from "./notes.js";
+import { INVITATION_MESSAGE_MAX, NOTES_MAX, normalizeNotes } from "./notes.js";
 import type { SessionCache } from "../auth/sessionCache.js";
 import type {
   Choice,
@@ -100,6 +100,7 @@ export function createDefaultPoll(now: Date = new Date()): Poll {
     title: `New Poll ${timestamp}`,
     subtitle: "",
     notes: "",
+    invitationMessage: "",
     keywords: "",
     choiceMode: "Single-Choice Poll",
 
@@ -505,6 +506,11 @@ export function validatePollFields(
   if (body.notes !== undefined) {
     $set.notes = normalizeNotes(validateFieldLength(body.notes, NOTES_MAX, "Notes"));
   }
+  if (body.invitationMessage !== undefined) {
+    $set.invitationMessage = normalizeNotes(
+      validateFieldLength(body.invitationMessage, INVITATION_MESSAGE_MAX, "Custom email message")
+    );
+  }
 
   if (body.choiceMode !== undefined) {
     if (body.choiceMode !== "Single-Choice Poll" && body.choiceMode !== "Multiple-Choice Poll") {
@@ -893,7 +899,7 @@ export function createRequirePollOwner({
   };
 }
 
-export const LIMITS = { TITLE_MAX, SUBTITLE_MAX, NOTES_MAX, CHOICE_LABEL_MAX, EMAIL_MAX, MAX_INVITED, KEYWORDS_MAX };
+export const LIMITS = { TITLE_MAX, SUBTITLE_MAX, NOTES_MAX, INVITATION_MESSAGE_MAX, CHOICE_LABEL_MAX, EMAIL_MAX, MAX_INVITED, KEYWORDS_MAX };
 
 /** FR-055: poll config + results only, excluding the voter roll; `hideChoices` leaves out who chose what (Anonymous Votes). */
 export function exportPollData(
@@ -1205,6 +1211,7 @@ export function duplicatePoll(source: Poll, now: Date = new Date()): Poll {
     title: source.title,
     subtitle: source.subtitle,
     notes: source.notes,
+    invitationMessage: source.invitationMessage,
     keywords: source.keywords,
     choiceMode: source.choiceMode,
     voteMutability: source.voteMutability,

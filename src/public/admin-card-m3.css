@@ -511,6 +511,7 @@
   cursor:pointer;
 }
 .poll-admin-card .m3-radio-item:hover{ background:transparent; }
+.poll-admin-card .wizard-who-divider{ border-top:1px solid var(--md-sys-color-outline-variant); }
 .poll-admin-card .m3-radio-label{
   font-size:var(--md-sys-typescale-body-large-size);
   font-weight:var(--md-sys-typescale-body-large-weight);

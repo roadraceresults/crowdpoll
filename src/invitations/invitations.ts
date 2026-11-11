@@ -34,7 +34,6 @@ export interface InviteeList {
   editable: boolean;
 }
 
-const DAY_MS = 24 * 3_600_000;
 
 export const isClosedState = (poll: Pick<Poll, "pollState">): boolean =>
   poll.pollState === "CLOSED" || poll.pollState === "ARCHIVED";
@@ -63,6 +62,7 @@ function statusOf(row: InvitationRow): InviteeStatus {
 export function resendBlockedReason(
   poll: Pick<Poll, "pollState">,
   row: Pick<InvitationRow, "email" | "sent_at" | "reminded_at" | "send_failed_at" | "user_name">,
+  waitMs: number,
   now: Date = new Date()
 ): string | null {
   if (isClosedState(poll)) return "The poll is closed.";
@@ -70,14 +70,21 @@ export function resendBlockedReason(
   if (row.reminded_at !== null) return "Already reminded once.";
   if (row.send_failed_at !== null) return null;
   const last = row.sent_at === null ? null : new Date(row.sent_at).getTime();
-  if (last !== null && now.getTime() - last >= DAY_MS) return null;
-  return `${row.user_name || row.email} was emailed less than 24 hours ago.`;
+  if (last !== null && now.getTime() - last >= waitMs) return null;
+  return `${row.user_name || row.email} was emailed less than ${durationText(waitMs)} ago.`;
+}
+
+function durationText(ms: number): string {
+  const [count, unit] = ms % 3_600_000 === 0 ? [ms / 3_600_000, "hour"]
+    : ms % 60_000 === 0 ? [ms / 60_000, "minute"]
+    : [Math.ceil(ms / 1000), "second"];
+  return `${count} ${unit}${count === 1 ? "" : "s"}`;
 }
 
 export async function listInvitees(
   db: Db,
   poll: Poll,
-  config: Pick<AppConfig, "maxPrivatePollVoters">,
+  config: Pick<AppConfig, "maxPrivatePollVoters" | "invitationResendWaitMs">,
   now: Date = new Date()
 ): Promise<InviteeList> {
   const rows = (await db
@@ -99,7 +106,7 @@ export async function listInvitees(
     .orderBy("i.position")
     .execute()) as InvitationRow[];
   const invitees = rows.map((row): Invitee => {
-    const reason = resendBlockedReason(poll, row, now);
+    const reason = resendBlockedReason(poll, row, config.invitationResendWaitMs, now);
     return {
       email: row.email,
       userName: row.user_name ?? "",
@@ -308,7 +315,7 @@ export async function resendInvitation(
       .where("i.email", "=", email)
       .executeTakeFirst();
     if (!row) return { ok: false, status: 404, error: "Not on this poll's invitation list." };
-    const reason = resendBlockedReason(poll, row, now);
+    const reason = resendBlockedReason(poll, row, config.invitationResendWaitMs, now);
     if (reason !== null) return { ok: false, status: 409, error: reason, code: "resend-unavailable" };
     const { remaining, retryAt } = await allowance(trx, creatorId, config.maxInvitationsPerDay, now);
     if (remaining === 0) {

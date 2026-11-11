@@ -4,6 +4,7 @@ import type { Db } from "../db/client.js";
 import type { Database } from "../db/schema.js";
 import { emailLogoOrigin, maskAddress, sendInvitation } from "../email/mailer.js";
 import { invitationMessage, type EmailMessage } from "../email/templates.js";
+import { notesPlainText, renderNotesHtml } from "../polls/notes.js";
 import { issueInvitationToken } from "./tokens.js";
 
 export interface SenderDeps {
@@ -68,6 +69,7 @@ export async function buildInvitation(
       "p.created_at",
       "p.end_at",
       "p.time_zone",
+      "p.invitation_message",
       "p.created_by_name",
       "u.userName as creator_user_name",
       "u.email as creator_email"
@@ -77,6 +79,8 @@ export async function buildInvitation(
   if (!poll) return null;
   const origin = emailLogoOrigin() ?? config.publicOrigin;
   const endAt = poll.end_at ? new Date(poll.end_at) : null;
+  const message = poll.invitation_message;
+  const personalMessage = message ? { html: renderNotesHtml(message), text: notesPlainText(message) } : undefined;
   return {
     endAt,
     render: (link, signInAddress) =>
@@ -91,7 +95,8 @@ export async function buildInvitation(
         launchedAt: new Date(poll.launched_at ?? poll.start_at ?? poll.created_at),
         endAt,
         timeZone: poll.time_zone,
-        signInAddress
+        signInAddress,
+        personalMessage
       })
   };
 }

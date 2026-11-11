@@ -1956,3 +1956,178 @@ describe("voters may add choices (USER-ADD-CHOICES C5)", () => {
     expect(items).toEqual(["Choice 3: Added by Ada"]);
   });
 });
+
+describe("custom email message in Step 1", () => {
+  const messageField = (p: BrowserPage) =>
+    wizardCard(p).querySelector<HTMLButtonElement>('[id^="pollInvitationMessage-"]')?.closest<HTMLElement>(".m3-field") ?? null;
+  const editButton = (p: BrowserPage) => messageField(p)!.querySelector<HTMLButtonElement>(".wizard-notes-edit")!;
+  const previewHtml = (p: BrowserPage) => messageField(p)!.querySelector(".wizard-notes-text")!.innerHTML;
+  const counter = (p: BrowserPage) => messageField(p)!.querySelector(".m3-field-counter")!.textContent;
+  const summaryLine = (p: BrowserPage) => wizardCard(p).querySelector<HTMLElement>(".wizard-summary .wizard-summary-invitation-message");
+  const SENTENCE = "A Custom Invitation Email Message has been entered";
+
+  async function openInvitePoll(invitationMessage: string, pollState: Poll["pollState"] = "INITIALIZED", voted = false) {
+    const when = new Date();
+    const vote = { emailAddress: "v1@example.com", userName: "v1", choiceIds: ["c1"], votedAt: when };
+    const poll = makePoll({
+      title: "Reunion", pollVisibility: "Private Poll", pollSharingMode: "Invitation Only", pollState, invitationMessage,
+      currentVotes: voted ? [vote] : []
+    });
+    await seed(poll);
+    if (voted) await voteHistory(ctx).insertOne({ pid: poll._id, ...vote });
+    const p = await open();
+    link(cardWith(p, "Reunion"), "Only people you invite").click();
+    await p.settle(50);
+    return { p, poll };
+  }
+
+  async function editMessage(p: BrowserPage, html: string) {
+    editButton(p).click();
+    await p.settle();
+    const text = messageField(p)!.querySelector<HTMLElement>(".notes-editor-text")!;
+    text.innerHTML = html;
+    text.dispatchEvent(new p.window.Event("input", { bubbles: true }));
+    await p.settle();
+  }
+
+  async function done(p: BrowserPage) {
+    messageField(p)!.querySelector<HTMLElement>(".notes-editor-done")!.click();
+    await p.settle();
+  }
+
+  it("shows the field for Only people you invite directly under its radio button, with a line between the sections", async () => {
+    const page = await open();
+    await createPoll(page);
+    expect(messageField(page)).toBeNull();
+    await pick(page, "who", "invite");
+    const card = wizardCard(page);
+    const field = messageField(page)!;
+    expect(field).not.toBeNull();
+    const group = card.querySelector(".wizard-step-body .m3-radio-list")!;
+    const inviteRow = group.querySelector('input[value="invite"]')!.closest(".m3-radio-item")!;
+    expect(field.parentElement).toBe(group);
+    expect(inviteRow.nextElementSibling).toBe(field);
+    expect(field.nextElementSibling!.classList.contains("wizard-who-divider")).toBe(true);
+    expect(Array.from(group.children).map((c) => c.classList.contains("wizard-who-divider") ? "line"
+      : c.classList.contains("m3-radio-item") ? (c.querySelector("input") as HTMLInputElement).value : "field"))
+      .toEqual(["link", "line", "invite", "field", "line", "public"]);
+    expect(group.querySelector(".wizard-who-divider")!.getAttribute("aria-hidden")).toBe("true");
+    const body = card.querySelector(".wizard-step-body")!;
+    expect(group.nextElementSibling).toBe(body.querySelector(".m3-switch-row"));
+    expect(field.querySelector(".m3-field-label")!.textContent).toBe("Custom Email Message");
+    expect(field.querySelector(".m3-field-support")!.textContent)
+      .toBe("Optional. Added to the invitation email we send to the people you invite.");
+    expect(counter(page)).toBe("0 / 1000");
+    expect(editButton(page).id).toMatch(/^pollInvitationMessage-/);
+    expect(editButton(page).textContent).toBe("... edit");
+    expect(editButton(page).getAttribute("aria-label")).toBe("Edit custom email message");
+    for (const who of ["link", "public"]) {
+      await pick(page, "who", who);
+      expect(messageField(page), who).toBeNull();
+    }
+  });
+
+  it("opens the editor with its label and limit, updates the preview and counter on Done, and Save sends it", async () => {
+    const { p } = await openInvitePoll("");
+    await editMessage(p, "Hi <b>all</b>");
+    expect(messageField(p)!.querySelector(".notes-editor-heading")!.textContent).toBe("Custom Email Message");
+    expect(messageField(p)!.querySelector(".notes-editor-counter")!.textContent).toBe("10 / 1000");
+    await done(p);
+    expect(previewHtml(p)).toBe("Hi <strong>all</strong>");
+    expect(counter(p)).toBe("10 / 1000");
+    expect(p.document.activeElement).toBe(editButton(p));
+    footerButton(wizardCard(p), "Save").click();
+    await p.settle(100);
+    expect(sent("/save")[0]!.body!.invitationMessage).toBe("Hi **all**");
+  });
+
+  it("refuses Done above 1000 characters", async () => {
+    const { p } = await openInvitePoll("");
+    await editMessage(p, "x".repeat(1001));
+    await done(p);
+    expect(messageField(p)!.querySelector(".notes-editor")).not.toBeNull();
+  });
+
+  it("keeps the message while hidden, still sends it, and shows it again on switching back", async () => {
+    const { p } = await openInvitePoll("Kept **here**");
+    expect(previewHtml(p)).toBe("Kept <strong>here</strong>");
+    await pick(p, "who", "link");
+    expect(messageField(p)).toBeNull();
+    expect(summaryLine(p)).toBeNull();
+    footerButton(wizardCard(p), "Save").click();
+    await p.settle(100);
+    expect(sent("/save")[0]!.body!.invitationMessage).toBe("Kept **here**");
+    expect(sent("/save")[0]!.body!.pollSharingMode).toBe("Anyone With The Link");
+
+    const again = await openInvitePoll("Kept **here**");
+    await pick(again.p, "who", "public");
+    await pick(again.p, "who", "invite");
+    expect(previewHtml(again.p)).toBe("Kept <strong>here</strong>");
+  });
+
+  it("says saving re-screens when a voted poll's message changes, and sends only it", async () => {
+    const { p } = await openInvitePoll("Before", "OPEN", true);
+    expect(wizardCard(p).querySelector(".wizard-review-note")).toBeNull();
+    await editMessage(p, "After");
+    await done(p);
+    expect(wizardCard(p).querySelector(".wizard-review-note")).not.toBeNull();
+    footerButton(wizardCard(p), "Save changes").click();
+    await p.settle(100);
+    const body = sent("/publish")[0]!.body!;
+    expect(Object.keys(body).sort()).toEqual(["clientGuid", "invitationMessage", "timeZone"]);
+    expect(body.invitationMessage).toBe("After");
+  });
+
+  it("adds the summary line after the who line, tappable once Step 1 is answered, opening Step 1 at the field", async () => {
+    const p = await open();
+    await createPoll(p);
+    await pick(p, "who", "invite");
+    expect(summaryLine(p)).toBeNull();
+    await editMessage(p, "Hello");
+    await done(p);
+    let line = summaryLine(p)!;
+    expect(line.textContent).toBe(SENTENCE + ".");
+    expect(line.previousElementSibling!.classList.contains("wizard-summary-who")).toBe(true);
+    expect(line.querySelector(".wizard-summary-link")).toBeNull();
+
+    await next(p);
+    line = summaryLine(p)!;
+    const tap = line.querySelector<HTMLElement>(".wizard-summary-link")!;
+    expect(tap.textContent).toBe(SENTENCE);
+    expect(tap.getAttribute("aria-label")).toBe("Custom Email Message: change in Step 1");
+    tap.click();
+    await p.settle();
+    expect(heading(wizardCard(p))).toBe("Step 1 · Who can vote");
+    expect(p.document.activeElement).toBe(editButton(p));
+
+    await next(p);
+    summaryLine(p)!.querySelector<HTMLElement>(".wizard-summary-link")!
+      .dispatchEvent(new p.window.KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    await p.settle();
+    expect(heading(wizardCard(p))).toBe("Step 1 · Who can vote");
+    expect(p.document.activeElement).toBe(editButton(p));
+  });
+
+  it("shows the summary line, with its period, on the read-only card of a poll with a message", async () => {
+    await seed(
+      makePoll({ title: "With message", pollVisibility: "Private Poll", pollSharingMode: "Invitation Only", pollState: "OPEN", invitationMessage: "Hi" }),
+      makePoll({ title: "Without message", pollVisibility: "Private Poll", pollSharingMode: "Invitation Only", pollState: "OPEN" })
+    );
+    const p = await open();
+    const line = cardWith(p, "With message").querySelector(".wizard-summary-invitation-message")!;
+    expect(line.textContent).toBe(SENTENCE + ".");
+    expect(line.previousElementSibling!.classList.contains("wizard-summary-who")).toBe(true);
+    expect(cardWith(p, "Without message").querySelector(".wizard-summary-invitation-message")).toBeNull();
+  });
+
+  it("has no summary line for a blank message or another answer", async () => {
+    const { p } = await openInvitePoll("** **");
+    expect(summaryLine(p)).toBeNull();
+    const other = await openInvitePoll("Hello");
+    expect(summaryLine(other.p)!.textContent).toBe(SENTENCE + ".");
+    await pick(other.p, "who", "link");
+    expect(summaryLine(other.p)).toBeNull();
+    await pick(other.p, "who", "public");
+    expect(summaryLine(other.p)).toBeNull();
+  });
+});

@@ -18,6 +18,7 @@ import * as colorScheme from "./016-color-scheme.js";
 import * as profilePicture from "./017-profile-picture.js";
 import * as pollNotes from "./018-poll-notes.js";
 import * as deviceEvents from "./019-device-events.js";
+import * as invitationMessage from "./020-invitation-message.js";
 
 /** Applied in key order; add a new migration by appending the next number. */
 export const migrations: Record<string, Migration> = {
@@ -39,5 +40,6 @@ export const migrations: Record<string, Migration> = {
   "016-color-scheme": colorScheme,
   "017-profile-picture": profilePicture,
   "018-poll-notes": pollNotes,
-  "019-device-events": deviceEvents
+  "019-device-events": deviceEvents,
+  "020-invitation-message": invitationMessage
 };

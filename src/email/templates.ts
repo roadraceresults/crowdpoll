@@ -25,6 +25,7 @@ interface LayoutInput {
   heading: string;
   headingLine2?: string;
   paragraphs: string[];
+  messageBox?: { html: string; text: string };
   action?: { label: string; url: string };
   closing?: string[];
 }
@@ -38,12 +39,14 @@ function policyLinksHtml(origin: string): string {
   return `<p style="margin:0 0 16px;font-family:${FONT};font-size:13px;line-height:1.5;color:${MUTED};">${link("/privacy", "Privacy Policy")} · ${link("/terms", "Terms of Service")}</p>`;
 }
 
-export function layout({ origin, preheader, heading, headingLine2, paragraphs, action, closing = [] }: LayoutInput): {
+export function layout({ origin, preheader, heading, headingLine2, paragraphs, messageBox, action, closing = [] }: LayoutInput): {
   text: string;
   html: string;
 } {
+  const [first, ...rest] = paragraphs;
+  const lead = first === undefined ? [] : [first];
   const textParts = ["CrowdPoll", headingLine2 === undefined ? heading : `${heading}
-${headingLine2}`, ...paragraphs];
+${headingLine2}`, ...lead, ...(messageBox ? [messageBox.text] : []), ...rest];
   if (action) textParts.push(`${action.label}:\n${action.url}`);
   const policy = action ? [`Privacy Policy: ${origin}/privacy · Terms of Service: ${origin}/terms`] : [];
   textParts.push(...closing, [...FOOTER, ...policy].join("\n"));
@@ -68,7 +71,11 @@ ${headingLine2}`, ...paragraphs];
     `</td></tr>` +
     `<tr><td style="padding:24px;">` +
     `<h1 style="margin:0 0 16px;font-family:${FONT};font-size:22px;line-height:1.3;color:${TEXT};">${escapeHtml(heading)}${headingLine2 === undefined ? "" : `<br>${escapeHtml(headingLine2)}`}</h1>` +
-    paragraphs.map((p) => paragraphHtml(p)).join("") +
+    lead.map((p) => paragraphHtml(p)).join("") +
+    (messageBox
+      ? `<div style="margin:0 0 16px;padding:12px 16px;background:#F1F3EC;border-radius:8px;font-family:${FONT};font-size:16px;line-height:1.5;color:${TEXT};overflow-wrap:anywhere;">${messageBox.html}</div>`
+      : "") +
+    rest.map((p) => paragraphHtml(p)).join("") +
     actionHtml +
     closing.map((p) => paragraphHtml(p)).join("") +
     `</td></tr>` +
@@ -191,13 +198,14 @@ export interface InvitationInput {
   endAt: Date | null;
   timeZone: string | null;
   signInAddress?: string;
+  personalMessage?: { html: string; text: string };
 }
 
 export function invitationMessage(input: InvitationInput): EmailMessage {
-  const { creatorName, creatorEmail, title, link, origin, anonymous, reminder, launchedAt, endAt, timeZone, signInAddress } = input;
+  const { creatorName, creatorEmail, title, link, origin, anonymous, reminder, launchedAt, endAt, timeZone, signInAddress, personalMessage } = input;
   const subject = `${creatorName} invited you to a private poll on CrowdPoll: "${title}"`;
   const paragraphs = [
-    `${creatorName} (${creatorEmail}) invited you to vote in their poll "${title}" on CrowdPoll. That's why we're writing to you.`,
+    `${creatorName} (${creatorEmail}) invited you to vote in their poll "${title}" on CrowdPoll.`,
     `It's an Invitation Only private poll: only the people ${creatorName} invites can see it and vote.`
   ];
   if (anonymous) paragraphs.push(`Your vote will be anonymous: ${creatorName} will not see how you voted.`);
@@ -214,10 +222,11 @@ export function invitationMessage(input: InvitationInput): EmailMessage {
       heading: `${reminder ? "Reminder: you" : "You"} are invited to vote in a Private Poll:`,
       headingLine2: `"${title}"`,
       paragraphs,
+      messageBox: personalMessage,
       action: { label: "Open the poll", url: link },
       closing: [
         ...(signInAddress
-          ? [`This button signs you in to CrowdPoll as ${signInAddress}. Please don't forward this email.`]
+          ? [`This button signs you in to CrowdPoll as ${signInAddress}. Do not forward this email.`]
           : []),
         ignoreLine,
         `${creatorName} gave us your address only for this poll; our Privacy Policy (${origin}/privacy#invitations) explains how we use it and how to have it removed.`
