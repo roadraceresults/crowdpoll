@@ -2016,7 +2016,7 @@ describe("custom email message in Step 1", () => {
     expect(group.nextElementSibling).toBe(body.querySelector(".m3-switch-row"));
     expect(field.querySelector(".m3-field-label")!.textContent).toBe("Custom Email Message");
     expect(field.querySelector(".m3-field-support")!.textContent)
-      .toBe("Optional. Added to the invitation email we send to the people you invite.");
+      .toBe("Optional. Added to the invitation email we send to the people you invite, and shown in the link preview when the poll's link is shared.");
     expect(counter(page)).toBe("0 / 1000");
     expect(editButton(page).id).toMatch(/^pollInvitationMessage-/);
     expect(editButton(page).textContent).toBe("... edit");

@@ -1442,6 +1442,17 @@ sequenceDiagram
   not indexable is `404 Not found`, the same answer as an unknown id.
 - **Head tags**: `sendPage(…, canonicalPath)` adds the canonical link to `/`, `/privacy` and `/terms`; those pages carry
   descriptions, and the login, account and admin pages carry `noindex`.
+- **Link previews**: `GET /login?PID=<pid>` for a guest and an open or closed poll, public or private (`isOpenOrClosed`
+  in `access.ts`, the state rule of `isIndexable`), is rendered by `renderLoginPage` (`src/seo/loginPage.ts`) with
+  `previewHeadTags` from `pollPage.ts`, the builder the poll page shares: `<title>` is `<poll title> · CrowdPoll`, the
+  description is the subtitle, a blank line, then `notesPlainText(invitation_message)` from the approved column (never
+  `pending_update`), falling back to `Vote and see live results: <title>`, cut to 300 characters with the ellipsis
+  inside (`LINK_PREVIEW_DESCRIPTION_MAX`); `og:url` is the shared link `/?PID=<pid>`, never `/login`; no canonical link,
+  JSON-LD or image; `Cache-Control: no-cache` with Express's weak ETag. Every other PID, or none, gets
+  `sendPage("login.html")` as before. There is no landing page and no user-agent detection: the preview fetchers of
+  Google Messages, WhatsApp (`facebookexternalhit`) and iMessage send no cookies, run no script, follow the `302` a
+  guest's `/?PID=` already answers and ignore `robots.txt`, so the page they already reach gains the tags, and a person
+  who taps the link sees the login page as before. Logged as `[login] Poll preview rendered: <pid>`, pid only.
 
 ## Site icon
 

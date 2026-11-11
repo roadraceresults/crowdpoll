@@ -5,6 +5,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261110-204911-LINK-PREVIEW-MESSAGE/plan.md` (research R1–R9, `data-model.md` — no schema change, the read
+set and the derived preview fields; the page contract `contracts/page.md` P1–P3, the UI contracts
+`contracts/ui-contracts.md` C1–C3, and the quickstart live alongside it in
+`specs/20261110-204911-LINK-PREVIEW-MESSAGE/`).
+The requirements report is `requirements/20261110-202128-link-preview-message/requirements-report.md`: 3 diagrams,
+1 research result and 7 findings, all resolved.
+Decisions that are easy to get wrong:
+- **No landing page, no user-agent detection**: messaging apps' preview fetchers send no cookies and follow the
+  existing `302 /?PID=… → /login?PID=…`, so `GET /login` renders `login.html` with the poll's head tags when the PID
+  names an open or closed poll, public or private (`isOpenOrClosed` in `src/polls/access.ts`, the state rule of
+  `isIndexable`; not `isPublished`, which admits WAITING TO OPEN), else serves it as today (R1, R5, Q2).
+- **Shared tag builder**: `previewHeadTags({ title, headline, description, url })` and `joinHeadTags` exported from
+  `src/seo/pollPage.ts`; `renderLoginPage` in `src/seo/loginPage.ts` adds no canonical link, JSON-LD or image;
+  `og:url` is the shared link `/?PID=<pid>`, never `/login` (R2, R4, Q1).
+- **Description** = subtitle, blank line, `notesPlainText(invitation_message)` from the approved column (never
+  `pending_update`), fallback `Vote and see live results: <title>`, cut to 300 characters with the ellipsis inside (R3, R5).
+- **`Cache-Control: no-cache`** for the rendered page, with the weak ETag `res.send` always adds (as on `/poll/:pid`);
+  the plain page keeps `sendPage`'s own ETag and 304 (R6).
+- **The support text** of the Custom Email Message says the message is also shown in the link preview (R7, C1).
+No migration, setting, route, cookie, storage key, stylesheet or dependency.
+The preceding feature is
 `specs/20261110-160141-INVITATION-CUSTOM-MESSAGE/plan.md` (research R1–R9, `data-model.md` — migration
 `020-invitation-message`; the HTTP contract `contracts/api.md` A1–A4, the UI and email contracts
 `contracts/ui-contracts.md` C1–C4, and the quickstart live alongside it in
