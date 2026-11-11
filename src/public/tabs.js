@@ -11,6 +11,7 @@
   "use strict";
 
   const PERSONAL_TABS = ["home", "your-polls", "shared-with-you", "your-votes", "watching", "live"];
+  const TAB_NAMES = ["home", "your-polls", "shared-with-you", "your-votes", "trending", "newest", "watching", "live", "search"];
   const controllers = {};
   const nextAllowedAt = {};
   let activeTab = "trending";
@@ -1074,6 +1075,13 @@
     if (wrap) wrap.dataset.active = name;
   }
 
+  function showTabInAddress(name) {
+    const params = new URLSearchParams(location.search);
+    params.set("tab", name);
+    if (name !== "search") params.delete("q");
+    history.replaceState(history.state, "", location.pathname + "?" + params.toString() + location.hash);
+  }
+
   async function select(name) {
     const controller = controllers[name];
     if (!controller) return;
@@ -1089,6 +1097,7 @@
     // Opening Home lets the server show its current list; choosing it again while it is showing does not.
     if (name === "home" && activeTab !== "home" && controller.releaseOrder) controller.releaseOrder();
     activeTab = name;
+    showTabInAddress(name);
     setActiveButton(name);
     showPanel(name);
     updateRefreshButton();
@@ -1139,27 +1148,31 @@
     here with a landing in the address. Only the fixed values below are honoured.
   */
   const POLL_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  const LANDING_TABS = ["home", "your-polls", "shared-with-you", "trending"];
   const LANDING_NOTICES = {
     unavailable: "That poll isn't available.",
     unpublished: "This poll hasn't been published yet. It's waiting in Shared With You, and you can vote once it's published."
   };
-  const LANDING_PARAMS = ["open", "tab", "notice"];
+  const LANDING_PARAMS = ["open", "notice"];
 
   function takeLanding() {
     const params = new URLSearchParams(location.search);
     if (!LANDING_PARAMS.some((key) => params.has(key))) return null;
     const open = params.get("open") || "";
-    const tab = params.get("tab") || "";
     const kind = params.get("notice") || "";
     LANDING_PARAMS.forEach((key) => params.delete(key));
     const rest = params.toString();
-    history.replaceState(null, "", location.pathname + (rest ? "?" + rest : "") + location.hash);
+    history.replaceState(history.state, "", location.pathname + (rest ? "?" + rest : "") + location.hash);
     return {
       pid: POLL_ID.test(open) ? open : null,
-      tab: LANDING_TABS.indexOf(tab) !== -1 ? tab : null,
       notice: Object.prototype.hasOwnProperty.call(LANDING_NOTICES, kind) ? LANDING_NOTICES[kind] : null
     };
+  }
+
+  // The tab the address names, as this visitor may see it: a guest's personal tab becomes Trending.
+  function tabFromAddress() {
+    const name = new URLSearchParams(location.search).get("tab") || "";
+    if (TAB_NAMES.indexOf(name) === -1) return null;
+    return !isSignedIn() && PERSONAL_TABS.indexOf(name) !== -1 ? "trending" : name;
   }
 
   async function mountLinkedPoll(grid, pid, source) {
@@ -1202,18 +1215,20 @@
     return true;
   }
 
-  // Resolves true when the landing chose the tab, so the caller skips the default one.
-  async function applyLanding(landing) {
-    if (!landing || !isSignedIn()) return false;
-    if (landing.notice) notice(landing.notice, 6000);
-    if (!landing.tab) return false;
-    await select(landing.tab);
-    const grid = controllers[landing.tab] && controllers[landing.tab].grid;
-    if (landing.pid && grid) {
-      if (!grid.cardOf(landing.pid)) await mountLinkedPoll(grid, landing.pid);
-      if (grid.cardOf(landing.pid)) grid.maximize(landing.pid);
-    }
-    return true;
+  async function showLandingPoll(tab, pid) {
+    const grid = controllers[tab] && controllers[tab].grid;
+    if (!grid) return;
+    if (!grid.cardOf(pid)) await mountLinkedPoll(grid, pid);
+    if (grid.cardOf(pid)) grid.maximize(pid);
+  }
+
+  function canSearchFromAddress(terms) {
+    return Boolean(terms && window.SearchTab && window.SearchTab.submit);
+  }
+
+  async function searchFromAddress(terms) {
+    if (window.SiteSearch) window.SiteSearch.set(terms);
+    await window.SearchTab.submit(terms);
   }
 
   async function init() {
@@ -1284,12 +1299,18 @@
     window.addEventListener("focus", onReturnToWindow);
     document.addEventListener("visibilitychange", onReturnToWindow);
     if (await applyPollPage()) return;
-    if (await applyLanding(takeLanding())) return;
-    // FIX013: arriving from another page's search box — the terms ride on the URL.
-    const q = new URLSearchParams(location.search).get("q");
-    if (q && q.trim() && window.SearchTab && window.SearchTab.submit) {
-      if (window.SiteSearch) window.SiteSearch.set(q.trim());
-      await window.SearchTab.submit(q.trim());
+    const landing = takeLanding();
+    const tab = tabFromAddress();
+    const terms = (new URLSearchParams(location.search).get("q") || "").trim();
+    if (landing && landing.notice && isSignedIn()) notice(landing.notice, 6000);
+    if (tab) {
+      if (tab === "search" && canSearchFromAddress(terms)) await searchFromAddress(terms);
+      else await select(tab);
+      if (isSignedIn() && landing && landing.pid) await showLandingPoll(tab, landing.pid);
+      return;
+    }
+    if (canSearchFromAddress(terms)) {
+      await searchFromAddress(terms);
       return;
     }
     await select(isSignedIn() ? "home" : "trending");

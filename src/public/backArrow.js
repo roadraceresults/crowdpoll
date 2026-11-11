@@ -16,6 +16,23 @@
     }
   }
 
+  const canReturn = cameFromThisSite();
+
+  window.SiteBack = {
+    canReturn: () => canReturn,
+    leave(fallback) {
+      if (canReturn) {
+        history.back();
+        return true;
+      }
+      if (fallback) {
+        location.assign(fallback);
+        return true;
+      }
+      return false;
+    }
+  };
+
   function storedDepth() {
     const state = history.state;
     return state && typeof state.legalDepth === "number" ? state.legalDepth : null;
@@ -52,7 +69,7 @@
     return bar;
   }
 
-  if (!cameFromThisSite()) return;
+  if (!canReturn || !document.body.hasAttribute("data-back-arrow")) return;
   numberEntry(0);
   window.addEventListener("popstate", onStep);
   window.addEventListener("hashchange", onStep);

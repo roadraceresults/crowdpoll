@@ -1748,7 +1748,7 @@ describe("where a poll link landed, in a browser", () => {
     expect(activeTab(page)).toBe("shared-with-you");
     expect(page.cardTitles("shared-with-you")).toEqual(["Shared with me"]);
     expect(page.document.querySelector('.tab-panel[data-panel="shared-with-you"] .maximized-card-grid')!.hasAttribute("hidden")).toBe(false);
-    expect(page.window.location.search).toBe("");
+    expect(page.window.location.search).toBe("?tab=shared-with-you");
   });
 
   it("says the poll is not available and lands a logged-in visitor on Home", async () => {
@@ -1757,7 +1757,7 @@ describe("where a poll link landed, in a browser", () => {
     await page.settle(100);
     expect(page.document.getElementById("tabNotice")!.textContent).toBe("That poll isn't available.");
     expect(activeTab(page)).toBe("home");
-    expect(page.window.location.search).toBe("");
+    expect(page.window.location.search).toBe("?tab=home");
   });
 
   it("says the poll is not published yet and opens Shared With You", async () => {

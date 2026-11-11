@@ -19,23 +19,30 @@ afterEach(() => {
   page = null;
 });
 
-type Recorded = JSDOM["window"] & { goCalls: number[]; logged: unknown[][] };
+type Recorded = JSDOM["window"] & { goCalls: number[]; backCalls: number; logged: unknown[][] };
+type SiteBack = { canReturn(): boolean; leave(fallback?: string): boolean };
 
-async function open(options: { referrer?: string; earlierEntry?: boolean; state?: Record<string, unknown> } = {}) {
-  const { referrer = "http://localhost/login", earlierEntry = true, state } = options;
-  page = await openPage(ctx, "privacy.html", {
-    url: "http://localhost/privacy",
+async function open(options: { referrer?: string; earlierEntry?: boolean; state?: Record<string, unknown>; file?: string; url?: string } = {}) {
+  const { referrer = "http://localhost/login", earlierEntry = true, state, file = "privacy.html", url = "http://localhost/privacy" } = options;
+  page = await openPage(ctx, file, {
+    url,
     referrer: URL.canParse(referrer) ? referrer : undefined,
     scripts: ["tooltip-m3.js", "backArrow.js"],
     beforeScripts: (window) => {
       const w = window as Recorded;
       if (!URL.canParse(referrer)) Object.defineProperty(window.document, "referrer", { value: referrer });
-      if (earlierEntry) window.history.pushState(null, "", "/privacy");
+      if (earlierEntry) window.history.pushState(null, "", new URL(url).pathname);
       if (state) window.history.replaceState(state, "");
       w.goCalls = [];
       window.history.go = ((delta: number) => {
         w.goCalls.push(delta);
       }) as typeof window.history.go;
+      w.backCalls = 0;
+      const realBack = window.history.back.bind(window.history);
+      window.history.back = (() => {
+        w.backCalls += 1;
+        realBack();
+      }) as typeof window.history.back;
       w.logged = [];
       for (const level of ["log", "info", "warn", "error", "debug"] as const) {
         window.console[level] = (...args: unknown[]) => {
@@ -49,6 +56,14 @@ async function open(options: { referrer?: string; earlierEntry?: boolean; state?
 
 const recorded = (p: BrowserPage) => p.window as Recorded;
 const arrow = (p: BrowserPage) => p.document.getElementById("backArrow") as HTMLButtonElement | null;
+const siteBack = (p: BrowserPage) => (p.window as unknown as { SiteBack: SiteBack }).SiteBack;
+
+const NO_RETURN = [
+  ["no previous page", { referrer: "" }],
+  ["a page on another site", { referrer: "https://example.com/somewhere" }],
+  ["a malformed referrer", { referrer: "not a url" }],
+  ["a new tab", { earlierEntry: false }]
+] as const;
 
 async function stepTo(p: BrowserPage, hash: string) {
   p.window.location.hash = hash;
@@ -69,12 +84,7 @@ describe("the legal pages' Back arrow", () => {
     expect(button.querySelectorAll("svg path")).toHaveLength(2);
   });
 
-  for (const [name, options] of [
-    ["no previous page", { referrer: "" }],
-    ["a page on another site", { referrer: "https://example.com/somewhere" }],
-    ["a malformed referrer", { referrer: "not a url" }],
-    ["a new tab", { earlierEntry: false }]
-  ] as const) {
+  for (const [name, options] of NO_RETURN) {
     it(`adds nothing for ${name}`, async () => {
       const p = await open(options);
       expect(arrow(p)).toBeNull();
@@ -137,5 +147,50 @@ describe("the legal pages' Back arrow", () => {
     const hidden = await open({ referrer: "not a url" });
     expect(recorded(p).logged).toEqual([]);
     expect(recorded(hidden).logged).toEqual([]);
+  });
+});
+
+describe("the shared back rule, window.SiteBack (C4)", () => {
+  it("can return after a CrowdPoll page in the same tab, and leave() goes back one entry", async () => {
+    const p = await open();
+    expect(siteBack(p).canReturn()).toBe(true);
+    expect(siteBack(p).leave("/")).toBe(true);
+    expect(recorded(p).backCalls).toBe(1);
+    expect(p.navigations).toEqual([]);
+  });
+
+  for (const [name, options] of NO_RETURN) {
+    it(`cannot return for ${name}, and leave("/") navigates to the fallback`, async () => {
+      const p = await open(options);
+      expect(siteBack(p).canReturn()).toBe(false);
+      expect(siteBack(p).leave("/")).toBe(true);
+      expect(recorded(p).backCalls).toBe(0);
+      expect(p.navigations).toHaveLength(1);
+    });
+  }
+
+  it("does nothing without a fallback when it cannot return", async () => {
+    const p = await open({ referrer: "" });
+    expect(siteBack(p).leave()).toBe(false);
+    expect(recorded(p).backCalls).toBe(0);
+    expect(p.navigations).toEqual([]);
+  });
+
+  it("is available on a page without data-back-arrow, which gets no arrow", async () => {
+    const p = await open({ file: "profile.html", url: "http://localhost/profile", referrer: "http://localhost/" });
+    expect(siteBack(p).canReturn()).toBe(true);
+    expect(arrow(p)).toBeNull();
+    expect(p.document.querySelector(".back-arrow-bar")).toBeNull();
+    expect(p.window.history.state).toBeNull();
+  });
+
+  it("writes nothing to the browser console", async () => {
+    const p = await open({ file: "profile.html", url: "http://localhost/profile", referrer: "http://localhost/" });
+    siteBack(p).leave("/");
+    p.close();
+    const fresh = await open({ referrer: "" });
+    siteBack(fresh).leave();
+    expect(recorded(p).logged).toEqual([]);
+    expect(recorded(fresh).logged).toEqual([]);
   });
 });

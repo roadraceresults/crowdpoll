@@ -5,6 +5,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261111-091956-FOOTER-LINKS/plan.md` (research R1–R8, `data-model.md` — the address parameters, history state
+and `window.SiteBack`; the UI contracts `contracts/ui-contracts.md` C1–C6, and the quickstart live alongside it in
+`specs/20261111-091956-FOOTER-LINKS/`).
+The requirements report is `requirements/20261111-091956-footer-links/requirements-report.md`: 4 diagrams
+and 7 findings, all resolved.
+Decisions that are easy to get wrong:
+- **One back rule**: `backArrow.js` exposes `window.SiteBack` (`canReturn()` decided at load from `history.length > 1`
+  and a same-origin `document.referrer`; `leave(fallback)`), used by the legal arrow (drawn only on
+  `<body data-back-arrow>`), the Delete Account dialog's Cancel/Escape (no fallback: closes in place; decided when the
+  dialog opens, and always in place when opened by `hashchange` on the Profile page) and the admin arrow (fallback `/`,
+  through `adminList.js`'s `guardNavigation`, which keeps the discard check first) (R2, R6, R7).
+- **The tab in the address**: `tabs.js` `select(name)` writes `/?tab=<name>` with `history.replaceState` (never
+  `pushState`), drops `q` unless the tab is `search`, keeps `history.state` and other parameters; on load all nine
+  names are honoured (`tabFromAddress`), a guest's personal tab falls back to Trending (never `/login`), the card is
+  not re-maximized, and `?q=` runs the search only when no tab or the Search tab is named (R3, R4, R5).
+- **Phone layout**: the `legal-m3.css` gutter rule is kept verbatim under `@media (min-width: 640px)`; below, the
+  `.back-arrow-bar` is static in the flow and there is no gutter (R1). No new stylesheet; `m3-assets.test.ts` lists
+  `backArrow.js` on `profile.html` and `admin.html`.
+No migration, route, setting, cookie, storage key, stylesheet or dependency; the Cookie Use table is unchanged.
+The preceding feature is
 `specs/20261110-204911-LINK-PREVIEW-MESSAGE/plan.md` (research R1–R9, `data-model.md` — no schema change, the read
 set and the derived preview fields; the page contract `contracts/page.md` P1–P3, the UI contracts
 `contracts/ui-contracts.md` C1–C3, and the quickstart live alongside it in

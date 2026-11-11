@@ -461,13 +461,17 @@
       if (link.getAttribute("href").startsWith("#")) return;
       const url = new URL(link.href, window.location.href);
       if (url.origin !== window.location.origin) return;
+      const backLink = link.classList.contains("admin-back-link");
       const controller = editingController();
-      if (!controller) return;
+      if (!controller && !backLink) return;
       event.preventDefault();
-      if (controller.isDirty() && !(await controller.confirmDiscard())) return;
-      controller.releaseSession().then(() => {
-        window.location.assign(url.href);
-      });
+      if (controller && controller.isDirty() && !(await controller.confirmDiscard())) return;
+      const leave = () => {
+        if (backLink && window.SiteBack) window.SiteBack.leave(url.href);
+        else window.location.assign(url.href);
+      };
+      if (controller) controller.releaseSession().then(leave);
+      else leave();
     });
   }
 

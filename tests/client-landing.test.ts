@@ -99,6 +99,6 @@ describe("a landing with values the page does not know", () => {
     await page.settle(200);
     expect(activeTab(page)).toBe("home");
     expect(page.document.getElementById("tabNotice")!.hidden).toBe(true);
-    expect(page.window.location.search).not.toMatch(/open|tab=|notice/);
+    expect(page.window.location.search).toBe("?tab=home");
   });
 });

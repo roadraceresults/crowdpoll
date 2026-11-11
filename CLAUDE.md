@@ -6,27 +6,23 @@ The full description, every earlier feature's decisions and the settings table a
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-`specs/20261110-204911-LINK-PREVIEW-MESSAGE/plan.md` (research R1–R9, `data-model.md` — no schema change, the read
-set and the derived preview fields; the page contract `contracts/page.md` P1–P3, the UI contracts
-`contracts/ui-contracts.md` C1–C3, and the quickstart live alongside it in
-`specs/20261110-204911-LINK-PREVIEW-MESSAGE/`).
-The requirements report is `requirements/20261110-202128-link-preview-message/requirements-report.md`: 3 diagrams,
-1 research result and 7 findings, all resolved.
+`specs/20261111-091956-FOOTER-LINKS/plan.md` (research R1–R8, `data-model.md` — the address parameters, history state
+and `window.SiteBack`; the UI contracts `contracts/ui-contracts.md` C1–C6, and the quickstart live alongside it in
+`specs/20261111-091956-FOOTER-LINKS/`).
+The requirements report is `requirements/20261111-091956-footer-links/requirements-report.md`: 4 diagrams
+and 7 findings, all resolved.
 Decisions that are easy to get wrong:
-- **No landing page, no user-agent detection**: messaging apps' preview fetchers send no cookies and follow the
-  existing `302 /?PID=… → /login?PID=…`, so `GET /login` renders `login.html` with the poll's head tags when the PID
-  names an open or closed poll, public or private (`isOpenOrClosed` in `src/polls/access.ts`, the state rule of
-  `isIndexable`; not `isPublished`, which admits WAITING TO OPEN), else serves it as today (R1, R5, Q2).
-- **Shared tag builder**: `previewHeadTags({ title, headline, description, url })` and `joinHeadTags` exported from
-  `src/seo/pollPage.ts`; `renderLoginPage` in `src/seo/loginPage.ts` adds no canonical link, JSON-LD or image;
-  `og:url` is the shared link `/?PID=<pid>`, never `/login` (R2, R4, Q1).
-- **Description** = subtitle, blank line, `notesPlainText(invitation_message)` from the approved column (never
-  `pending_update`), fallback `Vote and see live results: <title>`, cut to 300 characters with the ellipsis inside (R3, R5).
-- **`Cache-Control: no-cache`** for the rendered page, with the weak ETag `res.send` always adds (as on `/poll/:pid`);
-  the plain page keeps `sendPage`'s own ETag and 304 (R6).
-- The previous feature's decisions (custom email message, migration `020-invitation-message`) are in
-  `CLAUDE_COMPLETE.md` and `specs/20261110-160141-INVITATION-CUSTOM-MESSAGE/plan.md`.
-No migration, setting, route, cookie, storage key, stylesheet or dependency.
+- **One back rule**: `backArrow.js` exposes `window.SiteBack` (`canReturn()` decided at load from `history.length > 1`
+  and a same-origin `document.referrer`; `leave(fallback)`), used by the legal arrow (drawn only on
+  `<body data-back-arrow>`), the Delete Account dialog's Cancel/Escape (no fallback: closes in place; decided when the
+  dialog opens, and always in place when opened by `hashchange` on the Profile page) and the admin arrow (fallback `/`,
+  through `adminList.js`'s `guardNavigation`) (R2, R6, R7).
+- **The tab in the address**: `tabs.js` `select(name)` writes `/?tab=<name>` with `history.replaceState` (never
+  `pushState`), drops `q` unless the tab is `search`, keeps other parameters; on load all nine names are honoured, a
+  guest's personal tab falls back to Trending (never `/login`), the card is not re-maximized (R3, R4, R5).
+- **Phone layout**: the `legal-m3.css` gutter rule is kept verbatim under `@media (min-width: 640px)`; below, the
+  `.back-arrow-bar` is static in the flow and there is no gutter (R1). No new stylesheet.
+No migration, route, setting, cookie, storage key, stylesheet or dependency; the Cookie Use table is unchanged.
 <!-- SPECKIT END -->
 
 ## Project Overview

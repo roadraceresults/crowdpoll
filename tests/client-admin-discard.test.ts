@@ -18,12 +18,27 @@ afterAll(async () => {
   await ctx.stop();
 });
 
-beforeEach(async () => {
+type Recorded = BrowserPage["window"] & { backCalls: number };
+
+async function openAdmin(options: { referrer?: string; earlierEntry?: boolean } = {}): Promise<BrowserPage> {
   page?.close();
   page = null;
   await polls(ctx).deleteMany({});
   await polls(ctx).insertOne(makePoll({ title: "Draft to edit", pollState: "OPEN" }));
-  page = await openPage(ctx, "admin.html", { cookie, url: "http://localhost/admin", scripts: ["m3-ripple.js", "app.js", "notesEditor.js", "adminCard.js", "adminList.js"] });
+  page = await openPage(ctx, "admin.html", {
+    cookie,
+    url: "http://localhost/admin",
+    referrer: options.referrer,
+    scripts: ["m3-ripple.js", "app.js", "backArrow.js", "notesEditor.js", "adminCard.js", "adminList.js"],
+    beforeScripts: (window) => {
+      if (options.earlierEntry) window.history.pushState(null, "", "/admin");
+      const w = window as Recorded;
+      w.backCalls = 0;
+      window.history.back = (() => {
+        w.backCalls += 1;
+      }) as typeof window.history.back;
+    }
+  });
   page.window.HTMLElement.prototype.scrollIntoView = () => {};
   (page.window as unknown as { confirm: () => boolean }).confirm = () => {
     throw new Error("window.confirm must not be called");
@@ -31,6 +46,13 @@ beforeEach(async () => {
   // The card opens its wizard from the Summary Text: the title is Step 2's link.
   await page.click("#pollList .wizard-summary-title .wizard-summary-link");
   await page.settle(50);
+  return page;
+}
+
+const backCalls = (p: BrowserPage) => (p.window as Recorded).backCalls;
+
+beforeEach(async () => {
+  await openAdmin();
 });
 
 const cancelButton = (p: BrowserPage) =>
@@ -161,5 +183,30 @@ describe("the Not Saved dialog", () => {
     await p.settle(50);
     expect(dialog(p)).toBeNull();
     expect(p.navigations.length).toBe(1);
+  });
+});
+
+describe("the Back arrow reached from another CrowdPoll page (C5)", () => {
+  const FROM_HOME = { referrer: "http://localhost/?tab=home", earlierEntry: true };
+
+  it("goes back through history instead of loading the home page", async () => {
+    const p = await openAdmin(FROM_HOME);
+    await p.click(".admin-back-link");
+    await p.settle(50);
+    expect(dialog(p)).toBeNull();
+    expect(backCalls(p)).toBe(1);
+    expect(p.navigations.length).toBe(0);
+  });
+
+  it("asks before discarding edits, then goes back", async () => {
+    const p = await openAdmin(FROM_HOME);
+    typeInTitle(p, "Unsaved");
+    await p.click(".admin-back-link");
+    expect(dialog(p)).not.toBeNull();
+    expect(backCalls(p)).toBe(0);
+    (dialog(p)!.querySelector(".modal-discard") as HTMLButtonElement).click();
+    await p.settle(50);
+    expect(backCalls(p)).toBe(1);
+    expect(p.navigations.length).toBe(0);
   });
 });

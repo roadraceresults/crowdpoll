@@ -137,8 +137,15 @@ describe("the Privacy Policy and Terms of Service pages (A1, A2)", () => {
     expect(source("privacy.html")).toContain('<section id="bot-check"');
   });
 
-  it("keeps the text clear of the Back arrow on a narrow screen", () => {
-    expect(source("legal-m3.css")).toContain(".legal-doc{ box-sizing:border-box; padding-inline-start:max(0px, calc(56px - (100% - 72ch) / 2)); }");
+  it("keeps the text clear of the fixed Back arrow from 640px up, and puts the arrow in the page flow below", () => {
+    const css = source("legal-m3.css");
+    const wide = /@media \(min-width: 640px\)\{([^}]*\})\s*\}/.exec(css);
+    expect(wide?.[1]).toContain(".legal-doc{ box-sizing:border-box; padding-inline-start:max(0px, calc(56px - (100% - 72ch) / 2)); }");
+    const narrow = /@media \(max-width: 639\.98px\)\{([^}]*\})\s*\}/.exec(css);
+    expect(narrow?.[1]).toContain(".back-arrow-bar{ position:static; max-width:none; margin:0 0 12px; padding-inline:0; }");
+    expect(css.replace(wide![0], "")).not.toContain("padding-inline-start");
+    expect(css).toContain(".legal-doc h2{ font-size:var(--md-sys-typescale-title-large-size); margin:32px 0 8px; scroll-margin-top:calc(var(--fixed-chrome-height, 0px) + 16px); }");
+    expect(css).toContain(".legal-doc section[id]{ scroll-margin-top:calc(var(--fixed-chrome-height, 0px) + 16px); }");
   });
 
   it("states every retention period, with nothing left to confirm", () => {
