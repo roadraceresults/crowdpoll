@@ -14,13 +14,15 @@ import type { AppConfig } from "../config.js";
 import type { SessionCache } from "../auth/sessionCache.js";
 import type { Cache } from "../cache/cache.js";
 import { pollExists, type Db } from "../polls/store.js";
+import { projectPoll } from "../polls/versions.js";
+import { renderLoginPage } from "../seo/loginPage.js";
 import { canReachAdmin, createRequireAdmin, createRequirePollOwner, type Caller } from "../polls/service.js";
 import { landingUrl, parsePid, resolveSharedLink } from "../polls/sharedLink.js";
 import { findSignInToken, useToken } from "../invitations/tokens.js";
 import { emailKeyOf } from "../auth/emailKey.js";
 import { createAssetServing } from "./assets.js";
 import { hasAcceptedTerms, safeNext } from "../legal/termsGate.js";
-import { isIndexable } from "../polls/access.js";
+import { isIndexable, isOpenOrClosed } from "../polls/access.js";
 
 const publicDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "public");
 
@@ -94,19 +96,26 @@ export function createPagesRouter({ sessions, config, db, cache }: PageDeps): Ro
     })
   );
 
-  router.get("/login", (req, res, next: NextFunction) => {
-    sessions
-      .getSession(req)
-      .then((session) => {
-        if (session) {
-          const pid = parsePid(req.query.PID);
-          res.redirect(pid ? `/?PID=${pid}` : "/");
-          return;
-        }
-        page("login.html")(req, res, next);
-      })
-      .catch(next);
-  });
+  router.get(
+    "/login",
+    wrap(async (req, res) => {
+      const pid = parsePid(req.query.PID);
+      if (await sessions.getSession(req)) {
+        res.redirect(pid ? `/?PID=${pid}` : "/");
+        return;
+      }
+      // A guest's shared link lands here, and so does a messaging app's preview fetcher: for an open or closed poll
+      // the page carries the poll's title and description in its head, read from the approved columns only.
+      const row = pid ? await db.selectFrom("polls").selectAll().where("id", "=", pid).executeTakeFirst() : undefined;
+      if (row && isOpenOrClosed(row)) {
+        console.log(`[login] Poll preview rendered: ${row.id}`);
+        res.setHeader("Cache-Control", "no-cache");
+        res.type("html").send(renderLoginPage(assets.pageHtml("login.html"), projectPoll(row), row.invitation_message, config.publicOrigin));
+        return;
+      }
+      page("login.html")(req, res, () => undefined);
+    })
+  );
 
   router.get("/confirm-signin", (req, res, next: NextFunction) => {
     if (!config.nativeSignin) {

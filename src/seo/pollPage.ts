@@ -21,9 +21,43 @@ function percentages(poll: PollProjection, counts: LiveCounts): Map<string, numb
   );
 }
 
+export interface PreviewHead {
+  /** The full `<title>` text, e.g. "Best pizza · CrowdPoll". */
+  title: string;
+  /** The bare headline for `og:title`. */
+  headline: string;
+  description: string;
+  /** The address the preview card carries as the page's own. */
+  url: string;
+}
+
+/**
+ * The head tags a link-preview fetcher or crawler reads — title, description, Open Graph and Twitter card — each
+ * value attribute-escaped. The poll page adds its canonical link and structured data; the login page uses them alone.
+ */
+export function previewHeadTags({ title, headline, description, url }: PreviewHead): string[] {
+  const escapedDescription = escapeHtml(description);
+  return [
+    `<title>${escapeHtml(title)}</title>`,
+    `<meta name="description" content="${escapedDescription}">`,
+    `<meta property="og:type" content="website">`,
+    `<meta property="og:site_name" content="CrowdPoll">`,
+    `<meta property="og:title" content="${escapeHtml(headline)}">`,
+    `<meta property="og:description" content="${escapedDescription}">`,
+    `<meta property="og:url" content="${escapeHtml(url)}">`,
+    `<meta name="twitter:card" content="summary">`
+  ];
+}
+
+/** Lays head tags out as login.html and index.html indent theirs: one per line, two spaces in. */
+export function joinHeadTags(tags: string[]): string {
+  return tags
+    .map((tag) => `  ${tag}`)
+    .join("\n")
+    .trimStart();
+}
+
 function headTags(poll: PollProjection, counts: LiveCounts, url: string): string {
-  const title = escapeHtml(`${poll.title} · CrowdPoll`);
-  const description = escapeHtml(describe(poll));
   // https://schema.org/Question
   const question = {
     "@context": "https://schema.org",
@@ -34,21 +68,19 @@ function headTags(poll: PollProjection, counts: LiveCounts, url: string): string
     answerCount: poll.choices.length,
     suggestedAnswer: poll.choices.map((choice) => ({ "@type": "Answer", text: choice.label }))
   };
-  return [
-    `<title>${title}</title>`,
-    `<meta name="description" content="${description}">`,
+  const [title, description, ...rest] = previewHeadTags({
+    title: `${poll.title} · CrowdPoll`,
+    headline: poll.title,
+    description: describe(poll),
+    url
+  });
+  return joinHeadTags([
+    title!,
+    description!,
     `<link rel="canonical" href="${escapeHtml(url)}">`,
-    `<meta property="og:type" content="website">`,
-    `<meta property="og:site_name" content="CrowdPoll">`,
-    `<meta property="og:title" content="${escapeHtml(poll.title)}">`,
-    `<meta property="og:description" content="${description}">`,
-    `<meta property="og:url" content="${escapeHtml(url)}">`,
-    `<meta name="twitter:card" content="summary">`,
+    ...rest,
     `<script type="application/ld+json">${scriptJson(question)}</script>`
-  ]
-    .map((tag) => `  ${tag}`)
-    .join("\n")
-    .trimStart();
+  ]);
 }
 
 function summary(poll: PollProjection, counts: LiveCounts, notesHtml: string): string {

@@ -554,6 +554,10 @@ once the address header App Platform passes on has been confirmed on a deployed 
 the API and the account pages, which also carry `noindex`. `/sitemap.xml` lists the home page and every public open or
 closed poll with its last change, rebuilt at most every 5 minutes and split into `/sitemap-<n>.xml` parts above 50,000
 addresses. Submit `https://crowdpoll.vote/sitemap.xml` in each search engine's webmaster console.
+**Link previews.** A poll's link pasted into Google Messages, WhatsApp or iMessage previews with the poll's title and
+subtitle and, for an *Only people you invite* poll, its custom email message, whether the poll is public or private: the
+login page a private poll's link leads to carries them in its head. Anyone holding the link can read those three
+fields, and so can the apps' preview servers; a card an app has already stored for a link shared earlier is not refreshed.
 
 Operational notes:
 

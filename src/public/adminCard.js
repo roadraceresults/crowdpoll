@@ -1138,7 +1138,7 @@
           group.appendChild(m3RichTextField({
             key: "invitationMessage", htmlKey: "invitationMessageHtml", idPrefix: "pollInvitationMessage-",
             label: "Custom Email Message",
-            support: "Optional. Added to the invitation email we send to the people you invite.",
+            support: "Optional. Added to the invitation email we send to the people you invite, and shown in the link preview when the poll's link is shared.",
             max: 1000, editLabel: "Edit custom email message"
           }).wrap);
         }

@@ -95,13 +95,18 @@ export async function reachableMany(deps: AccessDeps, caller: Caller, rows: Acce
 const INDEXABLE_STATES = ["OPEN", "CLOSED"];
 
 /**
- * Whether search engines may index this poll: it is public, and open or closed (a poll under edit counts by the
- * state it held before the edit). Anything else — private, not yet open, awaiting approval, rejected, archived — is not.
+ * Whether the poll is open or closed, a poll under edit counting by the state it held before the edit: the states in
+ * which a page may announce it to a crawler or a link-preview fetcher. Not yet open, awaiting approval, rejected or
+ * archived polls are not announced.
  */
-export function isIndexable(row: Pick<PollRow, "poll_visibility" | "poll_state" | "poll_state_before_edit_update">): boolean {
-  if (row.poll_visibility !== "Public Poll") return false;
+export function isOpenOrClosed(row: Pick<PollRow, "poll_state" | "poll_state_before_edit_update">): boolean {
   const state = row.poll_state === "EDITING" ? row.poll_state_before_edit_update : row.poll_state;
   return state !== null && INDEXABLE_STATES.includes(state);
+}
+
+/** Whether search engines may index this poll: it is public, and open or closed. */
+export function isIndexable(row: Pick<PollRow, "poll_visibility" | "poll_state" | "poll_state_before_edit_update">): boolean {
+  return row.poll_visibility === "Public Poll" && isOpenOrClosed(row);
 }
 
 /** Every indexable poll, for the sitemap, in id order. */
