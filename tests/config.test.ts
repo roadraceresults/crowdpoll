@@ -733,6 +733,8 @@ describe("defaultsUsed", () => {
     expect(defaultOf(config, "ENV_ADMINS")).toBe("none (no administrators)");
     expect(config.admins).toEqual([]);
     expect(defaultOf(config, "ENV_EMAIL_FROM")).toBe("CrowdPoll <no-reply@mail.crowdpoll.vote>");
+    expect(defaultOf(config, "ENV_DEFAULT_LINK_PREVIEW_MESSAGE")).toBe("You have been invited to vote in this poll.");
+    expect(config.defaultLinkPreviewMessage).toBe("You have been invited to vote in this poll.");
   });
 
   it("lists every numeric setting exactly once with its default", () => {
@@ -922,5 +924,23 @@ describe("ENV_DEVICE_EVENTS_* (R11)", () => {
 
   it("stops the app on a value that is neither true nor false", () => {
     expect(() => loadConfig(baseEnv({ ENV_DEVICE_EVENTS_ENABLED: "yes", ENV_DEVICE_EVENTS_KEY: GOOD_KEY }))).toThrow(ConfigError);
+  });
+});
+
+describe("ENV_DEFAULT_LINK_PREVIEW_MESSAGE", () => {
+  it("is used as given, trimmed, and is then no default", () => {
+    const config = loadConfig(baseEnv({ ENV_DEFAULT_LINK_PREVIEW_MESSAGE: "  Have your say.  " }));
+    expect(config.defaultLinkPreviewMessage).toBe("Have your say.");
+    expect(defaultOf(config, "ENV_DEFAULT_LINK_PREVIEW_MESSAGE")).toBeUndefined();
+  });
+
+  it("refuses a blank value, naming the setting", () => {
+    expect(() => loadConfig(baseEnv({ ENV_DEFAULT_LINK_PREVIEW_MESSAGE: "" }))).toThrow(/ENV_DEFAULT_LINK_PREVIEW_MESSAGE.*blank/);
+    expect(() => loadConfig(baseEnv({ ENV_DEFAULT_LINK_PREVIEW_MESSAGE: "   " }))).toThrow(/ENV_DEFAULT_LINK_PREVIEW_MESSAGE.*blank/);
+  });
+
+  it("accepts 300 characters and refuses 301, naming the setting", () => {
+    expect(loadConfig(baseEnv({ ENV_DEFAULT_LINK_PREVIEW_MESSAGE: "x".repeat(300) })).defaultLinkPreviewMessage).toHaveLength(300);
+    expect(() => loadConfig(baseEnv({ ENV_DEFAULT_LINK_PREVIEW_MESSAGE: "x".repeat(301) }))).toThrow(/ENV_DEFAULT_LINK_PREVIEW_MESSAGE.*300/);
   });
 });

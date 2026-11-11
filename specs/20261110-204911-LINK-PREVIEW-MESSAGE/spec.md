@@ -49,11 +49,11 @@ When the poll's link is shared by message, the card shows that message under the
 
 **Why this priority**: it is the stated goal of the feature; it builds on Story 1's card and adds the message to its description.
 
-**Independent Test**: on an approved, open Only people you invite poll with a subtitle and a two-paragraph message with bold words, fetch the shared link as a messaging app does and check the description is the subtitle, a blank line, then the message's words as plain text; then edit the message on a poll with votes and check the description still carries the approved message until the edit is approved.
+**Independent Test**: on an approved, open Only people you invite poll with a subtitle and a two-paragraph message with bold words, fetch the shared link as a messaging app does and check the description is the subtitle, a dash, then the message's words as plain text; then edit the message on a poll with votes and check the description still carries the approved message until the edit is approved.
 
 **Acceptance Scenarios**:
 
-1. **Given** an approved, open Only people you invite poll with a subtitle and a Custom Email Message, **When** its link is previewed, **Then** the card's description is the subtitle, then a blank line, then the message as plain text, with no formatting marks.
+1. **Given** an approved, open Only people you invite poll with a subtitle and a Custom Email Message, **When** its link is previewed, **Then** the card's description is the subtitle, then a dash, then the message as plain text, with no formatting marks.
 2. **Given** the same poll without a subtitle, **When** its link is previewed, **Then** the description is the message alone.
 3. **Given** a message whose words with the subtitle exceed 300 characters, **When** its link is previewed, **Then** the description is cut to 300 characters, the ellipsis included, at the server, before the app's own truncation.
 4. **Given** a poll with votes whose creator changed the message, so the change awaits review, **When** its link is previewed, **Then** the description carries the message approved before the change, never the pending one.
@@ -96,7 +96,7 @@ A link shared before the poll opens, or after it is archived or rejected, previe
 
 - **FR-001**: When the login page is requested with a PID that names a published poll, public or private (open or closed; a poll under edit by the state it held before the edit), the page MUST carry, in a form link-preview fetchers read, the poll's title as the preview headline and a preview description (FR-003), together with the site's name and, as the link's canonical address, the shared link `https://crowdpoll.vote/?PID=<pid>` (never the login page's own address), so a card that names or re-fetches it goes through the same redirect as a tap.
 - **FR-002**: The same page's title (the browser tab) MUST be "<poll title> · CrowdPoll" in that case, and the plain page description MUST equal the preview description.
-- **FR-003**: The preview description MUST be: the subtitle, then a blank line, then the approved Custom Email Message as plain text, when both exist; the subtitle alone or the message alone when only one exists; and "Vote and see live results: <title>" when neither does.
+- **FR-003**: The preview description MUST be: the subtitle, then a dash (` - `), then the approved Custom Email Message as plain text, when both exist; the subtitle alone or the message alone when only one exists; and "Vote and see live results: <title>" when neither does.
   It MUST be cut to 300 characters, the ellipsis included, when longer.
 - **FR-004**: The message MUST be read from its approved copy only, never from a change awaiting review; and it MUST reach the page as plain text, with no formatting and with every character shown as written, so nothing in a title, subtitle or message can alter the page.
 - **FR-005**: For any other PID (a poll that is not published, or no poll), and for a request without a PID, the login page MUST be served exactly as today, titled "Login".

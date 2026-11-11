@@ -129,6 +129,7 @@ export interface Poll {
   subtitle: string;
   notes: string;
   invitationMessage: string;
+  linkPreviewMessage: string;
   /** Comma-separated search keywords; always "" on a private poll. */
   keywords: string;
   choiceMode: ChoiceMode;
@@ -187,6 +188,7 @@ export interface PendingUpdate {
   subtitle?: string;
   notes?: string;
   invitationMessage?: string;
+  linkPreviewMessage?: string;
   choices?: Choice[];
 }
 
@@ -214,6 +216,7 @@ function rowToPoll(row: PollRow, invited: string[], banned: string[], votes: Vot
     subtitle: row.subtitle,
     notes: row.notes,
     invitationMessage: row.invitation_message,
+    linkPreviewMessage: row.link_preview_message,
     keywords: row.keywords,
     choiceMode: row.choice_mode as ChoiceMode,
     voteMutability: row.vote_mutability as VoteMutability,
@@ -284,6 +287,7 @@ const FIELD_TO_COLUMN: Partial<Record<keyof Poll, keyof PollRowUpdate>> = {
   subtitle: "subtitle",
   notes: "notes",
   invitationMessage: "invitation_message",
+  linkPreviewMessage: "link_preview_message",
   keywords: "keywords",
   choiceMode: "choice_mode",
   voteMutability: "vote_mutability",
@@ -316,7 +320,8 @@ const NON_CONTENT_FIELDS: ReadonlySet<keyof Poll> = new Set<keyof Poll>([
   "timeZone",
   "pendingUpdate",
   "pendingRejectionReason",
-  "invitationMessage"
+  "invitationMessage",
+  "linkPreviewMessage"
 ]);
 
 function columnsFor($set: Partial<Poll>): PollRowUpdate {
@@ -516,6 +521,7 @@ function newRow(poll: Poll, creator?: PollCreator): NewPollRow {
     subtitle: poll.subtitle,
     notes: poll.notes,
     invitation_message: poll.invitationMessage,
+    link_preview_message: poll.linkPreviewMessage,
     keywords: poll.keywords,
     choices: JSON.stringify(poll.choices),
     choice_labels: choiceLabelsText(poll.choices),
@@ -813,6 +819,7 @@ export async function applyPendingUpdate(
     if (pending.subtitle !== undefined) columns.subtitle = pending.subtitle;
     if (pending.notes !== undefined) columns.notes = pending.notes;
     if (pending.invitationMessage !== undefined) columns.invitation_message = pending.invitationMessage;
+    if (pending.linkPreviewMessage !== undefined) columns.link_preview_message = pending.linkPreviewMessage;
 
     let rewritten: string[] = [];
     if (pending.choices !== undefined) {

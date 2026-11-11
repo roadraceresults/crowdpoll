@@ -13,6 +13,9 @@ import { COUNTS_KEY } from "../src/polls/counters.js";
 import { escapeHtml } from "../src/html.js";
 import { notesPlainText } from "../src/polls/notes.js";
 import { createSeoRouter, SITEMAP_CACHE_KEY } from "../src/routes/seo.js";
+import { renderLoginPage } from "../src/seo/loginPage.js";
+
+const DEFAULT_SENTENCE = "You have been invited to vote in this poll.";
 
 const ORIGIN = "http://localhost:8080";
 let ctx: TestContext;
@@ -35,7 +38,7 @@ async function seed(overrides: Partial<Poll> = {}): Promise<string> {
 }
 
 describe("robots.txt", () => {
-  it("allows the public pages, keeps crawlers off the rest, and names the sitemap", async () => {
+  it("allows the public pages, keeps crawlers off the rest, lets Meta's preview crawlers read the login page, and names the sitemap", async () => {
     const res = await request(ctx.app).get("/robots.txt");
     expect(res.status).toBe(200);
     expect(res.type).toBe("text/plain");
@@ -53,8 +56,21 @@ describe("robots.txt", () => {
       "Disallow: /invite",
       "Disallow: /confirm-signin",
       "Disallow: /accept-terms",
+      "",
+      "User-agent: facebookexternalhit",
+      "User-agent: meta-externalfetcher",
+      "Allow: /",
+      "Allow: /login",
+      "Disallow: /api/",
+      "Disallow: /admin",
+      "Disallow: /profile",
+      "Disallow: /create-account",
+      "Disallow: /invite",
+      "Disallow: /confirm-signin",
+      "Disallow: /accept-terms",
       `Sitemap: ${ORIGIN}/sitemap.xml`
     ]);
+    expect(res.text).not.toContain("meta-externalagent");
   });
 });
 
@@ -147,6 +163,12 @@ describe("a poll's own page", () => {
     expect(html).toContain('<meta property="og:type" content="website">');
     expect(html).toContain('<meta property="og:site_name" content="CrowdPoll">');
     expect(html).toContain(`<meta property="og:url" content="${ORIGIN}/poll/${open}">`);
+    expect(html).toContain(`<meta property="og:image" content="${ORIGIN}/og-image.png">`);
+    expect(html).toContain('<meta property="og:image:width" content="1200">');
+    expect(html).toContain('<meta property="og:image:height" content="630">');
+    expect(html).toContain('<meta property="og:image:type" content="image/png">');
+    expect(html.indexOf('property="og:url"')).toBeLessThan(html.indexOf('property="og:image"'));
+    expect(html.indexOf('property="og:image:type"')).toBeLessThan(html.indexOf('name="twitter:card"'));
     expect(html).toContain('<meta name="twitter:card" content="summary">');
     expect(html).toContain(`data-poll-page="${open}"`);
 
@@ -164,6 +186,13 @@ describe("a poll's own page", () => {
     expect(summary).toContain("Hawaiian</span> <span class=\"poll-summary-share\">25%");
     expect(summary).toContain("4 votes");
     expect(html.indexOf('<main class="all-markets">')).toBeLessThan(html.indexOf('<article id="poll-summary">'));
+  });
+
+  it("describes a poll without a subtitle by its own line, never the login page's default sentence", async () => {
+    await ctx.db.updateTable("polls").set({ subtitle: "" }).where("id", "=", open).execute();
+    const html = (await request(ctx.app).get(`/poll/${open}`)).text;
+    expect(html).toContain('<meta name="description" content="Vote and see live results: Best &lt;script&gt;alert(1)&lt;/script&gt; &quot;pizza&quot;">');
+    expect(html).not.toContain(DEFAULT_SENTENCE);
   });
 
   it("shows the rendered notes after the subtitle, escaped, and leaves the description alone", async () => {
@@ -312,6 +341,12 @@ describe("the login page of a published poll", () => {
     expect(html).toContain(`<meta property="og:title" content="${TITLE}">`);
     expect(html).toContain(`<meta property="og:description" content="${description}">`);
     expect(html).toContain(`<meta property="og:url" content="${ORIGIN}/?PID=${pid}">`);
+    expect(html).toContain(`<meta property="og:image" content="${ORIGIN}/og-image.png">`);
+    expect(html).toContain('<meta property="og:image:width" content="1200">');
+    expect(html).toContain('<meta property="og:image:height" content="630">');
+    expect(html).toContain('<meta property="og:image:type" content="image/png">');
+    expect(html.indexOf('property="og:url"')).toBeLessThan(html.indexOf('property="og:image"'));
+    expect(html.indexOf('property="og:image:type"')).toBeLessThan(html.indexOf('name="twitter:card"'));
     expect(html).toContain('<meta name="twitter:card" content="summary">');
   }
 
@@ -333,7 +368,6 @@ describe("the login page of a published poll", () => {
     expect(html).toContain('<meta name="robots" content="noindex">');
     expect(html).toContain("loginCard");
     expect(html).not.toContain('<link rel="canonical"');
-    expect(html).not.toContain("og:image");
     expect(html).not.toContain("application/ld+json");
     // SC-005: nothing of the poll beyond title, subtitle and message.
     expect(html).not.toContain(CHOICE);
@@ -354,10 +388,25 @@ describe("the login page of a published poll", () => {
     expect(signedIn.headers.location).toBe(`/?PID=${pid}`);
   });
 
-  it("falls back to the site's line when the poll has no subtitle", async () => {
+  it("falls back to the site's default sentence when the poll has neither subtitle nor message", async () => {
     const pid = await seedPublished({ subtitle: "" });
     const html = (await request(ctx.app).get(`/login?PID=${pid}`)).text;
-    expectPollTags(html, pid, `Vote and see live results: ${TITLE}`);
+    expectPollTags(html, pid, DEFAULT_SENTENCE);
+    expect(html).not.toContain("Vote and see live results");
+  });
+
+  it("renders the operator's sentence as given, escaped, when the site is configured with one", () => {
+    const loginHtml = "<html><head><title>Login</title></head><body>login</body></html>";
+    const poll = { pid: "p1", title: "T", subtitle: "" };
+    const custom = renderLoginPage(loginHtml, poll, "", ORIGIN, "Have your say.");
+    expect(custom).toContain('<meta property="og:description" content="Have your say.">');
+    expect(custom).toContain('<meta name="description" content="Have your say.">');
+    const markup = renderLoginPage(loginHtml, poll, "", ORIGIN, '<b>x</b> & "q"');
+    expect(markup).toContain('<meta property="og:description" content="&lt;b&gt;x&lt;/b&gt; &amp; &quot;q&quot;">');
+    expect(markup).not.toContain("<b>x</b>");
+    const withSubtitle = renderLoginPage(loginHtml, { ...poll, subtitle: "S" }, "", ORIGIN, "Have your say.");
+    expect(withSubtitle).toContain('<meta property="og:description" content="S">');
+    expect(withSubtitle).not.toContain("Have your say.");
   });
 
   it("carries the same tags for a public poll, whose shared link still goes to its own page", async () => {
@@ -373,18 +422,18 @@ describe("the login page of a published poll", () => {
       seedPublished({ pollSharingMode: "Invitation Only", subtitle: "S", invitationMessage: MESSAGE, ...overrides });
     const descriptionOf = (html: string) => /<meta property="og:description" content="([^"]*)">/.exec(html)![1]!;
 
-    it("puts the message's words after the subtitle and a blank line, as plain text", async () => {
+    it("puts the message's words after the subtitle and a dash, as plain text", async () => {
       const pid = await invited();
       const html = (await request(ctx.app).get(`/login?PID=${pid}`)).text;
-      const expected = escapeHtml("S\n\n" + notesPlainText(MESSAGE));
-      expect(expected).not.toContain("**");
+      const expected = escapeHtml("S - " + notesPlainText(MESSAGE).replace(/\s+/g, " "));
+      expect(expected).toBe("S - Line one Line two");
       expect(html).toContain(`<meta property="og:description" content="${expected}">`);
       expect(html).toContain(`<meta name="description" content="${expected}">`);
     });
 
     it("is the message alone without a subtitle", async () => {
       const pid = await invited({ subtitle: "" });
-      expect(descriptionOf((await request(ctx.app).get(`/login?PID=${pid}`)).text)).toBe(escapeHtml(notesPlainText(MESSAGE)));
+      expect(descriptionOf((await request(ctx.app).get(`/login?PID=${pid}`)).text)).toBe("Line one Line two");
     });
 
     it("is cut to 300 characters, the ellipsis included", async () => {
@@ -392,7 +441,7 @@ describe("the login page of a published poll", () => {
       const description = descriptionOf((await request(ctx.app).get(`/login?PID=${pid}`)).text);
       expect(description).toHaveLength(300);
       expect(description.endsWith("…")).toBe(true);
-      expect(description.startsWith("a".repeat(100) + "\n\nbbb")).toBe(true);
+      expect(description.startsWith("a".repeat(100) + " - bbb")).toBe(true);
     });
 
     it("shows markup-like text as written and lets none of it into the page", async () => {
@@ -406,6 +455,69 @@ describe("the login page of a published poll", () => {
       const pid = await invited({ subtitle: "", invitationMessage: "**Old** words" });
       await ctx.db.updateTable("polls").set({ pending_update: JSON.stringify({ invitationMessage: "**New** words" }) }).where("id", "=", pid).execute();
       const description = descriptionOf((await request(ctx.app).get(`/login?PID=${pid}`)).text);
+      expect(description).toBe("Old words");
+      expect(description).not.toContain("New");
+    });
+  });
+
+  describe("with a link preview message", () => {
+    const MESSAGE = "Vote **today**\nfor pizza";
+    const linked = (overrides: Partial<Poll> = {}) =>
+      seedPublished({ subtitle: "S", linkPreviewMessage: MESSAGE, ...overrides });
+    const descriptionOf = (html: string) => /<meta property="og:description" content="([^"]*)">/.exec(html)![1]!;
+    const fetchDescription = async (pid: string) => descriptionOf((await request(ctx.app).get(`/login?PID=${pid}`)).text);
+
+    it("puts the message's words after the subtitle and a dash, on one line, as plain text", async () => {
+      const pid = await linked();
+      const html = (await request(ctx.app).get(`/login?PID=${pid}`)).text;
+      expect(html).toContain('<meta property="og:description" content="S - Vote today for pizza">');
+      expect(html).toContain('<meta name="description" content="S - Vote today for pizza">');
+      expectPollTags(html, pid, "S - Vote today for pizza");
+    });
+
+    it("never shows a Custom Email Message on an Anyone you send the link to poll, approved or pending", async () => {
+      const pid = await linked({ invitationMessage: "Emailed **secret**", linkPreviewMessage: "" });
+      await ctx.db.updateTable("polls").set({ pending_update: JSON.stringify({ invitationMessage: "Pending secret" }) }).where("id", "=", pid).execute();
+      const html = (await request(ctx.app).get(`/login?PID=${pid}`)).text;
+      expect(descriptionOf(html)).toBe("S");
+      expect(html).not.toContain("secret");
+      await ctx.db.updateTable("polls").set({ subtitle: "" }).where("id", "=", pid).execute();
+      expect(await fetchDescription(pid)).toBe(DEFAULT_SENTENCE);
+    });
+
+    it("shows an Only people you invite poll's Custom Email Message, never its Link Preview Message", async () => {
+      const pid = await linked({ pollSharingMode: "Invitation Only", invitationMessage: "Emailed words" });
+      const html = (await request(ctx.app).get(`/login?PID=${pid}`)).text;
+      expect(descriptionOf(html)).toBe("S - Emailed words");
+      expect(html).not.toContain("pizza");
+    });
+
+    it("turns line breaks into spaces and collapses runs of white space", async () => {
+      const pid = await linked({ subtitle: " S  T ", linkPreviewMessage: "a  b\r\n\n  c\n" });
+      expect(await fetchDescription(pid)).toBe("S T - a b c");
+    });
+
+    it("is still cut to 300 characters, the ellipsis included, after flattening", async () => {
+      const pid = await linked({ subtitle: "a".repeat(40), linkPreviewMessage: "b".repeat(50) + "\n" + "c".repeat(49) });
+      const long = await seedPublished({ subtitle: "a".repeat(100), pollSharingMode: "Invitation Only", invitationMessage: "b".repeat(100) + "\n" + "c".repeat(148) });
+      expect(await fetchDescription(pid)).toBe("a".repeat(40) + " - " + "b".repeat(50) + " " + "c".repeat(49));
+      const description = await fetchDescription(long);
+      expect(description).toHaveLength(300);
+      expect(description.endsWith("…")).toBe(true);
+      expect(description).not.toContain("\n");
+    });
+
+    it("gives a public poll's login page the subtitle or the default sentence, never a message", async () => {
+      const pid = await linked({ pollVisibility: "Public Poll", invitationMessage: "Emailed words" });
+      expect(await fetchDescription(pid)).toBe("S");
+      await ctx.db.updateTable("polls").set({ subtitle: "" }).where("id", "=", pid).execute();
+      expect(await fetchDescription(pid)).toBe(DEFAULT_SENTENCE);
+    });
+
+    it("carries the approved message, never one awaiting review", async () => {
+      const pid = await linked({ subtitle: "", linkPreviewMessage: "**Old** words" });
+      await ctx.db.updateTable("polls").set({ pending_update: JSON.stringify({ linkPreviewMessage: "**New** words" }) }).where("id", "=", pid).execute();
+      const description = await fetchDescription(pid);
       expect(description).toBe("Old words");
       expect(description).not.toContain("New");
     });

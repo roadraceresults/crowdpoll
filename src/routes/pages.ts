@@ -15,7 +15,7 @@ import type { SessionCache } from "../auth/sessionCache.js";
 import type { Cache } from "../cache/cache.js";
 import { pollExists, type Db } from "../polls/store.js";
 import { projectPoll } from "../polls/versions.js";
-import { renderLoginPage } from "../seo/loginPage.js";
+import { previewMessageOf, renderLoginPage } from "../seo/loginPage.js";
 import { canReachAdmin, createRequireAdmin, createRequirePollOwner, type Caller } from "../polls/service.js";
 import { landingUrl, parsePid, resolveSharedLink } from "../polls/sharedLink.js";
 import { findSignInToken, useToken } from "../invitations/tokens.js";
@@ -105,12 +105,13 @@ export function createPagesRouter({ sessions, config, db, cache }: PageDeps): Ro
         return;
       }
       // A guest's shared link lands here, and so does a messaging app's preview fetcher: for an open or closed poll
-      // the page carries the poll's title and description in its head, read from the approved columns only.
+      // the page carries the poll's title and description (the message of its sharing mode, or the site's default
+      // sentence) in its head, read from the approved columns only.
       const row = pid ? await db.selectFrom("polls").selectAll().where("id", "=", pid).executeTakeFirst() : undefined;
       if (row && isOpenOrClosed(row)) {
         console.log(`[login] Poll preview rendered: ${row.id}`);
         res.setHeader("Cache-Control", "no-cache");
-        res.type("html").send(renderLoginPage(assets.pageHtml("login.html"), projectPoll(row), row.invitation_message, config.publicOrigin));
+        res.type("html").send(renderLoginPage(assets.pageHtml("login.html"), projectPoll(row), previewMessageOf(row), config.publicOrigin, config.defaultLinkPreviewMessage));
         return;
       }
       page("login.html")(req, res, () => undefined);

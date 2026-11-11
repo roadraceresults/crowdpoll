@@ -38,6 +38,15 @@ describe("localScreener (011 R1)", () => {
     expect(await localScreener({ title: "Classic Scunthorpe", notes: "", subtitle: "Assessment", choiceLabels: ["Grass", "Bassoon"] })).toBe("");
   });
 
+  it("screens the link preview message too, and names it after the custom email message", async () => {
+    const v = await localScreener({ title: "ok", subtitle: "", notes: "", invitationMessage: "", linkPreviewMessage: "you fuck", choiceLabels: ["a", "b"] });
+    expect(v).toBe("Acceptability Screening rejected this poll for unacceptable language (1 term). Please revise the title, subtitle, notes, link preview message and choices.");
+    const both = await localScreener({ title: "ok", subtitle: "", notes: "", invitationMessage: "shit", linkPreviewMessage: "fuck", choiceLabels: ["a", "b"] });
+    expect(both).toBe("Acceptability Screening rejected this poll for unacceptable language (2 terms). Please revise the title, subtitle, notes, custom email message, link preview message and choices.");
+    const without = await localScreener({ title: "you fuck", subtitle: "", notes: "", invitationMessage: "", linkPreviewMessage: "", choiceLabels: ["a", "b"] });
+    expect(without).toBe("Acceptability Screening rejected this poll for unacceptable language (1 term). Please revise the title, subtitle, notes and choices.");
+  });
+
   it("screens the custom email message too, and names it when there is one", async () => {
     const v = await localScreener({ title: "ok", subtitle: "", notes: "", invitationMessage: "you fuck", choiceLabels: ["a", "b"] });
     expect(v).toBe("Acceptability Screening rejected this poll for unacceptable language (1 term). Please revise the title, subtitle, notes, custom email message and choices.");
@@ -124,6 +133,20 @@ describe("Publish and approval (011 US3)", () => {
     expect(after.pollState).toBe("REJECTED");
     expect(after.pollRejectionReason).toBe(
       "Acceptability Screening rejected this poll for unacceptable language (2 terms). Please revise the title, subtitle, notes and choices."
+    );
+  });
+
+  it("rejects a poll whose link preview message alone objects, and names the message", async () => {
+    const poll = makePoll({
+      pollState: "AWAITING APPROVAL", title: "Picnic", pollVisibility: "Private Poll", pollSharingMode: "Anyone With The Link",
+      linkPreviewMessage: "Come **f**uck", choices: realChoices
+    });
+    await polls(ctx).insertOne(poll);
+    expect(await pollsAwaitingApprovalSweep(ctx, DEPS)).toBe(1);
+    const after = await reload(poll._id);
+    expect(after.pollState).toBe("REJECTED");
+    expect(after.pollRejectionReason).toBe(
+      "Acceptability Screening rejected this poll for unacceptable language (1 term). Please revise the title, subtitle, notes, link preview message and choices."
     );
   });
 

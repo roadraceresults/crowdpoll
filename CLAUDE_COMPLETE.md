@@ -5,6 +5,39 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261111-132724-SHARED-LINK-MESSAGE/plan.md` (research R1–R10, `data-model.md` — the new column, the derived
+preview values and the setting; the contracts `contracts/api.md` A1–A3, `contracts/page.md` P1–P5,
+`contracts/ui-contracts.md` C1–C3, and the quickstart live alongside it in
+`specs/20261111-132724-SHARED-LINK-MESSAGE/`).
+The requirements report is `requirements/20261111-122415-shared-link-message/requirements-report.md`: 3 research
+results and 12 findings, all resolved.
+Decisions that are easy to get wrong:
+- **A twin column, not a shared one**: `polls.link_preview_message` (migration `021-link-preview-message`, 100
+  characters, `LINK_PREVIEW_MESSAGE_MAX` in `src/polls/notes.ts`) mirrors `invitation_message` in every rule:
+  `normalizeNotes`, `NON_CONTENT_FIELDS`, screening (named "link preview message"), `pending_update` after votes,
+  Duplicate, admin detail (`linkPreviewMessage`, `linkPreviewMessageHtml`) and list (`hasLinkPreviewMessage`) only;
+  never copied from `invitation_message` (R1).
+- **The preview shows the message of the current sharing mode**: `previewMessageOf(row)` in `src/seo/loginPage.ts`:
+  nothing for a public poll, `invitation_message` for Invitation Only, else `link_preview_message`, always the approved
+  column (R2).
+- **One line**: the subtitle and `notesPlainText(message)` each have white space (line breaks included) collapsed to
+  one space, then are joined by ` - `; the fallback is `config.defaultLinkPreviewMessage`
+  (`ENV_DEFAULT_LINK_PREVIEW_MESSAGE`, default `You have been invited to vote in this poll.`, trimmed, blank or over
+  300 → `ConfigError`); the 300 cut stays. `/poll/:pid`'s `describe()` is unchanged (R3, R4). The subtitle comes first
+  for every poll; a creator who wants the message seen first keeps the subtitle short (Q2).
+- **robots.txt**: a second group for `facebookexternalhit` and `meta-externalfetcher` with `Allow: /login` and the
+  other disallows repeated; `*` keeps `Disallow: /login`; the login page keeps `noindex` (R5).
+- **`og:image`**: `previewHeadTags` takes `origin` and emits `${origin}/og-image.png` with `og:image:width` 1200,
+  `og:image:height` 630, `og:image:type image/png` on both pages; `twitter:card` stays `summary`. The committed
+  `src/public/og-image.png` is rendered from `favicon.svg` by `devScripts/favicon-ico.ts` (headless browser), no
+  package; the spec was amended to match (analysis I1, R6, Q1). The tradeoff surfaced by the research: one static brand
+  image for every poll, rather than a per-poll image generated at run time (CPU on every fetch and a cache to add) or a
+  rasterizer dependency for one render.
+- **Wizard**: `m3RichTextField` with id prefix `pollLinkPreviewMessage-` after the Copy Link block under "Anyone you
+  send the link to" only; both messages are kept and saved whatever the mode; summary line class
+  `wizard-summary-link-preview-message` (R7).
+One migration (021), one setting, one static image; no new route, cookie, storage key, stylesheet or dependency.
+The preceding feature is
 `specs/20261110-204911-LINK-PREVIEW-MESSAGE/plan.md` (research R1–R9, `data-model.md` — no schema change, the read
 set and the derived preview fields; the page contract `contracts/page.md` P1–P3, the UI contracts
 `contracts/ui-contracts.md` C1–C3, and the quickstart live alongside it in
@@ -19,7 +52,7 @@ Decisions that are easy to get wrong:
 - **Shared tag builder**: `previewHeadTags({ title, headline, description, url })` and `joinHeadTags` exported from
   `src/seo/pollPage.ts`; `renderLoginPage` in `src/seo/loginPage.ts` adds no canonical link, JSON-LD or image;
   `og:url` is the shared link `/?PID=<pid>`, never `/login` (R2, R4, Q1).
-- **Description** = subtitle, blank line, `notesPlainText(invitation_message)` from the approved column (never
+- **Description** = subtitle, a dash (` - `), `notesPlainText(invitation_message)` from the approved column (never
   `pending_update`), fallback `Vote and see live results: <title>`, cut to 300 characters with the ellipsis inside (R3, R5).
 - **`Cache-Control: no-cache`** for the rendered page, with the weak ETag `res.send` always adds (as on `/poll/:pid`);
   the plain page keeps `sendPage`'s own ETag and 304 (R6).
@@ -1157,6 +1190,7 @@ All runtime configuration comes from `ENV_*` environment variables:
 | `ENV_SMTP_HOST`, `ENV_SMTP_PORT` | `sandbox.smtp.mailtrap.io`, `2525` | SMTP server for `smtp` (no longer in the development templates) |
 | `ENV_SMTP_USER`, `ENV_SMTP_PASS` | unset | SMTP credentials for `smtp`; unset → each message is logged to the console instead of sent |
 | `ENV_EMAIL_FROM` | `CrowdPoll <no-reply@mail.crowdpoll.vote>` | Sender of every message (replaces `ENV_SMTP_FROM`, which is no longer read); the development templates use `no-reply@dev.mail.crowdpoll.vote` |
+| `ENV_DEFAULT_LINK_PREVIEW_MESSAGE` | `You have been invited to vote in this poll.` | The description a messaging app shows under a poll's shared link when the poll has neither a subtitle nor a message of its sharing mode (login page only; `/poll/<pid>` keeps its own line); trimmed; blank or over 300 characters stops the app |
 | `ENV_EMAIL_SEND_TIMEOUT` | `10000` | Longest one send may take (ms) before it counts as failed |
 | `ENV_EMAIL_ASSET_ORIGIN` | unset | Origin the email logo is loaded from, no path; unset → the link's origin. The development templates set `https://crowdpoll.vote`, because a mail app's image proxy cannot reach `localhost` |
 | `ENV_ALLOWED_EMAILS` | unset | Pre-launch allowlist: comma-separated addresses allowed to create an account and log in, compared by email key, or patterns holding `*` (any characters except `@`, e.g. `*@crowdpoll.vote`) matched against the email key; `ENV_ADMINS` addresses always are. Unset or empty → off (everyone). An invalid entry, or a pattern without one `@`, stops the app; startup logs only the counts (`2 addresses, 1 pattern; 3 administrators always allowed`). Production: `allowed_emails` in the git-ignored `infra/secrets.auto.tfvars`, never in a committed file; the templates carry it empty |

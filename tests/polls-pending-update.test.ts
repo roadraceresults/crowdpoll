@@ -612,3 +612,73 @@ describe("the custom email message on an ever-voted poll", () => {
     );
   });
 });
+
+describe("the link preview message on an ever-voted poll", () => {
+  let ctx: TestContext;
+  let cookie: string;
+  beforeAll(async () => {
+    ctx = await startTestContext();
+    ({ cookie } = await forgeSession(ctx, ctx.config.admins[0]!));
+  });
+  afterAll(async () => {
+    await ctx.stop();
+  });
+  beforeEach(async () => {
+    await polls(ctx).deleteMany({});
+    await voteHistory(ctx).deleteMany({});
+  });
+
+  const row = (pid: string) =>
+    ctx.db.selectFrom("polls").select(["link_preview_message", "invitation_message", "pending_update", "poll_state"]).where("id", "=", pid)
+      .executeTakeFirstOrThrow();
+
+  async function votedLinkPoll(linkPreviewMessage: string) {
+    const poll = makePoll({
+      pollState: "OPEN", pollVisibility: "Private Poll", pollSharingMode: "Anyone With The Link", linkPreviewMessage
+    });
+    await polls(ctx).insertOne(poll);
+    await voteHistory(ctx).insertOne({ pid: poll._id, emailAddress: "v@example.com", userName: "v", choiceIds: ["c1"], votedAt: new Date() });
+    return poll;
+  }
+
+  const save = (pid: string, body: Record<string, unknown>) =>
+    request(ctx.app).post(`/api/admin/polls/${pid}/publish`).set("Cookie", cookie).send(body);
+
+  it("waits in the pending update until the sweep applies it, leaving the approved column as it was", async () => {
+    const poll = await votedLinkPoll("**Old** words");
+    const res = await save(poll._id, { linkPreviewMessage: "**New** words" });
+    expect(res.status).toBe(200);
+    expect(res.body.pending).toBe(true);
+    expect(res.body.pendingUpdate).toEqual({ linkPreviewMessage: "**New** words" });
+    const pending = await row(poll._id);
+    expect(pending.link_preview_message).toBe("**Old** words");
+    expect(pending.pending_update).toEqual({ linkPreviewMessage: "**New** words" });
+
+    expect(await pollsAwaitingApprovalSweep(ctx, DEPS)).toBe(1);
+    const applied = await row(poll._id);
+    expect(applied.link_preview_message).toBe("**New** words");
+    expect(applied.invitation_message).toBe("");
+    expect(applied.pending_update).toBeNull();
+  });
+
+  it("rejects an offending pending message, names it, and keeps the approved one", async () => {
+    const poll = await votedLinkPoll("Fine");
+    expect((await save(poll._id, { linkPreviewMessage: "you fuck" })).body.pending).toBe(true);
+    expect(await pollsAwaitingApprovalSweep(ctx, DEPS)).toBe(1);
+    const after = await row(poll._id);
+    expect(after.link_preview_message).toBe("Fine");
+    expect(after.pending_update).toBeNull();
+    expect(after.poll_state).toBe("OPEN");
+    expect((await polls(ctx).findOne({ _id: poll._id }))!.pendingRejectionReason).toBe(
+      "Acceptability Screening rejected this poll for unacceptable language (1 term). Please revise the title, subtitle, notes, link preview message and choices."
+    );
+  });
+
+  it("is not a content change: an unchanged message is not sent again, and the same message is no pending update", async () => {
+    const poll = await votedLinkPoll("Same");
+    const res = await save(poll._id, { linkPreviewMessage: "Same" });
+    expect(res.status).toBe(200);
+    expect(res.body.pending).toBe(false);
+    expect((await row(poll._id)).pending_update).toBeNull();
+  });
+});

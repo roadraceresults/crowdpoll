@@ -34,14 +34,15 @@ alternatives considered.
 - **Alternatives**: a second copy of the tag list in `loginPage.ts` (two lists to keep in step); rendering through
   `sendPage` with a template hook (a larger change to `assets.ts` for one page).
 
-## R3. The description: subtitle, blank line, plain-text message, 300 characters
+## R3. The description: subtitle, dash, plain-text message, 300 characters
 
 - **Decision**: `linkPreviewDescription(poll, message)` in `loginPage.ts`:
-  `[poll.subtitle.trim(), notesPlainText(message).trim()].filter(Boolean).join("\n\n")`, or
+  `[poll.subtitle.trim(), notesPlainText(message).trim()].filter(Boolean).join(" - ")`, or
   `Vote and see live results: ${poll.title}` when both are empty; then, above `LINK_PREVIEW_DESCRIPTION_MAX = 300`,
   `text.slice(0, 299).trimEnd() + "…"` — the ellipsis counts within the 300, the convention `describe()` in
-  `pollPage.ts` uses at 160. The value is attribute-escaped by `previewHeadTags` (`escapeHtml`), so a newline survives
-  inside the attribute and the apps collapse it.
+  `pollPage.ts` uses at 160. The value is attribute-escaped by `previewHeadTags` (`escapeHtml`). The parts are
+  joined by a spaced hyphen, not a blank line: the apps collapse whitespace in a card, so a blank line ran the subtitle
+  and the message together (TWEAK02).
 - **Rationale**: FR-003 and UA2; `notesPlainText` is the one text path for notes markup (CLAUDE.md invariant), so no
   `**` or `__` marks and no HTML reach the page (FR-004, US2 scenario 5). The empty-case fallback keeps the card's
   description non-empty, as `/poll/<pid>` does.
@@ -101,7 +102,7 @@ alternatives considered.
   - a private open "Anyone With The Link" poll with subtitle: `<title>… · CrowdPoll</title>`, `og:title`,
     `og:description` = subtitle, `og:url` = `${ORIGIN}/?PID=…`, `<meta name="description">`, `noindex` still present,
     `Cache-Control: no-cache`, and `/loginCard.js` still referenced (the page is the login page);
-  - an Invitation Only poll with subtitle and message: description = subtitle, blank line, message words without
+  - an Invitation Only poll with subtitle and message: description = subtitle, dash, message words without
     marks; without subtitle: the message alone; without both: `Vote and see live results: <title>`;
   - a 300+ character subtitle-and-message: 300 characters ending in `…`;
   - a voted poll with a pending message change: the approved message, not the pending one;

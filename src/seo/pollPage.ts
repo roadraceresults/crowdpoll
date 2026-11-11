@@ -21,6 +21,9 @@ function percentages(poll: PollProjection, counts: LiveCounts): Map<string, numb
   );
 }
 
+/** The brand image every preview page offers: 1200 × 630, rendered from favicon.svg by devScripts/favicon-ico.ts. */
+export const OG_IMAGE = { path: "/og-image.png", width: 1200, height: 630, type: "image/png" } as const;
+
 export interface PreviewHead {
   /** The full `<title>` text, e.g. "Best pizza · CrowdPoll". */
   title: string;
@@ -29,13 +32,16 @@ export interface PreviewHead {
   description: string;
   /** The address the preview card carries as the page's own. */
   url: string;
+  /** The site's origin, which the image's absolute address is built on. */
+  origin: string;
 }
 
 /**
- * The head tags a link-preview fetcher or crawler reads — title, description, Open Graph and Twitter card — each
- * value attribute-escaped. The poll page adds its canonical link and structured data; the login page uses them alone.
+ * The head tags a link-preview fetcher or crawler reads — title, description, Open Graph with the brand image, and
+ * Twitter card — each value attribute-escaped. The poll page adds its canonical link and structured data; the login
+ * page uses them alone. The image's width, height and type let an app lay the card out before fetching it.
  */
-export function previewHeadTags({ title, headline, description, url }: PreviewHead): string[] {
+export function previewHeadTags({ title, headline, description, url, origin }: PreviewHead): string[] {
   const escapedDescription = escapeHtml(description);
   return [
     `<title>${escapeHtml(title)}</title>`,
@@ -45,6 +51,10 @@ export function previewHeadTags({ title, headline, description, url }: PreviewHe
     `<meta property="og:title" content="${escapeHtml(headline)}">`,
     `<meta property="og:description" content="${escapedDescription}">`,
     `<meta property="og:url" content="${escapeHtml(url)}">`,
+    `<meta property="og:image" content="${escapeHtml(origin + OG_IMAGE.path)}">`,
+    `<meta property="og:image:width" content="${OG_IMAGE.width}">`,
+    `<meta property="og:image:height" content="${OG_IMAGE.height}">`,
+    `<meta property="og:image:type" content="${OG_IMAGE.type}">`,
     `<meta name="twitter:card" content="summary">`
   ];
 }
@@ -57,7 +67,7 @@ export function joinHeadTags(tags: string[]): string {
     .trimStart();
 }
 
-function headTags(poll: PollProjection, counts: LiveCounts, url: string): string {
+function headTags(poll: PollProjection, counts: LiveCounts, url: string, origin: string): string {
   // https://schema.org/Question
   const question = {
     "@context": "https://schema.org",
@@ -72,7 +82,8 @@ function headTags(poll: PollProjection, counts: LiveCounts, url: string): string
     title: `${poll.title} · CrowdPoll`,
     headline: poll.title,
     description: describe(poll),
-    url
+    url,
+    origin
   });
   return joinHeadTags([
     title!,
@@ -103,7 +114,7 @@ export function renderPollPage(indexHtml: string, poll: PollProjection, counts: 
   const url = `${origin}/poll/${poll.pid}`;
   return indexHtml
     .replace(/<meta name="description"[^>]*>\s*/, "")
-    .replace(/<title>[^<]*<\/title>/, () => headTags(poll, counts, url))
+    .replace(/<title>[^<]*<\/title>/, () => headTags(poll, counts, url, origin))
     .replace(/<body([^>]*)>/, (_m, attrs: string) => `<body${attrs} data-poll-page="${escapeHtml(poll.pid)}">`)
     .replace(/<main class="all-markets">/, (m) => `${m}\n${summary(poll, counts, notesHtml)}`);
 }
