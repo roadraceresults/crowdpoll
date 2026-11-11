@@ -583,6 +583,8 @@
   text-align:right;
 }
 .card-shell-hint[hidden]{ display:none; }
+/* The Login card's line for newcomers, under the email field. */
+.card-shell-hint.login-new-hint{ text-align:left; margin-top:4px; }
 
 /* An action awaiting its outcome (FR-046). */
 .btn-primary.is-running{

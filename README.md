@@ -423,7 +423,8 @@ They share one branded layout (`src/email/templates.ts`), come from
 - **Production** sends through Amazon SES (`ca-central-1`) over HTTPS, since DigitalOcean blocks outbound SMTP. The SES,
   DNS (SPF, DKIM, DMARC), inbound forwarding and alarm setup is a one-time task done by hand by the operator.
 - **Development** sends through SES too, from `us-east-1` as `no-reply@dev.mail.crowdpoll.vote`, with a separate key that can
-  send nowhere else; that region stays in the SES sandbox, so it only mails inboxes you have verified. The setup is in
+  send nowhere else; that region stays in the SES sandbox, so it only mails inboxes you have verified. The setup, including verifying a test inbox, is in
+  `specs/20261019-153514-PRODUCTION-EMAIL/quickstart.md` §6.
   The SMTP (Mailtrap) path and the console fallback remain in the code for reference; the tests capture messages and send none.
 - Each send logs its type, a masked recipient (`j•••@gmail.com`) and the provider's message id, never the link.
 - A login link logs in at once only in the browser that asked for it (a short-lived `signin_binding` cookie);
@@ -459,6 +460,10 @@ They share one branded layout (`src/email/templates.ts`), come from
   Profile card; it follows the picture at Google each time you log in with Google, and goes when the account is deleted.
   Amazon, Apple and Microsoft accounts keep the default avatar. It needs Spaces: without `ENV_SPACES_*`, every account
   keeps the default avatar. A failure to fetch or store the picture never stops the login.
+- The Login card is the one way in for new and returning people alike: it has no Create account link, and under its email
+  field says "New to CrowdPoll? Enter your email and we'll send you a link to create your account." An address with no
+  account is emailed the create-account link (see Email). The Create Account page stays, for those links and for anyone
+  who opens `/create-account`.
 - **Stay logged in** applies to every way of logging in. On the Login card it sits above the provider buttons when there
   are any, and a provider login with it ticked lasts as long as an emailed link's (30 days by default). Left clear, a
   login lasts until the browser closes, or 24 hours at most.

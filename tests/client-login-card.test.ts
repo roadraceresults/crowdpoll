@@ -1,8 +1,9 @@
 /**
  * The Login and Create Account cards (TWEAKS05): a lock badge above the title, the subtitle as lines with
- * "We do not store passwords." as its smaller last line, and a foot line leading to the other card, which
- * keeps a shared poll's ?PID=. The Login card has no Create account line in oauth mode, where
- * /create-account does not exist.
+ * "We do not store passwords." as its smaller last line. The Create Account card has a foot line leading to
+ * Login, which keeps a shared poll's ?PID=. The Login card has no Create account line: under its email field
+ * a hint tells newcomers that the same field creates their account (an unknown address is emailed a
+ * create-account link). In oauth mode there is no email field, so no hint.
  */
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { startTestContext, type TestContext } from "./helpers/setup.js";
@@ -38,6 +39,8 @@ async function createAccount(ctx: TestContext, query = ""): Promise<BrowserPage>
 const lines = (p: BrowserPage) => [...p.document.querySelectorAll(".card-shell-subtitle-line")].map((n) => n.textContent);
 const note = (p: BrowserPage) => p.document.querySelector(".card-shell-subtitle-note")?.textContent;
 const foot = (p: BrowserPage) => p.document.querySelector(".card-shell-foot");
+const NEW_HINT = "New to CrowdPoll? Enter your email and we'll send you a link to create your account.";
+const newHint = (p: BrowserPage) => p.document.querySelector("#login-form .login-new-hint");
 
 function expectBadge(p: BrowserPage): void {
   const face = p.document.querySelector(".card-shell-face") as HTMLElement;
@@ -58,18 +61,16 @@ describe("native mode", () => {
     await ctx.stop();
   });
 
-  it("the Login card has the badge, its subtitle lines and a Create account line", async () => {
+  it("the Login card has the badge, its subtitle lines and a newcomers' hint instead of a Create account line", async () => {
     page = await login(ctx);
     expectBadge(page);
     expect(lines(page)).toEqual(["We email you a one-time login link."]);
     expect(note(page)).toBe("We do not store passwords.");
-    expect(foot(page)?.textContent).toBe("Don't have an account? Create account");
-    expect(foot(page)?.querySelector("a")?.getAttribute("href")).toBe("/create-account");
-  });
-
-  it("the Create account line keeps a shared poll's id", async () => {
-    page = await login(ctx, `?PID=${PID}`);
-    expect(foot(page)?.querySelector("a")?.getAttribute("href")).toBe(`/create-account?PID=${PID}`);
+    expect(foot(page)).toBeNull();
+    expect(page.document.querySelector('a[href^="/create-account"]')).toBeNull();
+    const hint = newHint(page);
+    expect(hint?.textContent).toBe(NEW_HINT);
+    expect(hint?.previousElementSibling?.id).toBe("email");
   });
 
   it("the Create Account card has the badge, its subtitle lines and a Log in line", async () => {
@@ -102,12 +103,13 @@ describe("both mode", () => {
     await ctx.stop();
   });
 
-  it("the Login card names both ways in two lines and keeps the Create account line", async () => {
+  it("the Login card names both ways in two lines and has the newcomers' hint, no Create account line", async () => {
     page = await login(ctx);
     expectBadge(page);
     expect(lines(page)).toEqual(["Log in with a provider,", "or we email you a one-time login link."]);
     expect(note(page)).toBe("We do not store passwords.");
-    expect(foot(page)?.textContent).toBe("Don't have an account? Create account");
+    expect(foot(page)).toBeNull();
+    expect(newHint(page)?.textContent).toBe(NEW_HINT);
   });
 });
 
@@ -126,5 +128,6 @@ describe("oauth mode", () => {
     expect(lines(page)).toEqual(["Log in with your Google, Apple, Microsoft or Amazon account."]);
     expect(note(page)).toBe("We do not store passwords.");
     expect(foot(page)).toBeNull();
+    expect(page.document.querySelector(".login-new-hint")).toBeNull();
   });
 });

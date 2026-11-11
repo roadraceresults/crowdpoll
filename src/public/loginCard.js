@@ -121,7 +121,6 @@
       card.body.appendChild(el("div", "oauth-divider")).textContent = "or";
     }
     renderNative(card, stayChoice, mode !== "both");
-    window.CardShell.addFootLine(card, "Don't have an account?", "/create-account", "Create account");
   }
 
   function providerLogo(file, className) {
@@ -264,7 +263,12 @@
     var stay = stayChoice.input;
     var stayLabel = stayChoice.label;
 
-    form.append(label, input);
+    /* One way in: an address with no account is emailed a link that creates it,
+       so the card tells newcomers so instead of leading to Create Account. */
+    var newHint = el("p", "card-shell-hint login-new-hint");
+    newHint.textContent = "New to CrowdPoll? Enter your email and we'll send you a link to create your account.";
+
+    form.append(label, input, newHint);
     if (emailOnly) form.append(stayLabel);
     var homepage = window.CardShell.hiddenField(form);
     card.body.appendChild(form);
