@@ -49,3 +49,5 @@ infra/*.tfstate
 infra/*.tfstate.*
 infra/secrets.auto.tfvars
 infra/*.plan
+# Personal notes on provisioning and deploying (outputs, commands)
+infra/how-to.md
