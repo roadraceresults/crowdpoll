@@ -121,6 +121,8 @@ npx vitest run -t "name of the test"   # tests matching a name
   removal sweep deletes it.
 - A new dev script needs a `!devScripts/<file>` line in `.gitignore`.
 - `m3-assets.test.ts` pins each page's stylesheets (`LAYER_ORDER`); M3 layers hold only M3 tokens, no literal font sizes.
+- A back arrow or Cancel that leaves a page goes through `window.SiteBack` (`backArrow.js`), never its own
+  `history.back()`; a new home tab joins `TAB_NAMES` in `tabs.js`, and tab changes use `replaceState`, never `pushState`.
 - Bookmark is "Favorites" in the UI only; routes, tables and identifiers keep `bookmark`; stored enumerations stay verbatim.
 
 ## Architecture Notes

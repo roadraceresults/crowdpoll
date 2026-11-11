@@ -14,7 +14,7 @@ All runtime configuration comes from `ENV_*` environment variables:
 | Variable | Dev default | Description |
 |---|---|---|
 | `ENV_PORT` | `8080` | HTTP port for the web app |
-| `ENV_PUBLIC_ORIGIN` | `http://localhost:8080` (templates) | The one origin the site is reached at, no path (`https://crowdpoll.vote` in `infra/app.tf`); required — the app refuses to start without it. Every login provider redirect URI is built from it |
+| `ENV_PUBLIC_ORIGIN` | `http://localhost:8080` (templates) | The one origin the site is reached at, no path (`https://crowdpoll.vote` in `infra/app.tf`); required — the app refuses to start without it. Every login provider redirect URI is built from it; a request for its `www.` name is redirected to it (`src/routes/wwwRedirect.ts`) |
 | `ENV_DATABASE_URL` | `postgres://localhost:5432/app01` | PostgreSQL connection string (the managed pool's URL in production) |
 | `ENV_DATABASE_CA_CERT` | unset | PEM of the CA that signed the database server's certificate (DigitalOcean: the database component's `CA_CERT`). Set → the connection is verified against it and `sslmode` is dropped from the URL; unset → `pg` verifies against the system roots, which fails against a managed database. `\n` pairs are read as line breaks |
 | `ENV_VALKEY_URL` | unset | Valkey URL; unset → the in-process cache/queue/registry (development and tests). A remote host beside a `localhost` `ENV_DATABASE_URL` stops the app: a local server on a shared Valkey would trade votes and counter flushes with production and drop them |
@@ -49,7 +49,7 @@ All runtime configuration comes from `ENV_*` environment variables:
 | `ENV_EMAIL_RATE_LIMIT_MAX_REQUESTS_PER_WINDOW` | `2` | Requests allowed per client in that window. Lower the window and raise this while testing login — the defaults lock you out for 15 minutes after two login links |
 | `ENV_MAX_INVITATIONS_PER_DAY` | `200` | Invitation and reminder emails one poll creator may send in any rolling 24 hours, counted across all their polls; what does not fit waits as `Not sent yet` and goes as the window frees up. Lower it (e.g. `3`) to see the limit while testing |
 | `ENV_MAX_PRIVATE_POLL_VOTERS` | `100` | Voter ceiling on a private poll — both the limit a blank field means and the largest value enterable. Lower it (e.g. `10`) to fill a test poll in a few votes |
-| `ENV_PARTICIPANTS_VIEWPORT_SIZE` | `10` | Rows per page in the poll card's `Participants` and `Banned Voter List` sections. Lower it (e.g. `3`) to make paging visible with a handful of participants |
+| `ENV_PARTICIPANTS_VIEWPORT_SIZE` | `10` | Rows per page in the admin poll card's `Invitees` list (an "Only people you invite" poll), sent to the browser as `participantsViewportSize` on `GET /api/config`. Lower it (e.g. `3`) to make paging visible with a handful of invitees |
 | `ENV_MIN_CHOICES` | `2` | Fewest choices a poll may be published with |
 | `ENV_MAX_CHOICES` | `50` | Most choices a poll may be published with; the choices editor caps its lines at this. Lower it (e.g. `5`) to exercise the ceiling without typing fifty lines. Must be ≥ `ENV_MIN_CHOICES` |
 | `ENV_SESSION_CACHE_TTL` | `300000` | How long a session lookup is served from the cache (ms); never past the session's own expiry |

@@ -26,6 +26,7 @@ import { createSeoRouter } from "./routes/seo.js";
 import { createFcaptchaDevProxy, isLocalOrigin } from "./routes/fcaptchaDevProxy.js";
 import { createPollsApiRouter, createVoteRouter } from "./routes/pollsApi.js";
 import { createTabsApiRouter } from "./routes/tabsApi.js";
+import { createWwwRedirect } from "./routes/wwwRedirect.js";
 import { buildSweepSchedules, startSweeps } from "./polls/sweeps.js";
 import { createListingPublisher, createSpacesStore, NEWEST_OBJECTS, TRENDING_OBJECTS, type ObjectStore, type Publisher } from "./trending/publish.js";
 import { createSearch, type Search } from "./search/search.js";
@@ -98,6 +99,7 @@ export function createApp(context: AppContext): Express {
   app.disable("x-powered-by");
 
   app.use(createHealthRouter({ cache, shedding, abuseCounts: () => ({ ...abuse }) }));
+  app.use(createWwwRedirect(config.publicOrigin));
   app.use(compression());
   app.use(shedding.countInFlight);
   if (config.humanCheck && isLocalOrigin(config.publicOrigin)) app.use(createFcaptchaDevProxy(config.humanCheck, context.humanCheckFetch));

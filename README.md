@@ -626,7 +626,7 @@ provider settings only with `oauth` or `both`, and administrator addresses are m
 | `ENV_POLL_EDIT_HEARTBEAT_INTERVAL` | `10000` | Editing-page heartbeat |
 | `ENV_MAX_ACCEPTABILITY_SCREENING_ATTEMPTS` | `10` | Screening attempts before a poll is rejected |
 | `ENV_POLL_ADMIN_PAGE_REFRESH_INTERVAL` | `5000` | Admin list refresh |
-| `ENV_PARTICIPANTS_VIEWPORT_SIZE` | `10` | Rows per page in the card's participant lists |
+| `ENV_PARTICIPANTS_VIEWPORT_SIZE` | `10` | Rows per page in the admin card's Invitees list |
 | `ENV_MAX_INVITATIONS_PER_DAY` | `200` | Invitation and reminder emails per poll creator in any rolling 24 hours; the rest wait |
 | `ENV_MAX_PRIVATE_POLL_VOTERS` | `100` | Voter ceiling on a private poll |
 | `ENV_MIN_CHOICES` / `ENV_MAX_CHOICES` | `2` / `50` | Choices a poll may be published with |

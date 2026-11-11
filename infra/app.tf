@@ -111,6 +111,13 @@ resource "digitalocean_app" "crowdpoll" {
       }
     }
 
+    # www gets its DNS record and certificate from App Platform; the app redirects it to ENV_PUBLIC_ORIGIN.
+    domain {
+      name = "www.crowdpoll.vote"
+      type = "ALIAS"
+      zone = "crowdpoll.vote"
+    }
+
     service {
       name               = "web"
       build_command      = "npm ci --include=dev && npm run build && npm run publish-assets && npm prune --omit=dev"
