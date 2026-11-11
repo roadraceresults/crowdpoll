@@ -399,6 +399,7 @@ describe("017 storage, cache and load settings", () => {
     ["ENV_SEARCH_CACHE_TTL", "searchCacheTtlMs", 10_000],
     ["ENV_OUTBOX_DRAIN_SWEEP_INTERVAL", "outboxDrainSweepIntervalMs", 15_000],
     ["ENV_INVITATION_SWEEP_INTERVAL", "invitationSweepIntervalMs", 30_000],
+    ["ENV_INVITATION_RESEND_WAIT", "invitationResendWaitMs", 86_400_000],
     ["ENV_MAX_BOOKMARKS_PER_USER", "maxBookmarksPerUser", 200],
     ["ENV_BOOKMARK_EXPIRY_MONTHS", "bookmarkExpiryMonths", 6],
     ["ENV_PAGE_LOADS_PER_MINUTE", "pageLoadsPerMinute", 120]
@@ -669,6 +670,7 @@ const NUMERIC_DEFAULTS: [string, string][] = [
   ["ENV_EMAIL_SEND_TIMEOUT", "10000"],
   ["ENV_INSTANCE_MAX_EVENT_LOOP_LAG", "100"],
   ["ENV_INSTANCE_MAX_INFLIGHT", "200"],
+  ["ENV_INVITATION_RESEND_WAIT", "86400000"],
   ["ENV_INVITATION_SWEEP_INTERVAL", "30000"],
   ["ENV_LINE_GRAPH_MIN_VOTE_PERCENTAGE", "1"],
   ["ENV_LINE_GRAPH_REFRESH_INTERVAL", "60000"],

@@ -6,10 +6,12 @@
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import request from "supertest";
+import { randomUUID } from "node:crypto";
 import { startTestContext, forgeSession, type TestContext } from "./helpers/setup.js";
 import { makePoll, polls } from "./helpers/poll-fixtures.js";
 import { trendingSweep } from "../src/polls/sweeps.js";
 import { addBookmark } from "../src/polls/bookmarks.js";
+import { updatePoll } from "../src/polls/store.js";
 
 describe("TRENDING scope", () => {
   let ctx: TestContext;
@@ -150,5 +152,84 @@ describe("Invited private polls on the personal tabs", () => {
     await polls(ctx).insertOne(poll);
     expect((await request(ctx.app).get("/api/polls")).status).toBe(404);
     expect((await request(ctx.app).get(`/api/polls/${poll._id}`)).status).toBe(404);
+  });
+});
+
+describe("the custom email message stays with the creator", () => {
+  const ADMIN = "discovery-admin@example.com";
+  const INVITEE = "message-invitee@example.com";
+  const SECRET = "Zebra **crossing** secret";
+  let ctx: TestContext;
+  let adminCookie: string;
+  let inviteeCookie: string;
+  beforeAll(async () => {
+    ctx = await startTestContext({ ENV_ADMINS: ADMIN });
+    adminCookie = (await forgeSession(ctx, ADMIN)).cookie;
+    inviteeCookie = (await forgeSession(ctx, INVITEE)).cookie;
+  });
+  afterAll(async () => {
+    await ctx.stop();
+  });
+  beforeEach(async () => {
+    await polls(ctx).deleteMany({});
+  });
+
+  const leaks = (body: unknown) => {
+    const text = typeof body === "string" ? body : JSON.stringify(body);
+    return text.includes("Zebra") || text.includes("invitationMessage");
+  };
+
+  it("is in no card, tab, live, listing, page or export answer, only in the creator's admin detail", async () => {
+    const invite = makePoll({
+      _id: randomUUID(), title: "Invite", pollVisibility: "Private Poll", pollSharingMode: "Invitation Only",
+      invitedVoterList: [INVITEE], invitationMessage: SECRET
+    });
+    const pub = makePoll({ _id: randomUUID(), title: "Public kept", invitationMessage: SECRET });
+    await polls(ctx).insertMany([invite, pub]);
+    await trendingSweep(ctx, ctx.config, ctx.trendingPublisher);
+    expect((await request(ctx.app).post(`/api/polls/${invite._id}/bookmark`).set("Cookie", inviteeCookie).send()).status).toBe(200);
+
+    const asks = [
+      () => request(ctx.app).get("/api/trending/cards"),
+      () => request(ctx.app).get(`/api/polls/${pub._id}/card`),
+      () => request(ctx.app).get(`/api/me/polls/${invite._id}`).set("Cookie", inviteeCookie),
+      () => request(ctx.app).post("/api/tabs/shared-with-you/refresh").set("Cookie", inviteeCookie).send({}),
+      () => request(ctx.app).post("/api/tabs/watching/refresh").set("Cookie", inviteeCookie).send({}),
+      () => request(ctx.app).post(`/api/live/${invite._id}`).set("Cookie", inviteeCookie).send({}),
+      () => request(ctx.app).get(`/poll/${pub._id}`),
+      () => request(ctx.app).get("/api/admin/polls").set("Cookie", adminCookie),
+      () => request(ctx.app).get(`/api/admin/polls/${invite._id}/export.json`).set("Cookie", adminCookie),
+      () => request(ctx.app).get(`/api/admin/polls/${invite._id}/export.md`).set("Cookie", adminCookie)
+    ];
+    for (const ask of asks) {
+      for (const key of await ctx.cache.scan("floor:*")) await ctx.cache.del(key);
+      const res = await ask();
+      expect(res.status, `${res.req.method} ${res.req.path}`).toBe(200);
+      expect(leaks(res.text), `${res.req.method} ${res.req.path}`).toBe(false);
+    }
+
+    const detail = await request(ctx.app).get(`/api/admin/polls/${invite._id}`).set("Cookie", adminCookie);
+    expect(detail.body).toMatchObject({
+      invitationMessage: SECRET,
+      invitationMessageHtml: "Zebra <strong>crossing</strong> secret"
+    });
+
+    const list = await request(ctx.app).get("/api/admin/polls").set("Cookie", adminCookie);
+    const rows = list.body.polls as { pid: string; hasInvitationMessage: boolean }[];
+    expect(rows.find((r) => r.pid === invite._id)!.hasInvitationMessage).toBe(true);
+    await polls(ctx).updateOne({ _id: invite._id }, { $set: { invitationMessage: "" } });
+    const after = await request(ctx.app).get("/api/admin/polls").set("Cookie", adminCookie);
+    expect((after.body.polls as typeof rows).find((r) => r.pid === invite._id)!.hasInvitationMessage).toBe(false);
+  });
+
+  it("changes no content_version when written alone", async () => {
+    const poll = makePoll({ invitationMessage: "" });
+    await polls(ctx).insertOne(poll);
+    const version = async () =>
+      Number((await ctx.db.selectFrom("polls").select("content_version").where("id", "=", poll._id).executeTakeFirstOrThrow()).content_version);
+    const before = await version();
+    await updatePoll(ctx, poll._id, { invitationMessage: "New words" });
+    expect(await version()).toBe(before);
+    expect((await polls(ctx).findOne({ _id: poll._id }))!.invitationMessage).toBe("New words");
   });
 });

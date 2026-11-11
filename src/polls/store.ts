@@ -128,6 +128,7 @@ export interface Poll {
   title: string;
   subtitle: string;
   notes: string;
+  invitationMessage: string;
   /** Comma-separated search keywords; always "" on a private poll. */
   keywords: string;
   choiceMode: ChoiceMode;
@@ -185,6 +186,7 @@ export interface PendingUpdate {
   title?: string;
   subtitle?: string;
   notes?: string;
+  invitationMessage?: string;
   choices?: Choice[];
 }
 
@@ -211,6 +213,7 @@ function rowToPoll(row: PollRow, invited: string[], banned: string[], votes: Vot
     title: row.title,
     subtitle: row.subtitle,
     notes: row.notes,
+    invitationMessage: row.invitation_message,
     keywords: row.keywords,
     choiceMode: row.choice_mode as ChoiceMode,
     voteMutability: row.vote_mutability as VoteMutability,
@@ -280,6 +283,7 @@ const FIELD_TO_COLUMN: Partial<Record<keyof Poll, keyof PollRowUpdate>> = {
   title: "title",
   subtitle: "subtitle",
   notes: "notes",
+  invitationMessage: "invitation_message",
   keywords: "keywords",
   choiceMode: "choice_mode",
   voteMutability: "vote_mutability",
@@ -311,7 +315,8 @@ const NON_CONTENT_FIELDS: ReadonlySet<keyof Poll> = new Set<keyof Poll>([
   "currentVotes",
   "timeZone",
   "pendingUpdate",
-  "pendingRejectionReason"
+  "pendingRejectionReason",
+  "invitationMessage"
 ]);
 
 function columnsFor($set: Partial<Poll>): PollRowUpdate {
@@ -510,6 +515,7 @@ function newRow(poll: Poll, creator?: PollCreator): NewPollRow {
     title: poll.title,
     subtitle: poll.subtitle,
     notes: poll.notes,
+    invitation_message: poll.invitationMessage,
     keywords: poll.keywords,
     choices: JSON.stringify(poll.choices),
     choice_labels: choiceLabelsText(poll.choices),
@@ -806,6 +812,7 @@ export async function applyPendingUpdate(
     if (pending.title !== undefined) columns.title = pending.title;
     if (pending.subtitle !== undefined) columns.subtitle = pending.subtitle;
     if (pending.notes !== undefined) columns.notes = pending.notes;
+    if (pending.invitationMessage !== undefined) columns.invitation_message = pending.invitationMessage;
 
     let rewritten: string[] = [];
     if (pending.choices !== undefined) {

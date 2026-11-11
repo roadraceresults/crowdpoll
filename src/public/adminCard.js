@@ -474,7 +474,7 @@
 
     let wizard = null;       // the open wizard: answers, current step, visited/answered
     let wizardSaved = null;  // what the last Save kept, reopened from the Summary Text
-    let notesEditor = null;
+    const richEditors = {};
     // The wizard is also open on a poll that is not in its new-poll wizard (anything
     // published). It then starts from the poll, with every step answered, and its
     // footer is Cancel / Save changes.
@@ -512,7 +512,8 @@
       const state = wordedState();
       if (field === "startAt") return START_STATES.includes(state);
       if (field === "endAt") return state !== "CLOSED" && state !== "ARCHIVED";
-      if (field === "title" || field === "subtitle" || field === "notes" || field === "colors" || field === "lineGraphEnabled") return true;
+      if (field === "title" || field === "subtitle" || field === "notes" || field === "invitationMessage" ||
+        field === "colors" || field === "lineGraphEnabled") return true;
       if (field === "labels") return true;
       // A Private poll's sharing mode switches both ways after votes; visibility
       // itself stays frozen, and a public poll's mode is locked with it.
@@ -537,7 +538,10 @@
 
     function storedNotes() {
       const p = session ? session.poll : {};
-      return { notes: p.notes || "", notesHtml: p.notesHtml || "" };
+      return {
+        notes: p.notes || "", notesHtml: p.notesHtml || "",
+        invitationMessage: p.invitationMessage || "", invitationMessageHtml: p.invitationMessageHtml || ""
+      };
     }
 
     function keywordsFromPoll(p) {
@@ -623,6 +627,8 @@
         subtitle: from.subtitle,
         notes: from.notes,
         notesHtml: from.notesHtml,
+        invitationMessage: from.invitationMessage,
+        invitationMessageHtml: from.invitationMessageHtml,
         keywords: [...from.keywords],
         choicesText: from.choicesText,
         colors: { ...from.colors },
@@ -647,7 +653,8 @@
     function wizardDirty() {
       const base = wizardBase();
       return wizard.who !== base.who || wizard.title !== base.title ||
-        wizard.subtitle !== base.subtitle || wizard.notes !== base.notes || Boolean(notesEditor && notesEditor.changed()) ||
+        wizard.subtitle !== base.subtitle || wizard.notes !== base.notes || wizard.invitationMessage !== base.invitationMessage ||
+        Object.values(richEditors).some((editor) => editor.changed()) ||
         wizard.keywords.join(",") !== base.keywords.join(",") ||
         wizard.choicesText !== base.choicesText ||
         JSON.stringify(colorsOfLines(wizard)) !== JSON.stringify(colorsOfLines(base)) ||
@@ -881,6 +888,23 @@
       return link;
     }
 
+    function hasVisibleText(html) {
+      const holder = el("div");
+      holder.innerHTML = html || "";
+      return holder.textContent.trim() !== "";
+    }
+
+    function invitationMessagePart(s, part) {
+      const text = "A Custom Invitation Email Message has been entered";
+      if (part !== summaryPart) return part(text, 1, "invitationMessage", "Custom Email Message");
+      if (!s.answered.has(1)) return plainPart(text);
+      return tappablePart(text, "Custom Email Message: change in Step 1", async () => {
+        await goToStep(1);
+        const edit = card.querySelector("#pollInvitationMessage-" + current.pid);
+        if (edit) edit.focus();
+      });
+    }
+
     // The Summary Text: the title and subtitle as the heading, drawn with the Poll
     // Card's own .question / .subtitle classes, then one line per aspect of the
     // poll. The heading is plain until Step 2 is answered.
@@ -923,6 +947,12 @@
       if (who !== "public") {
         who1.append(" ", part(s.showVoters ? "Users can see who voted for what." : "Votes are anonymous.", 1,
           "pollVisibility"));
+      }
+      const hasMessage = s.hasInvitationMessage !== undefined ? s.hasInvitationMessage : hasVisibleText(s.invitationMessageHtml);
+      if (who === "invite" && hasMessage) {
+        const messageLine = line();
+        messageLine.classList.add("wizard-summary-invitation-message");
+        messageLine.append(invitationMessagePart(s, part), ".");
       }
       if (who === "public" && s.answered.has(2) && s.keywords.length) {
         const keywordsLine = line();
@@ -1026,7 +1056,7 @@
       else if (fresh) {
         // Keep the lines in order: insert before the line that follows it in a fresh build.
         const next = fresh.nextElementSibling;
-        const nextClass = next && [...next.classList].find((c) => /^wizard-summary-(who|keywords|choices|colors|how|when)$/.test(c));
+        const nextClass = next && [...next.classList].find((c) => /^wizard-summary-(who|invitation-message|keywords|choices|colors|how|when)$/.test(c));
         summary.insertBefore(fresh, (nextClass && summary.querySelector("." + nextClass)) || null);
       }
     }
@@ -1082,6 +1112,11 @@
       group.setAttribute("role", "radiogroup");
       group.setAttribute("aria-label", "Who can vote?");
       for (const option of WHO_OPTIONS) {
+        if (option !== WHO_OPTIONS[0]) {
+          const divider = el("div", "wizard-who-divider");
+          divider.setAttribute("aria-hidden", "true");
+          group.appendChild(divider);
+        }
         const row = el("label", "m3-radio-item");
         const input = el("input", "m3-radio");
         input.type = "radio";
@@ -1099,6 +1134,14 @@
         row.append(input, text);
         group.appendChild(row);
         if (option.key === "link" && wizard.who === "link") group.appendChild(buildCopyLink());
+        if (option.key === "invite" && wizard.who === "invite") {
+          group.appendChild(m3RichTextField({
+            key: "invitationMessage", htmlKey: "invitationMessageHtml", idPrefix: "pollInvitationMessage-",
+            label: "Custom Email Message",
+            support: "Optional. Added to the invitation email we send to the people you invite.",
+            max: 1000, editLabel: "Edit custom email message"
+          }).wrap);
+        }
       }
       const help = el("details", "wizard-help");
       help.appendChild(el("summary", null, "What does this mean?"));
@@ -1340,12 +1383,20 @@
     }
 
     function commitNotes() {
-      return !notesEditor || notesEditor.commit();
+      return Object.values(richEditors).every((editor) => editor.commit());
     }
 
     function m3NotesField() {
-      const id = "pollNotes-" + current.pid;
-      const field = m3Field("Notes", id, "Optional. Shown under the title on the poll card.");
+      return m3RichTextField({
+        key: "notes", htmlKey: "notesHtml", idPrefix: "pollNotes-", label: "Notes",
+        support: "Optional. Shown under the title on the poll card.",
+        max: window.NotesEditor.NOTES_MAX, editLabel: "Edit notes"
+      });
+    }
+
+    function m3RichTextField({ key, htmlKey, idPrefix, label, support, max, editLabel }) {
+      const id = idPrefix + current.pid;
+      const field = m3Field(label, id, support);
       field.wrap.classList.add("m3-field--notes");
       const host = el("div", "wizard-notes");
       field.box.appendChild(host);
@@ -1353,35 +1404,37 @@
       function showPreview() {
         const preview = el("div", "wizard-notes-preview");
         const text = el("div", "wizard-notes-text");
-        text.innerHTML = wizard.notesHtml;
+        text.innerHTML = wizard[htmlKey];
         const edit = el("button", "wizard-notes-edit", "... edit");
         edit.appendChild(chevron("wizard-notes-edit-chevron"));
         edit.type = "button";
         edit.id = id;
-        edit.setAttribute("aria-label", "Edit notes");
+        edit.setAttribute("aria-label", editLabel);
         edit.setAttribute("aria-describedby", field.support.id);
         edit.addEventListener("click", openEditor);
         preview.append(text, edit);
         host.replaceChildren(preview);
-        field.counter.textContent = wizard.notes.length + " / " + window.NotesEditor.NOTES_MAX;
+        field.counter.textContent = wizard[key].length + " / " + max;
         return edit;
       }
 
       function openEditor() {
         field.counter.textContent = "";
-        notesEditor = window.NotesEditor.open(host, {
-          html: wizard.notesHtml,
+        richEditors[key] = window.NotesEditor.open(host, {
+          html: wizard[htmlKey],
+          max,
+          label,
           confirmDiscard,
           onInput: () => {
             syncWizardDirty();
             refreshWizardChrome();
           },
-          onDone: (notes, html) => {
-            wizard.notes = notes;
-            wizard.notesHtml = html;
+          onDone: (text, html) => {
+            wizard[key] = text;
+            wizard[htmlKey] = html;
           },
           onClose: () => {
-            notesEditor = null;
+            delete richEditors[key];
             if (!wizard || !host.isConnected) return;
             syncWizardDirty();
             refreshWizardChrome();
@@ -2174,7 +2227,7 @@
       if (editMode() !== "UPDATE") return true;
       const before = wizardFields(pollAnswers());
       const after = wizardFields();
-      return ["title", "subtitle", "notes", "labels"].some((name) =>
+      return ["title", "subtitle", "notes", "invitationMessage", "labels"].some((name) =>
         canChange(FIELD_OF[name] || name) &&
         JSON.stringify(after[name]) !== JSON.stringify(before[name]));
     }
@@ -2206,6 +2259,7 @@
       fields.title = s.title.trim();
       fields.subtitle = s.subtitle.trim();
       fields.notes = s.notes;
+      fields.invitationMessage = s.invitationMessage;
       // Keywords are stored only with a public poll.
       if (s.who === "public") fields.keywords = s.keywords.join(",");
       fields.labels = choiceLines(s).map((l) => l.trim());
@@ -2236,6 +2290,8 @@
         subtitle: wizard.subtitle.trim(),
         notes: wizard.notes,
         notesHtml: wizard.notesHtml,
+        invitationMessage: wizard.invitationMessage,
+        invitationMessageHtml: wizard.invitationMessageHtml,
         keywords: [...wizard.keywords],
         choicesText: choiceLines().join("\n"),
         colors: Object.fromEntries(choiceLines().flatMap((line) =>
@@ -2258,7 +2314,7 @@
 
     function leaveWizard() {
       wizard = null;
-      if (notesEditor) notesEditor.close();
+      for (const editor of Object.values(richEditors)) editor.close();
       existing = false;
       card.classList.remove("poll-admin-card--new");
       showStatus("");
@@ -2460,7 +2516,7 @@
     function readOnlyAnswers() {
       const base = isWizardPoll() ? wizardBase() : pollAnswers();
       return { ...base, answered: new Set(base.answered), state: isWizardPoll() ? "INITIALIZED" : wordedState(),
-        notesHtml: current.notesPreviewHtml || "" };
+        notesHtml: current.notesPreviewHtml || "", hasInvitationMessage: current.hasInvitationMessage === true };
     }
 
     // The state the when-line is worded for. A poll being edited is worded as the

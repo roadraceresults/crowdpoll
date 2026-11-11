@@ -504,6 +504,18 @@ describe("Admin poll CRUD (US4)", () => {
     expect(bare.text.startsWith("# Plain\n\nSub\n\n| Choice |")).toBe(true);
   });
 
+  it("copies the custom email message into a duplicate", async () => {
+    const cookie = await adminCookie();
+    const poll = makePoll({
+      title: "Messaged", pollVisibility: "Private Poll", pollSharingMode: "Invitation Only",
+      invitationMessage: "Please **come**\nsoon", pollState: "CLOSED"
+    });
+    await polls(ctx).insertOne(poll);
+    const dup = await request(ctx.app).post(`/api/admin/polls/${poll._id}/duplicate`).set("Cookie", cookie);
+    expect(dup.status).toBe(201);
+    expect((await polls(ctx).findOne({ _id: dup.body.pid }))!.invitationMessage).toBe("Please **come**\nsoon");
+  });
+
   it("gives repeated duplicates of the same poll unique, incrementing titles (FR-001/002)", async () => {
     const cookie = await adminCookie();
     const poll = makePoll({ title: "Customer Satisfaction" });

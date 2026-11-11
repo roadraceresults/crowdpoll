@@ -5,7 +5,7 @@ import { clearPolls, forgeSession, startTestContext, type TestContext } from "./
 import { makePoll, polls } from "./helpers/poll-fixtures.js";
 import { insertPoll, type Poll, type PollState } from "../src/polls/store.js";
 import { setTransport } from "../src/email/mailer.js";
-import { sendPendingInvitations } from "../src/invitations/sender.js";
+import { sendPendingInvitations, sendReminder } from "../src/invitations/sender.js";
 import { buildSweepSchedules } from "../src/polls/sweeps.js";
 
 const CREATOR = "creator-send@example.com";
@@ -175,5 +175,46 @@ describe("sending invitations", () => {
     const lines = log.mock.calls.map((c) => c.join(" "));
     expect(lines.some((l) => l.includes("a•••@example.com"))).toBe(true);
     expect(lines.some((l) => l.includes("ann@example.com"))).toBe(false);
+  });
+});
+
+describe("the custom email message in sent invitations", () => {
+  const BOX = "border-radius:8px";
+
+  it("sends the message current at each send, in invitations and reminders", async () => {
+    const poll = await seed("WAITING TO OPEN", { invitationMessage: "Hi **all**\n<b>x</b>" });
+    await add(poll._id, "ann@example.com");
+    await polls(ctx).updateOne({ _id: poll._id }, { $set: { pollState: "OPEN" } });
+    await tick();
+    expect(ctx.sent).toHaveLength(1);
+    expect(ctx.sent[0]!.html).toContain("Hi <strong>all</strong><br>&lt;b&gt;x&lt;/b&gt;");
+    expect(ctx.sent[0]!.text).toContain("Hi all\n<b>x</b>");
+
+    await polls(ctx).updateOne({ _id: poll._id }, { $set: { invitationMessage: "Changed *now*" } });
+    await sendReminder({ db: ctx.db, config: ctx.config }, poll._id, "ann@example.com");
+    expect(ctx.sent).toHaveLength(2);
+    expect(ctx.sent[1]!.subject.startsWith("Reminder: ")).toBe(true);
+    expect(ctx.sent[1]!.html).toContain("Changed <em>now</em>");
+    expect(ctx.sent[1]!.html).not.toContain("Hi <strong>all</strong>");
+    expect(ctx.sent[0]!.html).toContain("Hi <strong>all</strong>");
+  });
+
+  it("carries the box when the button links to the poll instead of signing in", async () => {
+    const poll = await seed("WAITING TO OPEN", { invitationMessage: "Please **vote**" });
+    await add(poll._id, "ann@example.com");
+    await polls(ctx).updateOne({ _id: poll._id }, { $set: { pollState: "OPEN" } });
+    await sendPendingInvitations({ db: ctx.db, config: { ...ctx.config, nativeSignin: false } });
+    expect(ctx.sent).toHaveLength(1);
+    expect(ctx.sent[0]!.text).toContain(`http://localhost:8080/?PID=${poll._id}`);
+    expect(ctx.sent[0]!.html).toContain("Please <strong>vote</strong>");
+    expect(ctx.sent[0]!.html).toContain(BOX);
+  });
+
+  it("sends no box for a poll without a message", async () => {
+    const poll = await seed("WAITING TO OPEN");
+    await add(poll._id, "ann@example.com");
+    await polls(ctx).updateOne({ _id: poll._id }, { $set: { pollState: "OPEN" } });
+    await tick();
+    expect(ctx.sent[0]!.html).not.toContain("<div");
   });
 });

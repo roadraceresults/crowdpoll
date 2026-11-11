@@ -171,6 +171,7 @@ erDiagram
     text title
     text subtitle
     text notes "stored format; '' when none"
+    text invitation_message "stored format; '' when none; admin-only, not in search"
     jsonb choices
     tsvector search "generated: A title, B subtitle, C choices, D keywords and notes"
     boolean home_listable "generated: public and listable state"
@@ -1082,6 +1083,16 @@ open poll and by `invitationSweep` (30 s, lock 12), takes a per-creator advisory
 `invitation_emails` rows of the last 24 hours against `ENV_MAX_INVITATIONS_PER_DAY`, and claims the oldest pending rows with
 `update … set sent_at … where email in (select … for update skip locked)`, so the route and the sweep never send one row
 twice. Only OPEN polls send; a resend is refused while the poll is not open. A failed send sets `send_failed_at`.
+
+**The custom email message.** `buildInvitation` reads the approved `polls.invitation_message` at each send (migration
+`020-invitation-message`); when it is not empty it passes `renderNotesHtml` and `notesPlainText` of it (`src/polls/notes.ts`)
+to `layout` as `messageBox`, drawn after the first paragraph as one rounded `div` (`overflow-wrap:anywhere`) in the HTML
+and as its own paragraph in the text; with no message the email is unchanged. The column is in `NON_CONTENT_FIELDS`, so a
+write of it alone bumps no content version, and it reaches only the admin detail (`invitationMessage`,
+`invitationMessageHtml`) — never a projection, card, tab, delta, the SEO page, an export or `search`; admin list rows carry only the boolean
+`hasInvitationMessage`, for the read-only card's summary line.
+Screening reads it with the notes (`ScreeningInput.invitationMessage`); on an ever-voted published poll a change waits in
+`pending_update` and `applyPendingUpdate` writes it, so an unreviewed message is never mailed.
 
 An invitation typed in another spelling of an account's address (Gmail dots, a `+tag`) is **adopted** by the account —
 the invitation, its `invited` row and its placeholder vote take the account's address — at login

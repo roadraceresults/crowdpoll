@@ -53,3 +53,37 @@ describe("layout() headingLine2", () => {
     }
   });
 });
+
+describe("layout() messageBox", () => {
+  const base = {
+    origin: "https://crowdpoll.vote",
+    preheader: "p",
+    heading: "Heading:",
+    paragraphs: ["First", "Second & more"]
+  };
+
+  it("draws the box's html unescaped in one div between the first and second paragraphs", () => {
+    const { html } = layout({ ...base, messageBox: { html: "Hi <strong>all</strong><br>&lt;b&gt;", text: "Hi all\n<b>" } });
+    const first = html.indexOf(">First</p>");
+    const box = html.indexOf("<div style=");
+    const second = html.indexOf(">Second &amp; more</p>");
+    expect(first).toBeGreaterThan(0);
+    expect(box).toBeGreaterThan(first);
+    expect(second).toBeGreaterThan(box);
+    const div = html.slice(box, html.indexOf("</div>", box) + 6);
+    expect(div).toContain("border-radius:8px");
+    expect(div).toContain("overflow-wrap:anywhere");
+    expect(div).toContain(">Hi <strong>all</strong><br>&lt;b&gt;</div>");
+    expect(html.match(/<div /g)).toHaveLength(1);
+  });
+
+  it("puts the box's text as its own paragraph after the first", () => {
+    const { text } = layout({ ...base, messageBox: { html: "x", text: "Hi all\n<b>" } });
+    expect(text).toContain("\n\nFirst\n\nHi all\n<b>\n\nSecond & more\n\n");
+  });
+
+  it("leaves the output unchanged without a box", () => {
+    expect(layout({ ...base, messageBox: undefined })).toEqual(layout(base));
+    expect(layout(base).html).not.toContain("<div");
+  });
+});

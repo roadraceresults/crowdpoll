@@ -9,6 +9,7 @@ export function makePoll(overrides: Partial<Poll> = {}): Poll {
     title: "Test Poll",
     subtitle: "",
     notes: "",
+    invitationMessage: "",
     keywords: "",
     choiceMode: "Single-Choice Poll",
     voteMutability: "Final-Vote Poll",

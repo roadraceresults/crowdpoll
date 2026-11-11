@@ -253,7 +253,7 @@ export function createVoteRouter(context: AppContext): Router {
         const label = validateAddedChoice(row, req.body?.label, config);
         let verdict: string;
         try {
-          verdict = await screenWithTimeout(localScreener, { title: "", subtitle: "", notes: "", choiceLabels: [label] }, config.screeningCallTimeoutMs);
+          verdict = await screenWithTimeout(localScreener, { title: "", subtitle: "", notes: "", invitationMessage: "", choiceLabels: [label] }, config.screeningCallTimeoutMs);
         } catch (err) {
           console.log(`[choices] Screening failed for poll ${pid}: ${err instanceof Error ? err.message : String(err)}`);
           throw new ChoiceError(503, "Couldn't check this choice. Try again.", "SCREENING_UNAVAILABLE");
@@ -331,6 +331,7 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
       pid: _id,
       ...rest,
       notesHtml: renderNotesHtml(rest.notes),
+      invitationMessageHtml: renderNotesHtml(rest.invitationMessage),
       invitedVoterList: withinDisplayLimit(rest.invitedVoterList),
       bannedVoterList: withinDisplayLimit(rest.bannedVoterList)
     };
@@ -639,7 +640,7 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
       // it invalidates nothing — and a poll filling up is exactly when an
       // administrator needs to raise it.
       const UPDATE_FIELDS = [
-        "title", "subtitle", "notes", "startAt", "endAt",
+        "title", "subtitle", "notes", "invitationMessage", "startAt", "endAt",
         "invitedVoterList", "bannedVoterList", "voterCountLimit", "colors", "lineGraphEnabled",
         "labels", "pollSharingMode", "choiceMode", "voteMutability", "votersAddChoices"
       ];
@@ -708,10 +709,10 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
 
       // An ever-voted, already published poll never goes back through
       // AWAITING APPROVAL: the non-text fields apply now, with no state change,
-      // and a changed title, subtitle or notes waits in `pending_update` for the
+      // and a changed title, subtitle, notes or custom email message waits in `pending_update` for the
       // approval sweep. The poll keeps serving its pre-save content meanwhile.
       if (decision.mode === "UPDATE" && effectiveState !== "INITIALIZED") {
-        const pending: { title?: string; subtitle?: string; notes?: string; choices?: Choice[] } = {};
+        const pending: { title?: string; subtitle?: string; notes?: string; invitationMessage?: string; choices?: Choice[] } = {};
         if ($set.title !== undefined) {
           if ($set.title !== poll.title) pending.title = $set.title;
           delete $set.title;
@@ -723,6 +724,10 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
         if ($set.notes !== undefined) {
           if ($set.notes !== poll.notes) pending.notes = $set.notes;
           delete $set.notes;
+        }
+        if ($set.invitationMessage !== undefined) {
+          if ($set.invitationMessage !== poll.invitationMessage) pending.invitationMessage = $set.invitationMessage;
+          delete $set.invitationMessage;
         }
         if (mergedChoices) {
           const byPosition = (list: Choice[]) => [...list].sort((a, b) => a.position - b.position);
@@ -896,6 +901,7 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
       title: p.title,
       subtitle: p.subtitle,
       ...notesPreviewFields(p.notes),
+      hasInvitationMessage: p.invitation_message !== "",
       keywords: p.keywords,
       pollState: p.poll_state,
       pollStateBeforeEditUpdate: p.poll_state_before_edit_update,

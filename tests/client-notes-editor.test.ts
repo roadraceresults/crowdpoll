@@ -145,6 +145,34 @@ describe("notes editor", () => {
     expect(doneButton.getAttribute("aria-disabled")).toBe("false");
   });
 
+  it("takes its label and limit from the options", () => {
+    const page = openPage();
+    const done: string[] = [];
+    page.api.open(page.host, {
+      html: "", max: 1000, label: "Custom Email Message", onDone: (text: string) => done.push(text), confirmDiscard: async () => true
+    });
+    expect(page.host.querySelector(".notes-editor-heading")!.textContent).toBe("Custom Email Message");
+    expect(page.host.querySelector(".notes-editor")!.getAttribute("aria-label")).toBe("Custom Email Message editor");
+    expect(textBox(page).getAttribute("aria-label")).toBe("Custom Email Message");
+    expect(page.host.querySelector(".notes-editor-counter")!.textContent).toBe("0 / 1000");
+    typeInto(page, "<b>" + "x".repeat(997) + "</b>");
+    expect(page.host.querySelector(".notes-editor-counter")!.textContent).toBe("1001 / 1000");
+    const doneButton = page.host.querySelector<HTMLElement>(".notes-editor-done")!;
+    expect(doneButton.getAttribute("aria-disabled")).toBe("true");
+    doneButton.click();
+    expect(done).toEqual([]);
+    typeInto(page, "x".repeat(1000));
+    expect(doneButton.getAttribute("aria-disabled")).toBe("false");
+  });
+
+  it("keeps Notes and 6000 without those options", () => {
+    const page = openPage();
+    page.api.open(page.host, { html: "", onDone: () => {}, confirmDiscard: async () => true });
+    expect(page.host.querySelector(".notes-editor")!.getAttribute("aria-label")).toBe("Notes editor");
+    expect(textBox(page).getAttribute("aria-label")).toBe("Notes");
+    expect(page.host.querySelector(".notes-editor-counter")!.textContent).toBe("0 / 6000");
+  });
+
   it("gives Done the stored notes and their HTML", () => {
     const page = openPage();
     const done: [string, string][] = [];

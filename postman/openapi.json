@@ -237,6 +237,43 @@
                 "type": "string",
                 "description": "The whole notes rendered as HTML: strong, em, u and br only; everything else escaped."
               },
+              "invitationMessage": {
+                "type": "string",
+                "maxLength": 1000,
+                "description": "The custom email message in the stored format (see the save request); \"\" when none. Admin detail only: never in a projection, card, tab, delta, admin list row, the /poll page or an export."
+              },
+              "invitationMessageHtml": {
+                "type": "string",
+                "description": "The custom email message rendered as HTML: strong, em, u and br only; everything else escaped."
+              },
+              "pendingUpdate": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "description": "The reviewed text of an ever-voted poll's last save while it waits for review; null otherwise.",
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "subtitle": {
+                    "type": "string"
+                  },
+                  "notes": {
+                    "type": "string"
+                  },
+                  "invitationMessage": {
+                    "type": "string",
+                    "description": "A changed custom email message; invitations keep carrying the approved one until review."
+                  },
+                  "choices": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/Choice"
+                    }
+                  }
+                }
+              },
               "keywords": {
                 "type": "string",
                 "maxLength": 200,
@@ -319,6 +356,10 @@
           "hasMoreNotes": {
             "type": "boolean",
             "description": "True when notesPreviewHtml is not the whole notes."
+          },
+          "hasInvitationMessage": {
+            "type": "boolean",
+            "description": "Whether the poll has a custom email message; the message itself is only on the admin detail."
           },
           "keywords": {
             "type": "string",
@@ -1312,7 +1353,7 @@
               "string",
               "null"
             ],
-            "description": "Why a reminder cannot be sent: \"The poll is closed.\", \"The poll is not open.\", \"Already reminded once.\" or \"<name or address> was emailed less than 24 hours ago.\""
+            "description": "Why a reminder cannot be sent: \"The poll is closed.\", \"The poll is not open.\", \"Already reminded once.\" or \"<name or address> was emailed less than <ENV_INVITATION_RESEND_WAIT, e.g. 24 hours> ago.\""
           }
         }
       },
@@ -3687,6 +3728,11 @@
                     "maxLength": 6000,
                     "description": "Notes in the stored format: plain text with **bold**, *italic*, ++underline++ and  escapes; a newline is a line break. Counted in UTF-16 units; whitespace-only notes are stored as \"\". In UPDATE mode a change waits in the pending update until review."
                   },
+                  "invitationMessage": {
+                    "type": "string",
+                    "maxLength": 1000,
+                    "description": "The custom email message of an Only people you invite poll, in the notes' stored format (**bold**, *italic*, ++underline++, a newline is a line break). Counted in UTF-16 units, marks included; a message with no visible text is stored as \"\". Over 1000: 400 \"Custom email message must be at most 1000 characters.\" Screened with the title, subtitle and notes; in UPDATE mode a change waits in the pending update until review. Kept whatever the sharing mode; sent only in invitations and reminders."
+                  },
                   "keywords": {
                     "type": "string",
                     "maxLength": 200,
@@ -3942,6 +3988,11 @@
                     "type": "string",
                     "maxLength": 6000,
                     "description": "Notes in the stored format: plain text with **bold**, *italic*, ++underline++ and  escapes; a newline is a line break. Counted in UTF-16 units; whitespace-only notes are stored as \"\". In UPDATE mode a change waits in the pending update until review."
+                  },
+                  "invitationMessage": {
+                    "type": "string",
+                    "maxLength": 1000,
+                    "description": "The custom email message of an Only people you invite poll, in the notes' stored format (**bold**, *italic*, ++underline++, a newline is a line break). Counted in UTF-16 units, marks included; a message with no visible text is stored as \"\". Over 1000: 400 \"Custom email message must be at most 1000 characters.\" Screened with the title, subtitle and notes; in UPDATE mode a change waits in the pending update until review. Kept whatever the sharing mode; sent only in invitations and reminders."
                   },
                   "keywords": {
                     "type": "string",

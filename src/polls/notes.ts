@@ -1,6 +1,7 @@
 import { escapeHtml } from "../html.js";
 
 export const NOTES_MAX = 6000;
+export const INVITATION_MESSAGE_MAX = 1000;
 export const NOTES_PREVIEW_CHARS = 300;
 
 type Mark = "bold" | "italic" | "underline";

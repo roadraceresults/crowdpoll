@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { formatPollDate, invitationMessage, type InvitationInput } from "../src/email/templates.js";
+import { notesPlainText, renderNotesHtml } from "../src/polls/notes.js";
 
 const BASE: InvitationInput = {
   creatorName: "David Brooks",
@@ -16,7 +17,7 @@ const BASE: InvitationInput = {
 
 const SUBJECT = 'David Brooks invited you to a private poll on CrowdPoll: "When do you want to meet?"';
 const PARAGRAPH_1 =
-  'David Brooks (david@example.com) invited you to vote in their poll "When do you want to meet?" on CrowdPoll. That\'s why we\'re writing to you.';
+  'David Brooks (david@example.com) invited you to vote in their poll "When do you want to meet?" on CrowdPoll.';
 const PARAGRAPH_2 = "It's an Invitation Only private poll: only the people David Brooks invites can see it and vote.";
 const ANONYMOUS = "Your vote will be anonymous: David Brooks will not see how you voted.";
 const CLOSING_1 =
@@ -75,7 +76,7 @@ describe("M1", () => {
 });
 
 describe("login sentence (M1)", () => {
-  const SENTENCE = "This button signs you in to CrowdPoll as maria.chen@gmail.com. Please don't forward this email.";
+  const SENTENCE = "This button signs you in to CrowdPoll as maria.chen@gmail.com. Do not forward this email.";
   const message = invitationMessage({
     ...BASE,
     link: "https://crowdpoll.vote/invite?PID=p1&token=t0",
@@ -130,5 +131,45 @@ describe("escaping", () => {
     expect(message.html).not.toContain("<i>B</i>");
     expect(message.html).toContain("&lt;b&gt;Eve&lt;/b&gt;");
     expect(message.html).toContain("A &amp; &lt;i&gt;B&lt;/i&gt;");
+  });
+});
+
+describe("custom email message", () => {
+  const box = (stored: string) => ({ html: renderNotesHtml(stored), text: notesPlainText(stored) });
+
+  it("shows the message rendered after the invited-you paragraph, and as plain text there", () => {
+    const message = invitationMessage({ ...BASE, personalMessage: box("Hi **all**\n<b>x</b>") });
+    const html = message.html;
+    expect(html).toContain("Hi <strong>all</strong><br>&lt;b&gt;x&lt;/b&gt;");
+    expect(html.indexOf("Hi <strong>all</strong>")).toBeGreaterThan(html.indexOf(escape(PARAGRAPH_1)));
+    expect(html.indexOf("Hi <strong>all</strong>")).toBeLessThan(html.indexOf(escape(PARAGRAPH_2)));
+    expect(html).toContain("overflow-wrap:anywhere");
+    expect(message.text).toContain(`${PARAGRAPH_1}\n\nHi all\n<b>x</b>\n\n${PARAGRAPH_2}`);
+  });
+
+  it("carries it in the reminder too", () => {
+    const reminder = invitationMessage({ ...BASE, reminder: true, personalMessage: box("See you **there**") });
+    expect(reminder.html).toContain("See you <strong>there</strong>");
+    expect(reminder.text).toContain(`${PARAGRAPH_1}\n\nSee you there\n\n`);
+  });
+
+  it("shows a lone ** as typed", () => {
+    const message = invitationMessage({ ...BASE, personalMessage: box("a ** b") });
+    expect(message.html).toContain(">a ** b</div>");
+    expect(message.text).toContain("\n\na ** b\n\n");
+  });
+
+  it("no longer says why we're writing, and says not to forward the email", () => {
+    const message = invitationMessage({ ...BASE, signInAddress: "ann@example.com" });
+    for (const part of [message.text, message.html]) {
+      expect(part).not.toContain("writing to you");
+      expect(part).not.toContain("Please don");
+    }
+    expect(message.text).toContain("This button signs you in to CrowdPoll as ann@example.com. Do not forward this email.");
+  });
+
+  it("is today's email exactly when there is no message", () => {
+    expect(invitationMessage({ ...BASE, personalMessage: undefined })).toEqual(invitationMessage(BASE));
+    expect(invitationMessage(BASE).html).not.toContain("<div");
   });
 });

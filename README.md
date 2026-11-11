@@ -251,12 +251,22 @@ whatever is stored for their account.
 new lines, and choose **Invite** (or Ctrl+Enter); any address that could not be added stays in the field with the reason.
 Each person gets one email from CrowdPoll inviting them in your name, sent as soon as the poll is open; addresses added
 before then wait, as *Not sent yet*. Each row shows the person's status — *Not sent yet*, *Not delivered*, *Invited*,
-*Accepted* (they opened the poll) or *Voted* — and its menu can **Resend invitation** once, a day or more after the last
+*Accepted* (they opened the poll) or *Voted* — and its menu can **Resend invitation** once, `ENV_INVITATION_RESEND_WAIT` (a day by default) or more after the last
 email, while the poll is open, or **Remove** them (and, after a confirmation, their vote). You can invite and remove at any
 time until the poll closes, without pausing voting. You may send at most `ENV_MAX_INVITATIONS_PER_DAY` invitation emails a
 day across all your polls; the rest go out as the day's allowance frees up. Dates in the email are in your time zone. Someone
 who logs in with a differently written form of the invited address (a Gmail address with or without dots, or a `+tag`)
 is matched to their invitation.
+
+**Custom Email Message.** While Step 1 is set to *Only people you invite*, the wizard shows a **Custom Email Message**
+field directly under that answer. It works like the Notes field — "... edit" opens the same
+editor, with line breaks, bold, italic and underline — and holds up to 1000 characters, formatting marks included. The
+message appears in a shaded box under the "… invited you to vote …" paragraph of every invitation and reminder, as it
+stands when each email is sent, and the Settings Summary says *A Custom Invitation Email Message has been entered.*, a
+link back to the field. It is reviewed with the title, subtitle and notes: on a poll that already has votes a change
+waits for approval, and emails carry the approved message until then. Switching the poll to another *Who can vote*
+answer hides the field and stops sending the message but keeps it, so switching back restores it. Only you and
+administrators see it; voters never do, and Duplicate copies it.
 
 The invitation's **Open the poll** button can also sign the invitee in, once, without a second email: it opens a
 confirmation card naming the invited address, where one press of **Continue** signs them in and lands them on the poll,
@@ -628,6 +638,7 @@ provider settings only with `oauth` or `both`, and administrator addresses are m
 | `ENV_SHED_RETRY_AFTER` | `2000` | `Retry-After` handed out with a `503` |
 | `ENV_COUNTER_FLUSH_SWEEP_INTERVAL` | `10000` | How often live vote counters are written to poll rows |
 | `ENV_INVITATION_SWEEP_INTERVAL` | `30000` | How often pending invitation emails of open polls are picked up |
+| `ENV_INVITATION_RESEND_WAIT` | `86400000` | How long after an invitation email its one reminder may be sent (ms; 24 hours) |
 | `ENV_VOTE_BATCH_SIZE` | `500` | Votes written per batch |
 | `ENV_VOTE_QUEUE_LAG_NOTICE` | `2000` | Writer lag above which a vote is reported as queued |
 | `ENV_SEARCH_CACHE_TTL` | `10000` | How long identical searches are answered from the cache |

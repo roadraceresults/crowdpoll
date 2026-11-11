@@ -218,6 +218,7 @@ export async function pollsAwaitingApprovalSweep(
         title: claimed.title,
         subtitle: claimed.subtitle,
         notes: notesPlainText(claimed.notes),
+        invitationMessage: notesPlainText(claimed.invitationMessage),
         choiceLabels: claimed.choices.map((c) => c.label)
       },
       approval.callTimeoutMs
@@ -282,6 +283,7 @@ async function screenPendingUpdate(
         title: pending.title ?? claimed.title,
         subtitle: pending.subtitle ?? claimed.subtitle,
         notes: notesPlainText(pending.notes ?? claimed.notes),
+        invitationMessage: notesPlainText(pending.invitationMessage ?? claimed.invitationMessage),
         choiceLabels: (pending.choices ?? claimed.choices).map((c) => c.label)
       },
       approval.callTimeoutMs
