@@ -21,6 +21,16 @@ const SITEMAP_TTL_MS = 5 * 60_000;
 const SITEMAP_CACHE_CONTROL = "public, max-age=300";
 export const SITEMAP_CACHE_KEY = "seo:sitemap";
 
+/** The paths no crawler may read; `/login` is added for every crawler but Meta's preview fetchers. */
+const CRAWLER_DISALLOWS = ["/api/", "/admin", "/profile", "/create-account", "/invite", "/confirm-signin", "/accept-terms"];
+
+/**
+ * Meta's server-side preview crawler (Facebook Messenger, Instagram) obeys robots.txt and reads a shared link's
+ * login page only when its own group allows it; `meta-externalagent` (AI training) is not named, so it falls under
+ * `*` and stays out. A crawler uses the most specific group that names it, so this group repeats every other rule.
+ */
+const META_PREVIEW_CRAWLERS = ["facebookexternalhit", "meta-externalfetcher"];
+
 const ROBOTS = (origin: string) =>
   [
     "User-agent: *",
@@ -28,14 +38,12 @@ const ROBOTS = (origin: string) =>
     "Allow: /poll/",
     "Allow: /privacy",
     "Allow: /terms",
-    "Disallow: /api/",
-    "Disallow: /admin",
-    "Disallow: /profile",
-    "Disallow: /login",
-    "Disallow: /create-account",
-    "Disallow: /invite",
-    "Disallow: /confirm-signin",
-    "Disallow: /accept-terms",
+    ...CRAWLER_DISALLOWS.flatMap((p) => (p === "/profile" ? [`Disallow: ${p}`, "Disallow: /login"] : [`Disallow: ${p}`])),
+    "",
+    ...META_PREVIEW_CRAWLERS.map((agent) => `User-agent: ${agent}`),
+    "Allow: /",
+    "Allow: /login",
+    ...CRAWLER_DISALLOWS.map((p) => `Disallow: ${p}`),
     `Sitemap: ${origin}/sitemap.xml`,
     ""
   ].join("\n");

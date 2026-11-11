@@ -559,10 +559,17 @@ once the address header App Platform passes on has been confirmed on a deployed 
 the API and the account pages, which also carry `noindex`. `/sitemap.xml` lists the home page and every public open or
 closed poll with its last change, rebuilt at most every 5 minutes and split into `/sitemap-<n>.xml` parts above 50,000
 addresses. Submit `https://crowdpoll.vote/sitemap.xml` in each search engine's webmaster console.
-**Link previews.** A poll's link pasted into Google Messages, WhatsApp or iMessage previews with the poll's title and
-subtitle and, for an *Only people you invite* poll, its custom email message, whether the poll is public or private: the
-login page a private poll's link leads to carries them in its head. Anyone holding the link can read those three
-fields, and so can the apps' preview servers; a card an app has already stored for a link shared earlier is not refreshed.
+**Link previews.** A poll's link pasted into Google Messages, WhatsApp, iMessage, Slack, Facebook Messenger or
+Instagram previews as a card: the poll's title, a one-line description and the site's brand image (the two figures of
+the icon on white, 1200 × 630), whether the poll is public or private, because the login page a private poll's link
+leads to carries them in its head. The description is the subtitle, a dash, then the message of the poll's sharing
+mode with its line breaks turned into spaces: the **Link Preview Message** of an *Anyone you send the link to* poll
+(Step 1, under the Copy Link block, up to 100 characters, reviewed like the notes), or the Custom Email Message of an
+*Only people you invite* poll; a poll with neither subtitle nor message shows
+"You have been invited to vote in this poll." (`ENV_DEFAULT_LINK_PREVIEW_MESSAGE`). Anyone holding the link can
+read those fields, and so can the apps' preview servers; a card an app has already stored for a link shared earlier is
+not refreshed. Facebook Messenger and Instagram obey `/robots.txt`, which admits Meta's preview crawler to the login
+page, and show the card once that crawler has re-read the site, up to a day after a deployment.
 
 Operational notes:
 
@@ -606,6 +613,7 @@ provider settings only with `oauth` or `both`, and administrator addresses are m
 | `ENV_SES_REGION` / `ENV_SES_ACCESS_KEY_ID` / `ENV_SES_SECRET_ACCESS_KEY` | — | Amazon SES region and sending key |
 | `ENV_SMTP_HOST` / `ENV_SMTP_PORT` / `ENV_SMTP_USER` / `ENV_SMTP_PASS` | Mailtrap sandbox / `2525` / — / — | Development mail; without user and password each message is logged to the console |
 | `ENV_EMAIL_FROM` | `CrowdPoll <no-reply@mail.crowdpoll.vote>` | Sender of every message |
+| `ENV_DEFAULT_LINK_PREVIEW_MESSAGE` | `You have been invited to vote in this poll.` | Shown under a poll's shared link in messaging apps when the poll has neither a subtitle nor a message; blank or over 300 characters stops the site |
 | `ENV_EMAIL_SEND_TIMEOUT` | `10000` | Longest one send may take before it counts as failed |
 | `ENV_EMAIL_ASSET_ORIGIN` | unset | Origin the email logo is loaded from (development: `https://crowdpoll.vote`, since mail apps cannot reach `localhost`); unset → the link's origin |
 | `ENV_ALLOWED_EMAILS` | unset | Comma-separated addresses, or patterns with `*` (`*@crowdpoll.vote`), allowed to create an account and log in before launch; administrators always are. Unset or empty: everyone. An invalid entry stops the app. Production: `allowed_emails` in the git-ignored `infra/secrets.auto.tfvars`, set as an encrypted variable |

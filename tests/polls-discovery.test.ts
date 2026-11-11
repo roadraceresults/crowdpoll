@@ -159,6 +159,7 @@ describe("the custom email message stays with the creator", () => {
   const ADMIN = "discovery-admin@example.com";
   const INVITEE = "message-invitee@example.com";
   const SECRET = "Zebra **crossing** secret";
+  const LINK_SECRET = "Zebra *link* secret";
   let ctx: TestContext;
   let adminCookie: string;
   let inviteeCookie: string;
@@ -176,15 +177,15 @@ describe("the custom email message stays with the creator", () => {
 
   const leaks = (body: unknown) => {
     const text = typeof body === "string" ? body : JSON.stringify(body);
-    return text.includes("Zebra") || text.includes("invitationMessage");
+    return text.includes("Zebra") || text.includes("invitationMessage") || text.includes("linkPreviewMessage");
   };
 
   it("is in no card, tab, live, listing, page or export answer, only in the creator's admin detail", async () => {
     const invite = makePoll({
       _id: randomUUID(), title: "Invite", pollVisibility: "Private Poll", pollSharingMode: "Invitation Only",
-      invitedVoterList: [INVITEE], invitationMessage: SECRET
+      invitedVoterList: [INVITEE], invitationMessage: SECRET, linkPreviewMessage: LINK_SECRET
     });
-    const pub = makePoll({ _id: randomUUID(), title: "Public kept", invitationMessage: SECRET });
+    const pub = makePoll({ _id: randomUUID(), title: "Public kept", invitationMessage: SECRET, linkPreviewMessage: LINK_SECRET });
     await polls(ctx).insertMany([invite, pub]);
     await trendingSweep(ctx, ctx.config, ctx.trendingPublisher);
     expect((await request(ctx.app).post(`/api/polls/${invite._id}/bookmark`).set("Cookie", inviteeCookie).send()).status).toBe(200);
@@ -211,12 +212,18 @@ describe("the custom email message stays with the creator", () => {
     const detail = await request(ctx.app).get(`/api/admin/polls/${invite._id}`).set("Cookie", adminCookie);
     expect(detail.body).toMatchObject({
       invitationMessage: SECRET,
-      invitationMessageHtml: "Zebra <strong>crossing</strong> secret"
+      invitationMessageHtml: "Zebra <strong>crossing</strong> secret",
+      linkPreviewMessage: LINK_SECRET,
+      linkPreviewMessageHtml: "Zebra <em>link</em> secret"
     });
 
     const list = await request(ctx.app).get("/api/admin/polls").set("Cookie", adminCookie);
-    const rows = list.body.polls as { pid: string; hasInvitationMessage: boolean }[];
+    const rows = list.body.polls as { pid: string; hasInvitationMessage: boolean; hasLinkPreviewMessage: boolean }[];
     expect(rows.find((r) => r.pid === invite._id)!.hasInvitationMessage).toBe(true);
+    expect(rows.find((r) => r.pid === invite._id)!.hasLinkPreviewMessage).toBe(true);
+    await polls(ctx).updateOne({ _id: invite._id }, { $set: { linkPreviewMessage: "" } });
+    expect(((await request(ctx.app).get("/api/admin/polls").set("Cookie", adminCookie)).body.polls as typeof rows)
+      .find((r) => r.pid === invite._id)!.hasLinkPreviewMessage).toBe(false);
     await polls(ctx).updateOne({ _id: invite._id }, { $set: { invitationMessage: "" } });
     const after = await request(ctx.app).get("/api/admin/polls").set("Cookie", adminCookie);
     expect((after.body.polls as typeof rows).find((r) => r.pid === invite._id)!.hasInvitationMessage).toBe(false);
@@ -231,5 +238,8 @@ describe("the custom email message stays with the creator", () => {
     await updatePoll(ctx, poll._id, { invitationMessage: "New words" });
     expect(await version()).toBe(before);
     expect((await polls(ctx).findOne({ _id: poll._id }))!.invitationMessage).toBe("New words");
+    await updatePoll(ctx, poll._id, { linkPreviewMessage: "Link words" });
+    expect(await version()).toBe(before);
+    expect((await polls(ctx).findOne({ _id: poll._id }))!.linkPreviewMessage).toBe("Link words");
   });
 });

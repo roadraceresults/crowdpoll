@@ -14,7 +14,7 @@ npm test
 1. **A fetcher's view** (P1): create a private *Only people you invite* poll with a subtitle and a two-line Custom
    Email Message with a bold word; publish and let it be approved. In a terminal:
    `curl -sL "http://localhost:3000/?PID=<pid>" | grep -E "<title>|og:|name=\"description\""`.
-   The title is `<poll title> · CrowdPoll`; `og:description` is the subtitle, a blank line, then the message's words
+   The title is `<poll title> · CrowdPoll`; `og:description` is the subtitle, a dash, then the message's words
    without `**`; `og:url` is `…/?PID=<pid>`.
 2. **Long text**: make subtitle plus message exceed 300 characters; the description is 300 characters ending in `…`.
 3. **Escaping**: set the message to `<b>hi</b> & "there"`; the attribute holds `&lt;b&gt;hi&lt;/b&gt; &amp; &quot;there&quot;`.

@@ -1,5 +1,5 @@
 {
-    "requirements_directory": "requirements/20261111-091956-footer-links",
+    "requirements_directory": "requirements/20261111-122415-shared-link-message",
     "last_written": {
         "requirements/20261019-153514-production-email/requirements.md": "e0bd2b0bf28c2fbd6699c99cdf364c1398d3b7aed8eb456198295f78d108ee08",
         "requirements/20261019-153514-production-email/requirements-report.md": "4f75f5e263fa092fc0fcedc4a7cdaa32128382e287f2ac0394e4957e8d8bd413",
@@ -76,6 +76,8 @@
         "requirements/20261110-202128-link-preview-message/requirements.md": "46bd0bb87bfe403234585c1b6ce61b7a864dfa7b553bcf7b91590dd85d76cea5",
         "requirements/20261110-202128-link-preview-message/requirements-report.md": "f4dc20e68446a429c0f2a3c01b528dbd641591c2e0ae67dd0d2d191540911b5e",
         "requirements/20261111-091956-footer-links/requirements.md": "2c6ea88e81cf2305608427c7aa818279a102b297245b85fc3598423662912f3b",
-        "requirements/20261111-091956-footer-links/requirements-report.md": "4aaeb489a3842166e55af312f31c92f33dcc7d306f68f382a4e6dcbf7a1d2fc4"
+        "requirements/20261111-091956-footer-links/requirements-report.md": "4aaeb489a3842166e55af312f31c92f33dcc7d306f68f382a4e6dcbf7a1d2fc4",
+        "requirements/20261111-122415-shared-link-message/requirements.md": "53006ec89e8c38e6909aa99be040f348ec3bccb8644bc6e71c9ec142f7419fe4",
+        "requirements/20261111-122415-shared-link-message/requirements-report.md": "d05d9ca1e1032eb238a6b3a8d2de43b7bf9a14ca2c88dec62184f2884c63eab0"
     }
 }

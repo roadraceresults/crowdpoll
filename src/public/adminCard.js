@@ -513,7 +513,7 @@
       if (field === "startAt") return START_STATES.includes(state);
       if (field === "endAt") return state !== "CLOSED" && state !== "ARCHIVED";
       if (field === "title" || field === "subtitle" || field === "notes" || field === "invitationMessage" ||
-        field === "colors" || field === "lineGraphEnabled") return true;
+        field === "linkPreviewMessage" || field === "colors" || field === "lineGraphEnabled") return true;
       if (field === "labels") return true;
       // A Private poll's sharing mode switches both ways after votes; visibility
       // itself stays frozen, and a public poll's mode is locked with it.
@@ -540,7 +540,8 @@
       const p = session ? session.poll : {};
       return {
         notes: p.notes || "", notesHtml: p.notesHtml || "",
-        invitationMessage: p.invitationMessage || "", invitationMessageHtml: p.invitationMessageHtml || ""
+        invitationMessage: p.invitationMessage || "", invitationMessageHtml: p.invitationMessageHtml || "",
+        linkPreviewMessage: p.linkPreviewMessage || "", linkPreviewMessageHtml: p.linkPreviewMessageHtml || ""
       };
     }
 
@@ -629,6 +630,8 @@
         notesHtml: from.notesHtml,
         invitationMessage: from.invitationMessage,
         invitationMessageHtml: from.invitationMessageHtml,
+        linkPreviewMessage: from.linkPreviewMessage,
+        linkPreviewMessageHtml: from.linkPreviewMessageHtml,
         keywords: [...from.keywords],
         choicesText: from.choicesText,
         colors: { ...from.colors },
@@ -654,6 +657,7 @@
       const base = wizardBase();
       return wizard.who !== base.who || wizard.title !== base.title ||
         wizard.subtitle !== base.subtitle || wizard.notes !== base.notes || wizard.invitationMessage !== base.invitationMessage ||
+        wizard.linkPreviewMessage !== base.linkPreviewMessage ||
         Object.values(richEditors).some((editor) => editor.changed()) ||
         wizard.keywords.join(",") !== base.keywords.join(",") ||
         wizard.choicesText !== base.choicesText ||
@@ -905,6 +909,17 @@
       });
     }
 
+    function linkPreviewMessagePart(s, part) {
+      const text = "A Link Preview Message has been entered";
+      if (part !== summaryPart) return part(text, 1, "linkPreviewMessage", "Link Preview Message");
+      if (!s.answered.has(1)) return plainPart(text);
+      return tappablePart(text, "Link Preview Message: change in Step 1", async () => {
+        await goToStep(1);
+        const edit = card.querySelector("#pollLinkPreviewMessage-" + current.pid);
+        if (edit) edit.focus();
+      });
+    }
+
     // The Summary Text: the title and subtitle as the heading, drawn with the Poll
     // Card's own .question / .subtitle classes, then one line per aspect of the
     // poll. The heading is plain until Step 2 is answered.
@@ -953,6 +968,12 @@
         const messageLine = line();
         messageLine.classList.add("wizard-summary-invitation-message");
         messageLine.append(invitationMessagePart(s, part), ".");
+      }
+      const hasLinkMessage = s.hasLinkPreviewMessage !== undefined ? s.hasLinkPreviewMessage : hasVisibleText(s.linkPreviewMessageHtml);
+      if (who === "link" && hasLinkMessage) {
+        const linkMessageLine = line();
+        linkMessageLine.classList.add("wizard-summary-link-preview-message");
+        linkMessageLine.append(linkPreviewMessagePart(s, part), ".");
       }
       if (who === "public" && s.answered.has(2) && s.keywords.length) {
         const keywordsLine = line();
@@ -1056,7 +1077,7 @@
       else if (fresh) {
         // Keep the lines in order: insert before the line that follows it in a fresh build.
         const next = fresh.nextElementSibling;
-        const nextClass = next && [...next.classList].find((c) => /^wizard-summary-(who|invitation-message|keywords|choices|colors|how|when)$/.test(c));
+        const nextClass = next && [...next.classList].find((c) => /^wizard-summary-(who|invitation-message|link-preview-message|keywords|choices|colors|how|when)$/.test(c));
         summary.insertBefore(fresh, (nextClass && summary.querySelector("." + nextClass)) || null);
       }
     }
@@ -1133,7 +1154,15 @@
         text.append(el("span", "m3-radio-label", option.label), el("span", "m3-radio-support", option.support));
         row.append(input, text);
         group.appendChild(row);
-        if (option.key === "link" && wizard.who === "link") group.appendChild(buildCopyLink());
+        if (option.key === "link" && wizard.who === "link") {
+          group.appendChild(buildCopyLink());
+          group.appendChild(m3RichTextField({
+            key: "linkPreviewMessage", htmlKey: "linkPreviewMessageHtml", idPrefix: "pollLinkPreviewMessage-",
+            label: "Link Preview Message",
+            support: "Optional. Shown under the poll's title when its link is shared in a messaging app.",
+            max: 100, editLabel: "Edit link preview message"
+          }).wrap);
+        }
         if (option.key === "invite" && wizard.who === "invite") {
           group.appendChild(m3RichTextField({
             key: "invitationMessage", htmlKey: "invitationMessageHtml", idPrefix: "pollInvitationMessage-",
@@ -2227,7 +2256,7 @@
       if (editMode() !== "UPDATE") return true;
       const before = wizardFields(pollAnswers());
       const after = wizardFields();
-      return ["title", "subtitle", "notes", "invitationMessage", "labels"].some((name) =>
+      return ["title", "subtitle", "notes", "invitationMessage", "linkPreviewMessage", "labels"].some((name) =>
         canChange(FIELD_OF[name] || name) &&
         JSON.stringify(after[name]) !== JSON.stringify(before[name]));
     }
@@ -2260,6 +2289,7 @@
       fields.subtitle = s.subtitle.trim();
       fields.notes = s.notes;
       fields.invitationMessage = s.invitationMessage;
+      fields.linkPreviewMessage = s.linkPreviewMessage;
       // Keywords are stored only with a public poll.
       if (s.who === "public") fields.keywords = s.keywords.join(",");
       fields.labels = choiceLines(s).map((l) => l.trim());
@@ -2292,6 +2322,8 @@
         notesHtml: wizard.notesHtml,
         invitationMessage: wizard.invitationMessage,
         invitationMessageHtml: wizard.invitationMessageHtml,
+        linkPreviewMessage: wizard.linkPreviewMessage,
+        linkPreviewMessageHtml: wizard.linkPreviewMessageHtml,
         keywords: [...wizard.keywords],
         choicesText: choiceLines().join("\n"),
         colors: Object.fromEntries(choiceLines().flatMap((line) =>
@@ -2516,7 +2548,8 @@
     function readOnlyAnswers() {
       const base = isWizardPoll() ? wizardBase() : pollAnswers();
       return { ...base, answered: new Set(base.answered), state: isWizardPoll() ? "INITIALIZED" : wordedState(),
-        notesHtml: current.notesPreviewHtml || "", hasInvitationMessage: current.hasInvitationMessage === true };
+        notesHtml: current.notesPreviewHtml || "", hasInvitationMessage: current.hasInvitationMessage === true,
+        hasLinkPreviewMessage: current.hasLinkPreviewMessage === true };
     }
 
     // The state the when-line is worded for. A poll being edited is worded as the

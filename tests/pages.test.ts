@@ -308,6 +308,18 @@ describe("The site favicon (FR-010)", () => {
     expect(app).toContain("short-lived security cookie while a login link is waiting to be used");
   });
 
+  it("og-image.png is a 1200 × 630 PNG under 300 KB, and GET /og-image.png answers with it", async () => {
+    const png = readFileSync(path.resolve("src/public/og-image.png"));
+    expect([...png.subarray(0, 8)]).toEqual([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    expect(png.readUInt32BE(16)).toBe(1200);
+    expect(png.readUInt32BE(20)).toBe(630);
+    expect(png.length).toBeLessThan(300_000);
+    const res = await request(ctx.app).get("/og-image.png");
+    expect(res.status).toBe(200);
+    expect(res.headers["content-type"]).toMatch(/^image\/png/);
+    expect(Number(res.headers["content-length"])).toBe(png.length);
+  });
+
   it("GET /email-logo.png answers with the email logo", async () => {
     const res = await request(ctx.app).get("/email-logo.png");
     expect(res.status).toBe(200);

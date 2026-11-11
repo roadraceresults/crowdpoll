@@ -6,23 +6,37 @@ The full description, every earlier feature's decisions and the settings table a
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-`specs/20261111-091956-FOOTER-LINKS/plan.md` (research R1–R8, `data-model.md` — the address parameters, history state
-and `window.SiteBack`; the UI contracts `contracts/ui-contracts.md` C1–C6, and the quickstart live alongside it in
-`specs/20261111-091956-FOOTER-LINKS/`).
-The requirements report is `requirements/20261111-091956-footer-links/requirements-report.md`: 4 diagrams
-and 7 findings, all resolved.
+`specs/20261111-132724-SHARED-LINK-MESSAGE/plan.md` (research R1–R10, `data-model.md` — the new column, the derived
+preview values and the setting; the contracts `contracts/api.md` A1–A3, `contracts/page.md` P1–P5,
+`contracts/ui-contracts.md` C1–C3, and the quickstart live alongside it in
+`specs/20261111-132724-SHARED-LINK-MESSAGE/`).
+The requirements report is `requirements/20261111-122415-shared-link-message/requirements-report.md`: 3 research
+results and 12 findings, all resolved.
 Decisions that are easy to get wrong:
-- **One back rule**: `backArrow.js` exposes `window.SiteBack` (`canReturn()` decided at load from `history.length > 1`
-  and a same-origin `document.referrer`; `leave(fallback)`), used by the legal arrow (drawn only on
-  `<body data-back-arrow>`), the Delete Account dialog's Cancel/Escape (no fallback: closes in place; decided when the
-  dialog opens, and always in place when opened by `hashchange` on the Profile page) and the admin arrow (fallback `/`,
-  through `adminList.js`'s `guardNavigation`) (R2, R6, R7).
-- **The tab in the address**: `tabs.js` `select(name)` writes `/?tab=<name>` with `history.replaceState` (never
-  `pushState`), drops `q` unless the tab is `search`, keeps other parameters; on load all nine names are honoured, a
-  guest's personal tab falls back to Trending (never `/login`), the card is not re-maximized (R3, R4, R5).
-- **Phone layout**: the `legal-m3.css` gutter rule is kept verbatim under `@media (min-width: 640px)`; below, the
-  `.back-arrow-bar` is static in the flow and there is no gutter (R1). No new stylesheet.
-No migration, route, setting, cookie, storage key, stylesheet or dependency; the Cookie Use table is unchanged.
+- **A twin column, not a shared one**: `polls.link_preview_message` (migration `021-link-preview-message`, 100
+  characters, `LINK_PREVIEW_MESSAGE_MAX` in `src/polls/notes.ts`) mirrors `invitation_message` in every rule:
+  `normalizeNotes`, `NON_CONTENT_FIELDS`, screening (named "link preview message"), `pending_update` after votes,
+  Duplicate, admin detail (`linkPreviewMessage`, `linkPreviewMessageHtml`) and list (`hasLinkPreviewMessage`) only;
+  never copied from `invitation_message` (R1).
+- **The preview shows the message of the current sharing mode**: `previewMessageOf(row)` in `src/seo/loginPage.ts`:
+  nothing for a public poll, `invitation_message` for Invitation Only, else `link_preview_message`, always the approved
+  column (R2).
+- **One line**: the subtitle and `notesPlainText(message)` each have white space (line breaks included) collapsed to
+  one space, then are joined by ` - `; the fallback is `config.defaultLinkPreviewMessage`
+  (`ENV_DEFAULT_LINK_PREVIEW_MESSAGE`, default `You have been invited to vote in this poll.`, trimmed, blank or over
+  300 → `ConfigError`); the 300 cut stays. `/poll/:pid`'s `describe()` is unchanged (R3, R4).
+- **robots.txt**: a second group for `facebookexternalhit` and `meta-externalfetcher` with `Allow: /login` and the
+  other disallows repeated; `*` keeps `Disallow: /login`; the login page keeps `noindex` (R5).
+- **`og:image`**: `previewHeadTags` takes `origin` and emits `${origin}/og-image.png` with `og:image:width` 1200,
+  `og:image:height` 630, `og:image:type image/png` on both pages; `twitter:card` stays `summary`. The committed
+  `src/public/og-image.png` is rendered from `favicon.svg` by `devScripts/favicon-ico.ts` (headless browser), no
+  package; the spec was amended to match (analysis I1, R6).
+- **Wizard**: `m3RichTextField` with id prefix `pollLinkPreviewMessage-` after the Copy Link block under "Anyone you
+  send the link to" only; both messages are kept and saved whatever the mode; summary line class
+  `wizard-summary-link-preview-message` (R7).
+- The previous features' decisions (login-page preview, custom email message) are in `CLAUDE_COMPLETE.md`,
+  `specs/20261110-204911-LINK-PREVIEW-MESSAGE/plan.md` and `specs/20261110-160141-INVITATION-CUSTOM-MESSAGE/plan.md`.
+One migration (021), one setting, one static image; no new route, cookie, storage key, stylesheet or dependency.
 <!-- SPECKIT END -->
 
 ## Project Overview

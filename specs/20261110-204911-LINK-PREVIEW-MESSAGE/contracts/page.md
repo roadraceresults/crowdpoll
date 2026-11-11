@@ -24,7 +24,7 @@ private; open or closed, a poll under edit by the state it held before).
   <meta name="twitter:card" content="summary">
   ```
 
-  where `{title}` is the published title, `{description}` is as `data-model.md` defines it (subtitle, blank line,
+  where `{title}` is the published title, `{description}` is as `data-model.md` defines it (subtitle, dash,
   plain-text approved message; fallback; ≤ 300 characters), and every value is HTML-attribute-escaped.
 - No `<link rel="canonical">`, no JSON-LD, no `og:image`.
 - Other query parameters (`error`, `signedIn`, …) do not change the head; the PID alone decides it.

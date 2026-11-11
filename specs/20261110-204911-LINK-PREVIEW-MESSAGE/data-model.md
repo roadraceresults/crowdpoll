@@ -20,7 +20,7 @@ Everything else of the row (choices, notes, counts, creator) is never placed on 
 | Value | Rule | Limit |
 |---|---|---|
 | `title` | `${poll.title} · CrowdPoll` for `<title>`; `poll.title` for `og:title` | the poll's own title limit |
-| `description` | `[subtitle, notesPlainText(message)]`, each trimmed, non-empty parts joined by `"\n\n"`; `Vote and see live results: ${title}` when both are empty | `LINK_PREVIEW_DESCRIPTION_MAX = 300`, ellipsis included (`slice(0, 299).trimEnd() + "…"`) |
+| `description` | `[subtitle, notesPlainText(message)]`, each trimmed, non-empty parts joined by `" - "`; `Vote and see live results: ${title}` when both are empty | `LINK_PREVIEW_DESCRIPTION_MAX = 300`, ellipsis included (`slice(0, 299).trimEnd() + "…"`) |
 | `url` | `${config.publicOrigin}/?PID=${pid}` (the shared link) | — |
 
 All three are attribute-escaped by `escapeHtml` when written into the head.

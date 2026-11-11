@@ -2131,3 +2131,171 @@ describe("custom email message in Step 1", () => {
     expect(summaryLine(other.p)).toBeNull();
   });
 });
+
+describe("link preview message in Step 1", () => {
+  const messageField = (p: BrowserPage) =>
+    wizardCard(p).querySelector<HTMLButtonElement>('[id^="pollLinkPreviewMessage-"]')?.closest<HTMLElement>(".m3-field") ?? null;
+  const editButton = (p: BrowserPage) => messageField(p)!.querySelector<HTMLButtonElement>(".wizard-notes-edit")!;
+  const previewHtml = (p: BrowserPage) => messageField(p)!.querySelector(".wizard-notes-text")!.innerHTML;
+  const counter = (p: BrowserPage) => messageField(p)!.querySelector(".m3-field-counter")!.textContent;
+  const summaryLine = (p: BrowserPage) => wizardCard(p).querySelector<HTMLElement>(".wizard-summary .wizard-summary-link-preview-message");
+  const SENTENCE = "A Link Preview Message has been entered";
+
+  async function openLinkPoll(linkPreviewMessage: string, pollState: Poll["pollState"] = "INITIALIZED", voted = false, invitationMessage = "") {
+    const when = new Date();
+    const vote = { emailAddress: "v1@example.com", userName: "v1", choiceIds: ["c1"], votedAt: when };
+    const poll = makePoll({
+      title: "Reunion", pollVisibility: "Private Poll", pollSharingMode: "Anyone With The Link", pollState, linkPreviewMessage,
+      invitationMessage, currentVotes: voted ? [vote] : []
+    });
+    await seed(poll);
+    if (voted) await voteHistory(ctx).insertOne({ pid: poll._id, ...vote });
+    const p = await open();
+    link(cardWith(p, "Reunion"), "Anyone you send the link to").click();
+    await p.settle(50);
+    return { p, poll };
+  }
+
+  async function editMessage(p: BrowserPage, html: string) {
+    editButton(p).click();
+    await p.settle();
+    const text = messageField(p)!.querySelector<HTMLElement>(".notes-editor-text")!;
+    text.innerHTML = html;
+    text.dispatchEvent(new p.window.Event("input", { bubbles: true }));
+    await p.settle();
+  }
+
+  async function done(p: BrowserPage) {
+    messageField(p)!.querySelector<HTMLElement>(".notes-editor-done")!.click();
+    await p.settle();
+  }
+
+  it("shows the field under Anyone you send the link to, after the Copy Link block, and nowhere else", async () => {
+    const page = await open();
+    await createPoll(page);
+    await pick(page, "who", "link");
+    const card = wizardCard(page);
+    const field = messageField(page)!;
+    expect(field).not.toBeNull();
+    const group = card.querySelector(".wizard-step-body .m3-radio-list")!;
+    const linkRow = group.querySelector('input[value="link"]')!.closest(".m3-radio-item")!;
+    expect(field.parentElement).toBe(group);
+    expect(linkRow.nextElementSibling!.classList.contains("wizard-copy-link")).toBe(true);
+    expect(linkRow.nextElementSibling!.nextElementSibling).toBe(field);
+    expect(field.nextElementSibling!.classList.contains("wizard-who-divider")).toBe(true);
+    expect(field.querySelector(".m3-field-label")!.textContent).toBe("Link Preview Message");
+    expect(field.querySelector(".m3-field-support")!.textContent)
+      .toBe("Optional. Shown under the poll's title when its link is shared in a messaging app.");
+    expect(counter(page)).toBe("0 / 100");
+    expect(editButton(page).id).toMatch(/^pollLinkPreviewMessage-/);
+    expect(editButton(page).textContent).toBe("... edit");
+    expect(editButton(page).getAttribute("aria-label")).toBe("Edit link preview message");
+    for (const who of ["invite", "public"]) {
+      await pick(page, "who", who);
+      expect(messageField(page), who).toBeNull();
+    }
+  });
+
+  it("opens the editor with its label and limit, updates the preview and counter on Done, and Save sends it", async () => {
+    const { p } = await openLinkPoll("");
+    await editMessage(p, "Vote <b>today</b>");
+    expect(messageField(p)!.querySelector(".notes-editor-heading")!.textContent).toBe("Link Preview Message");
+    expect(messageField(p)!.querySelector(".notes-editor-counter")!.textContent).toBe("14 / 100");
+    await done(p);
+    expect(previewHtml(p)).toBe("Vote <strong>today</strong>");
+    expect(counter(p)).toBe("14 / 100");
+    expect(p.document.activeElement).toBe(editButton(p));
+    footerButton(wizardCard(p), "Save").click();
+    await p.settle(100);
+    expect(sent("/save")[0]!.body!.linkPreviewMessage).toBe("Vote **today**");
+  });
+
+  it("refuses Done above 100 characters", async () => {
+    const { p } = await openLinkPoll("");
+    await editMessage(p, "x".repeat(101));
+    await done(p);
+    expect(messageField(p)!.querySelector(".notes-editor")).not.toBeNull();
+  });
+
+  it("keeps the message while hidden, still sends it, and shows it again on switching back", async () => {
+    const { p } = await openLinkPoll("Kept **here**", "INITIALIZED", false, "Email **text**");
+    expect(previewHtml(p)).toBe("Kept <strong>here</strong>");
+    await pick(p, "who", "invite");
+    expect(messageField(p)).toBeNull();
+    expect(summaryLine(p)).toBeNull();
+    const emailField = wizardCard(p).querySelector('[id^="pollInvitationMessage-"]')!.closest(".m3-field")!;
+    expect(emailField.querySelector(".wizard-notes-text")!.innerHTML).toBe("Email <strong>text</strong>");
+    footerButton(wizardCard(p), "Save").click();
+    await p.settle(100);
+    expect(sent("/save")[0]!.body!.linkPreviewMessage).toBe("Kept **here**");
+    expect(sent("/save")[0]!.body!.invitationMessage).toBe("Email **text**");
+    expect(sent("/save")[0]!.body!.pollSharingMode).toBe("Invitation Only");
+
+    const again = await openLinkPoll("Kept **here**");
+    await pick(again.p, "who", "public");
+    await pick(again.p, "who", "link");
+    expect(previewHtml(again.p)).toBe("Kept <strong>here</strong>");
+  });
+
+  it("says saving re-screens when a voted poll's message changes, and sends only it", async () => {
+    const { p } = await openLinkPoll("Before", "OPEN", true);
+    expect(wizardCard(p).querySelector(".wizard-review-note")).toBeNull();
+    await editMessage(p, "After");
+    await done(p);
+    expect(wizardCard(p).querySelector(".wizard-review-note")).not.toBeNull();
+    footerButton(wizardCard(p), "Save changes").click();
+    await p.settle(100);
+    const body = sent("/publish")[0]!.body!;
+    expect(Object.keys(body).sort()).toEqual(["clientGuid", "linkPreviewMessage", "timeZone"]);
+    expect(body.linkPreviewMessage).toBe("After");
+  });
+
+  it("adds the summary line after the who line, tappable once Step 1 is answered, opening Step 1 at the field", async () => {
+    const p = await open();
+    await createPoll(p);
+    await pick(p, "who", "link");
+    expect(summaryLine(p)).toBeNull();
+    await editMessage(p, "Hello");
+    await done(p);
+    let line = summaryLine(p)!;
+    expect(line.textContent).toBe(SENTENCE + ".");
+    expect(line.previousElementSibling!.classList.contains("wizard-summary-who")).toBe(true);
+    expect(line.querySelector(".wizard-summary-link")).toBeNull();
+
+    await next(p);
+    line = summaryLine(p)!;
+    const tap = line.querySelector<HTMLElement>(".wizard-summary-link")!;
+    expect(tap.textContent).toBe(SENTENCE);
+    expect(tap.getAttribute("aria-label")).toBe("Link Preview Message: change in Step 1");
+    tap.click();
+    await p.settle();
+    expect(heading(wizardCard(p))).toBe("Step 1 · Who can vote");
+    expect(p.document.activeElement).toBe(editButton(p));
+  });
+
+  it("shows the summary line on the read-only card of a poll with a message, never beside the email line", async () => {
+    await seed(
+      makePoll({ title: "With message", pollVisibility: "Private Poll", pollSharingMode: "Anyone With The Link", pollState: "OPEN", linkPreviewMessage: "Hi", invitationMessage: "Hi" }),
+      makePoll({ title: "Without message", pollVisibility: "Private Poll", pollSharingMode: "Anyone With The Link", pollState: "OPEN", invitationMessage: "Hi" })
+    );
+    const p = await open();
+    const withCard = cardWith(p, "With message");
+    const line = withCard.querySelector(".wizard-summary-link-preview-message")!;
+    expect(line.textContent).toBe(SENTENCE + ".");
+    expect(line.previousElementSibling!.classList.contains("wizard-summary-who")).toBe(true);
+    expect(withCard.querySelector(".wizard-summary-invitation-message")).toBeNull();
+    expect(cardWith(p, "Without message").querySelector(".wizard-summary-link-preview-message")).toBeNull();
+    expect(cardWith(p, "Without message").querySelector(".wizard-summary-invitation-message")).toBeNull();
+  });
+
+  it("has no summary line for a blank message or another answer", async () => {
+    const { p } = await openLinkPoll("** **");
+    expect(summaryLine(p)).toBeNull();
+    const other = await openLinkPoll("Hello");
+    expect(summaryLine(other.p)!.textContent).toBe(SENTENCE + ".");
+    await pick(other.p, "who", "invite");
+    expect(summaryLine(other.p)).toBeNull();
+    await pick(other.p, "who", "public");
+    expect(summaryLine(other.p)).toBeNull();
+  });
+});

@@ -1461,15 +1461,29 @@ sequenceDiagram
   descriptions, and the login, account and admin pages carry `noindex`.
 - **Link previews**: `GET /login?PID=<pid>` for a guest and an open or closed poll, public or private (`isOpenOrClosed`
   in `access.ts`, the state rule of `isIndexable`), is rendered by `renderLoginPage` (`src/seo/loginPage.ts`) with
-  `previewHeadTags` from `pollPage.ts`, the builder the poll page shares: `<title>` is `<poll title> · CrowdPoll`, the
-  description is the subtitle, a blank line, then `notesPlainText(invitation_message)` from the approved column (never
-  `pending_update`), falling back to `Vote and see live results: <title>`, cut to 300 characters with the ellipsis
-  inside (`LINK_PREVIEW_DESCRIPTION_MAX`); `og:url` is the shared link `/?PID=<pid>`, never `/login`; no canonical link,
-  JSON-LD or image; `Cache-Control: no-cache` with Express's weak ETag. Every other PID, or none, gets
+  `previewHeadTags` from `pollPage.ts`, the builder the poll page shares: `<title>` is `<poll title> · CrowdPoll`; the
+  description is the subtitle, a dash (` - `), then `notesPlainText` of the message `previewMessageOf(row)` picks for the
+  poll's sharing mode — nothing for a public poll, `invitation_message` for *Invitation Only*, else
+  `link_preview_message` (migration 021, 100 characters, `LINK_PREVIEW_MESSAGE_MAX`, a twin of `invitation_message`
+  in screening, `pending_update`, Duplicate and the admin payloads) — always the approved column, never
+  `pending_update`; each part has every run of white space, line breaks included, collapsed to one space, so the
+  description is one line; whichever part exists, or `config.defaultLinkPreviewMessage`
+  (`ENV_DEFAULT_LINK_PREVIEW_MESSAGE`, default `You have been invited to vote in this poll.`) when neither does; cut to
+  300 characters with the ellipsis inside (`LINK_PREVIEW_DESCRIPTION_MAX`). `/poll/:pid` keeps its own
+  `Vote and see live results: <title>` fallback. `og:url` is the shared link `/?PID=<pid>`, never `/login`; no canonical
+  link or JSON-LD; `Cache-Control: no-cache` with Express's weak ETag. Every other PID, or none, gets
   `sendPage("login.html")` as before. There is no landing page and no user-agent detection: the preview fetchers of
-  Google Messages, WhatsApp (`facebookexternalhit`) and iMessage send no cookies, run no script, follow the `302` a
-  guest's `/?PID=` already answers and ignore `robots.txt`, so the page they already reach gains the tags, and a person
-  who taps the link sees the login page as before. Logged as `[login] Poll preview rendered: <pid>`, pid only.
+  Google Messages, WhatsApp (`facebookexternalhit`) and iMessage send no cookies, run no script and follow the `302` a
+  guest's `/?PID=` already answers, so the page they already reach gains the tags, and a person who taps the link sees
+  the login page as before. Meta's server-side crawler (Facebook Messenger, Instagram) obeys `robots.txt`, so
+  `ROBOTS` in `seo.ts` adds a second group, `User-agent: facebookexternalhit` and `User-agent: meta-externalfetcher`,
+  with `Allow: /login` and the same disallows as `*`, which keeps `Disallow: /login` for search engines (the login page
+  also carries `noindex`); `meta-externalagent`, Meta's training crawler, is not named and stays under `*`. Both preview
+  pages emit, after `og:url`, the brand image from `OG_IMAGE` in `pollPage.ts`: `og:image` `<origin>/og-image.png`,
+  `og:image:width` 1200, `og:image:height` 630, `og:image:type` `image/png` (`twitter:card` stays `summary`).
+  `src/public/og-image.png` is committed and served by `express.static` like `email-logo.png`; `devScripts/favicon-ico.ts`
+  renders it as its third output, `favicon.svg` centred 480 px tall on white, screenshotted by the headless browser at
+  1200 × 630, and refuses a file over 300 KB. Logged as `[login] Poll preview rendered: <pid>`, pid only.
 
 ## Site icon
 

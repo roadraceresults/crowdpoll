@@ -102,6 +102,8 @@ export interface AppConfig {
   emailTransport: EmailTransport;
   ses?: SesConfig;
   emailFrom: string;
+  /** The login page's link-preview description for a poll with neither subtitle nor message (ENV_DEFAULT_LINK_PREVIEW_MESSAGE). */
+  defaultLinkPreviewMessage: string;
   /** Origin the email logo is loaded from (ENV_EMAIL_ASSET_ORIGIN); unset → each link's own origin. */
   emailAssetOrigin?: string;
   /** Addresses and patterns allowed to sign up and log in before launch (ENV_ALLOWED_EMAILS); unset → everyone. */
@@ -214,6 +216,9 @@ interface SettingsReader {
   none(name: string, behaviour: string): void;
   readonly defaultsUsed: DefaultUsed[];
 }
+
+/** The longest default sentence: the login page's whole preview description (LINK_PREVIEW_DESCRIPTION_MAX). */
+const DEFAULT_LINK_PREVIEW_MESSAGE_MAX = 300;
 
 function settingsReader(env: Env): SettingsReader {
   const defaultsUsed: DefaultUsed[] = [];
@@ -349,6 +354,14 @@ export function loadConfig(env: Env = process.env): AppConfig {
     throw new ConfigError(`Invalid ENV_EMAIL_TRANSPORT: "${emailTransport}" — expected "smtp" or "ses".`);
   }
 
+  const defaultLinkPreviewMessage = read.text("ENV_DEFAULT_LINK_PREVIEW_MESSAGE", "You have been invited to vote in this poll.").trim();
+  if (defaultLinkPreviewMessage === "") {
+    throw new ConfigError("Invalid ENV_DEFAULT_LINK_PREVIEW_MESSAGE: it must not be blank.");
+  }
+  if (defaultLinkPreviewMessage.length > DEFAULT_LINK_PREVIEW_MESSAGE_MAX) {
+    throw new ConfigError(`Invalid ENV_DEFAULT_LINK_PREVIEW_MESSAGE: it must be at most ${DEFAULT_LINK_PREVIEW_MESSAGE_MAX} characters.`);
+  }
+
   const minChoices = read.int("ENV_MIN_CHOICES", 2);
   const maxChoices = read.int("ENV_MAX_CHOICES", 50);
   if (maxChoices < minChoices) {
@@ -477,6 +490,7 @@ export function loadConfig(env: Env = process.env): AppConfig {
     emailTransport,
     ses: emailTransport === "ses" ? sesConfig(env) : undefined,
     emailFrom: read.text("ENV_EMAIL_FROM", "CrowdPoll <no-reply@mail.crowdpoll.vote>"),
+    defaultLinkPreviewMessage,
     emailAssetOrigin,
     allowlist,
     humanCheck,

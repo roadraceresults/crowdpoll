@@ -6,7 +6,7 @@ import request from "supertest";
 import { afterAll, beforeAll, beforeEach, describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import * as service from "../src/polls/service.js";
-import { INVITATION_MESSAGE_MAX, NOTES_MAX } from "../src/polls/notes.js";
+import { INVITATION_MESSAGE_MAX, LINK_PREVIEW_MESSAGE_MAX, NOTES_MAX } from "../src/polls/notes.js";
 import { forgeSession, startTestContext, type TestContext } from "./helpers/setup.js";
 import { makePoll, polls } from "./helpers/poll-fixtures.js";
 
@@ -101,5 +101,73 @@ describe("custom email message limit", () => {
     const poll = await draft();
     expect((await save(poll._id, { invitationMessage: "  \n ** ** " })).status).toBe(200);
     expect(await stored(poll._id)).toBe("");
+  });
+});
+
+describe("link preview message limit", () => {
+  const CREATOR = "field-limits-link-creator@example.com";
+  let ctx: TestContext;
+  let cookie = "";
+
+  beforeAll(async () => {
+    ctx = await startTestContext({ ENV_ADMINS: CREATOR });
+    cookie = (await forgeSession(ctx, CREATOR)).cookie;
+  });
+
+  afterAll(async () => {
+    await ctx.stop();
+  });
+
+  beforeEach(async () => {
+    await polls(ctx).deleteMany({});
+  });
+
+  const save = (pid: string, body: Record<string, unknown>) =>
+    request(ctx.app).post(`/api/admin/polls/${pid}/save`).set("Cookie", cookie).send({ clientGuid: "tab-1", ...body });
+  const publish = (pid: string, body: Record<string, unknown>) =>
+    request(ctx.app).post(`/api/admin/polls/${pid}/publish`).set("Cookie", cookie).send(body);
+  const stored = async (pid: string) => (await polls(ctx).findOne({ _id: pid }))!.linkPreviewMessage;
+
+  async function draft() {
+    const poll = makePoll({ pollState: "INITIALIZED", pollVisibility: "Private Poll", pollSharingMode: "Anyone With The Link" });
+    await polls(ctx).insertOne(poll);
+    expect((await request(ctx.app).post(`/api/admin/polls/${poll._id}/edit-session`).set("Cookie", cookie)
+      .send({ clientGuid: "tab-1" })).status).toBe(200);
+    return poll;
+  }
+
+  it("is 100, and the wizard carries the same number", () => {
+    expect(LINK_PREVIEW_MESSAGE_MAX).toBe(100);
+    expect(service.LIMITS.LINK_PREVIEW_MESSAGE_MAX).toBe(100);
+    expect(adminCard).toContain("max: 100, editLabel: \"Edit link preview message\"");
+  });
+
+  it("save accepts 100 characters and refuses 101 or a value that is not text", async () => {
+    const poll = await draft();
+    expect((await save(poll._id, { linkPreviewMessage: "x".repeat(100) })).status).toBe(200);
+    expect(await stored(poll._id)).toBe("x".repeat(100));
+    const tooLong = await save(poll._id, { linkPreviewMessage: "x".repeat(101) });
+    expect(tooLong.status).toBe(400);
+    expect(tooLong.body.error ?? tooLong.body.message).toBe("Link preview message must be at most 100 characters.");
+    expect((await save(poll._id, { linkPreviewMessage: 12 })).status).toBe(400);
+  });
+
+  it("publish accepts 100 characters and refuses 101", async () => {
+    const accepted = makePoll({ pollState: "INITIALIZED" });
+    await polls(ctx).insertOne(accepted);
+    expect((await publish(accepted._id, { linkPreviewMessage: "y".repeat(100) })).status).toBe(200);
+    expect(await stored(accepted._id)).toBe("y".repeat(100));
+    const refused = makePoll({ pollState: "INITIALIZED" });
+    await polls(ctx).insertOne(refused);
+    const tooLong = await publish(refused._id, { linkPreviewMessage: "y".repeat(101) });
+    expect(tooLong.status).toBe(400);
+    expect(tooLong.body.error ?? tooLong.body.message).toBe("Link preview message must be at most 100 characters.");
+  });
+
+  it("stores a message with no visible text as empty, and keeps the custom email message beside it", async () => {
+    const poll = await draft();
+    expect((await save(poll._id, { linkPreviewMessage: "  \n ** ** ", invitationMessage: "Email **words**" })).status).toBe(200);
+    expect(await stored(poll._id)).toBe("");
+    expect((await polls(ctx).findOne({ _id: poll._id }))!.invitationMessage).toBe("Email **words**");
   });
 });

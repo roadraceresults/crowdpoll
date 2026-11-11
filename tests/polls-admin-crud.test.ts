@@ -516,6 +516,30 @@ describe("Admin poll CRUD (US4)", () => {
     expect((await polls(ctx).findOne({ _id: dup.body.pid }))!.invitationMessage).toBe("Please **come**\nsoon");
   });
 
+  it("copies the link preview message into a duplicate, and the detail renders it", async () => {
+    const cookie = await adminCookie();
+    const poll = makePoll({
+      title: "Linked", pollVisibility: "Private Poll", pollSharingMode: "Anyone With The Link",
+      linkPreviewMessage: "Vote **now**\nplease", pollState: "CLOSED"
+    });
+    await polls(ctx).insertOne(poll);
+    const dup = await request(ctx.app).post(`/api/admin/polls/${poll._id}/duplicate`).set("Cookie", cookie);
+    expect(dup.status).toBe(201);
+    expect((await polls(ctx).findOne({ _id: dup.body.pid }))!.linkPreviewMessage).toBe("Vote **now**\nplease");
+
+    const detail = await request(ctx.app).get(`/api/admin/polls/${poll._id}`).set("Cookie", cookie);
+    expect(detail.status).toBe(200);
+    expect(detail.body.linkPreviewMessage).toBe("Vote **now**\nplease");
+    expect(detail.body.linkPreviewMessageHtml).toBe("Vote <strong>now</strong><br>please");
+
+    const list = await request(ctx.app).get("/api/admin/polls").set("Cookie", cookie);
+    const rows = list.body.polls as { pid: string; hasLinkPreviewMessage: boolean; linkPreviewMessage?: string }[];
+    const row = rows.find((r) => r.pid === poll._id)!;
+    expect(row.hasLinkPreviewMessage).toBe(true);
+    expect(row.linkPreviewMessage).toBeUndefined();
+    expect(rows.find((r) => r.pid === dup.body.pid)!.hasLinkPreviewMessage).toBe(true);
+  });
+
   it("gives repeated duplicates of the same poll unique, incrementing titles (FR-001/002)", async () => {
     const cookie = await adminCookie();
     const poll = makePoll({ title: "Customer Satisfaction" });
