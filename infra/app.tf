@@ -16,7 +16,7 @@ locals {
     ENV_PUBLIC_ORIGIN                               = "https://crowdpoll.vote"
     ENV_SIGNIN_METHOD                               = "both"
     ENV_MAX_SIGNIN_COOKIE_DURATION                  = "2592000000"
-    ENV_STAY_SIGNED_IN                              = "0"
+    ENV_STAY_SIGNED_IN                              = "1"
     ENV_SCREENING_CALL_TIMEOUT                      = "10000"
     ENV_POLL_APPROVAL_SWEEP_INTERVAL                = "5000"
     ENV_POLL_DATE_CHECK_SWEEP_INTERVAL              = "60000"
