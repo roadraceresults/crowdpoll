@@ -12,72 +12,49 @@
       ],
       "cwd": "${workspaceFolder}",
       "env": {
+        // The settings are in the eleven groups of requirements/environmentVariablesGroups.md;
+        // the ones changed most often while testing are pulled out of their groups to the top.
+        // Unless a note says otherwise, a value is the production default and intervals are in ms.
+
+        // --- Frequently changed ---
         "ENV_PORT": "8080",
-        "ENV_DATABASE_URL": "",
+        "ENV_PUBLIC_ORIGIN": "http://localhost:8080",
         "ENV_ADMINS": "roadraceresults@gmail.com",
-        "ENV_SCREENING_CALL_TIMEOUT": "10000",
-        "ENV_POLL_APPROVAL_SWEEP_INTERVAL": "5000",
-        "ENV_POLL_DATE_CHECK_SWEEP_INTERVAL": "60000",
-        "ENV_POLL_EDIT_HEARTBEAT_INTERVAL": "10000",
-        "ENV_MAX_ACCEPTABILITY_SCREENING_ATTEMPTS": "10",
-        "ENV_POLL_ADMIN_PAGE_REFRESH_INTERVAL": "5000",
-        "ENV_PARTICIPANTS_VIEWPORT_SIZE": "10",
+        // Pre-launch allowlist; empty lets everyone in.
+        "ENV_ALLOWED_EMAILS": "",
+        // The window is in MINUTES, unlike every interval below. Production defaults are 15 / 2.
         "ENV_EMAIL_RATE_LIMIT_WINDOW_MINUTES": "5",
         "ENV_EMAIL_RATE_LIMIT_MAX_REQUESTS_PER_WINDOW": "10",
+        // Production default is 100; 10 so a test poll can be filled in a handful of votes.
         "ENV_MAX_PRIVATE_POLL_VOTERS": "10",
-        "ENV_MIN_CHOICES": "2",
-        "ENV_MAX_CHOICES": "50",
-        "ENV_SESSION_CACHE_TTL": "300000",
-        "ENV_MAX_POLLS_SEARCH_RESULTS": "200",
-        "ENV_MAX_POLLS_ADMIN_SEARCH_RESULTS": "200",
-        "ENV_MAX_TRENDING_POLLS": "200",
-        "ENV_TRENDING_POLLS_RECOMPUTE_SWEEP_INTERVAL": "60000",
-        "ENV_MAX_NEWEST_POLLS": "50",
-        "ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL": "60000",
-        "ENV_HOME_TAB_REFRESH_INTERVAL": "7200000",
-        "ENV_MAX_HOME_PAGE_POLLS": "200",
-        "ENV_LINE_GRAPH_MIN_VOTE_PERCENTAGE": "1",
-        "ENV_LINE_GRAPH_REFRESH_INTERVAL": "60000",
-        "ENV_MIN_LIVE_REFRESH_INTERVAL": "2000",
-        "ENV_MIN_MANUAL_REFRESH_INTERVAL": "5000",
-        "ENV_MIN_SEARCH_REFRESH_INTERVAL": "2000",
-        "ENV_MIN_VOTE_REFRESH_INTERVAL": "2000",
-        "ENV_MANUAL_REFRESH_BURST": "5",
-        "ENV_SEARCH_BURST": "3",
-        "ENV_MAX_VOTES_PER_IP_PER_MINUTE": "600",
-        "ENV_MAX_LIVE_RESULTS_PER_USER": "5",
         "ENV_MAX_INVITATIONS_PER_DAY": "200",
-        "ENV_LIVE_RESULTS_MAX_IDLE_TIME": "1800000",
-        "ENV_SERVER_MAX_REQUESTS_PER_INSTANCE_PER_SECOND": "1250",
-        "ENV_SERVER_MAX_REQUESTS_PER_SECOND": "15000",
-        "ENV_SERVER_MAX_SEARCH_PER_SECOND": "2000",
-        "ENV_SERVER_MAX_SEARCH_FALLBACK_PER_SECOND": "200",
-        "ENV_BUDGET_CONTROLLER_SWEEP_INTERVAL": "1000",
-        "ENV_MAX_REFRESH_AND_SEARCH_STRETCH": "8",
-        "ENV_BUDGET_LOWER_THRESHOLD_PERCENT": "80",
-        "ENV_INSTANCE_MAX_INFLIGHT": "200",
-        "ENV_INSTANCE_MAX_EVENT_LOOP_LAG": "100",
-        "ENV_SHED_RETRY_AFTER": "2000",
-        "ENV_COUNTER_FLUSH_SWEEP_INTERVAL": "10000",
-        "ENV_INVITATION_SWEEP_INTERVAL": "30000",
-        "ENV_INVITATION_RESEND_WAIT": "86400000",
-        "ENV_VOTE_BATCH_SIZE": "500",
-        "ENV_VOTE_QUEUE_LAG_NOTICE": "2000",
-        "ENV_SEARCH_CACHE_TTL": "10000",
-        "ENV_OUTBOX_DRAIN_SWEEP_INTERVAL": "15000",
-        "ENV_MAX_BOOKMARKS_PER_USER": "200",
-        "ENV_BOOKMARK_EXPIRY_MONTHS": "6",
-        "ENV_PAGE_LOADS_PER_MINUTE": "120",
-        "ENV_FCAPTCHA_ENABLED": "",
-        "ENV_FCAPTCHA_URL": "http://localhost:3001",
-        "ENV_FCAPTCHA_SITE_KEY": "dev",
-        "ENV_FCAPTCHA_VERIFY_SECRET": "",
-        "ENV_DEVICE_EVENTS_ENABLED": "false",
-        "ENV_DEVICE_EVENTS_KEY": "",
-        "ENV_MAX_SIGNIN_COOKIE_DURATION": "2592000000",
         "ENV_STAY_SIGNED_IN": "1",
-        "ENV_PUBLIC_ORIGIN": "http://localhost:8080",
+        "ENV_INVITATION_RESEND_WAIT": "86400000",
+
+        // --- 1. Runtime: where this process listens and the origin it is reached at ---
+        // Comma-separated prototypes/ folders served at /prototypes/<name>/; empty serves none.
+        "ENV_PROTOTYPES": "",
+
+        // --- 2. Backing services: the database and the optional managed services ---
+        "ENV_DATABASE_URL": "",
+        "ENV_DATABASE_CA_CERT": "",
+        "ENV_VALKEY_URL": "redis://localhost:6379",
+        "ENV_OPENSEARCH_URL": "http://localhost:9200",
+        // Spaces: all five or none (empty counts as unset)
+        "ENV_SPACES_BUCKET": "",
+        "ENV_SPACES_REGION": "",
+        "ENV_SPACES_KEY": "",
+        "ENV_SPACES_SECRET": "",
+        "ENV_SPACES_CDN_URL": "",
+
+        // --- 3. Authentication and sessions: who may sign in, how, and for how long ---
+        // setup-dev.ps1 writes the same generated value here and into devScripts/launch-dev.ps1.
+        "ENV_BETTER_AUTH_SECRET": "__GENERATED_ON_SETUP__",
+        // native (email link) | oauth (providers only) | both; oauth and both need at least one provider below
         "ENV_SIGNIN_METHOD": "native",
+        "ENV_MAX_SIGNIN_COOKIE_DURATION": "2592000000",
+        "ENV_SESSION_CACHE_TTL": "300000",
+        // Sign-in providers (secrets; a provider is on only when all its values are set)
         "ENV_OAUTH_GOOGLE_CLIENT_ID": "",
         "ENV_OAUTH_GOOGLE_CLIENT_SECRET": "",
         "ENV_OAUTH_APPLE_CLIENT_ID": "",
@@ -88,7 +65,16 @@
         "ENV_OAUTH_MICROSOFT_CLIENT_SECRET": "",
         "ENV_OAUTH_AMAZON_CLIENT_ID": "",
         "ENV_OAUTH_AMAZON_CLIENT_SECRET": "",
-        "ENV_BETTER_AUTH_SECRET": "__GENERATED_ON_SETUP__",
+        // Human check: off unless a local FCaptcha runs (npm run fcaptcha; use the verify secret it prints)
+        "ENV_FCAPTCHA_ENABLED": "",
+        "ENV_FCAPTCHA_URL": "http://localhost:3001",
+        "ENV_FCAPTCHA_SITE_KEY": "dev",
+        "ENV_FCAPTCHA_VERIFY_SECRET": "",
+        "ENV_DEVICE_EVENTS_ENABLED": "false",
+        "ENV_DEVICE_EVENTS_KEY": "",
+
+        // --- 4. Email: Amazon SES and the rate limit on the endpoints that send mail ---
+        // Fill in the development sending key; development mail is real mail.
         "ENV_EMAIL_TRANSPORT": "ses",
         "ENV_SES_REGION": "us-east-1",
         "ENV_SES_ACCESS_KEY_ID": "your-ses-dev-access-key-id",
@@ -96,11 +82,67 @@
         "ENV_EMAIL_FROM": "CrowdPoll <no-reply@dev.mail.crowdpoll.vote>",
         "ENV_EMAIL_SEND_TIMEOUT": "10000",
         "ENV_EMAIL_ASSET_ORIGIN": "https://crowdpoll.vote",
-        "ENV_ALLOWED_EMAILS": "",
-        "ENV_VALKEY_URL": "redis://localhost:6379",
-        "ENV_OPENSEARCH_URL": "http://localhost:9200",
-        "ENV_SPACES_BUCKET": ""
 
+        // --- 5. Poll rules: what a poll may contain and what a user may keep ---
+        "ENV_MIN_CHOICES": "2",
+        "ENV_MAX_CHOICES": "50",
+        "ENV_MAX_BOOKMARKS_PER_USER": "200",
+        "ENV_BOOKMARK_EXPIRY_MONTHS": "6",
+        "ENV_MAX_LIVE_RESULTS_PER_USER": "3",
+
+        // --- 6. Background work: the site-wide sweeps and the screening calls they make ---
+        "ENV_SCREENING_CALL_TIMEOUT": "10000",
+        "ENV_MAX_ACCEPTABILITY_SCREENING_ATTEMPTS": "10",
+        "ENV_POLL_APPROVAL_SWEEP_INTERVAL": "5000",
+        "ENV_POLL_DATE_CHECK_SWEEP_INTERVAL": "60000",
+        "ENV_OUTBOX_DRAIN_SWEEP_INTERVAL": "15000",
+        "ENV_INVITATION_SWEEP_INTERVAL": "30000",
+
+        // --- 7. Vote pipeline: counted in the cache, queued, inserted in batches, flushed ---
+        "ENV_COUNTER_FLUSH_SWEEP_INTERVAL": "10000",
+        "ENV_VOTE_BATCH_SIZE": "500",
+        "ENV_VOTE_QUEUE_LAG_NOTICE": "2000",
+
+        // --- 8. Listings and search: how much each listing returns and how long answers are reused ---
+        "ENV_MAX_TRENDING_POLLS": "200",
+        "ENV_TRENDING_POLLS_RECOMPUTE_SWEEP_INTERVAL": "60000",
+        "ENV_MAX_NEWEST_POLLS": "50",
+        "ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL": "60000",
+        "ENV_HOME_TAB_REFRESH_INTERVAL": "7200000",
+        "ENV_MAX_HOME_PAGE_POLLS": "200",
+        "ENV_MAX_POLLS_SEARCH_RESULTS": "200",
+        "ENV_MAX_POLLS_ADMIN_SEARCH_RESULTS": "200",
+        "ENV_SEARCH_CACHE_TTL": "10000",
+
+        // --- 9. Per-user rate limits: floors between requests, and the bursts allowed first ---
+        "ENV_MIN_LIVE_REFRESH_INTERVAL": "2000",
+        "ENV_MIN_MANUAL_REFRESH_INTERVAL": "5000",
+        "ENV_MIN_SEARCH_REFRESH_INTERVAL": "2000",
+        "ENV_MIN_VOTE_REFRESH_INTERVAL": "2000",
+        "ENV_MANUAL_REFRESH_BURST": "5",
+        "ENV_SEARCH_BURST": "3",
+        "ENV_PAGE_LOADS_PER_MINUTE": "120",
+        "ENV_MAX_VOTES_PER_IP_PER_MINUTE": "600",
+
+        // --- 10. Site-wide load bounds: the budget controller and per-instance shedding ---
+        "ENV_SERVER_MAX_REQUESTS_PER_INSTANCE_PER_SECOND": "1250",
+        "ENV_SERVER_MAX_REQUESTS_PER_SECOND": "15000",
+        "ENV_SERVER_MAX_SEARCH_PER_SECOND": "2000",
+        "ENV_SERVER_MAX_SEARCH_FALLBACK_PER_SECOND": "200",
+        "ENV_BUDGET_CONTROLLER_SWEEP_INTERVAL": "1000",
+        "ENV_MAX_REFRESH_AND_SEARCH_STRETCH": "8",
+        "ENV_BUDGET_LOWER_THRESHOLD_PERCENT": "80",
+        "ENV_INSTANCE_MAX_INFLIGHT": "200",
+        "ENV_INSTANCE_MAX_EVENT_LOOP_LAG": "100",
+        "ENV_SHED_RETRY_AFTER": "2000",
+
+        // --- 11. Browser behaviour: timings and sizes handed to the page in /api/config ---
+        "ENV_LIVE_RESULTS_MAX_IDLE_TIME": "1800000",
+        "ENV_POLL_ADMIN_PAGE_REFRESH_INTERVAL": "5000",
+        "ENV_POLL_EDIT_HEARTBEAT_INTERVAL": "10000",
+        "ENV_PARTICIPANTS_VIEWPORT_SIZE": "10",
+        "ENV_LINE_GRAPH_MIN_VOTE_PERCENTAGE": "1",
+        "ENV_LINE_GRAPH_REFRESH_INTERVAL": "60000"
       },
       "console": "integratedTerminal",
       "skipFiles": [
@@ -119,72 +161,49 @@
       ],
       "cwd": "${workspaceFolder}",
       "env": {
+        // The settings are in the eleven groups of requirements/environmentVariablesGroups.md;
+        // the ones changed most often while testing are pulled out of their groups to the top.
+        // Unless a note says otherwise, a value is the production default and intervals are in ms.
+
+        // --- Frequently changed ---
         "ENV_PORT": "8080",
-        "ENV_DATABASE_URL": "",
+        "ENV_PUBLIC_ORIGIN": "http://localhost:8080",
         "ENV_ADMINS": "roadraceresults@gmail.com",
-        "ENV_SCREENING_CALL_TIMEOUT": "10000",
-        "ENV_POLL_APPROVAL_SWEEP_INTERVAL": "5000",
-        "ENV_POLL_DATE_CHECK_SWEEP_INTERVAL": "60000",
-        "ENV_POLL_EDIT_HEARTBEAT_INTERVAL": "10000",
-        "ENV_MAX_ACCEPTABILITY_SCREENING_ATTEMPTS": "10",
-        "ENV_POLL_ADMIN_PAGE_REFRESH_INTERVAL": "5000",
-        "ENV_PARTICIPANTS_VIEWPORT_SIZE": "10",
+        // Pre-launch allowlist; empty lets everyone in.
+        "ENV_ALLOWED_EMAILS": "",
+        // The window is in MINUTES, unlike every interval below. Production defaults are 15 / 2.
         "ENV_EMAIL_RATE_LIMIT_WINDOW_MINUTES": "5",
         "ENV_EMAIL_RATE_LIMIT_MAX_REQUESTS_PER_WINDOW": "10",
+        // Production default is 100; 10 so a test poll can be filled in a handful of votes.
         "ENV_MAX_PRIVATE_POLL_VOTERS": "10",
-        "ENV_MIN_CHOICES": "2",
-        "ENV_MAX_CHOICES": "50",
-        "ENV_SESSION_CACHE_TTL": "300000",
-        "ENV_MAX_POLLS_SEARCH_RESULTS": "200",
-        "ENV_MAX_POLLS_ADMIN_SEARCH_RESULTS": "200",
-        "ENV_MAX_TRENDING_POLLS": "200",
-        "ENV_TRENDING_POLLS_RECOMPUTE_SWEEP_INTERVAL": "60000",
-        "ENV_MAX_NEWEST_POLLS": "50",
-        "ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL": "60000",
-        "ENV_HOME_TAB_REFRESH_INTERVAL": "7200000",
-        "ENV_MAX_HOME_PAGE_POLLS": "200",
-        "ENV_LINE_GRAPH_MIN_VOTE_PERCENTAGE": "1",
-        "ENV_LINE_GRAPH_REFRESH_INTERVAL": "60000",
-        "ENV_MIN_LIVE_REFRESH_INTERVAL": "2000",
-        "ENV_MIN_MANUAL_REFRESH_INTERVAL": "5000",
-        "ENV_MIN_SEARCH_REFRESH_INTERVAL": "2000",
-        "ENV_MIN_VOTE_REFRESH_INTERVAL": "2000",
-        "ENV_MANUAL_REFRESH_BURST": "5",
-        "ENV_SEARCH_BURST": "3",
-        "ENV_MAX_VOTES_PER_IP_PER_MINUTE": "600",
-        "ENV_MAX_LIVE_RESULTS_PER_USER": "5",
         "ENV_MAX_INVITATIONS_PER_DAY": "200",
-        "ENV_LIVE_RESULTS_MAX_IDLE_TIME": "1800000",
-        "ENV_SERVER_MAX_REQUESTS_PER_INSTANCE_PER_SECOND": "1250",
-        "ENV_SERVER_MAX_REQUESTS_PER_SECOND": "15000",
-        "ENV_SERVER_MAX_SEARCH_PER_SECOND": "2000",
-        "ENV_SERVER_MAX_SEARCH_FALLBACK_PER_SECOND": "200",
-        "ENV_BUDGET_CONTROLLER_SWEEP_INTERVAL": "1000",
-        "ENV_MAX_REFRESH_AND_SEARCH_STRETCH": "8",
-        "ENV_BUDGET_LOWER_THRESHOLD_PERCENT": "80",
-        "ENV_INSTANCE_MAX_INFLIGHT": "200",
-        "ENV_INSTANCE_MAX_EVENT_LOOP_LAG": "100",
-        "ENV_SHED_RETRY_AFTER": "2000",
-        "ENV_COUNTER_FLUSH_SWEEP_INTERVAL": "10000",
-        "ENV_INVITATION_SWEEP_INTERVAL": "30000",
-        "ENV_INVITATION_RESEND_WAIT": "86400000",
-        "ENV_VOTE_BATCH_SIZE": "500",
-        "ENV_VOTE_QUEUE_LAG_NOTICE": "2000",
-        "ENV_SEARCH_CACHE_TTL": "10000",
-        "ENV_OUTBOX_DRAIN_SWEEP_INTERVAL": "15000",
-        "ENV_MAX_BOOKMARKS_PER_USER": "200",
-        "ENV_BOOKMARK_EXPIRY_MONTHS": "6",
-        "ENV_PAGE_LOADS_PER_MINUTE": "120",
-        "ENV_FCAPTCHA_ENABLED": "",
-        "ENV_FCAPTCHA_URL": "http://localhost:3001",
-        "ENV_FCAPTCHA_SITE_KEY": "dev",
-        "ENV_FCAPTCHA_VERIFY_SECRET": "",
-        "ENV_DEVICE_EVENTS_ENABLED": "false",
-        "ENV_DEVICE_EVENTS_KEY": "",
-        "ENV_MAX_SIGNIN_COOKIE_DURATION": "2592000000",
         "ENV_STAY_SIGNED_IN": "1",
-        "ENV_PUBLIC_ORIGIN": "http://localhost:8080",
+        "ENV_INVITATION_RESEND_WAIT": "86400000",
+
+        // --- 1. Runtime: where this process listens and the origin it is reached at ---
+        // Comma-separated prototypes/ folders served at /prototypes/<name>/; empty serves none.
+        "ENV_PROTOTYPES": "",
+
+        // --- 2. Backing services: the database and the optional managed services ---
+        "ENV_DATABASE_URL": "",
+        "ENV_DATABASE_CA_CERT": "",
+        "ENV_VALKEY_URL": "",
+        "ENV_OPENSEARCH_URL": "",
+        // Spaces: all five or none (empty counts as unset)
+        "ENV_SPACES_BUCKET": "",
+        "ENV_SPACES_REGION": "",
+        "ENV_SPACES_KEY": "",
+        "ENV_SPACES_SECRET": "",
+        "ENV_SPACES_CDN_URL": "",
+
+        // --- 3. Authentication and sessions: who may sign in, how, and for how long ---
+        // setup-dev.ps1 writes the same generated value here and into devScripts/launch-dev.ps1.
+        "ENV_BETTER_AUTH_SECRET": "__GENERATED_ON_SETUP__",
+        // native (email link) | oauth (providers only) | both; oauth and both need at least one provider below
         "ENV_SIGNIN_METHOD": "native",
+        "ENV_MAX_SIGNIN_COOKIE_DURATION": "2592000000",
+        "ENV_SESSION_CACHE_TTL": "300000",
+        // Sign-in providers (secrets; a provider is on only when all its values are set)
         "ENV_OAUTH_GOOGLE_CLIENT_ID": "",
         "ENV_OAUTH_GOOGLE_CLIENT_SECRET": "",
         "ENV_OAUTH_APPLE_CLIENT_ID": "",
@@ -195,7 +214,16 @@
         "ENV_OAUTH_MICROSOFT_CLIENT_SECRET": "",
         "ENV_OAUTH_AMAZON_CLIENT_ID": "",
         "ENV_OAUTH_AMAZON_CLIENT_SECRET": "",
-        "ENV_BETTER_AUTH_SECRET": "__GENERATED_ON_SETUP__",
+        // Human check: off unless a local FCaptcha runs (npm run fcaptcha; use the verify secret it prints)
+        "ENV_FCAPTCHA_ENABLED": "",
+        "ENV_FCAPTCHA_URL": "http://localhost:3001",
+        "ENV_FCAPTCHA_SITE_KEY": "dev",
+        "ENV_FCAPTCHA_VERIFY_SECRET": "",
+        "ENV_DEVICE_EVENTS_ENABLED": "false",
+        "ENV_DEVICE_EVENTS_KEY": "",
+
+        // --- 4. Email: Amazon SES and the rate limit on the endpoints that send mail ---
+        // Fill in the development sending key; development mail is real mail.
         "ENV_EMAIL_TRANSPORT": "ses",
         "ENV_SES_REGION": "us-east-1",
         "ENV_SES_ACCESS_KEY_ID": "your-ses-dev-access-key-id",
@@ -203,7 +231,67 @@
         "ENV_EMAIL_FROM": "CrowdPoll <no-reply@dev.mail.crowdpoll.vote>",
         "ENV_EMAIL_SEND_TIMEOUT": "10000",
         "ENV_EMAIL_ASSET_ORIGIN": "https://crowdpoll.vote",
-        "ENV_ALLOWED_EMAILS": ""
+
+        // --- 5. Poll rules: what a poll may contain and what a user may keep ---
+        "ENV_MIN_CHOICES": "2",
+        "ENV_MAX_CHOICES": "50",
+        "ENV_MAX_BOOKMARKS_PER_USER": "200",
+        "ENV_BOOKMARK_EXPIRY_MONTHS": "6",
+        "ENV_MAX_LIVE_RESULTS_PER_USER": "5",
+
+        // --- 6. Background work: the site-wide sweeps and the screening calls they make ---
+        "ENV_SCREENING_CALL_TIMEOUT": "10000",
+        "ENV_MAX_ACCEPTABILITY_SCREENING_ATTEMPTS": "10",
+        "ENV_POLL_APPROVAL_SWEEP_INTERVAL": "5000",
+        "ENV_POLL_DATE_CHECK_SWEEP_INTERVAL": "60000",
+        "ENV_OUTBOX_DRAIN_SWEEP_INTERVAL": "15000",
+        "ENV_INVITATION_SWEEP_INTERVAL": "30000",
+
+        // --- 7. Vote pipeline: counted in the cache, queued, inserted in batches, flushed ---
+        "ENV_COUNTER_FLUSH_SWEEP_INTERVAL": "10000",
+        "ENV_VOTE_BATCH_SIZE": "500",
+        "ENV_VOTE_QUEUE_LAG_NOTICE": "2000",
+
+        // --- 8. Listings and search: how much each listing returns and how long answers are reused ---
+        "ENV_MAX_TRENDING_POLLS": "200",
+        "ENV_TRENDING_POLLS_RECOMPUTE_SWEEP_INTERVAL": "60000",
+        "ENV_MAX_NEWEST_POLLS": "50",
+        "ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL": "60000",
+        "ENV_HOME_TAB_REFRESH_INTERVAL": "7200000",
+        "ENV_MAX_HOME_PAGE_POLLS": "200",
+        "ENV_MAX_POLLS_SEARCH_RESULTS": "200",
+        "ENV_MAX_POLLS_ADMIN_SEARCH_RESULTS": "200",
+        "ENV_SEARCH_CACHE_TTL": "10000",
+
+        // --- 9. Per-user rate limits: floors between requests, and the bursts allowed first ---
+        "ENV_MIN_LIVE_REFRESH_INTERVAL": "2000",
+        "ENV_MIN_MANUAL_REFRESH_INTERVAL": "5000",
+        "ENV_MIN_SEARCH_REFRESH_INTERVAL": "2000",
+        "ENV_MIN_VOTE_REFRESH_INTERVAL": "2000",
+        "ENV_MANUAL_REFRESH_BURST": "5",
+        "ENV_SEARCH_BURST": "3",
+        "ENV_PAGE_LOADS_PER_MINUTE": "120",
+        "ENV_MAX_VOTES_PER_IP_PER_MINUTE": "600",
+
+        // --- 10. Site-wide load bounds: the budget controller and per-instance shedding ---
+        "ENV_SERVER_MAX_REQUESTS_PER_INSTANCE_PER_SECOND": "1250",
+        "ENV_SERVER_MAX_REQUESTS_PER_SECOND": "15000",
+        "ENV_SERVER_MAX_SEARCH_PER_SECOND": "2000",
+        "ENV_SERVER_MAX_SEARCH_FALLBACK_PER_SECOND": "200",
+        "ENV_BUDGET_CONTROLLER_SWEEP_INTERVAL": "1000",
+        "ENV_MAX_REFRESH_AND_SEARCH_STRETCH": "8",
+        "ENV_BUDGET_LOWER_THRESHOLD_PERCENT": "80",
+        "ENV_INSTANCE_MAX_INFLIGHT": "200",
+        "ENV_INSTANCE_MAX_EVENT_LOOP_LAG": "100",
+        "ENV_SHED_RETRY_AFTER": "2000",
+
+        // --- 11. Browser behaviour: timings and sizes handed to the page in /api/config ---
+        "ENV_LIVE_RESULTS_MAX_IDLE_TIME": "1800000",
+        "ENV_POLL_ADMIN_PAGE_REFRESH_INTERVAL": "5000",
+        "ENV_POLL_EDIT_HEARTBEAT_INTERVAL": "10000",
+        "ENV_PARTICIPANTS_VIEWPORT_SIZE": "10",
+        "ENV_LINE_GRAPH_MIN_VOTE_PERCENTAGE": "1",
+        "ENV_LINE_GRAPH_REFRESH_INTERVAL": "60000"
       },
       "console": "integratedTerminal",
       "skipFiles": [
@@ -222,72 +310,49 @@
       ],
       "cwd": "${workspaceFolder}",
       "env": {
+        // The settings are in the eleven groups of requirements/environmentVariablesGroups.md;
+        // the ones changed most often while testing are pulled out of their groups to the top.
+        // Unless a note says otherwise, a value is the production default and intervals are in ms.
+
+        // --- Frequently changed ---
         "ENV_PORT": "8080",
-        "ENV_DATABASE_URL": "",
+        "ENV_PUBLIC_ORIGIN": "http://localhost:8080",
         "ENV_ADMINS": "roadraceresults@gmail.com",
-        "ENV_SCREENING_CALL_TIMEOUT": "10000",
-        "ENV_POLL_APPROVAL_SWEEP_INTERVAL": "5000",
-        "ENV_POLL_DATE_CHECK_SWEEP_INTERVAL": "60000",
-        "ENV_POLL_EDIT_HEARTBEAT_INTERVAL": "10000",
-        "ENV_MAX_ACCEPTABILITY_SCREENING_ATTEMPTS": "10",
-        "ENV_POLL_ADMIN_PAGE_REFRESH_INTERVAL": "5000",
-        "ENV_PARTICIPANTS_VIEWPORT_SIZE": "10",
+        // Pre-launch allowlist; empty lets everyone in.
+        "ENV_ALLOWED_EMAILS": "",
+        // The window is in MINUTES, unlike every interval below. Production defaults are 15 / 2.
         "ENV_EMAIL_RATE_LIMIT_WINDOW_MINUTES": "5",
         "ENV_EMAIL_RATE_LIMIT_MAX_REQUESTS_PER_WINDOW": "10",
+        // Production default is 100; 10 so a test poll can be filled in a handful of votes.
         "ENV_MAX_PRIVATE_POLL_VOTERS": "10",
-        "ENV_MIN_CHOICES": "2",
-        "ENV_MAX_CHOICES": "50",
-        "ENV_SESSION_CACHE_TTL": "300000",
-        "ENV_MAX_POLLS_SEARCH_RESULTS": "200",
-        "ENV_MAX_POLLS_ADMIN_SEARCH_RESULTS": "200",
-        "ENV_MAX_TRENDING_POLLS": "200",
-        "ENV_TRENDING_POLLS_RECOMPUTE_SWEEP_INTERVAL": "60000",
-        "ENV_MAX_NEWEST_POLLS": "50",
-        "ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL": "60000",
-        "ENV_HOME_TAB_REFRESH_INTERVAL": "7200000",
-        "ENV_MAX_HOME_PAGE_POLLS": "200",
-        "ENV_LINE_GRAPH_MIN_VOTE_PERCENTAGE": "1",
-        "ENV_LINE_GRAPH_REFRESH_INTERVAL": "60000",
-        "ENV_MIN_LIVE_REFRESH_INTERVAL": "2000",
-        "ENV_MIN_MANUAL_REFRESH_INTERVAL": "5000",
-        "ENV_MIN_SEARCH_REFRESH_INTERVAL": "2000",
-        "ENV_MIN_VOTE_REFRESH_INTERVAL": "2000",
-        "ENV_MANUAL_REFRESH_BURST": "5",
-        "ENV_SEARCH_BURST": "3",
-        "ENV_MAX_VOTES_PER_IP_PER_MINUTE": "600",
-        "ENV_MAX_LIVE_RESULTS_PER_USER": "5",
         "ENV_MAX_INVITATIONS_PER_DAY": "200",
-        "ENV_LIVE_RESULTS_MAX_IDLE_TIME": "1800000",
-        "ENV_SERVER_MAX_REQUESTS_PER_INSTANCE_PER_SECOND": "1250",
-        "ENV_SERVER_MAX_REQUESTS_PER_SECOND": "15000",
-        "ENV_SERVER_MAX_SEARCH_PER_SECOND": "2000",
-        "ENV_SERVER_MAX_SEARCH_FALLBACK_PER_SECOND": "200",
-        "ENV_BUDGET_CONTROLLER_SWEEP_INTERVAL": "1000",
-        "ENV_MAX_REFRESH_AND_SEARCH_STRETCH": "8",
-        "ENV_BUDGET_LOWER_THRESHOLD_PERCENT": "80",
-        "ENV_INSTANCE_MAX_INFLIGHT": "200",
-        "ENV_INSTANCE_MAX_EVENT_LOOP_LAG": "100",
-        "ENV_SHED_RETRY_AFTER": "2000",
-        "ENV_COUNTER_FLUSH_SWEEP_INTERVAL": "10000",
-        "ENV_INVITATION_SWEEP_INTERVAL": "30000",
-        "ENV_INVITATION_RESEND_WAIT": "86400000",
-        "ENV_VOTE_BATCH_SIZE": "500",
-        "ENV_VOTE_QUEUE_LAG_NOTICE": "2000",
-        "ENV_SEARCH_CACHE_TTL": "10000",
-        "ENV_OUTBOX_DRAIN_SWEEP_INTERVAL": "15000",
-        "ENV_MAX_BOOKMARKS_PER_USER": "200",
-        "ENV_BOOKMARK_EXPIRY_MONTHS": "6",
-        "ENV_PAGE_LOADS_PER_MINUTE": "120",
-        "ENV_FCAPTCHA_ENABLED": "",
-        "ENV_FCAPTCHA_URL": "http://localhost:3001",
-        "ENV_FCAPTCHA_SITE_KEY": "dev",
-        "ENV_FCAPTCHA_VERIFY_SECRET": "",
-        "ENV_DEVICE_EVENTS_ENABLED": "false",
-        "ENV_DEVICE_EVENTS_KEY": "",
-        "ENV_MAX_SIGNIN_COOKIE_DURATION": "2592000000",
         "ENV_STAY_SIGNED_IN": "1",
-        "ENV_PUBLIC_ORIGIN": "http://localhost:8080",
+        "ENV_INVITATION_RESEND_WAIT": "86400000",
+
+        // --- 1. Runtime: where this process listens and the origin it is reached at ---
+        // Comma-separated prototypes/ folders served at /prototypes/<name>/; empty serves none.
+        "ENV_PROTOTYPES": "",
+
+        // --- 2. Backing services: the database and the optional managed services ---
+        "ENV_DATABASE_URL": "",
+        "ENV_DATABASE_CA_CERT": "",
+        "ENV_VALKEY_URL": "",
+        "ENV_OPENSEARCH_URL": "",
+        // Spaces: all five or none (empty counts as unset)
+        "ENV_SPACES_BUCKET": "",
+        "ENV_SPACES_REGION": "",
+        "ENV_SPACES_KEY": "",
+        "ENV_SPACES_SECRET": "",
+        "ENV_SPACES_CDN_URL": "",
+
+        // --- 3. Authentication and sessions: who may sign in, how, and for how long ---
+        // setup-dev.ps1 writes the same generated value here and into devScripts/launch-dev.ps1.
+        "ENV_BETTER_AUTH_SECRET": "__GENERATED_ON_SETUP__",
+        // native (email link) | oauth (providers only) | both; oauth and both need at least one provider below
         "ENV_SIGNIN_METHOD": "native",
+        "ENV_MAX_SIGNIN_COOKIE_DURATION": "2592000000",
+        "ENV_SESSION_CACHE_TTL": "300000",
+        // Sign-in providers (secrets; a provider is on only when all its values are set)
         "ENV_OAUTH_GOOGLE_CLIENT_ID": "",
         "ENV_OAUTH_GOOGLE_CLIENT_SECRET": "",
         "ENV_OAUTH_APPLE_CLIENT_ID": "",
@@ -298,7 +363,16 @@
         "ENV_OAUTH_MICROSOFT_CLIENT_SECRET": "",
         "ENV_OAUTH_AMAZON_CLIENT_ID": "",
         "ENV_OAUTH_AMAZON_CLIENT_SECRET": "",
-        "ENV_BETTER_AUTH_SECRET": "__GENERATED_ON_SETUP__",
+        // Human check: off unless a local FCaptcha runs (npm run fcaptcha; use the verify secret it prints)
+        "ENV_FCAPTCHA_ENABLED": "",
+        "ENV_FCAPTCHA_URL": "http://localhost:3001",
+        "ENV_FCAPTCHA_SITE_KEY": "dev",
+        "ENV_FCAPTCHA_VERIFY_SECRET": "",
+        "ENV_DEVICE_EVENTS_ENABLED": "false",
+        "ENV_DEVICE_EVENTS_KEY": "",
+
+        // --- 4. Email: Amazon SES and the rate limit on the endpoints that send mail ---
+        // Fill in the development sending key; development mail is real mail.
         "ENV_EMAIL_TRANSPORT": "ses",
         "ENV_SES_REGION": "us-east-1",
         "ENV_SES_ACCESS_KEY_ID": "your-ses-dev-access-key-id",
@@ -306,7 +380,67 @@
         "ENV_EMAIL_FROM": "CrowdPoll <no-reply@dev.mail.crowdpoll.vote>",
         "ENV_EMAIL_SEND_TIMEOUT": "10000",
         "ENV_EMAIL_ASSET_ORIGIN": "https://crowdpoll.vote",
-        "ENV_ALLOWED_EMAILS": ""
+
+        // --- 5. Poll rules: what a poll may contain and what a user may keep ---
+        "ENV_MIN_CHOICES": "2",
+        "ENV_MAX_CHOICES": "50",
+        "ENV_MAX_BOOKMARKS_PER_USER": "200",
+        "ENV_BOOKMARK_EXPIRY_MONTHS": "6",
+        "ENV_MAX_LIVE_RESULTS_PER_USER": "5",
+
+        // --- 6. Background work: the site-wide sweeps and the screening calls they make ---
+        "ENV_SCREENING_CALL_TIMEOUT": "10000",
+        "ENV_MAX_ACCEPTABILITY_SCREENING_ATTEMPTS": "10",
+        "ENV_POLL_APPROVAL_SWEEP_INTERVAL": "5000",
+        "ENV_POLL_DATE_CHECK_SWEEP_INTERVAL": "60000",
+        "ENV_OUTBOX_DRAIN_SWEEP_INTERVAL": "15000",
+        "ENV_INVITATION_SWEEP_INTERVAL": "30000",
+
+        // --- 7. Vote pipeline: counted in the cache, queued, inserted in batches, flushed ---
+        "ENV_COUNTER_FLUSH_SWEEP_INTERVAL": "10000",
+        "ENV_VOTE_BATCH_SIZE": "500",
+        "ENV_VOTE_QUEUE_LAG_NOTICE": "2000",
+
+        // --- 8. Listings and search: how much each listing returns and how long answers are reused ---
+        "ENV_MAX_TRENDING_POLLS": "200",
+        "ENV_TRENDING_POLLS_RECOMPUTE_SWEEP_INTERVAL": "60000",
+        "ENV_MAX_NEWEST_POLLS": "50",
+        "ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL": "60000",
+        "ENV_HOME_TAB_REFRESH_INTERVAL": "7200000",
+        "ENV_MAX_HOME_PAGE_POLLS": "200",
+        "ENV_MAX_POLLS_SEARCH_RESULTS": "200",
+        "ENV_MAX_POLLS_ADMIN_SEARCH_RESULTS": "200",
+        "ENV_SEARCH_CACHE_TTL": "10000",
+
+        // --- 9. Per-user rate limits: floors between requests, and the bursts allowed first ---
+        "ENV_MIN_LIVE_REFRESH_INTERVAL": "2000",
+        "ENV_MIN_MANUAL_REFRESH_INTERVAL": "5000",
+        "ENV_MIN_SEARCH_REFRESH_INTERVAL": "2000",
+        "ENV_MIN_VOTE_REFRESH_INTERVAL": "2000",
+        "ENV_MANUAL_REFRESH_BURST": "5",
+        "ENV_SEARCH_BURST": "3",
+        "ENV_PAGE_LOADS_PER_MINUTE": "120",
+        "ENV_MAX_VOTES_PER_IP_PER_MINUTE": "600",
+
+        // --- 10. Site-wide load bounds: the budget controller and per-instance shedding ---
+        "ENV_SERVER_MAX_REQUESTS_PER_INSTANCE_PER_SECOND": "1250",
+        "ENV_SERVER_MAX_REQUESTS_PER_SECOND": "15000",
+        "ENV_SERVER_MAX_SEARCH_PER_SECOND": "2000",
+        "ENV_SERVER_MAX_SEARCH_FALLBACK_PER_SECOND": "200",
+        "ENV_BUDGET_CONTROLLER_SWEEP_INTERVAL": "1000",
+        "ENV_MAX_REFRESH_AND_SEARCH_STRETCH": "8",
+        "ENV_BUDGET_LOWER_THRESHOLD_PERCENT": "80",
+        "ENV_INSTANCE_MAX_INFLIGHT": "200",
+        "ENV_INSTANCE_MAX_EVENT_LOOP_LAG": "100",
+        "ENV_SHED_RETRY_AFTER": "2000",
+
+        // --- 11. Browser behaviour: timings and sizes handed to the page in /api/config ---
+        "ENV_LIVE_RESULTS_MAX_IDLE_TIME": "1800000",
+        "ENV_POLL_ADMIN_PAGE_REFRESH_INTERVAL": "5000",
+        "ENV_POLL_EDIT_HEARTBEAT_INTERVAL": "10000",
+        "ENV_PARTICIPANTS_VIEWPORT_SIZE": "10",
+        "ENV_LINE_GRAPH_MIN_VOTE_PERCENTAGE": "1",
+        "ENV_LINE_GRAPH_REFRESH_INTERVAL": "60000"
       },
       "console": "integratedTerminal",
       "skipFiles": [
@@ -325,72 +459,49 @@
       ],
       "cwd": "${workspaceFolder}",
       "env": {
+        // The settings are in the eleven groups of requirements/environmentVariablesGroups.md;
+        // the ones changed most often while testing are pulled out of their groups to the top.
+        // Unless a note says otherwise, a value is the production default and intervals are in ms.
+
+        // --- Frequently changed ---
         "ENV_PORT": "8080",
-        "ENV_DATABASE_URL": "",
+        "ENV_PUBLIC_ORIGIN": "http://localhost:8080",
         "ENV_ADMINS": "roadraceresults@gmail.com",
-        "ENV_SCREENING_CALL_TIMEOUT": "10000",
-        "ENV_POLL_APPROVAL_SWEEP_INTERVAL": "5000",
-        "ENV_POLL_DATE_CHECK_SWEEP_INTERVAL": "60000",
-        "ENV_POLL_EDIT_HEARTBEAT_INTERVAL": "10000",
-        "ENV_MAX_ACCEPTABILITY_SCREENING_ATTEMPTS": "10",
-        "ENV_POLL_ADMIN_PAGE_REFRESH_INTERVAL": "5000",
-        "ENV_PARTICIPANTS_VIEWPORT_SIZE": "10",
+        // Pre-launch allowlist; empty lets everyone in.
+        "ENV_ALLOWED_EMAILS": "",
+        // The window is in MINUTES, unlike every interval below. Production defaults are 15 / 2.
         "ENV_EMAIL_RATE_LIMIT_WINDOW_MINUTES": "5",
         "ENV_EMAIL_RATE_LIMIT_MAX_REQUESTS_PER_WINDOW": "10",
+        // Production default is 100; 10 so a test poll can be filled in a handful of votes.
         "ENV_MAX_PRIVATE_POLL_VOTERS": "10",
-        "ENV_MIN_CHOICES": "2",
-        "ENV_MAX_CHOICES": "50",
-        "ENV_SESSION_CACHE_TTL": "300000",
-        "ENV_MAX_POLLS_SEARCH_RESULTS": "200",
-        "ENV_MAX_POLLS_ADMIN_SEARCH_RESULTS": "200",
-        "ENV_MAX_TRENDING_POLLS": "200",
-        "ENV_TRENDING_POLLS_RECOMPUTE_SWEEP_INTERVAL": "60000",
-        "ENV_MAX_NEWEST_POLLS": "50",
-        "ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL": "60000",
-        "ENV_HOME_TAB_REFRESH_INTERVAL": "7200000",
-        "ENV_MAX_HOME_PAGE_POLLS": "200",
-        "ENV_LINE_GRAPH_MIN_VOTE_PERCENTAGE": "1",
-        "ENV_LINE_GRAPH_REFRESH_INTERVAL": "60000",
-        "ENV_MIN_LIVE_REFRESH_INTERVAL": "2000",
-        "ENV_MIN_MANUAL_REFRESH_INTERVAL": "5000",
-        "ENV_MIN_SEARCH_REFRESH_INTERVAL": "2000",
-        "ENV_MIN_VOTE_REFRESH_INTERVAL": "2000",
-        "ENV_MANUAL_REFRESH_BURST": "5",
-        "ENV_SEARCH_BURST": "3",
-        "ENV_MAX_VOTES_PER_IP_PER_MINUTE": "600",
-        "ENV_MAX_LIVE_RESULTS_PER_USER": "5",
         "ENV_MAX_INVITATIONS_PER_DAY": "200",
-        "ENV_LIVE_RESULTS_MAX_IDLE_TIME": "1800000",
-        "ENV_SERVER_MAX_REQUESTS_PER_INSTANCE_PER_SECOND": "1250",
-        "ENV_SERVER_MAX_REQUESTS_PER_SECOND": "15000",
-        "ENV_SERVER_MAX_SEARCH_PER_SECOND": "2000",
-        "ENV_SERVER_MAX_SEARCH_FALLBACK_PER_SECOND": "200",
-        "ENV_BUDGET_CONTROLLER_SWEEP_INTERVAL": "1000",
-        "ENV_MAX_REFRESH_AND_SEARCH_STRETCH": "8",
-        "ENV_BUDGET_LOWER_THRESHOLD_PERCENT": "80",
-        "ENV_INSTANCE_MAX_INFLIGHT": "200",
-        "ENV_INSTANCE_MAX_EVENT_LOOP_LAG": "100",
-        "ENV_SHED_RETRY_AFTER": "2000",
-        "ENV_COUNTER_FLUSH_SWEEP_INTERVAL": "10000",
-        "ENV_INVITATION_SWEEP_INTERVAL": "30000",
-        "ENV_INVITATION_RESEND_WAIT": "86400000",
-        "ENV_VOTE_BATCH_SIZE": "500",
-        "ENV_VOTE_QUEUE_LAG_NOTICE": "2000",
-        "ENV_SEARCH_CACHE_TTL": "10000",
-        "ENV_OUTBOX_DRAIN_SWEEP_INTERVAL": "15000",
-        "ENV_MAX_BOOKMARKS_PER_USER": "200",
-        "ENV_BOOKMARK_EXPIRY_MONTHS": "6",
-        "ENV_PAGE_LOADS_PER_MINUTE": "120",
-        "ENV_FCAPTCHA_ENABLED": "",
-        "ENV_FCAPTCHA_URL": "http://localhost:3001",
-        "ENV_FCAPTCHA_SITE_KEY": "dev",
-        "ENV_FCAPTCHA_VERIFY_SECRET": "",
-        "ENV_DEVICE_EVENTS_ENABLED": "false",
-        "ENV_DEVICE_EVENTS_KEY": "",
-        "ENV_MAX_SIGNIN_COOKIE_DURATION": "2592000000",
         "ENV_STAY_SIGNED_IN": "1",
-        "ENV_PUBLIC_ORIGIN": "http://localhost:8080",
+        "ENV_INVITATION_RESEND_WAIT": "86400000",
+
+        // --- 1. Runtime: where this process listens and the origin it is reached at ---
+        // Comma-separated prototypes/ folders served at /prototypes/<name>/; empty serves none.
+        "ENV_PROTOTYPES": "",
+
+        // --- 2. Backing services: the database and the optional managed services ---
+        "ENV_DATABASE_URL": "",
+        "ENV_DATABASE_CA_CERT": "",
+        "ENV_VALKEY_URL": "",
+        "ENV_OPENSEARCH_URL": "",
+        // Spaces: all five or none (empty counts as unset)
+        "ENV_SPACES_BUCKET": "",
+        "ENV_SPACES_REGION": "",
+        "ENV_SPACES_KEY": "",
+        "ENV_SPACES_SECRET": "",
+        "ENV_SPACES_CDN_URL": "",
+
+        // --- 3. Authentication and sessions: who may sign in, how, and for how long ---
+        // setup-dev.ps1 writes the same generated value here and into devScripts/launch-dev.ps1.
+        "ENV_BETTER_AUTH_SECRET": "__GENERATED_ON_SETUP__",
+        // native (email link) | oauth (providers only) | both; oauth and both need at least one provider below
         "ENV_SIGNIN_METHOD": "native",
+        "ENV_MAX_SIGNIN_COOKIE_DURATION": "2592000000",
+        "ENV_SESSION_CACHE_TTL": "300000",
+        // Sign-in providers (secrets; a provider is on only when all its values are set)
         "ENV_OAUTH_GOOGLE_CLIENT_ID": "",
         "ENV_OAUTH_GOOGLE_CLIENT_SECRET": "",
         "ENV_OAUTH_APPLE_CLIENT_ID": "",
@@ -401,7 +512,16 @@
         "ENV_OAUTH_MICROSOFT_CLIENT_SECRET": "",
         "ENV_OAUTH_AMAZON_CLIENT_ID": "",
         "ENV_OAUTH_AMAZON_CLIENT_SECRET": "",
-        "ENV_BETTER_AUTH_SECRET": "__GENERATED_ON_SETUP__",
+        // Human check: off unless a local FCaptcha runs (npm run fcaptcha; use the verify secret it prints)
+        "ENV_FCAPTCHA_ENABLED": "",
+        "ENV_FCAPTCHA_URL": "http://localhost:3001",
+        "ENV_FCAPTCHA_SITE_KEY": "dev",
+        "ENV_FCAPTCHA_VERIFY_SECRET": "",
+        "ENV_DEVICE_EVENTS_ENABLED": "false",
+        "ENV_DEVICE_EVENTS_KEY": "",
+
+        // --- 4. Email: Amazon SES and the rate limit on the endpoints that send mail ---
+        // Fill in the development sending key; development mail is real mail.
         "ENV_EMAIL_TRANSPORT": "ses",
         "ENV_SES_REGION": "us-east-1",
         "ENV_SES_ACCESS_KEY_ID": "your-ses-dev-access-key-id",
@@ -409,7 +529,67 @@
         "ENV_EMAIL_FROM": "CrowdPoll <no-reply@dev.mail.crowdpoll.vote>",
         "ENV_EMAIL_SEND_TIMEOUT": "10000",
         "ENV_EMAIL_ASSET_ORIGIN": "https://crowdpoll.vote",
-        "ENV_ALLOWED_EMAILS": ""
+
+        // --- 5. Poll rules: what a poll may contain and what a user may keep ---
+        "ENV_MIN_CHOICES": "2",
+        "ENV_MAX_CHOICES": "50",
+        "ENV_MAX_BOOKMARKS_PER_USER": "200",
+        "ENV_BOOKMARK_EXPIRY_MONTHS": "6",
+        "ENV_MAX_LIVE_RESULTS_PER_USER": "5",
+
+        // --- 6. Background work: the site-wide sweeps and the screening calls they make ---
+        "ENV_SCREENING_CALL_TIMEOUT": "10000",
+        "ENV_MAX_ACCEPTABILITY_SCREENING_ATTEMPTS": "10",
+        "ENV_POLL_APPROVAL_SWEEP_INTERVAL": "5000",
+        "ENV_POLL_DATE_CHECK_SWEEP_INTERVAL": "60000",
+        "ENV_OUTBOX_DRAIN_SWEEP_INTERVAL": "15000",
+        "ENV_INVITATION_SWEEP_INTERVAL": "30000",
+
+        // --- 7. Vote pipeline: counted in the cache, queued, inserted in batches, flushed ---
+        "ENV_COUNTER_FLUSH_SWEEP_INTERVAL": "10000",
+        "ENV_VOTE_BATCH_SIZE": "500",
+        "ENV_VOTE_QUEUE_LAG_NOTICE": "2000",
+
+        // --- 8. Listings and search: how much each listing returns and how long answers are reused ---
+        "ENV_MAX_TRENDING_POLLS": "200",
+        "ENV_TRENDING_POLLS_RECOMPUTE_SWEEP_INTERVAL": "60000",
+        "ENV_MAX_NEWEST_POLLS": "50",
+        "ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL": "60000",
+        "ENV_HOME_TAB_REFRESH_INTERVAL": "7200000",
+        "ENV_MAX_HOME_PAGE_POLLS": "200",
+        "ENV_MAX_POLLS_SEARCH_RESULTS": "200",
+        "ENV_MAX_POLLS_ADMIN_SEARCH_RESULTS": "200",
+        "ENV_SEARCH_CACHE_TTL": "10000",
+
+        // --- 9. Per-user rate limits: floors between requests, and the bursts allowed first ---
+        "ENV_MIN_LIVE_REFRESH_INTERVAL": "2000",
+        "ENV_MIN_MANUAL_REFRESH_INTERVAL": "5000",
+        "ENV_MIN_SEARCH_REFRESH_INTERVAL": "2000",
+        "ENV_MIN_VOTE_REFRESH_INTERVAL": "2000",
+        "ENV_MANUAL_REFRESH_BURST": "5",
+        "ENV_SEARCH_BURST": "3",
+        "ENV_PAGE_LOADS_PER_MINUTE": "120",
+        "ENV_MAX_VOTES_PER_IP_PER_MINUTE": "600",
+
+        // --- 10. Site-wide load bounds: the budget controller and per-instance shedding ---
+        "ENV_SERVER_MAX_REQUESTS_PER_INSTANCE_PER_SECOND": "1250",
+        "ENV_SERVER_MAX_REQUESTS_PER_SECOND": "15000",
+        "ENV_SERVER_MAX_SEARCH_PER_SECOND": "2000",
+        "ENV_SERVER_MAX_SEARCH_FALLBACK_PER_SECOND": "200",
+        "ENV_BUDGET_CONTROLLER_SWEEP_INTERVAL": "1000",
+        "ENV_MAX_REFRESH_AND_SEARCH_STRETCH": "8",
+        "ENV_BUDGET_LOWER_THRESHOLD_PERCENT": "80",
+        "ENV_INSTANCE_MAX_INFLIGHT": "200",
+        "ENV_INSTANCE_MAX_EVENT_LOOP_LAG": "100",
+        "ENV_SHED_RETRY_AFTER": "2000",
+
+        // --- 11. Browser behaviour: timings and sizes handed to the page in /api/config ---
+        "ENV_LIVE_RESULTS_MAX_IDLE_TIME": "1800000",
+        "ENV_POLL_ADMIN_PAGE_REFRESH_INTERVAL": "5000",
+        "ENV_POLL_EDIT_HEARTBEAT_INTERVAL": "10000",
+        "ENV_PARTICIPANTS_VIEWPORT_SIZE": "10",
+        "ENV_LINE_GRAPH_MIN_VOTE_PERCENTAGE": "1",
+        "ENV_LINE_GRAPH_REFRESH_INTERVAL": "60000"
       },
       "console": "integratedTerminal",
       "skipFiles": [
@@ -428,72 +608,49 @@
       ],
       "cwd": "${workspaceFolder}",
       "env": {
+        // The settings are in the eleven groups of requirements/environmentVariablesGroups.md;
+        // the ones changed most often while testing are pulled out of their groups to the top.
+        // Unless a note says otherwise, a value is the production default and intervals are in ms.
+
+        // --- Frequently changed ---
         "ENV_PORT": "8080",
-        "ENV_DATABASE_URL": "",
+        "ENV_PUBLIC_ORIGIN": "http://localhost:8080",
         "ENV_ADMINS": "roadraceresults@gmail.com",
-        "ENV_SCREENING_CALL_TIMEOUT": "10000",
-        "ENV_POLL_APPROVAL_SWEEP_INTERVAL": "5000",
-        "ENV_POLL_DATE_CHECK_SWEEP_INTERVAL": "60000",
-        "ENV_POLL_EDIT_HEARTBEAT_INTERVAL": "10000",
-        "ENV_MAX_ACCEPTABILITY_SCREENING_ATTEMPTS": "10",
-        "ENV_POLL_ADMIN_PAGE_REFRESH_INTERVAL": "5000",
-        "ENV_PARTICIPANTS_VIEWPORT_SIZE": "10",
+        // Pre-launch allowlist; empty lets everyone in.
+        "ENV_ALLOWED_EMAILS": "",
+        // The window is in MINUTES, unlike every interval below. Production defaults are 15 / 2.
         "ENV_EMAIL_RATE_LIMIT_WINDOW_MINUTES": "5",
         "ENV_EMAIL_RATE_LIMIT_MAX_REQUESTS_PER_WINDOW": "10",
+        // Production default is 100; 10 so a test poll can be filled in a handful of votes.
         "ENV_MAX_PRIVATE_POLL_VOTERS": "10",
-        "ENV_MIN_CHOICES": "2",
-        "ENV_MAX_CHOICES": "50",
-        "ENV_SESSION_CACHE_TTL": "300000",
-        "ENV_MAX_POLLS_SEARCH_RESULTS": "200",
-        "ENV_MAX_POLLS_ADMIN_SEARCH_RESULTS": "200",
-        "ENV_MAX_TRENDING_POLLS": "200",
-        "ENV_TRENDING_POLLS_RECOMPUTE_SWEEP_INTERVAL": "60000",
-        "ENV_MAX_NEWEST_POLLS": "50",
-        "ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL": "60000",
-        "ENV_HOME_TAB_REFRESH_INTERVAL": "7200000",
-        "ENV_MAX_HOME_PAGE_POLLS": "200",
-        "ENV_LINE_GRAPH_MIN_VOTE_PERCENTAGE": "1",
-        "ENV_LINE_GRAPH_REFRESH_INTERVAL": "60000",
-        "ENV_MIN_LIVE_REFRESH_INTERVAL": "2000",
-        "ENV_MIN_MANUAL_REFRESH_INTERVAL": "5000",
-        "ENV_MIN_SEARCH_REFRESH_INTERVAL": "2000",
-        "ENV_MIN_VOTE_REFRESH_INTERVAL": "2000",
-        "ENV_MANUAL_REFRESH_BURST": "5",
-        "ENV_SEARCH_BURST": "3",
-        "ENV_MAX_VOTES_PER_IP_PER_MINUTE": "600",
-        "ENV_MAX_LIVE_RESULTS_PER_USER": "5",
         "ENV_MAX_INVITATIONS_PER_DAY": "200",
-        "ENV_LIVE_RESULTS_MAX_IDLE_TIME": "1800000",
-        "ENV_SERVER_MAX_REQUESTS_PER_INSTANCE_PER_SECOND": "1250",
-        "ENV_SERVER_MAX_REQUESTS_PER_SECOND": "15000",
-        "ENV_SERVER_MAX_SEARCH_PER_SECOND": "2000",
-        "ENV_SERVER_MAX_SEARCH_FALLBACK_PER_SECOND": "200",
-        "ENV_BUDGET_CONTROLLER_SWEEP_INTERVAL": "1000",
-        "ENV_MAX_REFRESH_AND_SEARCH_STRETCH": "8",
-        "ENV_BUDGET_LOWER_THRESHOLD_PERCENT": "80",
-        "ENV_INSTANCE_MAX_INFLIGHT": "200",
-        "ENV_INSTANCE_MAX_EVENT_LOOP_LAG": "100",
-        "ENV_SHED_RETRY_AFTER": "2000",
-        "ENV_COUNTER_FLUSH_SWEEP_INTERVAL": "10000",
-        "ENV_INVITATION_SWEEP_INTERVAL": "30000",
-        "ENV_INVITATION_RESEND_WAIT": "86400000",
-        "ENV_VOTE_BATCH_SIZE": "500",
-        "ENV_VOTE_QUEUE_LAG_NOTICE": "2000",
-        "ENV_SEARCH_CACHE_TTL": "10000",
-        "ENV_OUTBOX_DRAIN_SWEEP_INTERVAL": "15000",
-        "ENV_MAX_BOOKMARKS_PER_USER": "200",
-        "ENV_BOOKMARK_EXPIRY_MONTHS": "6",
-        "ENV_PAGE_LOADS_PER_MINUTE": "120",
-        "ENV_FCAPTCHA_ENABLED": "",
-        "ENV_FCAPTCHA_URL": "http://localhost:3001",
-        "ENV_FCAPTCHA_SITE_KEY": "dev",
-        "ENV_FCAPTCHA_VERIFY_SECRET": "",
-        "ENV_DEVICE_EVENTS_ENABLED": "false",
-        "ENV_DEVICE_EVENTS_KEY": "",
-        "ENV_MAX_SIGNIN_COOKIE_DURATION": "2592000000",
         "ENV_STAY_SIGNED_IN": "1",
-        "ENV_PUBLIC_ORIGIN": "http://localhost:8080",
+        "ENV_INVITATION_RESEND_WAIT": "86400000",
+
+        // --- 1. Runtime: where this process listens and the origin it is reached at ---
+        // Comma-separated prototypes/ folders served at /prototypes/<name>/; empty serves none.
+        "ENV_PROTOTYPES": "",
+
+        // --- 2. Backing services: the database and the optional managed services ---
+        "ENV_DATABASE_URL": "",
+        "ENV_DATABASE_CA_CERT": "",
+        "ENV_VALKEY_URL": "",
+        "ENV_OPENSEARCH_URL": "",
+        // Spaces: all five or none (empty counts as unset)
+        "ENV_SPACES_BUCKET": "",
+        "ENV_SPACES_REGION": "",
+        "ENV_SPACES_KEY": "",
+        "ENV_SPACES_SECRET": "",
+        "ENV_SPACES_CDN_URL": "",
+
+        // --- 3. Authentication and sessions: who may sign in, how, and for how long ---
+        // setup-dev.ps1 writes the same generated value here and into devScripts/launch-dev.ps1.
+        "ENV_BETTER_AUTH_SECRET": "__GENERATED_ON_SETUP__",
+        // native (email link) | oauth (providers only) | both; oauth and both need at least one provider below
         "ENV_SIGNIN_METHOD": "native",
+        "ENV_MAX_SIGNIN_COOKIE_DURATION": "2592000000",
+        "ENV_SESSION_CACHE_TTL": "300000",
+        // Sign-in providers (secrets; a provider is on only when all its values are set)
         "ENV_OAUTH_GOOGLE_CLIENT_ID": "",
         "ENV_OAUTH_GOOGLE_CLIENT_SECRET": "",
         "ENV_OAUTH_APPLE_CLIENT_ID": "",
@@ -504,7 +661,16 @@
         "ENV_OAUTH_MICROSOFT_CLIENT_SECRET": "",
         "ENV_OAUTH_AMAZON_CLIENT_ID": "",
         "ENV_OAUTH_AMAZON_CLIENT_SECRET": "",
-        "ENV_BETTER_AUTH_SECRET": "__GENERATED_ON_SETUP__",
+        // Human check: off unless a local FCaptcha runs (npm run fcaptcha; use the verify secret it prints)
+        "ENV_FCAPTCHA_ENABLED": "",
+        "ENV_FCAPTCHA_URL": "http://localhost:3001",
+        "ENV_FCAPTCHA_SITE_KEY": "dev",
+        "ENV_FCAPTCHA_VERIFY_SECRET": "",
+        "ENV_DEVICE_EVENTS_ENABLED": "false",
+        "ENV_DEVICE_EVENTS_KEY": "",
+
+        // --- 4. Email: Amazon SES and the rate limit on the endpoints that send mail ---
+        // Fill in the development sending key; development mail is real mail.
         "ENV_EMAIL_TRANSPORT": "ses",
         "ENV_SES_REGION": "us-east-1",
         "ENV_SES_ACCESS_KEY_ID": "your-ses-dev-access-key-id",
@@ -512,7 +678,67 @@
         "ENV_EMAIL_FROM": "CrowdPoll <no-reply@dev.mail.crowdpoll.vote>",
         "ENV_EMAIL_SEND_TIMEOUT": "10000",
         "ENV_EMAIL_ASSET_ORIGIN": "https://crowdpoll.vote",
-        "ENV_ALLOWED_EMAILS": ""
+
+        // --- 5. Poll rules: what a poll may contain and what a user may keep ---
+        "ENV_MIN_CHOICES": "2",
+        "ENV_MAX_CHOICES": "50",
+        "ENV_MAX_BOOKMARKS_PER_USER": "200",
+        "ENV_BOOKMARK_EXPIRY_MONTHS": "6",
+        "ENV_MAX_LIVE_RESULTS_PER_USER": "5",
+
+        // --- 6. Background work: the site-wide sweeps and the screening calls they make ---
+        "ENV_SCREENING_CALL_TIMEOUT": "10000",
+        "ENV_MAX_ACCEPTABILITY_SCREENING_ATTEMPTS": "10",
+        "ENV_POLL_APPROVAL_SWEEP_INTERVAL": "5000",
+        "ENV_POLL_DATE_CHECK_SWEEP_INTERVAL": "60000",
+        "ENV_OUTBOX_DRAIN_SWEEP_INTERVAL": "15000",
+        "ENV_INVITATION_SWEEP_INTERVAL": "30000",
+
+        // --- 7. Vote pipeline: counted in the cache, queued, inserted in batches, flushed ---
+        "ENV_COUNTER_FLUSH_SWEEP_INTERVAL": "10000",
+        "ENV_VOTE_BATCH_SIZE": "500",
+        "ENV_VOTE_QUEUE_LAG_NOTICE": "2000",
+
+        // --- 8. Listings and search: how much each listing returns and how long answers are reused ---
+        "ENV_MAX_TRENDING_POLLS": "200",
+        "ENV_TRENDING_POLLS_RECOMPUTE_SWEEP_INTERVAL": "60000",
+        "ENV_MAX_NEWEST_POLLS": "50",
+        "ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL": "60000",
+        "ENV_HOME_TAB_REFRESH_INTERVAL": "7200000",
+        "ENV_MAX_HOME_PAGE_POLLS": "200",
+        "ENV_MAX_POLLS_SEARCH_RESULTS": "200",
+        "ENV_MAX_POLLS_ADMIN_SEARCH_RESULTS": "200",
+        "ENV_SEARCH_CACHE_TTL": "10000",
+
+        // --- 9. Per-user rate limits: floors between requests, and the bursts allowed first ---
+        "ENV_MIN_LIVE_REFRESH_INTERVAL": "2000",
+        "ENV_MIN_MANUAL_REFRESH_INTERVAL": "5000",
+        "ENV_MIN_SEARCH_REFRESH_INTERVAL": "2000",
+        "ENV_MIN_VOTE_REFRESH_INTERVAL": "2000",
+        "ENV_MANUAL_REFRESH_BURST": "5",
+        "ENV_SEARCH_BURST": "3",
+        "ENV_PAGE_LOADS_PER_MINUTE": "120",
+        "ENV_MAX_VOTES_PER_IP_PER_MINUTE": "600",
+
+        // --- 10. Site-wide load bounds: the budget controller and per-instance shedding ---
+        "ENV_SERVER_MAX_REQUESTS_PER_INSTANCE_PER_SECOND": "1250",
+        "ENV_SERVER_MAX_REQUESTS_PER_SECOND": "15000",
+        "ENV_SERVER_MAX_SEARCH_PER_SECOND": "2000",
+        "ENV_SERVER_MAX_SEARCH_FALLBACK_PER_SECOND": "200",
+        "ENV_BUDGET_CONTROLLER_SWEEP_INTERVAL": "1000",
+        "ENV_MAX_REFRESH_AND_SEARCH_STRETCH": "8",
+        "ENV_BUDGET_LOWER_THRESHOLD_PERCENT": "80",
+        "ENV_INSTANCE_MAX_INFLIGHT": "200",
+        "ENV_INSTANCE_MAX_EVENT_LOOP_LAG": "100",
+        "ENV_SHED_RETRY_AFTER": "2000",
+
+        // --- 11. Browser behaviour: timings and sizes handed to the page in /api/config ---
+        "ENV_LIVE_RESULTS_MAX_IDLE_TIME": "1800000",
+        "ENV_POLL_ADMIN_PAGE_REFRESH_INTERVAL": "5000",
+        "ENV_POLL_EDIT_HEARTBEAT_INTERVAL": "10000",
+        "ENV_PARTICIPANTS_VIEWPORT_SIZE": "10",
+        "ENV_LINE_GRAPH_MIN_VOTE_PERCENTAGE": "1",
+        "ENV_LINE_GRAPH_REFRESH_INTERVAL": "60000"
       },
       "console": "integratedTerminal",
       "skipFiles": [
@@ -531,72 +757,49 @@
       ],
       "cwd": "${workspaceFolder}",
       "env": {
+        // The settings are in the eleven groups of requirements/environmentVariablesGroups.md;
+        // the ones changed most often while testing are pulled out of their groups to the top.
+        // Unless a note says otherwise, a value is the production default and intervals are in ms.
+
+        // --- Frequently changed ---
         "ENV_PORT": "8080",
-        "ENV_DATABASE_URL": "",
+        "ENV_PUBLIC_ORIGIN": "http://localhost:8080",
         "ENV_ADMINS": "roadraceresults@gmail.com",
-        "ENV_SCREENING_CALL_TIMEOUT": "10000",
-        "ENV_POLL_APPROVAL_SWEEP_INTERVAL": "5000",
-        "ENV_POLL_DATE_CHECK_SWEEP_INTERVAL": "60000",
-        "ENV_POLL_EDIT_HEARTBEAT_INTERVAL": "10000",
-        "ENV_MAX_ACCEPTABILITY_SCREENING_ATTEMPTS": "10",
-        "ENV_POLL_ADMIN_PAGE_REFRESH_INTERVAL": "5000",
-        "ENV_PARTICIPANTS_VIEWPORT_SIZE": "10",
+        // Pre-launch allowlist; empty lets everyone in.
+        "ENV_ALLOWED_EMAILS": "",
+        // The window is in MINUTES, unlike every interval below. Production defaults are 15 / 2.
         "ENV_EMAIL_RATE_LIMIT_WINDOW_MINUTES": "5",
         "ENV_EMAIL_RATE_LIMIT_MAX_REQUESTS_PER_WINDOW": "10",
+        // Production default is 100; 10 so a test poll can be filled in a handful of votes.
         "ENV_MAX_PRIVATE_POLL_VOTERS": "10",
-        "ENV_MIN_CHOICES": "2",
-        "ENV_MAX_CHOICES": "50",
-        "ENV_SESSION_CACHE_TTL": "300000",
-        "ENV_MAX_POLLS_SEARCH_RESULTS": "200",
-        "ENV_MAX_POLLS_ADMIN_SEARCH_RESULTS": "200",
-        "ENV_MAX_TRENDING_POLLS": "200",
-        "ENV_TRENDING_POLLS_RECOMPUTE_SWEEP_INTERVAL": "60000",
-        "ENV_MAX_NEWEST_POLLS": "50",
-        "ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL": "60000",
-        "ENV_HOME_TAB_REFRESH_INTERVAL": "7200000",
-        "ENV_MAX_HOME_PAGE_POLLS": "200",
-        "ENV_LINE_GRAPH_MIN_VOTE_PERCENTAGE": "1",
-        "ENV_LINE_GRAPH_REFRESH_INTERVAL": "60000",
-        "ENV_MIN_LIVE_REFRESH_INTERVAL": "2000",
-        "ENV_MIN_MANUAL_REFRESH_INTERVAL": "5000",
-        "ENV_MIN_SEARCH_REFRESH_INTERVAL": "2000",
-        "ENV_MIN_VOTE_REFRESH_INTERVAL": "2000",
-        "ENV_MANUAL_REFRESH_BURST": "5",
-        "ENV_SEARCH_BURST": "3",
-        "ENV_MAX_VOTES_PER_IP_PER_MINUTE": "600",
-        "ENV_MAX_LIVE_RESULTS_PER_USER": "5",
         "ENV_MAX_INVITATIONS_PER_DAY": "200",
-        "ENV_LIVE_RESULTS_MAX_IDLE_TIME": "1800000",
-        "ENV_SERVER_MAX_REQUESTS_PER_INSTANCE_PER_SECOND": "1250",
-        "ENV_SERVER_MAX_REQUESTS_PER_SECOND": "15000",
-        "ENV_SERVER_MAX_SEARCH_PER_SECOND": "2000",
-        "ENV_SERVER_MAX_SEARCH_FALLBACK_PER_SECOND": "200",
-        "ENV_BUDGET_CONTROLLER_SWEEP_INTERVAL": "1000",
-        "ENV_MAX_REFRESH_AND_SEARCH_STRETCH": "8",
-        "ENV_BUDGET_LOWER_THRESHOLD_PERCENT": "80",
-        "ENV_INSTANCE_MAX_INFLIGHT": "200",
-        "ENV_INSTANCE_MAX_EVENT_LOOP_LAG": "100",
-        "ENV_SHED_RETRY_AFTER": "2000",
-        "ENV_COUNTER_FLUSH_SWEEP_INTERVAL": "10000",
-        "ENV_INVITATION_SWEEP_INTERVAL": "30000",
-        "ENV_INVITATION_RESEND_WAIT": "86400000",
-        "ENV_VOTE_BATCH_SIZE": "500",
-        "ENV_VOTE_QUEUE_LAG_NOTICE": "2000",
-        "ENV_SEARCH_CACHE_TTL": "10000",
-        "ENV_OUTBOX_DRAIN_SWEEP_INTERVAL": "15000",
-        "ENV_MAX_BOOKMARKS_PER_USER": "200",
-        "ENV_BOOKMARK_EXPIRY_MONTHS": "6",
-        "ENV_PAGE_LOADS_PER_MINUTE": "120",
-        "ENV_FCAPTCHA_ENABLED": "",
-        "ENV_FCAPTCHA_URL": "http://localhost:3001",
-        "ENV_FCAPTCHA_SITE_KEY": "dev",
-        "ENV_FCAPTCHA_VERIFY_SECRET": "",
-        "ENV_DEVICE_EVENTS_ENABLED": "false",
-        "ENV_DEVICE_EVENTS_KEY": "",
-        "ENV_MAX_SIGNIN_COOKIE_DURATION": "2592000000",
         "ENV_STAY_SIGNED_IN": "1",
-        "ENV_PUBLIC_ORIGIN": "http://localhost:8080",
+        "ENV_INVITATION_RESEND_WAIT": "86400000",
+
+        // --- 1. Runtime: where this process listens and the origin it is reached at ---
+        // Comma-separated prototypes/ folders served at /prototypes/<name>/; empty serves none.
+        "ENV_PROTOTYPES": "",
+
+        // --- 2. Backing services: the database and the optional managed services ---
+        "ENV_DATABASE_URL": "",
+        "ENV_DATABASE_CA_CERT": "",
+        "ENV_VALKEY_URL": "",
+        "ENV_OPENSEARCH_URL": "",
+        // Spaces: all five or none (empty counts as unset)
+        "ENV_SPACES_BUCKET": "",
+        "ENV_SPACES_REGION": "",
+        "ENV_SPACES_KEY": "",
+        "ENV_SPACES_SECRET": "",
+        "ENV_SPACES_CDN_URL": "",
+
+        // --- 3. Authentication and sessions: who may sign in, how, and for how long ---
+        // setup-dev.ps1 writes the same generated value here and into devScripts/launch-dev.ps1.
+        "ENV_BETTER_AUTH_SECRET": "__GENERATED_ON_SETUP__",
+        // native (email link) | oauth (providers only) | both; oauth and both need at least one provider below
         "ENV_SIGNIN_METHOD": "native",
+        "ENV_MAX_SIGNIN_COOKIE_DURATION": "2592000000",
+        "ENV_SESSION_CACHE_TTL": "300000",
+        // Sign-in providers (secrets; a provider is on only when all its values are set)
         "ENV_OAUTH_GOOGLE_CLIENT_ID": "",
         "ENV_OAUTH_GOOGLE_CLIENT_SECRET": "",
         "ENV_OAUTH_APPLE_CLIENT_ID": "",
@@ -607,7 +810,16 @@
         "ENV_OAUTH_MICROSOFT_CLIENT_SECRET": "",
         "ENV_OAUTH_AMAZON_CLIENT_ID": "",
         "ENV_OAUTH_AMAZON_CLIENT_SECRET": "",
-        "ENV_BETTER_AUTH_SECRET": "__GENERATED_ON_SETUP__",
+        // Human check: off unless a local FCaptcha runs (npm run fcaptcha; use the verify secret it prints)
+        "ENV_FCAPTCHA_ENABLED": "",
+        "ENV_FCAPTCHA_URL": "http://localhost:3001",
+        "ENV_FCAPTCHA_SITE_KEY": "dev",
+        "ENV_FCAPTCHA_VERIFY_SECRET": "",
+        "ENV_DEVICE_EVENTS_ENABLED": "false",
+        "ENV_DEVICE_EVENTS_KEY": "",
+
+        // --- 4. Email: Amazon SES and the rate limit on the endpoints that send mail ---
+        // Fill in the development sending key; development mail is real mail.
         "ENV_EMAIL_TRANSPORT": "ses",
         "ENV_SES_REGION": "us-east-1",
         "ENV_SES_ACCESS_KEY_ID": "your-ses-dev-access-key-id",
@@ -615,7 +827,67 @@
         "ENV_EMAIL_FROM": "CrowdPoll <no-reply@dev.mail.crowdpoll.vote>",
         "ENV_EMAIL_SEND_TIMEOUT": "10000",
         "ENV_EMAIL_ASSET_ORIGIN": "https://crowdpoll.vote",
-        "ENV_ALLOWED_EMAILS": ""
+
+        // --- 5. Poll rules: what a poll may contain and what a user may keep ---
+        "ENV_MIN_CHOICES": "2",
+        "ENV_MAX_CHOICES": "50",
+        "ENV_MAX_BOOKMARKS_PER_USER": "200",
+        "ENV_BOOKMARK_EXPIRY_MONTHS": "6",
+        "ENV_MAX_LIVE_RESULTS_PER_USER": "5",
+
+        // --- 6. Background work: the site-wide sweeps and the screening calls they make ---
+        "ENV_SCREENING_CALL_TIMEOUT": "10000",
+        "ENV_MAX_ACCEPTABILITY_SCREENING_ATTEMPTS": "10",
+        "ENV_POLL_APPROVAL_SWEEP_INTERVAL": "5000",
+        "ENV_POLL_DATE_CHECK_SWEEP_INTERVAL": "60000",
+        "ENV_OUTBOX_DRAIN_SWEEP_INTERVAL": "15000",
+        "ENV_INVITATION_SWEEP_INTERVAL": "30000",
+
+        // --- 7. Vote pipeline: counted in the cache, queued, inserted in batches, flushed ---
+        "ENV_COUNTER_FLUSH_SWEEP_INTERVAL": "10000",
+        "ENV_VOTE_BATCH_SIZE": "500",
+        "ENV_VOTE_QUEUE_LAG_NOTICE": "2000",
+
+        // --- 8. Listings and search: how much each listing returns and how long answers are reused ---
+        "ENV_MAX_TRENDING_POLLS": "200",
+        "ENV_TRENDING_POLLS_RECOMPUTE_SWEEP_INTERVAL": "60000",
+        "ENV_MAX_NEWEST_POLLS": "50",
+        "ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL": "60000",
+        "ENV_HOME_TAB_REFRESH_INTERVAL": "7200000",
+        "ENV_MAX_HOME_PAGE_POLLS": "200",
+        "ENV_MAX_POLLS_SEARCH_RESULTS": "200",
+        "ENV_MAX_POLLS_ADMIN_SEARCH_RESULTS": "200",
+        "ENV_SEARCH_CACHE_TTL": "10000",
+
+        // --- 9. Per-user rate limits: floors between requests, and the bursts allowed first ---
+        "ENV_MIN_LIVE_REFRESH_INTERVAL": "2000",
+        "ENV_MIN_MANUAL_REFRESH_INTERVAL": "5000",
+        "ENV_MIN_SEARCH_REFRESH_INTERVAL": "2000",
+        "ENV_MIN_VOTE_REFRESH_INTERVAL": "2000",
+        "ENV_MANUAL_REFRESH_BURST": "5",
+        "ENV_SEARCH_BURST": "3",
+        "ENV_PAGE_LOADS_PER_MINUTE": "120",
+        "ENV_MAX_VOTES_PER_IP_PER_MINUTE": "600",
+
+        // --- 10. Site-wide load bounds: the budget controller and per-instance shedding ---
+        "ENV_SERVER_MAX_REQUESTS_PER_INSTANCE_PER_SECOND": "1250",
+        "ENV_SERVER_MAX_REQUESTS_PER_SECOND": "15000",
+        "ENV_SERVER_MAX_SEARCH_PER_SECOND": "2000",
+        "ENV_SERVER_MAX_SEARCH_FALLBACK_PER_SECOND": "200",
+        "ENV_BUDGET_CONTROLLER_SWEEP_INTERVAL": "1000",
+        "ENV_MAX_REFRESH_AND_SEARCH_STRETCH": "8",
+        "ENV_BUDGET_LOWER_THRESHOLD_PERCENT": "80",
+        "ENV_INSTANCE_MAX_INFLIGHT": "200",
+        "ENV_INSTANCE_MAX_EVENT_LOOP_LAG": "100",
+        "ENV_SHED_RETRY_AFTER": "2000",
+
+        // --- 11. Browser behaviour: timings and sizes handed to the page in /api/config ---
+        "ENV_LIVE_RESULTS_MAX_IDLE_TIME": "1800000",
+        "ENV_POLL_ADMIN_PAGE_REFRESH_INTERVAL": "5000",
+        "ENV_POLL_EDIT_HEARTBEAT_INTERVAL": "10000",
+        "ENV_PARTICIPANTS_VIEWPORT_SIZE": "10",
+        "ENV_LINE_GRAPH_MIN_VOTE_PERCENTAGE": "1",
+        "ENV_LINE_GRAPH_REFRESH_INTERVAL": "60000"
       },
       "console": "integratedTerminal",
       "skipFiles": [
@@ -634,72 +906,49 @@
       ],
       "cwd": "${workspaceFolder}",
       "env": {
+        // The settings are in the eleven groups of requirements/environmentVariablesGroups.md;
+        // the ones changed most often while testing are pulled out of their groups to the top.
+        // Unless a note says otherwise, a value is the production default and intervals are in ms.
+
+        // --- Frequently changed ---
         "ENV_PORT": "8080",
-        "ENV_DATABASE_URL": "",
+        "ENV_PUBLIC_ORIGIN": "http://localhost:8080",
         "ENV_ADMINS": "roadraceresults@gmail.com",
-        "ENV_SCREENING_CALL_TIMEOUT": "10000",
-        "ENV_POLL_APPROVAL_SWEEP_INTERVAL": "5000",
-        "ENV_POLL_DATE_CHECK_SWEEP_INTERVAL": "60000",
-        "ENV_POLL_EDIT_HEARTBEAT_INTERVAL": "10000",
-        "ENV_MAX_ACCEPTABILITY_SCREENING_ATTEMPTS": "10",
-        "ENV_POLL_ADMIN_PAGE_REFRESH_INTERVAL": "5000",
-        "ENV_PARTICIPANTS_VIEWPORT_SIZE": "10",
+        // Pre-launch allowlist; empty lets everyone in.
+        "ENV_ALLOWED_EMAILS": "",
+        // The window is in MINUTES, unlike every interval below. Production defaults are 15 / 2.
         "ENV_EMAIL_RATE_LIMIT_WINDOW_MINUTES": "5",
         "ENV_EMAIL_RATE_LIMIT_MAX_REQUESTS_PER_WINDOW": "10",
+        // Production default is 100; 10 so a test poll can be filled in a handful of votes.
         "ENV_MAX_PRIVATE_POLL_VOTERS": "10",
-        "ENV_MIN_CHOICES": "2",
-        "ENV_MAX_CHOICES": "50",
-        "ENV_SESSION_CACHE_TTL": "300000",
-        "ENV_MAX_POLLS_SEARCH_RESULTS": "200",
-        "ENV_MAX_POLLS_ADMIN_SEARCH_RESULTS": "200",
-        "ENV_MAX_TRENDING_POLLS": "200",
-        "ENV_TRENDING_POLLS_RECOMPUTE_SWEEP_INTERVAL": "60000",
-        "ENV_MAX_NEWEST_POLLS": "50",
-        "ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL": "60000",
-        "ENV_HOME_TAB_REFRESH_INTERVAL": "7200000",
-        "ENV_MAX_HOME_PAGE_POLLS": "200",
-        "ENV_LINE_GRAPH_MIN_VOTE_PERCENTAGE": "1",
-        "ENV_LINE_GRAPH_REFRESH_INTERVAL": "60000",
-        "ENV_MIN_LIVE_REFRESH_INTERVAL": "2000",
-        "ENV_MIN_MANUAL_REFRESH_INTERVAL": "5000",
-        "ENV_MIN_SEARCH_REFRESH_INTERVAL": "2000",
-        "ENV_MIN_VOTE_REFRESH_INTERVAL": "2000",
-        "ENV_MANUAL_REFRESH_BURST": "5",
-        "ENV_SEARCH_BURST": "3",
-        "ENV_MAX_VOTES_PER_IP_PER_MINUTE": "600",
-        "ENV_MAX_LIVE_RESULTS_PER_USER": "5",
         "ENV_MAX_INVITATIONS_PER_DAY": "200",
-        "ENV_LIVE_RESULTS_MAX_IDLE_TIME": "1800000",
-        "ENV_SERVER_MAX_REQUESTS_PER_INSTANCE_PER_SECOND": "1250",
-        "ENV_SERVER_MAX_REQUESTS_PER_SECOND": "15000",
-        "ENV_SERVER_MAX_SEARCH_PER_SECOND": "2000",
-        "ENV_SERVER_MAX_SEARCH_FALLBACK_PER_SECOND": "200",
-        "ENV_BUDGET_CONTROLLER_SWEEP_INTERVAL": "1000",
-        "ENV_MAX_REFRESH_AND_SEARCH_STRETCH": "8",
-        "ENV_BUDGET_LOWER_THRESHOLD_PERCENT": "80",
-        "ENV_INSTANCE_MAX_INFLIGHT": "200",
-        "ENV_INSTANCE_MAX_EVENT_LOOP_LAG": "100",
-        "ENV_SHED_RETRY_AFTER": "2000",
-        "ENV_COUNTER_FLUSH_SWEEP_INTERVAL": "10000",
-        "ENV_INVITATION_SWEEP_INTERVAL": "30000",
-        "ENV_INVITATION_RESEND_WAIT": "86400000",
-        "ENV_VOTE_BATCH_SIZE": "500",
-        "ENV_VOTE_QUEUE_LAG_NOTICE": "2000",
-        "ENV_SEARCH_CACHE_TTL": "10000",
-        "ENV_OUTBOX_DRAIN_SWEEP_INTERVAL": "15000",
-        "ENV_MAX_BOOKMARKS_PER_USER": "200",
-        "ENV_BOOKMARK_EXPIRY_MONTHS": "6",
-        "ENV_PAGE_LOADS_PER_MINUTE": "120",
-        "ENV_FCAPTCHA_ENABLED": "",
-        "ENV_FCAPTCHA_URL": "http://localhost:3001",
-        "ENV_FCAPTCHA_SITE_KEY": "dev",
-        "ENV_FCAPTCHA_VERIFY_SECRET": "",
-        "ENV_DEVICE_EVENTS_ENABLED": "false",
-        "ENV_DEVICE_EVENTS_KEY": "",
-        "ENV_MAX_SIGNIN_COOKIE_DURATION": "2592000000",
         "ENV_STAY_SIGNED_IN": "1",
-        "ENV_PUBLIC_ORIGIN": "http://localhost:8080",
+        "ENV_INVITATION_RESEND_WAIT": "86400000",
+
+        // --- 1. Runtime: where this process listens and the origin it is reached at ---
+        // Comma-separated prototypes/ folders served at /prototypes/<name>/; empty serves none.
+        "ENV_PROTOTYPES": "",
+
+        // --- 2. Backing services: the database and the optional managed services ---
+        "ENV_DATABASE_URL": "",
+        "ENV_DATABASE_CA_CERT": "",
+        "ENV_VALKEY_URL": "",
+        "ENV_OPENSEARCH_URL": "",
+        // Spaces: all five or none (empty counts as unset)
+        "ENV_SPACES_BUCKET": "",
+        "ENV_SPACES_REGION": "",
+        "ENV_SPACES_KEY": "",
+        "ENV_SPACES_SECRET": "",
+        "ENV_SPACES_CDN_URL": "",
+
+        // --- 3. Authentication and sessions: who may sign in, how, and for how long ---
+        // setup-dev.ps1 writes the same generated value here and into devScripts/launch-dev.ps1.
+        "ENV_BETTER_AUTH_SECRET": "__GENERATED_ON_SETUP__",
+        // native (email link) | oauth (providers only) | both; oauth and both need at least one provider below
         "ENV_SIGNIN_METHOD": "native",
+        "ENV_MAX_SIGNIN_COOKIE_DURATION": "2592000000",
+        "ENV_SESSION_CACHE_TTL": "300000",
+        // Sign-in providers (secrets; a provider is on only when all its values are set)
         "ENV_OAUTH_GOOGLE_CLIENT_ID": "",
         "ENV_OAUTH_GOOGLE_CLIENT_SECRET": "",
         "ENV_OAUTH_APPLE_CLIENT_ID": "",
@@ -710,7 +959,16 @@
         "ENV_OAUTH_MICROSOFT_CLIENT_SECRET": "",
         "ENV_OAUTH_AMAZON_CLIENT_ID": "",
         "ENV_OAUTH_AMAZON_CLIENT_SECRET": "",
-        "ENV_BETTER_AUTH_SECRET": "__GENERATED_ON_SETUP__",
+        // Human check: off unless a local FCaptcha runs (npm run fcaptcha; use the verify secret it prints)
+        "ENV_FCAPTCHA_ENABLED": "",
+        "ENV_FCAPTCHA_URL": "http://localhost:3001",
+        "ENV_FCAPTCHA_SITE_KEY": "dev",
+        "ENV_FCAPTCHA_VERIFY_SECRET": "",
+        "ENV_DEVICE_EVENTS_ENABLED": "false",
+        "ENV_DEVICE_EVENTS_KEY": "",
+
+        // --- 4. Email: Amazon SES and the rate limit on the endpoints that send mail ---
+        // Fill in the development sending key; development mail is real mail.
         "ENV_EMAIL_TRANSPORT": "ses",
         "ENV_SES_REGION": "us-east-1",
         "ENV_SES_ACCESS_KEY_ID": "your-ses-dev-access-key-id",
@@ -718,7 +976,67 @@
         "ENV_EMAIL_FROM": "CrowdPoll <no-reply@dev.mail.crowdpoll.vote>",
         "ENV_EMAIL_SEND_TIMEOUT": "10000",
         "ENV_EMAIL_ASSET_ORIGIN": "https://crowdpoll.vote",
-        "ENV_ALLOWED_EMAILS": ""
+
+        // --- 5. Poll rules: what a poll may contain and what a user may keep ---
+        "ENV_MIN_CHOICES": "2",
+        "ENV_MAX_CHOICES": "50",
+        "ENV_MAX_BOOKMARKS_PER_USER": "200",
+        "ENV_BOOKMARK_EXPIRY_MONTHS": "6",
+        "ENV_MAX_LIVE_RESULTS_PER_USER": "5",
+
+        // --- 6. Background work: the site-wide sweeps and the screening calls they make ---
+        "ENV_SCREENING_CALL_TIMEOUT": "10000",
+        "ENV_MAX_ACCEPTABILITY_SCREENING_ATTEMPTS": "10",
+        "ENV_POLL_APPROVAL_SWEEP_INTERVAL": "5000",
+        "ENV_POLL_DATE_CHECK_SWEEP_INTERVAL": "60000",
+        "ENV_OUTBOX_DRAIN_SWEEP_INTERVAL": "15000",
+        "ENV_INVITATION_SWEEP_INTERVAL": "30000",
+
+        // --- 7. Vote pipeline: counted in the cache, queued, inserted in batches, flushed ---
+        "ENV_COUNTER_FLUSH_SWEEP_INTERVAL": "10000",
+        "ENV_VOTE_BATCH_SIZE": "500",
+        "ENV_VOTE_QUEUE_LAG_NOTICE": "2000",
+
+        // --- 8. Listings and search: how much each listing returns and how long answers are reused ---
+        "ENV_MAX_TRENDING_POLLS": "200",
+        "ENV_TRENDING_POLLS_RECOMPUTE_SWEEP_INTERVAL": "60000",
+        "ENV_MAX_NEWEST_POLLS": "50",
+        "ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL": "60000",
+        "ENV_HOME_TAB_REFRESH_INTERVAL": "7200000",
+        "ENV_MAX_HOME_PAGE_POLLS": "200",
+        "ENV_MAX_POLLS_SEARCH_RESULTS": "200",
+        "ENV_MAX_POLLS_ADMIN_SEARCH_RESULTS": "200",
+        "ENV_SEARCH_CACHE_TTL": "10000",
+
+        // --- 9. Per-user rate limits: floors between requests, and the bursts allowed first ---
+        "ENV_MIN_LIVE_REFRESH_INTERVAL": "2000",
+        "ENV_MIN_MANUAL_REFRESH_INTERVAL": "5000",
+        "ENV_MIN_SEARCH_REFRESH_INTERVAL": "2000",
+        "ENV_MIN_VOTE_REFRESH_INTERVAL": "2000",
+        "ENV_MANUAL_REFRESH_BURST": "5",
+        "ENV_SEARCH_BURST": "3",
+        "ENV_PAGE_LOADS_PER_MINUTE": "120",
+        "ENV_MAX_VOTES_PER_IP_PER_MINUTE": "600",
+
+        // --- 10. Site-wide load bounds: the budget controller and per-instance shedding ---
+        "ENV_SERVER_MAX_REQUESTS_PER_INSTANCE_PER_SECOND": "1250",
+        "ENV_SERVER_MAX_REQUESTS_PER_SECOND": "15000",
+        "ENV_SERVER_MAX_SEARCH_PER_SECOND": "2000",
+        "ENV_SERVER_MAX_SEARCH_FALLBACK_PER_SECOND": "200",
+        "ENV_BUDGET_CONTROLLER_SWEEP_INTERVAL": "1000",
+        "ENV_MAX_REFRESH_AND_SEARCH_STRETCH": "8",
+        "ENV_BUDGET_LOWER_THRESHOLD_PERCENT": "80",
+        "ENV_INSTANCE_MAX_INFLIGHT": "200",
+        "ENV_INSTANCE_MAX_EVENT_LOOP_LAG": "100",
+        "ENV_SHED_RETRY_AFTER": "2000",
+
+        // --- 11. Browser behaviour: timings and sizes handed to the page in /api/config ---
+        "ENV_LIVE_RESULTS_MAX_IDLE_TIME": "1800000",
+        "ENV_POLL_ADMIN_PAGE_REFRESH_INTERVAL": "5000",
+        "ENV_POLL_EDIT_HEARTBEAT_INTERVAL": "10000",
+        "ENV_PARTICIPANTS_VIEWPORT_SIZE": "10",
+        "ENV_LINE_GRAPH_MIN_VOTE_PERCENTAGE": "1",
+        "ENV_LINE_GRAPH_REFRESH_INTERVAL": "60000"
       },
       "console": "integratedTerminal",
       "skipFiles": [

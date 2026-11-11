@@ -7,10 +7,29 @@
 #
 # The settings are in the eleven groups of requirements/environmentVariablesGroups.md.
 # Unless a note says otherwise, a value is the production default and intervals are in ms.
+# The settings changed most often while testing are pulled out of their groups to the top.
 
-# --- 1. Runtime: where this process listens and the origin it is reached at ---
+# --- Frequently changed ---
 $env:ENV_PORT = "8081"  # default 8080
 $env:ENV_PUBLIC_ORIGIN = "http://localhost:8081"
+$env:ENV_ADMINS = "devadmin01@crowdpoll.vote, devadmin02@crowdpoll.vote, devadmin03@crowdpoll.vote"
+# Pre-launch allowlist; empty lets everyone in.
+$env:ENV_ALLOWED_EMAILS = ""
+# NOTE the unit -- the window is in MINUTES, unlike every interval in this file.
+# Production defaults are 15 / 2. Loosened here because the production values make
+# sign-in testing painful: two login links and you are locked out for 15 minutes.
+$env:ENV_EMAIL_RATE_LIMIT_WINDOW_MINUTES = "5"  # default 15
+$env:ENV_EMAIL_RATE_LIMIT_MAX_REQUESTS_PER_WINDOW = "10"  # default 2
+# The voter ceiling on a private poll -- both the limit a blank field means and the
+# largest value enterable. Production default is 100; 10 here so a test poll can be
+# filled in a handful of votes.
+$env:ENV_MAX_PRIVATE_POLL_VOTERS = "10"  # default 100
+$env:ENV_MAX_INVITATIONS_PER_DAY = "200"
+$env:ENV_STAY_SIGNED_IN = "1"  # default 0
+$env:ENV_INVITATION_RESEND_WAIT = "86400000"
+
+# --- 1. Runtime: where this process listens and the origin it is reached at ---
+# (ENV_PORT and ENV_PUBLIC_ORIGIN are at the top.)
 # Comma-separated prototypes/ folders served at /prototypes/<name>/; empty serves none.
 $env:ENV_PROTOTYPES = ""
 
@@ -40,11 +59,7 @@ $env:ENV_BETTER_AUTH_SECRET = "__GENERATED_ON_SETUP__"
 # native (email link) | oauth (providers only) | both; oauth and both need at least one provider below
 $env:ENV_SIGNIN_METHOD = "native"
 $env:ENV_MAX_SIGNIN_COOKIE_DURATION = "2592000000"
-$env:ENV_STAY_SIGNED_IN = "1"  # default 0
 $env:ENV_SESSION_CACHE_TTL = "300000"
-$env:ENV_ADMINS = "devadmin01@crowdpoll.vote, devadmin02@crowdpoll.vote, devadmin03@crowdpoll.vote"
-# Pre-launch allowlist; empty lets everyone in.
-$env:ENV_ALLOWED_EMAILS = ""
 # Sign-in providers (secrets; a provider is on only when all its values are set)
 $env:ENV_OAUTH_GOOGLE_CLIENT_ID = ""
 $env:ENV_OAUTH_GOOGLE_CLIENT_SECRET = ""
@@ -57,15 +72,17 @@ $env:ENV_OAUTH_MICROSOFT_CLIENT_SECRET = ""
 $env:ENV_OAUTH_AMAZON_CLIENT_ID = ""
 $env:ENV_OAUTH_AMAZON_CLIENT_SECRET = ""
 
-# Human check: off unless a local FCaptcha runs (npm run fcaptcha, in another terminal; use the verify secret it prints)
-# $env:ENV_FCAPTCHA_ENABLED = "1"
-# $env:ENV_FCAPTCHA_URL = "http://localhost:3001"
-# $env:ENV_FCAPTCHA_SITE_KEY = "dev"
-# $env:ENV_FCAPTCHA_VERIFY_SECRET = ""
+# Human check: off unless a local FCaptcha runs (npm run fcaptcha, in another terminal). To turn it
+# on, set ENABLED to "1", URL to "http://localhost:3001", SITE_KEY to "dev" and VERIFY_SECRET to
+# the verify secret it prints.
+$env:ENV_FCAPTCHA_ENABLED = ""
+$env:ENV_FCAPTCHA_URL = ""
+$env:ENV_FCAPTCHA_SITE_KEY = ""
+$env:ENV_FCAPTCHA_VERIFY_SECRET = ""
 # $env:ENV_FCAPTCHA_SECRET = ""
-# $env:ENV_DEVICE_EVENTS_ENABLED = "true"
-# $env:ENV_DEVICE_EVENTS_KEY = ""
-
+# Device evidence: off by default; "true" needs a key of at least 32 characters.
+$env:ENV_DEVICE_EVENTS_ENABLED = "false"
+$env:ENV_DEVICE_EVENTS_KEY = ""
 
 # --- 4. Email: Amazon SES and the rate limit on the endpoints that send mail ---
 # Fill in the development sending key; development mail is real mail.
@@ -76,22 +93,12 @@ $env:ENV_SES_SECRET_ACCESS_KEY = "your-ses-dev-secret-access-key"
 $env:ENV_EMAIL_FROM = "CrowdPoll <no-reply@dev.mail.crowdpoll.vote>"
 $env:ENV_EMAIL_SEND_TIMEOUT = "10000"
 $env:ENV_EMAIL_ASSET_ORIGIN = "https://crowdpoll.vote"
-# NOTE the unit -- the window is in MINUTES, unlike every interval in this file.
-# Production defaults are 15 / 2. Loosened here because the production values make
-# sign-in testing painful: two login links and you are locked out for 15 minutes.
-$env:ENV_EMAIL_RATE_LIMIT_WINDOW_MINUTES = "5"  # default 15
-$env:ENV_EMAIL_RATE_LIMIT_MAX_REQUESTS_PER_WINDOW = "10"  # default 2
 
 # --- 5. Poll rules: what a poll may contain and what a user may keep ---
 # The number of choices a poll must have to be published, inclusive. Lower
 # ENV_MAX_CHOICES to reach the choices editor's ceiling without typing fifty lines.
 $env:ENV_MIN_CHOICES = "2"
 $env:ENV_MAX_CHOICES = "50"
-# The voter ceiling on a private poll -- both the limit a blank field means and the
-# largest value enterable. Production default is 100; 10 here so a test poll can be
-# filled in a handful of votes.
-$env:ENV_MAX_PRIVATE_POLL_VOTERS = "10"  # default 100
-$env:ENV_MAX_INVITATIONS_PER_DAY = "200"
 $env:ENV_MAX_BOOKMARKS_PER_USER = "200"
 $env:ENV_BOOKMARK_EXPIRY_MONTHS = "6"
 $env:ENV_MAX_LIVE_RESULTS_PER_USER = "5"
@@ -103,7 +110,6 @@ $env:ENV_POLL_APPROVAL_SWEEP_INTERVAL = "5000"
 $env:ENV_POLL_DATE_CHECK_SWEEP_INTERVAL = "60000"
 $env:ENV_OUTBOX_DRAIN_SWEEP_INTERVAL = "15000"
 $env:ENV_INVITATION_SWEEP_INTERVAL = "30000"
-$env:ENV_INVITATION_RESEND_WAIT = "86400000"
 
 # --- 7. Vote pipeline: counted in the cache, queued, inserted in batches, flushed ---
 $env:ENV_COUNTER_FLUSH_SWEEP_INTERVAL = "10000"
@@ -115,7 +121,7 @@ $env:ENV_MAX_TRENDING_POLLS = "200"
 $env:ENV_TRENDING_POLLS_RECOMPUTE_SWEEP_INTERVAL = "60000"
 $env:ENV_MAX_NEWEST_POLLS = "50"
 $env:ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL = "60000"
-$env:ENV_HOME_TAB_REFRESH_INTERVAL = "60000"
+$env:ENV_HOME_TAB_REFRESH_INTERVAL = "7200000"
 $env:ENV_MAX_HOME_PAGE_POLLS = "200"
 $env:ENV_MAX_POLLS_SEARCH_RESULTS = "200"
 $env:ENV_MAX_POLLS_ADMIN_SEARCH_RESULTS = "200"
