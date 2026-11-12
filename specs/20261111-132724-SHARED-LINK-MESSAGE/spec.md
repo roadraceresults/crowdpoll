@@ -33,7 +33,8 @@ a crisp brand image.
 ### User Story 1 - A Link Preview Message for shared-link polls (Priority: P1)
 
 The creator of an **Anyone you send the link to** poll writes a short message, up to 100 characters, in a new field
-under that option in the wizard's "Who" step, next to where the Copy Link button is.
+under that option in the wizard's "Who" step (directly under it since TWEAK03 moved the Copy Link button to the
+Settings Summary).
 When the poll's link is pasted into a messaging app, the card shows the poll's title, then the subtitle and this
 message as its description.
 The message belongs to this sharing mode: switching the poll to **Only people you invite** hides it and shows the
@@ -51,7 +52,7 @@ Message is still there and is the one the card shows.
 **Acceptance Scenarios**:
 
 1. **Given** the wizard's "Who" step with "Anyone you send the link to" selected, **When** the creator looks under
-   that option, **Then** a "Link Preview Message" field is shown after the Copy Link block, with the support text
+   that option, **Then** a "Link Preview Message" field is shown directly under it (TWEAK03), with the support text
    "Optional. Shown under the poll's title when its link is shared in a messaging app." and a counter out of 100,
    behaving like the Custom Email Message field (multi-line, formatting marks, an edit button).
 2. **Given** the same step with "Only people you invite" or "Everyone on CrowdPoll" selected, **When** the creator
@@ -168,7 +169,7 @@ Messenger and WhatsApp; Messenger shows the card and WhatsApp shows the brand im
 ### Functional Requirements
 
 - **FR-001**: The wizard's "Who" step MUST offer a "Link Preview Message" field under the "Anyone you send the link
-  to" option, after its Copy Link block, only while that option is selected; it MUST behave like the Custom Email
+  to" option, directly under it (TWEAK03: Step 1 has no Copy Link block), only while that option is selected; it MUST behave like the Custom Email
   Message field (multi-line, the same formatting marks, an edit button), with the support text "Optional. Shown under
   the poll's title when its link is shared in a messaging app." and a counter out of 100.
 - **FR-002**: A poll MUST store the Link Preview Message separately from the Custom Email Message, so each sharing

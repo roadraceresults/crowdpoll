@@ -350,16 +350,31 @@ describe("a new poll's wizard", () => {
   });
 
   describe("inside the steps", () => {
-    it("copies the poll link under the link-only option, with a snackbar", async () => {
+    it("has no Copy link block in Step 1 and no copy button in the wizard's summary, whatever the option (TWEAK03)", async () => {
       const p = await open();
       await createPoll(p);
-      expect(wizardCard(p).querySelector(".wizard-copy-link")).toBeNull();
+      for (const who of ["link", "invite", "public"]) {
+        await pick(p, "who", who);
+        const card = wizardCard(p);
+        expect(card.querySelector(".wizard-copy-link"), who).toBeNull();
+        expect(card.querySelector(".wizard-summary-copy-link"), who).toBeNull();
+        expect(Array.from(card.querySelectorAll("button")).some((b) => /copy (poll )?link/i.test(b.textContent ?? "")), who).toBe(false);
+      }
+    });
+
+    it("puts a private poll's sharing sentence last in the Who line, after the anonymity sentence (TWEAK03)", async () => {
+      const p = await open();
+      await createPoll(p);
+      const who = () => wizardCard(p).querySelector(".wizard-summary-who")!.textContent;
       await pick(p, "who", "link");
-      const copy = Array.from(wizardCard(p).querySelectorAll("button")).find((b) => b.textContent === "Copy link")!;
-      copy.click();
+      expect(who()).toBe("Your poll is a Private Poll. Votes are anonymous. Anyone you send the link to can vote.");
+      wizardCard(p).querySelector<HTMLInputElement>(".m3-switch")!.click();
       await p.settle();
-      expect(clipboardText).toMatch(/^http:\/\/localhost\/\?PID=/);
-      expect(p.document.querySelector(".m3-snackbar")!.textContent).toBe("Link copied");
+      expect(who()).toBe("Your poll is a Private Poll. Users can see who voted for what. Anyone you send the link to can vote.");
+      await pick(p, "who", "invite");
+      expect(who()).toBe("Your poll is a Private Poll. Users can see who voted for what. Only people you invite by email can vote.");
+      await pick(p, "who", "public");
+      expect(who()).toBe("Your poll is a Public Poll. Everyone on CrowdPoll can find it and vote.");
     });
 
     it("cuts a choice to 35 characters, refuses an empty line and drops pasted repeats", async () => {
@@ -2170,7 +2185,7 @@ describe("link preview message in Step 1", () => {
     await p.settle();
   }
 
-  it("shows the field under Anyone you send the link to, after the Copy Link block, and nowhere else", async () => {
+  it("shows the field directly under Anyone you send the link to, and nowhere else", async () => {
     const page = await open();
     await createPoll(page);
     await pick(page, "who", "link");
@@ -2180,8 +2195,7 @@ describe("link preview message in Step 1", () => {
     const group = card.querySelector(".wizard-step-body .m3-radio-list")!;
     const linkRow = group.querySelector('input[value="link"]')!.closest(".m3-radio-item")!;
     expect(field.parentElement).toBe(group);
-    expect(linkRow.nextElementSibling!.classList.contains("wizard-copy-link")).toBe(true);
-    expect(linkRow.nextElementSibling!.nextElementSibling).toBe(field);
+    expect(linkRow.nextElementSibling).toBe(field);
     expect(field.nextElementSibling!.classList.contains("wizard-who-divider")).toBe(true);
     expect(field.querySelector(".m3-field-label")!.textContent).toBe("Link Preview Message");
     expect(field.querySelector(".m3-field-support")!.textContent)
@@ -2271,6 +2285,41 @@ describe("link preview message in Step 1", () => {
     await p.settle();
     expect(heading(wizardCard(p))).toBe("Step 1 · Who can vote");
     expect(p.document.activeElement).toBe(editButton(p));
+  });
+
+  it("ends the read-only card's Who line of a link poll with Copy poll link, which copies without opening the editor (TWEAK03)", async () => {
+    await seed(
+      makePoll({ title: "Linked", pollVisibility: "Private Poll", pollSharingMode: "Anyone With The Link", pollState: "OPEN" }),
+      makePoll({ title: "Invited", pollVisibility: "Private Poll", pollSharingMode: "Invitation Only", pollState: "OPEN" }),
+      makePoll({ title: "Open to all", pollVisibility: "Public Poll", pollState: "OPEN" })
+    );
+    const p = await open();
+    const linked = cardWith(p, "Linked");
+    const who = linked.querySelector<HTMLElement>(".card-readonly .wizard-summary-who")!;
+    const button = who.querySelector<HTMLButtonElement>("button.wizard-summary-copy-link")!;
+    expect(button).not.toBeNull();
+    expect(button.textContent).toBe("Copy poll link");
+    expect(button.type).toBe("button");
+    expect(button.classList.contains("m3-tonal-btn")).toBe(true);
+    expect(button.getAttribute("aria-label")).toBe("Copy the link to your poll");
+    expect(who.lastElementChild).toBe(button);
+    expect(who.textContent!.replace("Copy poll link", "").trim())
+      .toBe("Your poll is a Private Poll. Votes are anonymous. Anyone you send the link to can vote.");
+    button.click();
+    await p.settle();
+    expect(clipboardText).toMatch(/^http:\/\/localhost\/\?PID=/);
+    expect(p.document.querySelector(".m3-snackbar")!.textContent).toBe("Link copied");
+    expect(sent("/edit-session")).toHaveLength(0);
+    expect(linked.querySelector(".card-readonly")).not.toBeNull();
+    for (const title of ["Invited", "Open to all"]) {
+      expect(cardWith(p, title).querySelector(".wizard-summary-copy-link"), title).toBeNull();
+    }
+    // The editor's summary of the same poll has no button.
+    link(linked, "Anyone you send the link to").click();
+    await p.settle(50);
+    expect(wizardCard(p).querySelector(".wizard-summary-who")!.textContent)
+      .toBe("Your poll is a Private Poll. Votes are anonymous. Anyone you send the link to can vote.");
+    expect(wizardCard(p).querySelector(".wizard-summary-copy-link")).toBeNull();
   });
 
   it("shows the summary line on the read-only card of a poll with a message, never beside the email line", async () => {

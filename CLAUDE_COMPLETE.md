@@ -33,9 +33,12 @@ Decisions that are easy to get wrong:
   package; the spec was amended to match (analysis I1, R6, Q1). The tradeoff surfaced by the research: one static brand
   image for every poll, rather than a per-poll image generated at run time (CPU on every fetch and a cache to add) or a
   rasterizer dependency for one render.
-- **Wizard**: `m3RichTextField` with id prefix `pollLinkPreviewMessage-` after the Copy Link block under "Anyone you
-  send the link to" only; both messages are kept and saved whatever the mode; summary line class
-  `wizard-summary-link-preview-message` (R7).
+- **Wizard**: `m3RichTextField` with id prefix `pollLinkPreviewMessage-` directly under "Anyone you send the link to"
+  only; both messages are kept and saved whatever the mode; summary line class
+  `wizard-summary-link-preview-message` (R7). Step 1 has no Copy link block (TWEAK03): the read-only card's
+  Settings Summary puts a private poll's anonymity sentence before its sharing sentence and ends a link poll's
+  Who line with the 20 px Label Medium tonal pill `wizard-summary-copy-link` ("Copy poll link", `copyLinkButton`; TWEAK04), never
+  in the wizard's summary, so a copied link previews the saved poll.
 One migration (021), one setting, one static image; no new route, cookie, storage key, stylesheet or dependency.
 The preceding feature is
 `specs/20261111-091956-FOOTER-LINKS/plan.md` (research R1–R8, `data-model.md` — the address parameters, history state

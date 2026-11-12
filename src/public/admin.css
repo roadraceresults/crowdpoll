@@ -361,10 +361,8 @@
 .m3-radio-text { display: flex; flex-direction: column; gap: 2px; }
 .wizard-when .m3-radio-label { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 4px; }
 
-/* Copy link (Step 1) and Paste choices (Step 3) */
-.wizard-copy-link { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 0 8px 8px 40px; }
+/* Paste choices (Step 3) */
 .wizard-copy-note { margin: 0; }
-.wizard-copy-manual { box-sizing: border-box; width: 100%; }
 .wizard-paste { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-top: -12px; }
 
 /* Underlined fields (Steps 2 and 3) */

@@ -173,8 +173,11 @@ delivery network.
 - **Poll cards** — the admin page (`/admin`) shows each poll as a card: its state and actions,
   a panel with Open, Close and Archive, who created it (`Created By: <username> (<email>)`) and the dates it was created and launched, a panel of
   counts, and a **Settings Summary** — a few plain sentences describing the poll ("Your poll is
-  a Public Poll. Everyone on CrowdPoll can find it and vote."). The underlined parts of the
-  summary are links that open the setting they describe.
+  a Public Poll. Everyone on CrowdPoll can find it and vote."; for a private poll the anonymity
+  sentence comes before the sharing sentence). The underlined parts of the summary are links that
+  open the setting they describe. An *Anyone you send the link to* poll's summary ends with a small
+  **Copy poll link** button, the one place in the card's body to copy the link; Step 1 of the editor
+  has none, so a copied link always previews the poll as it was last saved.
 - **Search** — the Search view's filters sit in a panel the same width and look as a poll card, in the
   same centred column as the view tabs. Free text, state, created by, the date groups and the count groups
   are fields; visibility, choice mode and vote mutability are each one row of three radios (Any, then the
@@ -564,7 +567,7 @@ Instagram previews as a card: the poll's title, a one-line description and the s
 bubble and figures on white, 1200 × 630), whether the poll is public or private, because the login page a private poll's link
 leads to carries them in its head. The description is the subtitle, a dash, then the message of the poll's sharing
 mode with its line breaks turned into spaces: the **Link Preview Message** of an *Anyone you send the link to* poll
-(Step 1, under the Copy Link block, up to 100 characters, reviewed like the notes), or the Custom Email Message of an
+(Step 1, under *Anyone you send the link to*, up to 100 characters, reviewed like the notes), or the Custom Email Message of an
 *Only people you invite* poll; a poll with neither subtitle nor message shows
 "You have been invited to vote in this poll." (`ENV_DEFAULT_LINK_PREVIEW_MESSAGE`). Anyone holding the link can
 read those fields, and so can the apps' preview servers; a card an app has already stored for a link shared earlier is

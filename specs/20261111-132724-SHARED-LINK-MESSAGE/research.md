@@ -135,7 +135,7 @@ preview (`20261110-204911`) are built. Each item gives the decision, the reason 
 ## R7. The wizard: the editor, the lists, the summary line
 
 - **Decision**: `src/public/adminCard.js`:
-  - `buildStep1`: after `buildCopyLink()` under the `link` option, when `wizard.who === "link"`,
+  - `buildStep1`: directly under the `link` option (TWEAK03 removed `buildCopyLink()`), when `wizard.who === "link"`,
     `m3RichTextField({ key: "linkPreviewMessage", htmlKey: "linkPreviewMessageHtml", idPrefix: "pollLinkPreviewMessage-", label: "Link Preview Message", support: "Optional. Shown under the poll's title when its link is shared in a messaging app.", max: 100, editLabel: "Edit link preview message" })`;
   - the five field lists gain the pair: `storedNotes` (from the admin detail's `linkPreviewMessage` /
     `linkPreviewMessageHtml`), `wizardBase`/the snapshot copy, `wizardDirty`, `keepWizardProgress`, `wizardFields`

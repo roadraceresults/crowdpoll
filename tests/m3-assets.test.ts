@@ -218,6 +218,20 @@ describe("Material 3 page assets", () => {
     expect(css).toContain(".poll-admin-card .m3-radio:checked::before{ transform:scale(1); }");
   });
 
+  it("draws the Settings Summary's Copy poll link as a 20px Label Medium pill (TWEAK04)", () => {
+    const css = read("admin-card-m3.css");
+    const rule = /\.poll-admin-card \.wizard-summary-copy-link\{([^}]*)\}/.exec(css);
+    expect(rule).not.toBeNull();
+    const body = rule![1];
+    expect(body).toContain("height:20px;");
+    expect(body).toContain("padding:0 8px;");
+    expect(body).toContain("vertical-align:middle;");
+    for (const property of ["size", "weight", "line-height", "tracking"]) {
+      expect(body, property).toContain(`var(--md-sys-typescale-label-medium-${property})`);
+    }
+    expect(body).not.toMatch(/font-size:\s*\d/);
+  });
+
   it("lifts the snackbar above the cookie banner, in its own sheet", () => {
     expect(read("snackbar-m3.css")).toContain("bottom:calc(16px + var(--cookie-banner-offset, 0px));");
     expect(read("snackbar-m3.css")).toMatch(/\.m3-snackbar--top\{\s*top:16px;\s*bottom:auto;/);
