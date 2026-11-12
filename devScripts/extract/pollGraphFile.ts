@@ -12,6 +12,7 @@ export interface Heading {
 export interface ExtractAllFields {
   type: string;
   url?: string;
+  oldestAgeInDays?: number;
 }
 
 function choiceKeyOf(letter: string): string {
@@ -28,6 +29,7 @@ export function toPollGraphFile(graph: GraphFile, heading: Heading, extra?: Extr
   if (extra !== undefined) {
     file.type = extra.type;
     if (extra.url !== undefined) file.url = extra.url;
+    if (extra.oldestAgeInDays !== undefined) file.oldest_age_in_days = extra.oldestAgeInDays;
   }
   for (const key of Object.keys(graph)) {
     if (key.startsWith("label_")) file[choiceKeyOf(key.slice("label_".length))] = graph[key];

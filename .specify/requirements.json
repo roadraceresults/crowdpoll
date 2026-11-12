@@ -1,5 +1,5 @@
 {
-    "requirements_directory": "requirements/20261112-124616-poll-data-extractors",
+    "requirements_directory": "requirements/20261112-152622-extract-all-polldata",
     "last_written": {
         "requirements/20261019-153514-production-email/requirements.md": "e0bd2b0bf28c2fbd6699c99cdf364c1398d3b7aed8eb456198295f78d108ee08",
         "requirements/20261019-153514-production-email/requirements-report.md": "4f75f5e263fa092fc0fcedc4a7cdaa32128382e287f2ac0394e4957e8d8bd413",
@@ -80,6 +80,8 @@
         "requirements/20261111-122415-shared-link-message/requirements.md": "53006ec89e8c38e6909aa99be040f348ec3bccb8644bc6e71c9ec142f7419fe4",
         "requirements/20261111-122415-shared-link-message/requirements-report.md": "d05d9ca1e1032eb238a6b3a8d2de43b7bf9a14ca2c88dec62184f2884c63eab0",
         "requirements/20261112-124616-poll-data-extractors/requirements.md": "c49022dcf36ba5d1873cb00438b240232d06cd2c8a484363ed77e0061b7548c1",
-        "requirements/20261112-124616-poll-data-extractors/requirements-report.md": "7e0bfe71eea3a9f524959977ba85975499d1baac2e122cf71b84a827760a9e63"
+        "requirements/20261112-124616-poll-data-extractors/requirements-report.md": "7e0bfe71eea3a9f524959977ba85975499d1baac2e122cf71b84a827760a9e63",
+        "requirements/20261112-152622-extract-all-polldata/requirements.md": "f6d99f7ecb14266c0903f42d8a6dc48421e6e646b62c661be59b9ce7c8bc46aa",
+        "requirements/20261112-152622-extract-all-polldata/requirements-report.md": "1d21f83f609216d78c76766003669fe0bc1b5af62c3123649ffaafd852f71e9e"
     }
 }

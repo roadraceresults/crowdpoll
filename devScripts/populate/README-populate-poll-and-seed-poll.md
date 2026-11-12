@@ -45,6 +45,7 @@ extension and does not exist, the same path with `.json` added is used.
 | `choice_a`, `choice_b`, … | the choice labels, ordered by key (`choice_a` … `choice_z`, `choice_aa`, …) |
 | `vote_count` | the average number of votes per data point, a whole number of at least 1 |
 | `oldest_age_in_days` | optional; a whole number ≥ 0; only the data points no older than this many days, counted back from the latest point, which falls on today, are replayed; absent: every point |
+| `type` | optional text, as the extractors write it (`cnn line graph`, `polymarket yes no`, …); when it contains "line graph" (any letter case) the poll's line graph is turned on, on a new poll and on a rerun; otherwise a new poll has it off and a rerun leaves it as it was |
 | `data_points` | `[{ "date": "MM/DD/YY", "choice_a": 41.2, "choice_b": 55.0 }, …]`; a missing choice counts as 0 |
 
 On each data point, about `vote_count` votes (±15%) are cast on that day by voters

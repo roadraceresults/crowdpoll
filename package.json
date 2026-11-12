@@ -22,6 +22,7 @@
     "extract-politico": "tsx devScripts/extract/extract-politico.ts",
     "extract-polymarket": "tsx devScripts/extract/extract-polymarket.ts",
     "extract-polymarket-yes-no": "tsx devScripts/extract/extract-polymarket-yes-no.ts",
+    "extract-all-polldata": "tsx devScripts/extract/extract-all-polldata.ts",
     "fix-migrations": "tsx devScripts/fix-migrations.ts",
     "publish-assets": "tsx devScripts/publish-assets.ts",
     "deploy": "tsx devScripts/deploy-app.ts",

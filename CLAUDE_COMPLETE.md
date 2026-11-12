@@ -5,6 +5,40 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261112-152622-EXTRACT-ALL-POLLDATA/plan.md` (research R1–R7, `data-model.md` — the history file; the
+contract `contracts/cli.md`, the quickstart and `tweaks.md` live alongside it in
+`specs/20261112-152622-EXTRACT-ALL-POLLDATA/`).
+The requirements report is `requirements/20261112-152622-extract-all-polldata/requirements-report.md`: 9 findings,
+all resolved.
+Decisions that are easy to get wrong:
+- **The extraction twin of `populate-all-polls`**: `npm run extract-all-polldata [<directory>]` (default the project
+  root's `polldata`, a relative path resolved from `INIT_CWD`) takes the files directly in the folder whose name matches
+  `/\.ya?ml$/i`, sorted with `localeCompare(…, "en")`, and calls `runExtractAll([<absolute path>])` in the same process
+  for each, so output, messages and status stay those of `extract-all` (R1, R5). No child process, no option flags.
+- **Skip by fingerprint**: one SHA-256 over the configuration, its `input_html` and its `input_history` (when named),
+  each part preceded by `config:<n>\0`, `html:<n>\0`, `history:<n>\0`; paths resolved from the configuration's folder.
+  A configuration that cannot be parsed, or names an unreadable input, has no fingerprint and is never skipped (R3).
+- **The history file**: the git-ignored `devScripts/extract/extract-all-polldata-history.json` (`{ "entries": [ … ] }`),
+  written through `<file>.tmp` and a rename after each success; its `directory` is `fs.realpathSync.native(dir)`, so
+  drive-letter case, `..` and symlinks give one entry per real folder. A missing file is an empty history; an unreadable
+  one stops the run before any extraction. `readHistory`/`writeHistory` are a deliberate ~30-line copy of
+  `populate-all-polls`'s, not an import (R4).
+- **Failures never stop the run**: `console.error` is wrapped while `runExtractAll` runs and the last `Error:` line is
+  kept for the summary; a thrown call is a failure with its message. The run ends with `Done: <n> extracted, <n>
+  skipped, <n> failed`, then `Failed files:` and one line each, status 1 if any failed (R2, R5).
+- **Testable by injection**: `extractAllPolldata(options)` takes `argv`, `env`, `historyPath`, `projectRoot`,
+  `runExtract`, `log`, `logError`; `main()` sits behind the `pathToFileURL` guard. Tests in
+  `tests/extract/integration/extractAllPolldata.test.ts` use the CNN fixture, no database (R6).
+- **Extraction only, no settings** (FR-014); the other extraction modules and `populate-all-polls` are unchanged
+  (FR-013) except for two tweaks:
+  - `extract-all` and `extract-polymarket-yes-no` write `"oldest_age_in_days": 365` after `type`/`url` (TWEAK01;
+    `OLDEST_AGE_IN_DAYS` in `extractAllCli.ts`); their output is no longer byte-identical to htmlparser's, the other
+    three commands' still is. Existing `polldata/*.json` gain it only after their history entries are removed.
+  - `populate-poll` turns the line graph on when the file's `type` contains "line graph", any letter case (TWEAK03): a
+    new poll gets `lineGraphEnabled: data.lineGraph`; a rerun only ever switches it on; a non-text `type` is an input
+    error.
+No route, migration, setting, cookie or `src/` change; one dev script and one npm script.
+The preceding feature is
 `specs/20261112-124616-POLL-DATA-EXTRACTORS/plan.md` (research R1–R9, `data-model.md` — the configuration and poll
 data files; the contract `contracts/cli.md`, the quickstart and `tweaks.md` live alongside it in
 `specs/20261112-124616-POLL-DATA-EXTRACTORS/`).

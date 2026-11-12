@@ -57,4 +57,12 @@ describe("toPollGraphFile", () => {
     expect(file).not.toHaveProperty("url");
     expect(toPollGraphFile(GRAPH, { title: "T" })).not.toHaveProperty("type");
   });
+
+  it("writes oldest_age_in_days after type and url when given", () => {
+    const file = toPollGraphFile(GRAPH, { title: "T" }, { type: "cnn line graph", url: "https://www.cnn.com/x", oldestAgeInDays: 365 });
+    expect(Object.keys(file).slice(4, 7)).toEqual(["type", "url", "oldest_age_in_days"]);
+    expect(file.oldest_age_in_days).toBe(365);
+    expect(toPollGraphFile(GRAPH, { title: "T" }, { type: "cnn line graph" })).not.toHaveProperty("oldest_age_in_days");
+    expect(toPollGraphFile(GRAPH, { title: "T" })).not.toHaveProperty("oldest_age_in_days");
+  });
 });

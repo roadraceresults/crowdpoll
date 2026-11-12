@@ -50,7 +50,7 @@ function politicoConfig(outputJson = "out.json", inputHtml = "france.html"): str
 }
 
 function withoutExtractAllKeys(text: string): unknown {
-  const { type: _type, url: _url, ...rest } = JSON.parse(text) as Record<string, unknown>;
+  const { type: _type, url: _url, oldest_age_in_days: _oldest, ...rest } = JSON.parse(text) as Record<string, unknown>;
   return rest;
 }
 
@@ -199,6 +199,7 @@ describe("extract-all: poll shape", () => {
         title: "Approval over time",
         ...FIXED,
         type: "cnn line graph",
+        oldest_age_in_days: 365,
         choice_a: "Approve",
         choice_b: "Disapprove",
         data_points: [
@@ -215,6 +216,7 @@ describe("extract-all: poll shape", () => {
         title: "AI race",
         ...FIXED,
         type: "polymarket line graph",
+        oldest_age_in_days: 365,
         choice_a: "Alpha",
         choice_b: "Beta",
         choice_c: "Gamma",
@@ -234,6 +236,7 @@ describe("extract-all: poll shape", () => {
         ...FIXED,
         type: "politico line graph",
         url: POLITICO_URL,
+        oldest_age_in_days: 365,
         choice_a: "Approve",
         choice_b: "Disapprove",
         data_points: [

@@ -363,7 +363,8 @@ database with 250,000 polls and a realistic vote distribution for them.
 file, or refreshes it, and fills it with simulated votes (`test_<n>@crowdpolltest.test`) that replay
 the file's time series, moved so the latest data point is today. It writes through the app's own
 poll, vote and counter paths, so the poll looks the same as one people voted on. A rerun keeps the
-poll's id and replaces only its simulated votes. The database must already be migrated; see
+poll's id and replaces only its simulated votes. A file whose `type` contains "line graph" turns the poll's line graph
+on. The database must already be migrated; see
 `devScripts/populate/README.md` for the file format.
 
 The poll data files come from saved poll pages. Save a page (and, for a Polymarket line graph, its network record as a
@@ -396,8 +397,27 @@ optionally, `type` (`cnn line graph`, `polymarket line graph`, `politico line gr
 and `subtitle`. Paths are relative to the YAML file. Each kind-specific command accepts only its own keys. A command
 prints what it read and `Wrote <file>`, or one `Error:` line and exits with 1 without writing; an output that would
 overwrite an input is refused. The written file takes its title from `title` (else `graph_title`) and its subtitle
-from `subtitle` (else `Poll for Demonstration`), with the creator `devadmin01@crowdpoll.vote` and 1,000 votes. The
-commands use `cheerio` and `yaml`, development dependencies only.
+from `subtitle` (else `Poll for Demonstration`), with the creator `devadmin01@crowdpoll.vote` and 1,000 votes; `extract-all` and `extract-polymarket-yes-no` also
+write the page `type`, its `url` when given, and `oldest_age_in_days: 365`, so `populate-poll` replays only the last
+year of data points (edit the value in the `.json` file to change it). The commands use `cheerio` and `yaml`, development dependencies only.
+
+To bring a whole folder up to date, extract every new or changed configuration, then populate every new or changed
+data file:
+
+```
+npm run extract-all-polldata                          # every .yaml/.yml file in polldata/ (or: ... <directory>)
+npm run populate-all-polls                            # then every .json file it wrote
+```
+
+`extract-all-polldata` runs `extract-all` on each `.yaml` or `.yml` file directly in the folder (default `polldata/`
+at the project root; a relative folder is read from where the command was typed), in name order, so each poll data
+file is exactly what `npm run extract-all <config.yaml>` writes. It skips a configuration when the configuration, its
+page and its `input_history` file are unchanged since it last extracted it, as recorded in the git-ignored
+`devScripts/extract/extract-all-polldata-history.json`. A configuration that fails is reported and the others go on;
+the run ends with `Done: <n> extracted, <n> skipped, <n> failed`, lists each failure again, and exits with 1 if any
+failed. It never touches the database and needs no `ENV_*` variable. To extract a recorded configuration again, remove
+its entry from the history file (or delete the file), or run `npm run extract-all <config.yaml>`, which never reads or
+writes the history.
 
 Every branch folder shares one development database, so after a branch with a new migration is merged a server can
 refuse to start with `Migration check failed: corrupted migrations: …`. From that folder, `npm run fix-migrations` shows

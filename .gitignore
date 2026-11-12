@@ -35,6 +35,7 @@ devScripts/populate/*
 !devScripts/extract/
 devScripts/extract/*
 !devScripts/extract/extract-all.ts
+!devScripts/extract/extract-all-polldata.ts
 !devScripts/extract/extract-cnn.ts
 !devScripts/extract/extract-politico.ts
 !devScripts/extract/extract-polymarket.ts

@@ -1246,8 +1246,9 @@ enters OPEN, so a rerun writes `launched_at = start_at` itself.
 ## Poll data extractors
 
 `devScripts/extract/` turns a saved poll page into the JSON file the populate script reads. Its five entries
-(`extract-all`, `extract-cnn`, `extract-politico`, `extract-polymarket`, `extract-polymarket-yes-no`) run through
-`tsx` as npm scripts; they read only local files, never the network or the database, and import nothing from `src/`.
+(`extract-all`, `extract-cnn`, `extract-politico`, `extract-polymarket`, `extract-polymarket-yes-no`), and the batch
+runner `extract-all-polldata`, run through `tsx` as npm scripts; they read only local files, never the network or the
+database, and import nothing from `src/`.
 `cheerio` and `yaml` are development dependencies, so the deployed application does not use them.
 
 ```mermaid
@@ -1256,13 +1257,21 @@ flowchart LR
   Page["saved .html"] --> Cli
   Har[".har price record<br/>(Polymarket)"] --> Cli
   Cli --> File["toPollGraphFile → writeFileAtomically"]
-  File --> Json["poll data .json"] --> Populate["npm run populate-poll"]
+  File --> Json["poll data .json"] --> Populate["npm run populate-poll<br/>or populate-all-polls"]
+  Batch["extract-all-polldata<br/>(every .yaml/.yml of a folder)"] -->|"runExtractAll per new or changed config"| Cli
+  Batch <--> Hist[("extract-all-polldata-history.json<br/>(git-ignored)")]
 ```
 
 `extract-all` uses the `type` key when present, otherwise `detectGraphType` reads the page's markers; each
 kind-specific command refuses a `type` of another kind. Every failure is one `Error:` line and exit status 1, with
 nothing written, because the output is written to a temporary file and renamed only when it is complete. The code was
 copied from the separate htmlparser project and is kept in step with it by hand; its tests are under `tests/extract/`.
+
+`extract-all-polldata.ts` is this project's own, the extraction twin of `populate-all-polls`: it calls `runExtractAll`
+in process for each configuration of a folder, in name order, and skips one whose SHA-256 over its configuration, page
+and `.har` file matches its entry in the history (keyed by the folder's real path, `realpathSync.native`, and the file
+name). The history is rewritten after each success, so an interrupted run keeps what it finished; a failure, including a
+thrown one, is reported with the last `Error:` line `extract-all` printed, and the run goes on.
 
 ## Email and login links
 

@@ -23,6 +23,7 @@ export interface PollData {
   choices: { key: string; label: string }[];
   voteCount: number;
   oldestAgeInDays: number | null;
+  lineGraph: boolean;
   dataPoints: { date: Date; percentages: number[] }[];
 }
 
@@ -102,6 +103,10 @@ export function parsePollData(json: unknown, bounds: Bounds): PollData {
     throw new InputError(`"vote_count" must be a whole number of at least 1, not ${JSON.stringify(voteCount)}`);
   }
 
+  const type = file.type;
+  if (type !== undefined && typeof type !== "string") throw new InputError(`"type" must be text`);
+  const lineGraph = type !== undefined && /line graph/i.test(type);
+
   const oldestAgeInDays = file.oldest_age_in_days;
   if (oldestAgeInDays !== undefined && (typeof oldestAgeInDays !== "number" || !Number.isInteger(oldestAgeInDays) || oldestAgeInDays < 0)) {
     throw new InputError(`"oldest_age_in_days" must be a whole number of at least 0, not ${JSON.stringify(oldestAgeInDays)}`);
@@ -132,7 +137,7 @@ export function parsePollData(json: unknown, bounds: Bounds): PollData {
     })
     .sort((a, b) => a.date.getTime() - b.date.getTime());
 
-  return { creatorEmail, title, subtitle, choices: choices.map((c) => ({ key: c.key, label: c.label as string })), voteCount, oldestAgeInDays: oldestAgeInDays ?? null, dataPoints };
+  return { creatorEmail, title, subtitle, choices: choices.map((c) => ({ key: c.key, label: c.label as string })), voteCount, oldestAgeInDays: oldestAgeInDays ?? null, lineGraph, dataPoints };
 }
 
 export function readArguments(argv: string[]): string {
@@ -274,7 +279,8 @@ export async function populatePoll(deps: Deps, data: PollData, options: Options 
       pollState: "OPEN",
       pollStateBeforeEditUpdate: null,
       pollEditUpdateHeartbeatTimestamp: null,
-      pollEditUpdateClientGUID: null
+      pollEditUpdateClientGUID: null,
+      ...(data.lineGraph ? { lineGraphEnabled: true } : {})
     });
     await db.updateTable("polls").set({ launched_at: sql`start_at` }).where("id", "=", pid).execute();
     await refreshProjection(cache, (await findPollRow(db, pid))!);
@@ -282,7 +288,7 @@ export async function populatePoll(deps: Deps, data: PollData, options: Options 
   } else {
     const poll = createDefaultPoll(now);
     choices = data.choices.map((c, position) => ({ id: randomUUID(), label: c.label, position }));
-    Object.assign(poll, { title: data.title, subtitle: data.subtitle, choices, pollState: "OPEN", startAt: firstDay, createdAt: firstDay, endAt: null });
+    Object.assign(poll, { title: data.title, subtitle: data.subtitle, choices, pollState: "OPEN", startAt: firstDay, createdAt: firstDay, endAt: null, lineGraphEnabled: data.lineGraph });
     await insertPoll({ db, cache }, poll, { id: creator.id, name: creator.userName ?? creator.name, email: data.creatorEmail });
     pid = poll._id;
   }

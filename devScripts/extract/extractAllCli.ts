@@ -11,6 +11,7 @@ import { readHtmlFile } from "./readHtmlFile.js";
 
 const KEYS = ["url", "graph_title", "input_html", "input_history", "output_json", ...OUTPUT_KEYS];
 const OPTIONAL_KEYS = ["url", "input_history", ...OUTPUT_KEYS];
+const OLDEST_AGE_IN_DAYS = 365;
 
 interface PipelineMode {
   usage: string;
@@ -174,7 +175,7 @@ async function runGraphPipeline(args: string[], mode: PipelineMode, types: Graph
     console.error(`Error: ${messageOf(error)}`);
     return 1;
   }
-  return (await writeGraph(result, heading, outputJson, { type: type.id, url })) ? 0 : 1;
+  return (await writeGraph(result, heading, outputJson, { type: type.id, url, oldestAgeInDays: OLDEST_AGE_IN_DAYS })) ? 0 : 1;
 }
 
 export function runExtractAll(args: string[], types: GraphType[] = GRAPH_TYPES): Promise<number> {

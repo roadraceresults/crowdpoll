@@ -83,6 +83,13 @@ describe("parsePollData", () => {
     expect(parsePollData({ ...fixture, oldest_age_in_days: 0 }, bounds).oldestAgeInDays).toBe(0);
     expect(parsePollData({ ...fixture, oldest_age_in_days: 30 }, bounds).oldestAgeInDays).toBe(30);
   });
+
+  it("turns the line graph on when type names a line graph, in any letter case", () => {
+    expect(parsePollData({ ...fixture, type: "cnn line graph" }, bounds).lineGraph).toBe(true);
+    expect(parsePollData({ ...fixture, type: "Politico Line Graph" }, bounds).lineGraph).toBe(true);
+    expect(parsePollData({ ...fixture, type: "polymarket yes no" }, bounds).lineGraph).toBe(false);
+    expect(parsePollData(fixture, bounds).lineGraph).toBe(false);
+  });
 });
 
 describe("shiftDates", () => {
@@ -305,6 +312,17 @@ describe("populatePoll — create", () => {
     expect(summary.votesWritten).toBe(history.length);
     expect(lines.some((l) => l.startsWith("[populate] Kept"))).toBe(false);
   });
+
+  it("enables the line graph of a new poll only when type names a line graph", async () => {
+    const now = new Date(2026, 9, 26, 12);
+    const lineGraphOf = async (pid: string) =>
+      (await ctx.db.selectFrom("polls").select("line_graph_enabled").where("id", "=", pid).executeTakeFirstOrThrow()).line_graph_enabled;
+    const plain = await populatePoll({ db: ctx.db, cache: ctx.cache, config: ctx.config }, parsePollData(fixture, ctx.config), runOptions(now, []));
+    expect(await lineGraphOf(plain.pollId)).toBe(false);
+    const data = parsePollData({ ...fixture, title: "Fixture Line Graph", type: "polymarket line graph" }, ctx.config);
+    const graphed = await populatePoll({ db: ctx.db, cache: ctx.cache, config: ctx.config }, data, runOptions(now, []));
+    expect(await lineGraphOf(graphed.pollId)).toBe(true);
+  });
 });
 
 describe("populatePoll — rerun", () => {
@@ -387,6 +405,17 @@ describe("populatePoll — rerun", () => {
     expect(new Date(row.created_at)).toEqual(new Date(2026, 9, 22));
   });
 
+  it("turns the line graph on in a rerun with a line-graph type, and leaves it on without one", async () => {
+    const lineGraphOf = async (pid: string) =>
+      (await ctx.db.selectFrom("polls").select("line_graph_enabled").where("id", "=", pid).executeTakeFirstOrThrow()).line_graph_enabled;
+    const first = await populatePoll(deps(), parsePollData(fixture, ctx.config), runOptions(firstNow, []));
+    expect(await lineGraphOf(first.pollId)).toBe(false);
+    await populatePoll(deps(), parsePollData({ ...fixture, type: "cnn line graph" }, ctx.config), runOptions(secondNow, []));
+    expect(await lineGraphOf(first.pollId)).toBe(true);
+    await populatePoll(deps(), parsePollData(fixture, ctx.config), runOptions(secondNow, []));
+    expect(await lineGraphOf(first.pollId)).toBe(true);
+  });
+
   it("clears the subtitle when the data's subtitle is empty", async () => {
     const first = await populatePoll(deps(), parsePollData(fixture, ctx.config), runOptions(firstNow, []));
     await populatePoll(deps(), parsePollData({ ...fixture, subtitle: "" }, ctx.config), runOptions(secondNow, []));
@@ -448,6 +477,7 @@ describe("parsePollData — input errors", () => {
     ["a 61-character title", { ...valid(), title: "x".repeat(61) }, /60/],
     ["missing subtitle", { ...valid(), subtitle: undefined }, /"subtitle" is missing/],
     ["a numeric subtitle", { ...valid(), subtitle: 7 }, /"subtitle" must be text/],
+    ["a numeric type", { ...valid(), type: 3 }, /^"type" must be text$/],
     ["a 41-character subtitle", { ...valid(), subtitle: "x".repeat(41) }, /"subtitle" is longer than 40 characters/],
     ["an empty label", { ...valid(), choice_b: "" }, /choice_b/],
     ["a 36-character label", { ...valid(), choice_b: "x".repeat(36) }, /choice_b.*1 to 35/],
