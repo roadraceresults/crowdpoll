@@ -16,7 +16,7 @@ npm test
 npx tsx devScripts/favicon-ico.ts
 ```
 
-writes `src/public/og-image.png` (1200 × 630) beside `favicon.ico` and `email-logo.png`; commit it. (`FAVICON_BROWSER`
+writes `src/public/og-image.png` (1200 × 630, the brand logo of `src/public/og-logo.svg` with its speech bubble on white) beside `favicon.ico` and `email-logo.png`; commit it. (`FAVICON_BROWSER`
 points at a Chromium-based browser when Edge is not at its default path.)
 
 ## Manual (development server, `ENV_PUBLIC_ORIGIN` set)

@@ -29,7 +29,7 @@ Decisions that are easy to get wrong:
   other disallows repeated; `*` keeps `Disallow: /login`; the login page keeps `noindex` (R5).
 - **`og:image`**: `previewHeadTags` takes `origin` and emits `${origin}/og-image.png` with `og:image:width` 1200,
   `og:image:height` 630, `og:image:type image/png` on both pages; `twitter:card` stays `summary`. The committed
-  `src/public/og-image.png` is rendered from `favicon.svg` by `devScripts/favicon-ico.ts` (headless browser), no
+  `src/public/og-image.png` is rendered from `src/public/og-logo.svg` (the brand logo with its speech bubble; TWEAK02) by `devScripts/favicon-ico.ts` (headless browser), no
   package; the spec was amended to match (analysis I1, R6).
 - **Wizard**: `m3RichTextField` with id prefix `pollLinkPreviewMessage-` after the Copy Link block under "Anyone you
   send the link to" only; both messages are kept and saved whatever the mode; summary line class

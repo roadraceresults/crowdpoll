@@ -11,7 +11,7 @@ An "Anyone you send the link to" poll gets its own 100-character **Link Preview 
 pending update, Duplicate, admin-only payloads) (R1). The login page's preview description picks the message of the
 poll's current sharing mode (R2), is flattened to one line (R3), and falls back to the new setting
 `ENV_DEFAULT_LINK_PREVIEW_MESSAGE` (R4). `robots.txt` gains a group that lets Meta's preview crawlers read `/login`
-(R5). Every preview page carries a committed 1200 × 630 `og-image.png`, rendered from `favicon.svg` by the existing
+(R5). Every preview page carries a committed 1200 × 630 `og-image.png`, rendered from `og-logo.svg` (the brand logo with its speech bubble, TWEAK02) by the existing
 headless-browser script (R6). The wizard's Step 1 gains the editor and the Settings Summary its line (R7). One
 migration, one setting, one image; no new route, cookie or storage key; no production dependency.
 

@@ -560,8 +560,8 @@ the API and the account pages, which also carry `noindex`. `/sitemap.xml` lists 
 closed poll with its last change, rebuilt at most every 5 minutes and split into `/sitemap-<n>.xml` parts above 50,000
 addresses. Submit `https://crowdpoll.vote/sitemap.xml` in each search engine's webmaster console.
 **Link previews.** A poll's link pasted into Google Messages, WhatsApp, iMessage, Slack, Facebook Messenger or
-Instagram previews as a card: the poll's title, a one-line description and the site's brand image (the two figures of
-the icon on white, 1200 × 630), whether the poll is public or private, because the login page a private poll's link
+Instagram previews as a card: the poll's title, a one-line description and the site's brand image (the logo's speech
+bubble and figures on white, 1200 × 630), whether the poll is public or private, because the login page a private poll's link
 leads to carries them in its head. The description is the subtitle, a dash, then the message of the poll's sharing
 mode with its line breaks turned into spaces: the **Link Preview Message** of an *Anyone you send the link to* poll
 (Step 1, under the Copy Link block, up to 100 characters, reviewed like the notes), or the Custom Email Message of an

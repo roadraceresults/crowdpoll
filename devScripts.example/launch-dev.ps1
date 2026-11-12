@@ -93,6 +93,7 @@ $env:ENV_SES_SECRET_ACCESS_KEY = "your-ses-dev-secret-access-key"
 $env:ENV_EMAIL_FROM = "CrowdPoll <no-reply@dev.mail.crowdpoll.vote>"
 $env:ENV_EMAIL_SEND_TIMEOUT = "10000"
 $env:ENV_EMAIL_ASSET_ORIGIN = "https://crowdpoll.vote"
+$env:ENV_DEFAULT_LINK_PREVIEW_MESSAGE = "You have been invited to vote in this poll."
 
 # --- 5. Poll rules: what a poll may contain and what a user may keep ---
 # The number of choices a poll must have to be published, inclusive. Lower

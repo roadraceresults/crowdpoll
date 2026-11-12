@@ -27,7 +27,7 @@ a crisp brand image.
 
 ### Session 2026-11-11
 
-- Q: Who produces the 1200 × 630 brand image? → A: The implementation renders it from `favicon.svg` with the existing one-off development script that already renders the site's icon files, using the developer's browser and no new dependency; the PNG is committed, the script kept under `devScripts/`. (Amended by analysis finding I1, 2026-11-11: the script exists, so no rasterizer package is added.)
+- Q: Who produces the 1200 × 630 brand image? → A: The implementation renders it from `og-logo.svg`, the brand logo with its speech bubble (TWEAK02; first from `favicon.svg`), with the existing one-off development script that already renders the site's icon files, using the developer's browser and no new dependency; the PNG is committed, the script kept under `devScripts/`. (Amended by analysis finding I1, 2026-11-11: the script exists, so no rasterizer package is added.)
 - Q: What comes first in the description, the subtitle or the message? → A: The subtitle, a dash, then the message, for every poll, as the previous feature decided; a creator who wants the message seen first in WhatsApp keeps the subtitle short.
 
 ### User Story 1 - A Link Preview Message for shared-link polls (Priority: P1)
