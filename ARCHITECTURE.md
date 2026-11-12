@@ -874,8 +874,7 @@ flowchart TB
   `.tab-bar-wrap`, and writes their height to two custom properties (`--fixed-chrome-height-header`,
   `--fixed-chrome-height`) that `header-fixed-m3.css` uses to pin both to the top of the viewport
   and to reserve matching space in `.container`'s padding; `window.FixedChrome.height()` lets
-  `floatingActions.js` and `tabs.js` keep the guest buttons and a maximized card from landing
-  underneath it. `backToTopFab.js` injects one button, at the bottom of the viewport on the container's left edge, shown
+  `tabs.js` keep a maximized card from landing underneath it. `backToTopFab.js` injects one button, at the bottom of the viewport on the container's left edge, shown
   past 600px of scroll and hidden again below 400px, that returns the page to the top (instantly
   under reduced motion).
 - **One back rule.** `backArrow.js` decides once at load whether the visitor came from a CrowdPoll page in
@@ -912,8 +911,7 @@ scroll position. Up to 900px one `@media (max-width: 900px)` block in `single-co
 (the home page's last layer) restyles the same markup: each tab is a 16px icon beside an 11px label
 (label-small), wrapped to its longest word (`width:min-content`) on at most two left-aligned lines
 (`Shared With&nbsp;You` in the markup), in a tab at least 48px tall and as tall as the
-tallest (48px; TWEAKS03 to TWEAKS06, the phone tab having no left padding and the bar no negative margin); a guest's floating Log In / Create Account pair
-docks 8px right of Refresh; the mask reads its width from `--tab-fade`, which the block sets to
+tallest (48px; TWEAKS03 to TWEAKS06, the phone tab having no left padding and the bar no negative margin); a guest's Log In stays in the header at every width, and below 640px, where the header's search field is hidden, a Search icon (the Search tab's own, `.header-search-tab-btn`, built by `searchTabButton()` in `app.js`) sits left of it and opens the Search tab (`/?tab=search` from another page); the mask reads its width from `--tab-fade`, which the block sets to
 32px, and `scroll-padding` keeps a chosen tab clear of it. There are no scroll arrows. The row
 scrolls with the browser's own touch scrolling (`touch-action:pan-x`, `overscroll-behavior-x:contain`,
 no snapping) and `scroll-behavior:smooth` makes every programmatic move glide, except while a
@@ -1030,7 +1028,7 @@ second save and the edit session are refused (`PENDING_REVIEW`), and the admin r
 a poll whose saved wizard progress it holds when that poll leaves the current view, so the
 progress survives a switch of admin views.
 
-The Settings Summary has a line for colors after the choices line (`buildColorsSummaryLine`): "Bar colors are assigned automatically.", or the number set by hand with one swatch per colored choice; its sentence opens Step 4, and "The line graph is shown." follows it when the setting is on. The View step (step 4) shows an Administrator's **Show the line graph** switch first (`buildLineGraphSwitch`, from `GET /api/me`'s `isAdmin`), then lists one row per line of the Choices box, each with a button that opens
+The Settings Summary has a line for colors after the choices line (`buildColorsSummaryLine`): the number set by hand with one swatch per colored choice, then "The line graph is shown." when that setting is on; with neither there is no line. Its sentence opens Step 4. The View step (step 4) shows an Administrator's **Show the line graph** switch first (`buildLineGraphSwitch`, from `GET /api/me`'s `isAdmin`), then **Select colors for the poll choices** (`buildColorsSwitch`). That switch is the wizard's `manualColors`: not stored, but derived as "the poll has a color". When it is off, `colorsOfLines` gives `null` for every choice, so the save, the dirty check and the summary see Automatic everywhere, while the picks stay in `wizard.colors` until the save. When it is on, the step lists one row per line of the Choices box, each with a button that opens
 one shared grid of swatches. The palette is a single ordered list of eighteen name and hex pairs in
 `src/polls/barPalette.ts`; `/api/config` sends it as `barPalette`, and it is the only list a colour
 is validated against. The card keeps its answers in a map keyed by label, because choice ids are
@@ -1358,7 +1356,7 @@ are all set. BetterAuth's `baseURL` and only trusted origin is `ENV_PUBLIC_ORIGI
   `CardShell.addOauthSharing` writes one line under the invitation card's buttons, from the configured providers. `signedIn=1` tells `app.js` to show "Logged in as" as a snackbar (an emailed-link login lands on it too, by `completeSignIn`), and it removes
   the parameter at once; `acceptTermsCard.js` shows the same words itself and takes the parameter out of `next`.
   `showSignInNotice` ends the snackbar with an hourglass, an inline SVG coloured by the M3 tokens; its drain is timed by
-  `SIGN_IN_NOTICE_MS` (7 s), passed to `snackbar-m3.css` as `--m3-snackbar-timer`, the same constant that removes it.
+  `SIGN_IN_NOTICE_MS` (6 s), passed to `snackbar-m3.css` as `--m3-snackbar-timer`, the same constant that removes it.
 
 ### The Google profile picture
 

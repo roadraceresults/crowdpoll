@@ -129,6 +129,15 @@ async function answerFirstSteps(p: BrowserPage, title = "Bake sale") {
   await next(p);
 }
 
+/** Turns on Step 4's "Select colors for the poll choices" switch, which shows the color pickers. */
+async function colorsOn(p: BrowserPage) {
+  const toggle = wizardCard(p).querySelector<HTMLInputElement>(".wizard-colors-switch")!;
+  if (!toggle.checked) {
+    toggle.click();
+    await p.settle();
+  }
+}
+
 describe("a new poll's wizard", () => {
   it("opens at Step 1 from Create New Poll, public by default, with the other steps not yet visited", async () => {
     const p = await open();
@@ -454,6 +463,7 @@ describe("the View step", () => {
   async function openColors(p: BrowserPage, title = "Bake sale") {
     await createPoll(p);
     await answerFirstSteps(p, title);
+    await colorsOn(p);
   }
 
   async function choose(p: BrowserPage, choice: string, colorName: string) {
@@ -542,6 +552,7 @@ describe("the View step", () => {
 
     await createPoll(p);
     await answerFirstSteps(p, "Second sale");
+    await colorsOn(p);
     await choose(p, "Cakes", "red");
     await next(p);
     await next(p);
@@ -599,6 +610,7 @@ describe("colors on an existing poll", () => {
     await p.settle(50);
     (circles(wizardCard(p))[3]!.querySelector("button") as HTMLButtonElement).click();
     await p.settle();
+    await colorsOn(p);
     return { p, poll };
   }
 
@@ -713,6 +725,7 @@ describe("the color picker's keyboard, roles and look", () => {
   async function atColors(p: BrowserPage) {
     await createPoll(p);
     await answerFirstSteps(p);
+    await colorsOn(p);
   }
 
   async function openFor(p: BrowserPage, choice: string) {
@@ -857,6 +870,7 @@ describe("the color picker's keyboard, roles and look", () => {
     const p = await open();
     await createPoll(p);
     for (let i = 0; i < 3; i++) await next(p);
+    await colorsOn(p);
     const card = wizardCard(p);
     expect(heading(card)).toBe("Step 4 · View");
     expect(card.querySelector(".wizard-colors-empty")!.textContent).toBe("Add your choices first, then come back to choose their colors.");
@@ -870,6 +884,7 @@ describe("the color picker's keyboard, roles and look", () => {
     await next(p);
     type(p, choicesBox(p), "Typed one\nTyped two\nTyped three");
     await next(p);
+    await colorsOn(p);
     expect(Array.from(wizardCard(p).querySelectorAll(".wizard-color-label")).map((l) => l.textContent)).toEqual(["Typed one", "Typed two", "Typed three"]);
   });
 
@@ -880,6 +895,7 @@ describe("the color picker's keyboard, roles and look", () => {
     await next(p);
     type(p, choicesBox(p), Array.from({ length: 50 }, (_, i) => `Choice number ${i + 1}`).join("\n"));
     await next(p);
+    await colorsOn(p);
     expect(wizardCard(p).querySelectorAll(".wizard-color-row")).toHaveLength(50);
     await openFor(p, "Choice number 50");
     expect(wizardCard(p).querySelectorAll(".wizard-color-popover")).toHaveLength(1);
@@ -890,17 +906,76 @@ describe("the Settings Summary's line for colors", () => {
   const colorsLine = (card: HTMLElement) => card.querySelector<HTMLElement>(".wizard-summary-colors");
   const swatchesIn = (line: HTMLElement) => Array.from(line.querySelectorAll<HTMLElement>(".wizard-summary-swatch"));
 
-  it("says bar colors are assigned automatically when none is set, on the line after the choices", async () => {
+  it("has no line about colors while the switch is off, or on with no color picked", async () => {
     const p = await open();
     await createPoll(p);
     await answerFirstSteps(p);
-    expect(colorsLine(wizardCard(p))).toBeNull();
     await next(p);
-    const card = wizardCard(p);
-    const line = colorsLine(card)!;
-    expect(line.textContent).toBe("Bar colors are assigned automatically.");
-    expect(line.previousElementSibling!.classList.contains("wizard-summary-choices")).toBe(true);
-    expect(swatchesIn(line)).toHaveLength(0);
+    expect(wizardCard(p).querySelector(".wizard-summary-choices")).not.toBeNull();
+    expect(colorsLine(wizardCard(p))).toBeNull();
+    (circles(wizardCard(p))[3]!.querySelector("button") as HTMLButtonElement).click();
+    await p.settle();
+    await colorsOn(p);
+    expect(colorsLine(wizardCard(p))).toBeNull();
+  });
+
+  it("drops the colors from the summary and the save when the switch is turned off, and brings them back when it is turned on", async () => {
+    const p = await open();
+    await createPoll(p);
+    await answerFirstSteps(p);
+    await colorsOn(p);
+    wizardCard(p).querySelector<HTMLButtonElement>('button[aria-label="Color for Cakes"]')!.click();
+    await p.settle();
+    wizardCard(p).querySelector<HTMLButtonElement>('.wizard-swatch[aria-label="red"]')!.click();
+    await p.settle();
+    await next(p);
+    (circles(wizardCard(p))[3]!.querySelector("button") as HTMLButtonElement).click();
+    await p.settle();
+    expect(colorsLine(wizardCard(p))!.textContent).toBe("1 color has been set manually: .");
+    const toggle = () => wizardCard(p).querySelector<HTMLInputElement>(".wizard-colors-switch")!;
+    toggle().click();
+    await p.settle();
+    expect(toggle().checked).toBe(false);
+    expect(p.document.activeElement).toBe(toggle());
+    expect(wizardCard(p).querySelector(".m3-switch-support[id^='colorsSwitchSupport-']")!.textContent).toBe("Off: colors are automatically assigned.");
+    expect(wizardCard(p).querySelectorAll(".wizard-color-row")).toHaveLength(0);
+    expect(colorsLine(wizardCard(p))).toBeNull();
+    await colorsOn(p);
+    expect(wizardCard(p).querySelector(".m3-switch-support[id^='colorsSwitchSupport-']")!.textContent).toBe("On: manually select colors for one or more choices below.");
+    expect(colorsLine(wizardCard(p))!.textContent).toBe("1 color has been set manually: .");
+    toggle().click();
+    await p.settle();
+    footerButton(wizardCard(p), "Save").click();
+    await p.settle(100);
+    expect(sent("/save")[0]!.body).toMatchObject({ colors: [null, null] });
+  });
+
+  it("saves the switch as off when it is on but no color was picked", async () => {
+    const p = await open();
+    await createPoll(p);
+    await answerFirstSteps(p);
+    await colorsOn(p);
+    footerButton(wizardCard(p), "Save").click();
+    await p.settle(100);
+    link(cardWith(p, "Bake sale"), "Cakes, Cookies").click();
+    await p.settle(50);
+    (circles(wizardCard(p))[3]!.querySelector("button") as HTMLButtonElement).click();
+    await p.settle();
+    expect(wizardCard(p).querySelector<HTMLInputElement>(".wizard-colors-switch")!.checked).toBe(false);
+  });
+
+  it("opens with the switch on for a poll that has a color", async () => {
+    await seed(makePoll({
+      title: "Tinted", pollState: "OPEN",
+      choices: [{ id: "a", label: "Left", position: 0, color: "#F91010" }, { id: "b", label: "Right", position: 1 }]
+    }));
+    const p = await open();
+    link(cardWith(p, "Tinted"), "Tinted").click();
+    await p.settle(50);
+    (circles(wizardCard(p))[3]!.querySelector("button") as HTMLButtonElement).click();
+    await p.settle();
+    expect(wizardCard(p).querySelector<HTMLInputElement>(".wizard-colors-switch")!.checked).toBe(true);
+    expect(wizardCard(p).querySelectorAll(".wizard-color-row")).toHaveLength(2);
   });
 
   it("counts the colors set by hand, one swatch each, with singular and plural wording", async () => {
@@ -913,6 +988,7 @@ describe("the Settings Summary's line for colors", () => {
       wizardCard(p).querySelector<HTMLButtonElement>(`.wizard-swatch[aria-label="${name}"]`)!.click();
       await p.settle();
     };
+    await colorsOn(p);
     await pickFor("Cakes", "red");
     await next(p);
     (circles(wizardCard(p))[3]!.querySelector("button") as HTMLButtonElement).click();
@@ -956,6 +1032,7 @@ describe("colors follow their labels", () => {
     type(p, choicesBox(p), lines);
     blur(p, choicesBox(p));
     await next(p);
+    await colorsOn(p);
     for (const [choice, name] of Object.entries(colors)) {
       colorButton(p, choice).click();
       await p.settle();
@@ -1180,8 +1257,8 @@ describe("an existing poll in the wizard", () => {
     // EDITING-POLL-AVAILABLE C1/C4: on an ever-voted poll the choices (the merge),
     // the one-way choice mode and the vote mutability stay changeable, so their
     // parts link in UPDATE too.
-    expect(linkTexts(cardWith(p, "Running"))).toEqual(["Running", "Sub", "Choice 1, Choice 2", "Bar colors are assigned automatically.", "one choice", "their vote is final", "stays open until you close it"]);
-    expect(linkTexts(cardWith(p, "Finished"))).toEqual(["Finished", "Sub", "Choice 1, Choice 2", "Bar colors are assigned automatically.", "one choice", "their vote is final"]);
+    expect(linkTexts(cardWith(p, "Running"))).toEqual(["Running", "Sub", "Choice 1, Choice 2", "one choice", "their vote is final", "stays open until you close it"]);
+    expect(linkTexts(cardWith(p, "Finished"))).toEqual(["Finished", "Sub", "Choice 1, Choice 2", "one choice", "their vote is final"]);
   });
 
   it("opens at the tapped step with every step visited, locks what cannot change and says saving re-screens only for a reviewed change", async () => {
@@ -1785,6 +1862,7 @@ describe("the line graph switch on the View step", () => {
     await seedPoll("No choices", { choices: [] });
     const p = await open();
     await openViewStep(p, "No choices");
+    await colorsOn(p);
     expect(lineGraphSwitch(p)).not.toBeNull();
     expect(wizardCard(p).querySelector(".wizard-colors")!.firstElementChild).toBe(lineGraphSwitch(p));
     expect(wizardCard(p).querySelector(".wizard-colors-empty")!.textContent)
@@ -1796,6 +1874,7 @@ describe("the line graph switch on the View step", () => {
     await seedPoll("Creator's poll", {}, creatorId);
     const p = await open(creatorCookie);
     await openViewStep(p, "Creator's poll");
+    await colorsOn(p);
     expect(heading(wizardCard(p))).toBe("Step 4 · View");
     expect(lineGraphSwitch(p)).toBeNull();
     expect(wizardCard(p).querySelector('button[aria-label="Color for Left"]')).not.toBeNull();
@@ -1805,6 +1884,7 @@ describe("the line graph switch on the View step", () => {
     await seedPoll("Creator saves", { lineGraphEnabled: true }, creatorId);
     const p = await open(creatorCookie);
     await openViewStep(p, "Creator saves");
+    await colorsOn(p);
     expect(lineGraphSwitch(p)).toBeNull();
     const colorButton = wizardCard(p).querySelector<HTMLButtonElement>('button[aria-label="Color for Left"]')!;
     colorButton.click();

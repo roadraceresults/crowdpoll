@@ -272,6 +272,25 @@
         <div class="header-actions" id="header-actions"></div>
 `;
 
+  // On a phone, where the header's search field is hidden, the guest's Search icon (the
+  // menu's own) opens the Search tab, on the home page or from any other page.
+  function searchTabButton() {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "search-icon-btn header-search-tab-btn";
+    button.setAttribute("aria-label", "Search");
+    button.title = "Search";
+    button.innerHTML = '<svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+      'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"></circle>' +
+      '<line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>';
+    button.addEventListener("click", () => {
+      const tab = document.getElementById("tab-search");
+      if (tab) tab.click();
+      else location.href = "/?tab=search";
+    });
+    return button;
+  }
+
   // A house outline: roof, walls and door, drawn like the Home tab's icon.
   const AVATAR_CHEVRON = `<svg class="avatar-btn-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m6 9 6 6 6-6"/></svg>`;
   const HOME_GLYPH = `<circle cx="32" cy="32" r="32" fill="currentColor"/><path d="M17.6 29.6 32 17.6l14.4 12M20.8 27.2v17.6h22.4V27.2M28.8 44.8v-9.6h6.4v9.6" fill="none" stroke="var(--paper)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`;
@@ -443,7 +462,7 @@
       login.className = "btn-header-ghost";
       login.textContent = "Log In";
       login.addEventListener("click", () => { location.href = "/login"; });
-      slot.replaceChildren(login);
+      slot.replaceChildren(searchTabButton(), login);
     }
   }
 
@@ -609,7 +628,7 @@
   window.SiteGlyphs = { settings: SETTINGS_GLYPH };
 
 
-  const SIGN_IN_NOTICE_MS = 7000;
+  const SIGN_IN_NOTICE_MS = 6000;
 
   /* A login lands with the mark in its address; it goes at once, so a reload shows nothing. */
   function takeSignInMark() {

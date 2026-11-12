@@ -23,7 +23,7 @@
   }
 
   @media (max-width: 900px){
-    :is(.header-actions, .floating-actions) :is(.btn-header-ghost, .btn-header-primary){
+    .header-actions :is(.btn-header-ghost, .btn-header-primary){
       height:32px;
       padding:0 16px;
       font-size:var(--md-sys-typescale-label-large-size);

@@ -5,7 +5,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { forgeSession, startTestContext, withoutAgreement, type TestContext } from "./helpers/setup.js";
 import { openPage, type BrowserPage } from "./helpers/browser.js";
 
-const NOTICE_MS = 7000;
+const NOTICE_MS = 6000;
 const PID = "6f1c2b9e-3d4a-4f5b-8c7d-9e0a1b2c3d4e";
 
 let ctx: TestContext;

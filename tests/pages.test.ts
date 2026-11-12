@@ -185,7 +185,7 @@ describe("The tabbed home page (017)", () => {
     expect(res.text).not.toContain('id="searchBox"');
     expect(res.text).toContain('id="refreshBtn"');
     expect(res.text).not.toContain("pollGrid");
-    for (const asset of ["/tabs.css", "/deltaClient.js", "/tabs.js", "/trending.js", "/searchTab.js", "/liveResults.js", "/voteClient.js", "/pollCard.js", "/header-single-column-m3.css", "/header-single-row-m3.css", "/single-column-m3.css", "/headerFit.js", "/fixedChrome.js", "/tabBarScroll.js", "/floatingActions.js", "/back-to-top-m3.css", "/backToTopFab.js"]) {
+    for (const asset of ["/tabs.css", "/deltaClient.js", "/tabs.js", "/trending.js", "/searchTab.js", "/liveResults.js", "/voteClient.js", "/pollCard.js", "/header-single-column-m3.css", "/header-single-row-m3.css", "/single-column-m3.css", "/headerFit.js", "/fixedChrome.js", "/tabBarScroll.js", "/back-to-top-m3.css", "/backToTopFab.js"]) {
       expect(res.text).toContain(asset);
     }
   });

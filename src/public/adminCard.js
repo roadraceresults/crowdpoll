@@ -594,6 +594,7 @@
         choicesText: [...(current.choices || [])].sort((a, b) => a.position - b.position)
           .map((c) => c.label).join("\n"),
         colors: storedColors(),
+        manualColors: Object.keys(storedColors()).length > 0,
         lineGraph: current.lineGraphEnabled === true,
         addChoices: current.votersAddChoices === true,
         ...storedHow(),
@@ -609,6 +610,7 @@
         title: current.title, subtitle: current.subtitle || "", ...storedNotes(), keywords: keywordsFromPoll(current),
         choicesText: storedChoicesText(),
         colors: storedColors(),
+        manualColors: Object.keys(storedColors()).length > 0,
         lineGraph: current.lineGraphEnabled === true,
         addChoices: current.votersAddChoices === true,
         ...storedHow(),
@@ -635,6 +637,7 @@
         keywords: [...from.keywords],
         choicesText: from.choicesText,
         colors: { ...from.colors },
+        manualColors: from.manualColors === true,
         lineGraph: from.lineGraph,
         addChoices: from.addChoices,
         multi: from.multi,
@@ -672,8 +675,10 @@
       return s.choicesText.split("\n").filter((l) => !isBlank(l));
     }
 
+    // With the colors switch off, every choice is colored automatically; the picks stay in
+    // wizard.colors, so turning it back on before saving restores them.
     function colorsOfLines(s = wizard) {
-      return choiceLines(s).map((line) => s.colors[line.trim()] ?? null);
+      return choiceLines(s).map((line) => (s.manualColors === false ? null : s.colors[line.trim()] ?? null));
     }
 
     function storedColors() {
@@ -992,7 +997,7 @@
         choicesLine.classList.add("wizard-summary-choices");
         choicesLine.append("Voters choose from ", part(choiceLines(s).map((l) => l.trim()).join(", "), 3, "labels"), ".");
       }
-      if (s.answered.has(4)) section.appendChild(buildColorsSummaryLine(s, line, part));
+      if (s.answered.has(4)) buildColorsSummaryLine(s, line, part);
       // How to vote, once Step 5 is answered.
       if (s.answered.has(5)) {
         const howLine = line();
@@ -1017,13 +1022,15 @@
       return section;
     }
 
+    // Colors set by hand, then the line graph; no line when there is neither.
     function buildColorsSummaryLine(s, line, part) {
-      const colored = choiceLines(s).map((l) => l.trim()).filter((label) => s.colors[label]);
+      const colors = colorsOfLines(s);
+      const colored = choiceLines(s).map((l) => l.trim()).filter((_label, i) => colors[i]);
+      if (!colored.length && !s.lineGraph) return null;
       const colorsLine = line();
       colorsLine.classList.add("wizard-summary-colors");
       if (!colored.length) {
-        colorsLine.append(part("Bar colors are assigned automatically.", 4, "colors"));
-        appendLineGraphSentence(colorsLine, s, part);
+        colorsLine.append(part("The line graph is shown.", 4, "colors"));
         return colorsLine;
       }
       const count = colored.length;
@@ -1691,6 +1698,30 @@
       return row;
     }
 
+    const COLORS_SWITCH_LABEL = "Select colors for the poll choices";
+
+    function buildColorsSwitch() {
+      const row = el("label", "m3-switch-row");
+      const text = el("span", "m3-switch-text");
+      const support = el("span", "m3-switch-support",
+        wizard.manualColors ? "On: manually select colors for one or more choices below." : "Off: colors are automatically assigned.");
+      support.id = "colorsSwitchSupport-" + current.pid;
+      text.append(el("span", "m3-switch-label", COLORS_SWITCH_LABEL), support);
+      const input = el("input", "m3-switch wizard-colors-switch");
+      input.type = "checkbox";
+      input.checked = wizard.manualColors;
+      input.setAttribute("aria-describedby", support.id);
+      input.addEventListener("change", () => {
+        wizard.manualColors = input.checked;
+        syncWizardDirty();
+        renderWizard();
+        const again = card.querySelector(".wizard-colors-switch");
+        if (again) again.focus();
+      });
+      row.append(text, input);
+      return row;
+    }
+
     function buildColorsStep() {
       pruneColors();
       const body = el("div", "wizard-step-body wizard-colors");
@@ -1700,6 +1731,8 @@
         });
       }
       if (viewerIsAdmin) body.appendChild(buildLineGraphSwitch());
+      body.appendChild(buildColorsSwitch());
+      if (!wizard.manualColors) return body;
       const labels = choiceLines().map((line) => line.trim());
       if (!labels.length) {
         body.appendChild(el("p", "wizard-colors-empty",
@@ -2305,6 +2338,7 @@
     }
 
     function keepWizardProgress() {
+      const colors = colorsOfLines();
       wizardSaved = {
         who: wizard.who,
         step: wizard.step,
@@ -2320,8 +2354,9 @@
         linkPreviewMessageHtml: wizard.linkPreviewMessageHtml,
         keywords: [...wizard.keywords],
         choicesText: choiceLines().join("\n"),
-        colors: Object.fromEntries(choiceLines().flatMap((line) =>
-          wizard.colors[line.trim()] ? [[line.trim(), wizard.colors[line.trim()]]] : [])),
+        colors: Object.fromEntries(choiceLines().flatMap((line, i) => (colors[i] ? [[line.trim(), colors[i]]] : []))),
+        // On with no color picked is saved as off.
+        manualColors: colors.some(Boolean),
         multi: wizard.multi,
         rangeKind: wizard.rangeKind,
         from: wizard.from,

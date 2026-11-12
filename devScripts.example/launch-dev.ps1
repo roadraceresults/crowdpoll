@@ -45,7 +45,8 @@ $env:ENV_DATABASE_CA_CERT = ""
 $env:ENV_VALKEY_URL = "redis://localhost:6379"
 $env:ENV_OPENSEARCH_URL = ""
 # Spaces: all five or none (empty counts as unset). With them set, this machine publishes the
-# TRENDING/Newest objects to the real bucket and the pages load assets from the CDN.
+# TRENDING/Newest objects to the real bucket and the pages load assets from the CDN, so the server
+# refuses them with a localhost ENV_PUBLIC_ORIGIN unless ENV_SPACES_ALLOW_LOCAL_ORIGIN = "1" (a bucket of its own).
 $env:ENV_SPACES_BUCKET = ""
 $env:ENV_SPACES_REGION = ""
 $env:ENV_SPACES_KEY = ""

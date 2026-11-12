@@ -1,7 +1,6 @@
 .tab-menu-btn,
 .tab-menu,
 .tab-more,
-.floating-actions,
 .search-tab-form{ display:none; }
 
 .search-tab-form{
@@ -61,22 +60,6 @@ html[data-header-fit~="no-search"] .search-tab-form{ display:flex; }
   .card-flip:not(.maximized-card-flip) .card-face .bookmark-btn svg,
   .card-flip:not(.maximized-card-flip) .card-face .maximize-btn svg{ width:15px; height:15px; }
   .card-flip:not(.maximized-card-flip) .card-face .live-bars{ height:10.5px; }
-
-  .floating-actions{
-    position:fixed;
-    left:0;
-    top:0;
-    z-index:42;
-    display:flex;
-    gap:8px;
-    touch-action:none;
-    cursor:grab;
-  }
-  .floating-actions[hidden]{ display:none; }
-  .floating-actions.is-dragging{ cursor:grabbing; }
-  .floating-actions .btn-header-ghost,
-  .floating-actions .btn-header-primary{ box-shadow:0 1px 4px rgba(0,0,0,.3); touch-action:none; }
-  .floating-actions .btn-header-ghost{ background:var(--md-sys-color-surface); }
 
   .search-tab-form{ display:flex; }
 }

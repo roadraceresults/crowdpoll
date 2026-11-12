@@ -197,8 +197,11 @@ delivery network.
   title, subtitle and choices, and on a poll with votes wait for review like a changed subtitle.
   The read-only card shows their first two lines after the summary. Duplicates and both exports
   carry them.
-- **View** — on the View step, the poll's creator or an administrator can choose a color for
-  each choice from a fixed palette of eighteen, shown as a grid of named swatches. An administrator
+- **View** — on the View step, the poll's creator or an administrator can turn on **Select colors for
+  the poll choices** (off: colors are automatically assigned) and then choose a color for one or more
+  choices from a fixed palette of eighteen, shown as a grid of named swatches. Turning the switch off
+  saves every choice on Automatic; saving it on with no color picked saves it off, and it opens on
+  for a poll that has a color. An administrator
   also sees **Show the line graph** at the top of this step; it is off by default, on every poll,
   new or existing. Only an administrator can change it: for anyone else the step has no checkbox
   and the poll's summary says whether the graph is shown. Changing it on a poll with votes does not
@@ -207,8 +210,8 @@ delivery network.
   on **Automatic** is colored as before, and choosing a color for one choice never changes the
   color of another that was left on Automatic. Colors can also be changed after voting has
   started, while the choices themselves stay locked; changing only colors does not send the poll
-  to be reviewed again. The poll's summary says "Bar colors are assigned automatically." or how many colors have
-  been set manually, with a swatch for each.
+  to be reviewed again. With the switch on, the poll's summary says how many colors have
+  been set manually, with a swatch for each; with it off, the summary says nothing about colors.
 - **Voters may add choices** — on a Private poll, the How to vote step has a **Voters may add
   choices** switch, off by default, which can be changed at any time, even after votes; the summary
   says "Voters may add choices: Yes" or "No". A choice a voter adds is an ordinary choice: you can
@@ -476,7 +479,7 @@ They share one branded layout (`src/email/templates.ts`), come from
   are any, and a provider login with it ticked lasts as long as an emailed link's (30 days by default). Left clear, a
   login lasts until the browser closes, or 24 hours at most.
 - The Login card says under each provider's button what that provider shares, and the invitation card says it under its
-  buttons. After a login, by a provider or an emailed link, "Logged in as" and the address appear on the Accept Terms card, or for 7 seconds on the first page, beside an
+  buttons. After a login, by a provider or an emailed link, "Logged in as" and the address appear on the Accept Terms card, or for 6 seconds on the first page, beside an
   hourglass whose sand runs out as the message goes.
 - Apple's client secret is a JWT the app signs with the Sign in with Apple key (`node:crypto`, ES256) at start-up and
   every 30 days; `GET /.well-known/apple-developer-domain-association.txt` serves the file Apple asks for, once committed
@@ -607,6 +610,7 @@ provider settings only with `oauth` or `both`, and administrator addresses are m
 | `ENV_VALKEY_URL` | unset | Valkey/Redis URL; unset → in-process cache and queue |
 | `ENV_OPENSEARCH_URL` | unset | OpenSearch endpoint; unset → PostgreSQL full-text search |
 | `ENV_SPACES_BUCKET`, `ENV_SPACES_REGION`, `ENV_SPACES_KEY`, `ENV_SPACES_SECRET`, `ENV_SPACES_CDN_URL` | unset | Spaces bucket for the TRENDING and Newest objects, the assets and Google profile pictures; all five or none |
+| `ENV_SPACES_ALLOW_LOCAL_ORIGIN` | unset | `1` lets a local `ENV_PUBLIC_ORIGIN` (localhost, 127.0.0.1, [::1]) use the `ENV_SPACES_*` settings; otherwise that pairing stops the app, so a development machine cannot overwrite the deployment's TRENDING and Newest objects |
 | `ENV_BETTER_AUTH_SECRET` | — (required, ≥ 32 chars) | Session signing secret |
 | `ENV_ADMINS` | unset | Comma-separated administrator addresses. Unset: no administrators. Production: `admins` in the git-ignored `infra/secrets.auto.tfvars` |
 | `ENV_SIGNIN_METHOD` | `native` | `native` (email login link), `oauth` (login providers only) or `both` |

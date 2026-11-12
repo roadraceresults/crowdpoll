@@ -447,7 +447,7 @@ export function loadConfig(env: Env = process.env): AppConfig {
   for (const name of ["ENV_SMTP_USER", "ENV_SMTP_PASS"]) {
     if (!env[name]) read.none(name, "none (emails logged to the console, not sent)");
   }
-  const spaces = spacesConfig(env, read);
+  const spaces = spacesConfig(env, read, publicOrigin);
 
   return {
     port: read.int("ENV_PORT", 8080),
@@ -692,7 +692,13 @@ function sesConfig(env: Env): SesConfig {
   };
 }
 
-function spacesConfig(env: Env, read: SettingsReader): SpacesConfig | undefined {
+/** Whether the site runs on this machine: no ingress routes `/fcaptcha`, and Spaces would be the production bucket. */
+export function isLocalOrigin(publicOrigin: string): boolean {
+  const { hostname } = new URL(publicOrigin);
+  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]";
+}
+
+function spacesConfig(env: Env, read: SettingsReader, publicOrigin: string): SpacesConfig | undefined {
   const values = SPACES_VARIABLES.map((name) => optionalVar(env, name));
   if (values.every((value) => value === undefined)) {
     read.none("ENV_SPACES_*", "none (TRENDING objects and assets served from the instance)");
@@ -702,6 +708,14 @@ function spacesConfig(env: Env, read: SettingsReader): SpacesConfig | undefined 
   if (missing.length > 0) {
     throw new ConfigError(
       `Invalid Spaces configuration: ${missing.join(", ")} must be set when any ENV_SPACES_* variable is.`
+    );
+  }
+  // A local run would overwrite the deployment's TRENDING and Newest objects every minute.
+  if (isLocalOrigin(publicOrigin) && env.ENV_SPACES_ALLOW_LOCAL_ORIGIN?.trim() !== "1") {
+    throw new ConfigError(
+      `Refusing ENV_SPACES_* with the local ENV_PUBLIC_ORIGIN ${publicOrigin}: this machine would publish its TRENDING and ` +
+        "Newest objects over the deployment's. Clear the ENV_SPACES_* variables, or set ENV_SPACES_ALLOW_LOCAL_ORIGIN=1 " +
+        "for a bucket of its own."
     );
   }
   const [bucket, region, key, secret, cdnUrl] = values as [string, string, string, string, string];

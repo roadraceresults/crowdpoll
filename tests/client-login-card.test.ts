@@ -90,7 +90,7 @@ describe("native mode", () => {
   it("the header offers a guest Log In only", async () => {
     page = await login(ctx);
     const header = page.document.getElementById("header-actions") as HTMLElement;
-    expect([...header.querySelectorAll("button")].map((b) => b.textContent)).toEqual(["Log In"]);
+    expect([...header.querySelectorAll(".btn-header-ghost, .btn-header-primary")].map((b) => b.textContent)).toEqual(["Log In"]);
   });
 });
 

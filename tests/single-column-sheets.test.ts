@@ -51,8 +51,8 @@ function blockBody(css: string, marker: string): string {
 describe("the single-column sheets", () => {
   it("hold their layout rules in the phone block and outside it only hide the new controls and style the Search tab field", () => {
     const outsideHome = flat(split(home).outside).trim();
-    expect(outsideHome.startsWith(".tab-menu-btn, .tab-menu, .tab-more, .floating-actions, .search-tab-form{ display:none; }")).toBe(true);
-    const rest = outsideHome.slice(".tab-menu-btn, .tab-menu, .tab-more, .floating-actions, .search-tab-form{ display:none; }".length);
+    expect(outsideHome.startsWith(".tab-menu-btn, .tab-menu, .tab-more, .search-tab-form{ display:none; }")).toBe(true);
+    const rest = outsideHome.slice(".tab-menu-btn, .tab-menu, .tab-more, .search-tab-form{ display:none; }".length);
     const selectors = [...rest.matchAll(/([^{}]+)\{/g)].map((match) => match[1].trim());
     expect(selectors).toEqual([
       ".search-tab-form",
@@ -63,7 +63,7 @@ describe("the single-column sheets", () => {
     ]);
     expect(rest).toContain('html[data-header-fit~="no-search"] .search-tab-form{ display:flex; }');
     expect(flat(split(home).inside)).toContain(".search-tab-form{ display:flex; }");
-    expect(flat(split(header).outside).trim()).toBe(".avatar-menu-create-poll{ display:none; }");
+    expect(flat(split(header).outside).trim()).toBe(".avatar-menu-create-poll{ display:none; } .header-search-tab-btn{ display:none; }");
   });
 
   it("set the marker the poll card reads, only in the home sheet and only in the phone block", () => {
@@ -214,7 +214,7 @@ describe("the compact header", () => {
 
   it("sizes the login buttons like a card's Vote button on a phone, 21 px and three quarters of its text", () => {
     expect(inside).toContain(
-      ":is(.header-actions, .floating-actions) :is(.btn-header-ghost, .btn-header-primary){ height:21px; font-size:calc(var(--md-sys-typescale-label-large-size) * 0.75); }"
+      ".header-actions :is(.btn-header-ghost, .btn-header-primary){ height:21px; font-size:calc(var(--md-sys-typescale-label-large-size) * 0.75); }"
     );
   });
 

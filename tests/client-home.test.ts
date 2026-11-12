@@ -69,6 +69,22 @@ describe("the home page in a browser", () => {
     expect(panels.map((s) => s.hasAttribute("hidden"))).toEqual([true, true, true, true, false, true, true, true, true]);
   });
 
+  it("gives a guest the Search tab's icon left of Log In in the header, which opens the Search tab", async () => {
+    page = await openPage(ctx, "index.html");
+    await page.settle(50);
+    const actions = page.document.getElementById("header-actions")!;
+    const buttons = Array.from(actions.querySelectorAll("button"));
+    expect(buttons.map((b) => b.getAttribute("aria-label") ?? b.textContent)).toEqual(["Search", "Log In"]);
+    const search = buttons[0]!;
+    expect(search.classList.contains("header-search-tab-btn")).toBe(true);
+    const tabIcon = page.document.querySelector("#tab-search svg")!;
+    expect(search.querySelector("svg")!.innerHTML).toBe(tabIcon.innerHTML);
+    search.click();
+    await page.settle(50);
+    expect(page.document.getElementById("tab-search")!.getAttribute("aria-selected")).toBe("true");
+    expect(page.document.getElementById("panel-search")!.hidden).toBe(false);
+  });
+
   it("each tab's icon is decorative and the label alone is the accessible name", async () => {
     page = await openPage(ctx, "index.html");
     const labels = ["Home", "Your Polls", "Shared With You", "Your Votes", "Trending", "Newest", "Watching", "Live Results", "Search"];

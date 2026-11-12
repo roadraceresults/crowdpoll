@@ -27,7 +27,8 @@ const SPACES = {
   ENV_SPACES_REGION: "tor1",
   ENV_SPACES_KEY: "key",
   ENV_SPACES_SECRET: "secret",
-  ENV_SPACES_CDN_URL: `${CDN}/`
+  ENV_SPACES_CDN_URL: `${CDN}/`,
+  ENV_SPACES_ALLOW_LOCAL_ORIGIN: "1"
 };
 const PROVIDERS = {
   ENV_SIGNIN_METHOD: "both",

@@ -1,4 +1,5 @@
 .avatar-menu-create-poll{ display:none; }
+.header-search-tab-btn{ display:none; }
 
 @media (max-width: 639.98px){
   .btn-header-ghost,
@@ -9,6 +10,7 @@
   .header-nav,
   #header-username,
   .header-search{ display:none; }
+  .header-search-tab-btn{ display:inline-flex; }
 
   .avatar-menu-create-poll{ display:flex; }
   .avatar-menu-create-poll[aria-disabled="true"]{
@@ -22,7 +24,7 @@
     flex-direction:column;
     align-items:flex-start;
   }
-  :is(.header-actions, .floating-actions) :is(.btn-header-ghost, .btn-header-primary){
+  .header-actions :is(.btn-header-ghost, .btn-header-primary){
     height:21px;
     font-size:calc(var(--md-sys-typescale-label-large-size) * 0.75);
   }

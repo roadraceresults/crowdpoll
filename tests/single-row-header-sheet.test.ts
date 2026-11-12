@@ -60,7 +60,7 @@ describe("the single-row header sheet", () => {
 
   it("sizes the login buttons, padding included, like a card's Vote button from 641 to 900 px", () => {
     expect(inside).toContain(
-      "@media (max-width: 900px){ :is(.header-actions, .floating-actions) :is(.btn-header-ghost, .btn-header-primary){ height:32px; padding:0 16px; font-size:var(--md-sys-typescale-label-large-size); } }"
+      "@media (max-width: 900px){ .header-actions :is(.btn-header-ghost, .btn-header-primary){ height:32px; padding:0 16px; font-size:var(--md-sys-typescale-label-large-size); } }"
     );
   });
 

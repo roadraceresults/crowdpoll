@@ -3,11 +3,7 @@ import type { HumanCheckConfig } from "../config.js";
 
 const FORWARDED_REQUEST_HEADERS = ["content-type", "origin", "referer", "user-agent", "accept"];
 
-/** Whether the site runs on this machine, the only case where nothing else routes `/fcaptcha` (no ingress). */
-export function isLocalOrigin(publicOrigin: string): boolean {
-  const { hostname } = new URL(publicOrigin);
-  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]";
-}
+export { isLocalOrigin } from "../config.js";
 
 /**
  * Development only: forwards `/fcaptcha/*` to the FCaptcha server with the prefix removed, as App Platform's ingress

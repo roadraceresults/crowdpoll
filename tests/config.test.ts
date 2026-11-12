@@ -556,6 +556,7 @@ describe("017 storage, cache and load settings", () => {
     expect(config.spaces).toBeUndefined();
     const configured = loadConfig(
       baseEnv({
+        ENV_PUBLIC_ORIGIN: "https://crowdpoll.example.com",
         ENV_DATABASE_URL: "postgresql://app:pw@db.example.com:25060/crowdpoll",
         ENV_VALKEY_URL: "rediss://valkey.example.com:25061",
         ENV_OPENSEARCH_URL: "https://search.example.com:25060",
@@ -575,6 +576,21 @@ describe("017 storage, cache and load settings", () => {
       secret: "secret",
       cdnUrl: "https://crowdpoll.nyc3.cdn.digitaloceanspaces.com"
     });
+  });
+
+  it("refuses Spaces on a local origin unless ENV_SPACES_ALLOW_LOCAL_ORIGIN is 1", () => {
+    const spaces = {
+      ENV_SPACES_BUCKET: "crowdpoll",
+      ENV_SPACES_REGION: "nyc3",
+      ENV_SPACES_KEY: "key",
+      ENV_SPACES_SECRET: "secret",
+      ENV_SPACES_CDN_URL: "https://crowdpoll.nyc3.cdn.digitaloceanspaces.com"
+    };
+    for (const origin of ["http://localhost:8080", "http://127.0.0.1:3000"]) {
+      expect(() => loadConfig(baseEnv({ ENV_PUBLIC_ORIGIN: origin, ...spaces }))).toThrow(/ENV_SPACES_ALLOW_LOCAL_ORIGIN=1/);
+    }
+    expect(loadConfig(baseEnv({ ...spaces, ENV_SPACES_ALLOW_LOCAL_ORIGIN: "1" })).spaces?.bucket).toBe("crowdpoll");
+    expect(loadConfig(baseEnv({ ENV_PUBLIC_ORIGIN: "https://crowdpoll.vote", ...spaces })).spaces?.bucket).toBe("crowdpoll");
   });
 
   it("refuses a partial Spaces configuration, naming the missing variables", () => {
@@ -803,7 +819,7 @@ describe("defaultsUsed", () => {
       ENV_SPACES_SECRET: "s",
       ENV_SPACES_CDN_URL: "https://cdn.example"
     };
-    expect(defaultOf(loadConfig(baseEnv(spaces)), "ENV_SPACES_*")).toBeUndefined();
+    expect(defaultOf(loadConfig(baseEnv({ ENV_PUBLIC_ORIGIN: "https://crowdpoll.example.com", ...spaces })), "ENV_SPACES_*")).toBeUndefined();
   });
 
   it("lists each login provider left out, as one line per provider", () => {
