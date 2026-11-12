@@ -2,7 +2,8 @@
 
 ## C1. The Link Preview Message field (wizard Step 1, "Who")
 
-Shown only while **Anyone you send the link to** is selected, under that option, after the Copy Link block:
+Shown only while **Anyone you send the link to** is selected, directly under that option (TWEAK03 removed Step 1's
+Copy Link block; the read-only card's Settings Summary ends its Who line with a **Copy poll link** button instead):
 
 - label **Link Preview Message**;
 - support text: *Optional. Shown under the poll's title when its link is shared in a messaging app.*

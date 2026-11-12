@@ -31,9 +31,12 @@ Decisions that are easy to get wrong:
   `og:image:height` 630, `og:image:type image/png` on both pages; `twitter:card` stays `summary`. The committed
   `src/public/og-image.png` is rendered from `src/public/og-logo.svg` (the brand logo with its speech bubble; TWEAK02) by `devScripts/favicon-ico.ts` (headless browser), no
   package; the spec was amended to match (analysis I1, R6).
-- **Wizard**: `m3RichTextField` with id prefix `pollLinkPreviewMessage-` after the Copy Link block under "Anyone you
-  send the link to" only; both messages are kept and saved whatever the mode; summary line class
-  `wizard-summary-link-preview-message` (R7).
+- **Wizard**: `m3RichTextField` with id prefix `pollLinkPreviewMessage-` directly under "Anyone you send the link to"
+  only; both messages are kept and saved whatever the mode; summary line class
+  `wizard-summary-link-preview-message` (R7). Step 1 has no Copy link block (TWEAK03): the read-only card's
+  Settings Summary puts a private poll's anonymity sentence before its sharing sentence and ends a link poll's
+  Who line with the 20 px Label Medium tonal pill `wizard-summary-copy-link` ("Copy poll link", `copyLinkButton`; TWEAK04), never
+  in the wizard's summary, so a copied link previews the saved poll.
 - The previous features' decisions (login-page preview, custom email message) are in `CLAUDE_COMPLETE.md`,
   `specs/20261110-204911-LINK-PREVIEW-MESSAGE/plan.md` and `specs/20261110-160141-INVITATION-CUSTOM-MESSAGE/plan.md`.
 One migration (021), one setting, one static image; no new route, cookie, storage key, stylesheet or dependency.

@@ -21,16 +21,20 @@ points at a Chromium-based browser when Edge is not at its default path.)
 
 ## Manual (development server, `ENV_PUBLIC_ORIGIN` set)
 
-1. **The editor** (C1): create a poll, choose *Anyone you send the link to*; under the Copy Link block the
+1. **The editor** (C1): create a poll, choose *Anyone you send the link to*; directly under that option the
    **Link Preview Message** field shows with its support text and `0 / 100`. Enter a two-line message with a bold word;
    the counter counts the marks. Choose *Only people you invite*: the field is gone and the Custom Email Message field
    shows; choose *Anyone you send the link to* again: the message is back.
 2. **The limit**: type 101 characters; the counter shows the excess and the save is refused with
    "Link preview message must be at most 100 characters."
-3. **A fetcher's view** (P1): publish and open the poll; in a terminal:
+3. **A fetcher's view** (P1): publish and open the poll; `<pid>` is the UUID in the poll's *Copy poll link*
+   (`/?PID=<uuid>`); in a terminal:
    `curl -sL "http://localhost:3000/?PID=<pid>" | grep -E "<title>|og:|name=\"description\""`.
-   `og:description` is the subtitle, ` - `, then the message's words on one line (the line break became a space,
-   no `**`); `og:image` is `…/og-image.png` with width 1200 and height 630.
+   The title is `<poll title> · CrowdPoll`; `og:description` is the subtitle, ` - `, then the message's words on
+   one line (the line break became a space, no `**`); `og:image` is `…/og-image.png` with width 1200 and
+   height 630. Two heads mean the preview did not render: `CrowdPoll — live opinion polls` is the home page, served
+   when the `PID` value is not a poll id (a stray character, or `<pid>` left literal); `Login` is the plain login
+   page, served when the poll is not open or closed. (TWEAK05)
 4. **The mode rule** (P1): on an *Only people you invite* poll with a Custom Email Message, step 3 shows that message;
    switch it to *Anyone you send the link to* without a Link Preview Message: the description is the subtitle alone.
 5. **The default sentence**: clear the subtitle and the message; the description is
@@ -52,5 +56,7 @@ points at a Chromium-based browser when Edge is not at its default path.)
     and the brand image, sharp. Meta's Sharing Debugger (https://developers.facebook.com/tools/debug) reports the
     title, description and image for the link. (A link shared before the deploy may keep its cached card; share it
     anew.)
-12. **Log**: the server printed `[login] Poll preview rendered: <pid>` for step 3, and at start-up listed
-    `ENV_DEFAULT_LINK_PREVIEW_MESSAGE` among the defaults in use.
+12. **Log**: the server printed `[login] Poll preview rendered: <pid>` for step 3 (nothing is logged for the two
+    wrong heads of step 3). At start-up it listed `ENV_DEFAULT_LINK_PREVIEW_MESSAGE` among the defaults in use only
+    when the launch script leaves the setting unset; a script that sets it (the local `devScripts/launch-dev.ps1`
+    does) prints no such line, and step 5's first description is that script's sentence instead. (TWEAK05)

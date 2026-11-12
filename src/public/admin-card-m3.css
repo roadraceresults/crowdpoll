@@ -840,8 +840,7 @@
 }
 .poll-admin-card .m3-chip-remove:hover{ background:transparent; }
 
-.poll-admin-card .m3-datetime,
-.poll-admin-card .wizard-copy-manual{
+.poll-admin-card .m3-datetime{
   border:0;
   border-radius:0;
   background:transparent;
@@ -855,9 +854,7 @@
   max-width:100%;
   cursor:pointer;
 }
-.poll-admin-card .wizard-copy-manual{ padding:4px 0 6px; }
-.poll-admin-card .m3-datetime:focus-visible,
-.poll-admin-card .wizard-copy-manual:focus-visible{
+.poll-admin-card .m3-datetime:focus-visible{
   outline:none;
   box-shadow:inset 0 -2px 0 var(--md-sys-color-primary);
 }
@@ -865,7 +862,7 @@
 
 /* ---------- 8. Buttons ----------
    40px, full corners, Label Large. Filled: Next, Publish, Save changes. Tonal:
-   Copy link, Paste choices. Outlined: Cancel and Save (production's
+   Paste choices and the summary's Copy poll link. Outlined: Cancel and Save (production's
    btn-header-ghost; site.css's sizes are overridden at every width). */
 .poll-admin-card :is(.m3-filled-btn, .m3-tonal-btn, .btn-header-primary, .btn-header-ghost){
   height:40px;
@@ -888,6 +885,18 @@
   border:0;
   background:var(--md-sys-color-secondary-container);
   color:var(--md-sys-color-on-secondary-container);
+}
+/* The Settings Summary's Copy poll link (TWEAK03, TWEAK04): a 20px Label Medium
+   pill inside the Who line's 22px line box, riding the sharing sentence's own line. */
+.poll-admin-card .wizard-summary-copy-link{
+  height:20px;
+  padding:0 8px;
+  margin-left:6px;
+  vertical-align:middle;
+  font-size:var(--md-sys-typescale-label-medium-size);
+  font-weight:var(--md-sys-typescale-label-medium-weight);
+  line-height:var(--md-sys-typescale-label-medium-line-height);
+  letter-spacing:var(--md-sys-typescale-label-medium-tracking);
 }
 .poll-admin-card .btn-header-ghost{
   border:1px solid var(--md-sys-color-outline);

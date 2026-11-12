@@ -953,15 +953,21 @@
       const who1 = line();
       who1.classList.add("wizard-summary-who");
       who1.append("Your poll is a ", part(kind, 1, "pollVisibility"), ". ");
+      // Private polls say whether votes are anonymous before how the poll is shared,
+      // so the sharing sentence is last and Copy poll link can follow it (TWEAK03).
+      if (who !== "public") {
+        who1.append(part(s.showVoters ? "Users can see who voted for what." : "Votes are anonymous.", 1,
+          "pollVisibility"), " ");
+      }
       // The two private wordings belong to the sharing mode, which a voted Private
       // poll may still switch, so they stay tappable when the visibility is frozen.
-      if (who === "link") who1.append(part("Anyone you send the link to", 1, "pollSharingMode"), " can vote.");
-      else if (who === "invite") who1.append(part("Only people you invite", 1, "pollSharingMode"), " by email can vote.");
-      else who1.append(part("Everyone on CrowdPoll", 1, "pollVisibility"), " can find it and vote.");
-      // Private polls say whether votes are anonymous.
-      if (who !== "public") {
-        who1.append(" ", part(s.showVoters ? "Users can see who voted for what." : "Votes are anonymous.", 1,
-          "pollVisibility"));
+      if (who === "link") {
+        who1.append(part("Anyone you send the link to", 1, "pollSharingMode"), " can vote.");
+        if (part === readOnlyPart) who1.append(" ", copyLinkButton());
+      } else if (who === "invite") {
+        who1.append(part("Only people you invite", 1, "pollSharingMode"), " by email can vote.");
+      } else {
+        who1.append(part("Everyone on CrowdPoll", 1, "pollVisibility"), " can find it and vote.");
       }
       const hasMessage = s.hasInvitationMessage !== undefined ? s.hasInvitationMessage : hasVisibleText(s.invitationMessageHtml);
       if (who === "invite" && hasMessage) {
@@ -1155,7 +1161,6 @@
         row.append(input, text);
         group.appendChild(row);
         if (option.key === "link" && wizard.who === "link") {
-          group.appendChild(buildCopyLink());
           group.appendChild(m3RichTextField({
             key: "linkPreviewMessage", htmlKey: "linkPreviewMessageHtml", idPrefix: "pollLinkPreviewMessage-",
             label: "Link Preview Message",
@@ -1213,34 +1218,23 @@
       return row;
     }
 
-    function buildCopyLink() {
-      const wrap = el("div", "wizard-copy-link");
-      const btn = el("button", "m3-tonal-btn", "Copy link");
+    // ── Copy poll link ──
+    // A short tonal button at the end of the Settings Summary's Who line, on the
+    // read-only card only (TWEAK03): the wizard's summary describes unsaved settings,
+    // and a link copied there previews the poll as it was last saved.
+    function copyLinkButton() {
+      const btn = el("button", "m3-tonal-btn wizard-summary-copy-link", "Copy poll link");
       btn.type = "button";
       btn.setAttribute("aria-label", "Copy the link to your poll");
-      const note = el("p", "wizard-copy-note", "Your link will work once the poll is published.");
-      const manual = el("input", "wizard-copy-manual");
-      manual.type = "text";
-      manual.readOnly = true;
-      manual.hidden = true;
-      manual.setAttribute("aria-label", "Link to your poll");
       btn.addEventListener("click", async () => {
-        const url = pollLink();
         try {
-          await navigator.clipboard.writeText(url);
-          manual.hidden = true;
+          await navigator.clipboard.writeText(pollLink());
           snackbar("Link copied");
         } catch {
-          // Pages opened from disk may be refused the clipboard: offer the link to copy by hand.
-          manual.value = url;
-          manual.hidden = false;
-          manual.focus();
-          manual.select();
-          snackbar("Copy the link from the box");
+          snackbar("Could not copy the link");
         }
       });
-      wrap.append(btn, note, manual);
-      return wrap;
+      return btn;
     }
 
     // ── Step 2: Title & Tags ──
@@ -1608,7 +1602,7 @@
       const paste = el("button", "m3-tonal-btn", "Paste choices");
       paste.type = "button";
       paste.setAttribute("aria-label", "Paste choices from the clipboard, one per line");
-      // A caption under the button, like Copy link's note on Step 1.
+      // A caption under the button.
       const pasteHelp = "Adds choices copied from another app, one per line. Repeats are removed.";
       const pasteNote = el("p", "wizard-copy-note wizard-paste-note", pasteHelp);
       pasteNote.id = "pasteNote-" + current.pid;
