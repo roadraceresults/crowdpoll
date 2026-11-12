@@ -5,6 +5,35 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261112-124616-POLL-DATA-EXTRACTORS/plan.md` (research R1–R9, `data-model.md` — the configuration and poll
+data files; the contract `contracts/cli.md`, the quickstart and `tweaks.md` live alongside it in
+`specs/20261112-124616-POLL-DATA-EXTRACTORS/`).
+The requirements report is `requirements/20261112-124616-poll-data-extractors/requirements-report.md`: 8 findings,
+all resolved.
+Decisions that are easy to get wrong:
+- **A copy, not a dependency**: htmlparser's five extraction commands and only their import closure (27 files: 5
+  entries, 4 CLI modules, 18 modules) from the `latest` branch at `90b7fb328d5aeb297ca12c75fb1afc418c885e9a`, in
+  `devScripts/extract/`, converted to double quotes with no change of behaviour; run by `tsx` as `npm run
+  extract-all|extract-cnn|extract-politico|extract-polymarket|extract-polymarket-yes-no <config.yaml>`. The title
+  extractor stays in htmlparser; no wrapper around populate (R1, R2).
+- **Same output and messages**: poll data files byte-identical to htmlparser's (checked on every extractable
+  `polldata/` page); only the usage line (`Usage: npm run <cmd> <config.yaml>`) and the command name (no `.js`)
+  change (R3). The configuration is a YAML list with the keys `graph_title`, `input_html`, `input_history`, `url`,
+  `output_json`, `type`, `title`, `subtitle`.
+- **Strict TypeScript**: the moved code and tests hold under `strict` and `noUncheckedIndexedAccess` with non-null
+  `!`, the style `src/` already uses (R4).
+- **Dev-only**: `cheerio` 1.2.0 and `yaml` 2.9.1 pinned as devDependencies; the app loads neither. The production
+  install still gains `yaml`, kept by npm as an optional peer of `vite` (installed because `better-auth` names
+  `vitest` as an optional peer); SC-004 was reworded to accept it (R5).
+- **Tracked through `.gitignore`**: `!devScripts/extract/`, `devScripts/extract/*` and one `!devScripts/extract/<file>.ts`
+  line per file. The 16 unit and 5 integration tests and 5 fixtures (under 1 MB) live in `tests/extract/`, need no
+  database, and were ported from Vitest ^5 to 3.2 keeping every assertion (R6).
+- **Extraction and population stay separate commands**; `src/` and the populate scripts are unchanged (FR-011).
+- **A poll deleted in SQL keeps its cached projection** (TWEAK01): `devScripts/forget-deleted-polls.ts`
+  (`npm run forget-deleted-polls`, tested in `tests/forget-deleted-polls.test.ts`) scans `poll:*` and calls
+  `forgetProjections` for every id no longer in `polls`; it changes nothing in the database.
+No route, migration, setting, cookie or `src/` change; two dev dependencies and six npm scripts.
+The preceding feature is
 `specs/20261111-132724-SHARED-LINK-MESSAGE/plan.md` (research R1–R10, `data-model.md` — the new column, the derived
 preview values and the setting; the contracts `contracts/api.md` A1–A3, `contracts/page.md` P1–P5,
 `contracts/ui-contracts.md` C1–C3, and the quickstart live alongside it in

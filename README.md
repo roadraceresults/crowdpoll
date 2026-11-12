@@ -366,11 +366,49 @@ poll, vote and counter paths, so the poll looks the same as one people voted on.
 poll's id and replaces only its simulated votes. The database must already be migrated; see
 `devScripts/populate/README.md` for the file format.
 
+The poll data files come from saved poll pages. Save a page (and, for a Polymarket line graph, its network record as a
+`.har` file) in the git-ignored `polldata/` folder, describe it in a small YAML file beside it, and extract it:
+
+```yaml
+- graph_title: "What will be the top US Netflix show this week? (October 27)"
+- input_html: netflix_show.html
+- input_history: netflix_show.har
+- output_json: netflix_show.json
+```
+
+```
+npm run extract-all polldata/netflix_show.yaml       # detects the page kind and writes polldata/netflix_show.json
+npm run populate-poll polldata/netflix_show.json      # then creates or refreshes the poll from it
+npm run populate-all-polls polldata                   # or every .json file in a folder
+```
+
+| Command | Extracts |
+|---|---|
+| `npm run extract-all <config.yaml>` | any kind below: the `type` key's kind, or the one it detects |
+| `npm run extract-cnn <config.yaml>` | a CNN line graph |
+| `npm run extract-polymarket <config.yaml>` | a Polymarket line graph, from its `input_history` price record |
+| `npm run extract-politico <config.yaml>` | a POLITICO Poll of Polls chart |
+| `npm run extract-polymarket-yes-no <config.yaml>` | a Polymarket yes/no page |
+
+The keys are `graph_title` (the chart's title on the page), `input_html` and `output_json`; `input_history` (needed by
+`extract-polymarket`; `extract-politico` names it but does not read it) and `url` (needed by `extract-politico`); and,
+optionally, `type` (`cnn line graph`, `polymarket line graph`, `politico line graph` or `polymarket yes no`), `title`
+and `subtitle`. Paths are relative to the YAML file. Each kind-specific command accepts only its own keys. A command
+prints what it read and `Wrote <file>`, or one `Error:` line and exits with 1 without writing; an output that would
+overwrite an input is refused. The written file takes its title from `title` (else `graph_title`) and its subtitle
+from `subtitle` (else `Poll for Demonstration`), with the creator `devadmin01@crowdpoll.vote` and 1,000 votes. The
+commands use `cheerio` and `yaml`, development dependencies only.
+
 Every branch folder shares one development database, so after a branch with a new migration is merged a server can
 refuse to start with `Migration check failed: corrupted migrations: …`. From that folder, `npm run fix-migrations` shows
 what it would change and writes nothing; `npm run fix-migrations -- --apply` renames, rolls back or applies migrations in
 one transaction until the record matches the folder. It repairs only a database on this machine; see
 `devScripts/MIGRATIONS-HOWTO.md`.
+
+Delete polls from the admin page, not in SQL: the app's delete also removes the poll's cached copy, which a SQL `delete`
+leaves behind in Valkey, so the Home and other tabs keep listing the poll. After a delete in SQL, `npm run
+forget-deleted-polls` (with the server's `ENV_*` variables) removes the cached copy of every poll no longer in the
+database and prints how many it removed; it changes nothing in the database.
 
 ## File manifest
 

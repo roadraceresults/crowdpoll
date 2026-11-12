@@ -13,9 +13,15 @@
     "start": "node dist/server.js",
     "test": "vitest run",
     "reconcile": "tsx devScripts/reconcile.ts",
+    "forget-deleted-polls": "tsx devScripts/forget-deleted-polls.ts",
     "populate-poll": "tsx devScripts/populate/populate-poll.ts",
     "populate-all-polls": "tsx devScripts/populate/populate-all-polls.ts",
     "populate-test-poll": "tsx devScripts/populate/populate-test-poll.ts",
+    "extract-all": "tsx devScripts/extract/extract-all.ts",
+    "extract-cnn": "tsx devScripts/extract/extract-cnn.ts",
+    "extract-politico": "tsx devScripts/extract/extract-politico.ts",
+    "extract-polymarket": "tsx devScripts/extract/extract-polymarket.ts",
+    "extract-polymarket-yes-no": "tsx devScripts/extract/extract-polymarket-yes-no.ts",
     "fix-migrations": "tsx devScripts/fix-migrations.ts",
     "publish-assets": "tsx devScripts/publish-assets.ts",
     "deploy": "tsx devScripts/deploy-app.ts",
@@ -43,10 +49,12 @@
     "@types/nodemailer": "^7.0.0",
     "@types/pg": "8.23.1",
     "@types/supertest": "^6.0.0",
+    "cheerio": "1.2.0",
     "embedded-postgres": "16.14.0-beta.17",
     "jsdom": "30.1.0",
     "supertest": "^7.1.0",
     "typescript": "^5.8.0",
-    "vitest": "^3.2.0"
+    "vitest": "^3.2.0",
+    "yaml": "2.9.1"
   }
 }

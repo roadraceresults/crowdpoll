@@ -1243,6 +1243,27 @@ daylight-saving change never shifts a vote onto the wrong day. Voters from one p
 one, so the final bars follow the latest data point. `updatePoll` stamps `launched_at` only when a poll
 enters OPEN, so a rerun writes `launched_at = start_at` itself.
 
+## Poll data extractors
+
+`devScripts/extract/` turns a saved poll page into the JSON file the populate script reads. Its five entries
+(`extract-all`, `extract-cnn`, `extract-politico`, `extract-polymarket`, `extract-polymarket-yes-no`) run through
+`tsx` as npm scripts; they read only local files, never the network or the database, and import nothing from `src/`.
+`cheerio` and `yaml` are development dependencies, so the deployed application does not use them.
+
+```mermaid
+flowchart LR
+  Yaml["config.yaml"] --> Cli["one CLI module per kind<br/>(extract-all: graphTypes picks or detects it)"]
+  Page["saved .html"] --> Cli
+  Har[".har price record<br/>(Polymarket)"] --> Cli
+  Cli --> File["toPollGraphFile → writeFileAtomically"]
+  File --> Json["poll data .json"] --> Populate["npm run populate-poll"]
+```
+
+`extract-all` uses the `type` key when present, otherwise `detectGraphType` reads the page's markers; each
+kind-specific command refuses a `type` of another kind. Every failure is one `Error:` line and exit status 1, with
+nothing written, because the output is written to a temporary file and renamed only when it is complete. The code was
+copied from the separate htmlparser project and is kept in step with it by hand; its tests are under `tests/extract/`.
+
 ## Email and login links
 
 All mail goes through `src/email/mailer.ts`. `createTransportFor` picks the transport from `ENV_EMAIL_TRANSPORT`:
