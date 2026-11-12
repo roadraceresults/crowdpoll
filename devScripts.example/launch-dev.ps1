@@ -81,6 +81,8 @@ $env:ENV_EMAIL_ASSET_ORIGIN = "https://crowdpoll.vote"
 # sign-in testing painful: two login links and you are locked out for 15 minutes.
 $env:ENV_EMAIL_RATE_LIMIT_WINDOW_MINUTES = "5"  # default 15
 $env:ENV_EMAIL_RATE_LIMIT_MAX_REQUESTS_PER_WINDOW = "10"  # default 2
+$env:ENV_DEFAULT_LINK_PREVIEW_MESSAGE = "You have been invited to vote in this poll."
+
 
 # --- 5. Poll rules: what a poll may contain and what a user may keep ---
 # The number of choices a poll must have to be published, inclusive. Lower

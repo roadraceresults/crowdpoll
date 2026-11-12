@@ -308,6 +308,18 @@ describe("The site favicon (FR-010)", () => {
     expect(app).toContain("short-lived security cookie while a login link is waiting to be used");
   });
 
+  it("og-logo.svg is the brand logo with its speech bubble, under the favicon's file rules", () => {
+    const svg = readFileSync(path.resolve("src/public/og-logo.svg"), "utf8");
+    expect(svg).toMatch(/^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg" viewBox="0 0 120 120">\s*<title>CrowdPoll<\/title>/);
+    const bubble = "M96 6 H24 A14 14 0 0 0 10 20 V82 A14 14 0 0 0 24 96 H78 L100 116 L96 96 A14 14 0 0 0 110 82 V20 A14 14 0 0 0 96 6 Z";
+    expect(svg).toContain(`<path d="${bubble}" fill="#FAFAFA"/>`);
+    expect(svg).toContain(`<path d="${bubble}" fill="none" stroke="#000000" stroke-width="4.5" stroke-linejoin="round"/>`);
+    expect(svg).toContain('<mask id="og-logo-front">');
+    expect(svg).toContain('<g mask="url(#og-logo-front)" fill="#E04A4A">');
+    expect(svg).toContain('<circle cx="42" cy="42" r="13" fill="#3FB34F"/>');
+    expect(svg).not.toMatch(/role=|aria-|<!--/);
+  });
+
   it("og-image.png is a 1200 × 630 PNG under 300 KB, and GET /og-image.png answers with it", async () => {
     const png = readFileSync(path.resolve("src/public/og-image.png"));
     expect([...png.subarray(0, 8)]).toEqual([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);

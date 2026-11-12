@@ -29,7 +29,7 @@ Decisions that are easy to get wrong:
   other disallows repeated; `*` keeps `Disallow: /login`; the login page keeps `noindex` (R5).
 - **`og:image`**: `previewHeadTags` takes `origin` and emits `${origin}/og-image.png` with `og:image:width` 1200,
   `og:image:height` 630, `og:image:type image/png` on both pages; `twitter:card` stays `summary`. The committed
-  `src/public/og-image.png` is rendered from `favicon.svg` by `devScripts/favicon-ico.ts` (headless browser), no
+  `src/public/og-image.png` is rendered from `src/public/og-logo.svg` (the brand logo with its speech bubble; TWEAK02) by `devScripts/favicon-ico.ts` (headless browser), no
   package; the spec was amended to match (analysis I1, R6, Q1). The tradeoff surfaced by the research: one static brand
   image for every poll, rather than a per-poll image generated at run time (CPU on every fetch and a cache to add) or a
   rasterizer dependency for one render.

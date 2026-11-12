@@ -21,7 +21,7 @@ function percentages(poll: PollProjection, counts: LiveCounts): Map<string, numb
   );
 }
 
-/** The brand image every preview page offers: 1200 × 630, rendered from favicon.svg by devScripts/favicon-ico.ts. */
+/** The brand image every preview page offers: 1200 × 630, rendered from og-logo.svg by devScripts/favicon-ico.ts. */
 export const OG_IMAGE = { path: "/og-image.png", width: 1200, height: 630, type: "image/png" } as const;
 
 export interface PreviewHead {

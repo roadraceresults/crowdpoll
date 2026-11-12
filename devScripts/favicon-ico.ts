@@ -2,8 +2,9 @@
  * Renders src/public/favicon.svg at 16, 32 and 48 px with a headless Chromium-based
  * browser and writes them, as PNG images, into src/public/favicon.ico; also writes a 96 px
  * src/public/email-logo.png for the email layout (48 px at 2x: a 96 px window renders blank), and the
- * 1200 × 630 src/public/og-image.png the link previews carry (the figures centred on white).
- * Rerun whenever favicon.svg changes; not part of `npm run build`.
+ * 1200 × 630 src/public/og-image.png the link previews carry, rendered from src/public/og-logo.svg (the brand
+ * logo with its speech bubble, centred on white).
+ * Rerun whenever favicon.svg or og-logo.svg changes; not part of `npm run build`.
  * Usage: npx tsx devScripts/favicon-ico.ts   (FAVICON_BROWSER overrides the Edge path)
  */
 import { execFileSync } from "node:child_process";
@@ -18,6 +19,7 @@ const ICO_PATH = "src/public/favicon.ico";
 const EMAIL_LOGO_SIZE = 48;
 const EMAIL_LOGO_SCALE = 2;
 const EMAIL_LOGO_PATH = "src/public/email-logo.png";
+const OG_LOGO_PATH = path.resolve("src/public/og-logo.svg");
 const OG_IMAGE_PATH = "src/public/og-image.png";
 const OG_IMAGE_WIDTH = 1200;
 const OG_IMAGE_HEIGHT = 630;
@@ -60,7 +62,7 @@ function renderPng(browser: string, workDir: string, size: number, scale = 1): B
   return png;
 }
 
-/** The preview image: the favicon drawing centred on a white 1200 × 630 page, screenshotted at 1x. */
+/** The preview image: the brand logo (og-logo.svg) centred on a white 1200 × 630 page, screenshotted at 1x. */
 function renderOgImage(browser: string, workDir: string): Buffer {
   const pagePath = path.join(workDir, "og-image.html");
   const pngPath = path.join(workDir, "og-image.png");
@@ -70,7 +72,7 @@ function renderOgImage(browser: string, workDir: string): Buffer {
 html,body{margin:0;width:${OG_IMAGE_WIDTH}px;height:${OG_IMAGE_HEIGHT}px;background:#fff;overflow:hidden}
 body{display:flex;align-items:center;justify-content:center}
 img{height:${OG_IMAGE_FIGURE_HEIGHT}px;width:auto}
-</style></head><body><img src="${pathToFileURL(SVG_PATH).href}" alt=""></body></html>`
+</style></head><body><img src="${pathToFileURL(OG_LOGO_PATH).href}" alt=""></body></html>`
   );
   try {
     execFileSync(

@@ -1465,8 +1465,9 @@ sequenceDiagram
   pages emit, after `og:url`, the brand image from `OG_IMAGE` in `pollPage.ts`: `og:image` `<origin>/og-image.png`,
   `og:image:width` 1200, `og:image:height` 630, `og:image:type` `image/png` (`twitter:card` stays `summary`).
   `src/public/og-image.png` is committed and served by `express.static` like `email-logo.png`; `devScripts/favicon-ico.ts`
-  renders it as its third output, `favicon.svg` centred 480 px tall on white, screenshotted by the headless browser at
-  1200 × 630, and refuses a file over 300 KB. Logged as `[login] Poll preview rendered: <pid>`, pid only.
+  renders it as its third output, `src/public/og-logo.svg` (the header's brand logo with its speech bubble, kept as
+  a standalone master under the favicon's file rules) centred 480 px tall on white, screenshotted by the headless
+  browser at 1200 × 630, and refuses a file over 300 KB. Logged as `[login] Poll preview rendered: <pid>`, pid only.
 
 ## Site icon
 

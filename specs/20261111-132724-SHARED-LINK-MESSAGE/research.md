@@ -115,7 +115,8 @@ preview (`20261110-204911`) are built. Each item gives the decision, the reason 
 ## R6. The brand image: a static `og-image.png` rendered by the existing script
 
 - **Decision**: `devScripts/favicon-ico.ts` gains a third output, `src/public/og-image.png`, 1200 × 630: it writes a
-  temporary HTML page (white background, `favicon.svg` centred at 480 px tall) into its work directory and screenshots
+  temporary HTML page (white background, `og-logo.svg` — the brand logo with its speech bubble, TWEAK02; first
+  `favicon.svg` — centred at 480 px tall) into its work directory and screenshots
   it with the same headless Chromium invocation at `--window-size=1200,630`, checking the PNG's dimensions as it does
   for the icons; the file is committed. `previewHeadTags({ title, headline, description, url, origin })` emits, after
   `og:url`, `<meta property="og:image" content="${origin}/og-image.png">`, `og:image:width` `1200`,
@@ -124,7 +125,7 @@ preview (`20261110-204911`) are built. Each item gives the decision, the reason 
   `email-logo.png`, and `build-assets` copies `src/public` to `dist/public`, so the absolute address resolves in
   production without a CDN step.
 - **Rationale**: FR-011 and RS3: WhatsApp's rules (≥ 300 px wide, ≤ 4:1, under 600 KB) and Meta's (1200 × 630
-  recommended, width/height tags let the crawler render at once). The script already rasterizes `favicon.svg` with a
+  recommended, width/height tags let the crawler render at once). The script already rasterizes an SVG with a
   browser the developer has, so no package is needed; a mostly white 1200 × 630 PNG is a few tens of KB.
   The spec's clarification Q1 and FR-011 were amended (analysis I1) to name this existing script; no package is added.
 - **Alternatives**: a new `devScripts/og-image.ts` with a rasterizer package (a dependency for one render);
