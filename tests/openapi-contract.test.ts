@@ -252,6 +252,16 @@ describe("openapi.json tracks the 017 surfaces", () => {
     }
   });
 
+  it("documents the admin search checkboxes as optional true-only parameters", () => {
+    const get = spec.paths["/api/admin/polls/search"]!.get as { parameters: Array<{ name: string; required?: boolean; schema: { enum?: string[] } }> };
+    for (const name of ["lineGraphEnabled", "customColors"]) {
+      const parameter = get.parameters.find((p) => p.name === name);
+      expect(parameter, name).toBeDefined();
+      expect(parameter!.required, name).toBe(false);
+      expect(parameter!.schema.enum, name).toEqual(["true"]);
+    }
+  });
+
   it("documents the login confirmation routes and the hidden anti-bot field (production email A1–A6)", () => {
     const documented = new Set(documentedRoutes());
     expect(documented.has("GET /api/auth/link-info")).toBe(true);

@@ -181,7 +181,10 @@ delivery network.
 - **Search** — the Search view's filters sit in a panel the same width and look as a poll card, in the
   same centred column as the view tabs. Free text, state, created by, the date groups and the count groups
   are fields; visibility, choice mode and vote mutability are each one row of three radios (Any, then the
-  two choices). **Clear** empties every field and puts each radio row back on Any. **Collapse Search**, above the
+  two choices). Under them, two checkboxes narrow the list when ticked and do nothing when not:
+  **Line graph enabled** keeps the polls whose line graph is on, and **Custom colors set** the polls with at
+  least one choice whose color was picked by hand. **Clear** empties every field, unticks both checkboxes and
+  puts each radio row back on Any. **Collapse Search**, above the
   panel, folds it away (the button then reads **Expand Search**); it folds itself after a search that shows results
   and stays open when nothing matched. Clicking the **Search** view tab opens a collapsed panel.
 - **Create New Poll** opens the new poll's card as a six-step wizard: Who can vote, Title &

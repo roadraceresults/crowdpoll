@@ -52,6 +52,16 @@ describe("day windows in the administrator's zone", () => {
     expect(() => parseAdminSearch({ voteCount: "gt:5" })).toThrow(/operator/);
     expect(() => parseAdminSearch({ startAt: "eq:yesterday", tz: "UTC" })).toThrow(/YYYY-MM-DD/);
   });
+
+  it("reads each checkbox as true only, ignoring a blank and refusing anything else", () => {
+    expect(parseAdminSearch({ lineGraphEnabled: "true" }).lineGraphEnabled).toBe(true);
+    expect(parseAdminSearch({ lineGraphEnabled: " " }).lineGraphEnabled).toBeUndefined();
+    expect(parseAdminSearch({}).lineGraphEnabled).toBeUndefined();
+    expect(() => parseAdminSearch({ lineGraphEnabled: "false" })).toThrow(`Invalid lineGraphEnabled "false"; expected true.`);
+    expect(parseAdminSearch({ customColors: "true" }).customColors).toBe(true);
+    expect(parseAdminSearch({ customColors: "" }).customColors).toBeUndefined();
+    expect(() => parseAdminSearch({ customColors: "yes" })).toThrow(`Invalid customColors "yes"; expected true.`);
+  });
 });
 
 describe("GET /api/admin/polls/search", () => {
@@ -84,6 +94,53 @@ describe("GET /api/admin/polls/search", () => {
     expect((await request(ctx.app).get("/api/admin/polls/search")).status).toBe(403);
   });
 
+  it("Line graph enabled keeps only polls with the line graph on, ANDed with the other controls", async () => {
+    const base = Date.now() - 86_400_000;
+    const plain = makePoll({ title: "Plain", createdAt: new Date(base + 1000) });
+    const graphFinal = makePoll({ title: "Graph final", lineGraphEnabled: true, createdAt: new Date(base + 2000) });
+    const graphDynamic = makePoll({ title: "Graph dynamic", lineGraphEnabled: true, voteMutability: "Dynamic-Vote Poll", createdAt: new Date(base + 3000) });
+    await polls(ctx).insertMany([plain, graphFinal, graphDynamic]);
+    expect(pids(await search({ lineGraphEnabled: "true" }))).toEqual([graphDynamic._id, graphFinal._id]);
+    expect(pids(await search({ lineGraphEnabled: "true", voteMutability: "Final-Vote Poll" }))).toEqual([graphFinal._id]);
+    expect(pids(await search({ lineGraphEnabled: "" }))).toEqual([graphDynamic._id, graphFinal._id, plain._id]);
+    expect(pids(await search({}))).toEqual([graphDynamic._id, graphFinal._id, plain._id]);
+    const refused = await search({ lineGraphEnabled: "1" });
+    expect(refused.status).toBe(400);
+    expect(refused.body.error).toBe(`Invalid lineGraphEnabled "1"; expected true.`);
+  });
+
+  it("Custom colors set keeps only polls with a hand-picked color on a saved choice, never a pending one", async () => {
+    const base = Date.now() - 86_400_000;
+    const automatic = makePoll({ title: "Automatic", createdAt: new Date(base + 1000) });
+    const oneColor = makePoll({
+      title: "One color",
+      lineGraphEnabled: true,
+      createdAt: new Date(base + 2000),
+      choices: [
+        { id: "c1", label: "Red", position: 0, color: "#F91010" },
+        { id: "c2", label: "Automatic", position: 1 },
+        { id: "c3", label: "Added by a voter", position: 2, addedBy: "voter-1" }
+      ]
+    });
+    const allColors = makePoll({
+      title: "All colors",
+      createdAt: new Date(base + 3000),
+      choices: [
+        { id: "c1", label: "Red", position: 0, color: "#F91010" },
+        { id: "c2", label: "Blue", position: 1, color: "#0808FD" }
+      ]
+    });
+    const pendingOnly = makePoll({
+      title: "Pending colors",
+      createdAt: new Date(base + 4000),
+      pendingUpdate: { choices: [{ id: "c1", label: "Red", position: 0, color: "#F91010" }] }
+    });
+    await polls(ctx).insertMany([automatic, oneColor, allColors, pendingOnly]);
+    expect(pids(await search({ customColors: "true" }))).toEqual([allColors._id, oneColor._id]);
+    expect(pids(await search({ customColors: "true", lineGraphEnabled: "true" }))).toEqual([oneColor._id]);
+    expect((await search({ customColors: "false" })).status).toBe(400);
+  });
+
   it("day windows use the administrator's zone and NULL dates never match", async () => {
     const created = new Date("2026-03-09T03:30:00.000Z");
     const withStart = makePoll({ title: "Scheduled", createdAt: created, startAt: new Date("2026-03-09T12:00:00.000Z"), endAt: null });
@@ -110,7 +167,13 @@ describe("GET /api/admin/polls/search", () => {
 
   it("every filter combination is answered from an index", async () => {
     for (let i = 0; i < 200; i++) {
-      await polls(ctx).insertOne(makePoll({ title: `Combination ${i}`, pollState: i % 2 ? "OPEN" : "CLOSED", createdAt: new Date(Date.now() - i * 60_000) }));
+      await polls(ctx).insertOne(makePoll({
+        title: `Combination ${i}`,
+        pollState: i % 2 ? "OPEN" : "CLOSED",
+        createdAt: new Date(Date.now() - i * 60_000),
+        lineGraphEnabled: i % 10 === 0,
+        ...(i % 15 === 0 ? { choices: [{ id: "c1", label: "Red", position: 0, color: "#F91010" }] } : {})
+      }));
     }
     await sql`analyze polls`.execute(ctx.db);
     await sql`set enable_seqscan = off`.execute(ctx.db);
@@ -120,6 +183,8 @@ describe("GET /api/admin/polls/search", () => {
       { visibility: "Public Poll" },
       { choiceMode: "Single-Choice Poll" },
       { voteMutability: "Final-Vote Poll" },
+      { lineGraphEnabled: true },
+      { customColors: true },
       { createdBy: "dav" },
       { createdAt: { op: "gte", day: "2026-01-01" }, tz: "UTC" },
       { startAt: { op: "lte", day: "2026-12-31" }, tz: "UTC" },
@@ -137,6 +202,10 @@ describe("GET /api/admin/polls/search", () => {
       }
     }
     expect(offenders).toEqual([]);
+    const indexOf = async (filters: AdminSearchFilters) =>
+      (await planNodes(adminSearchQuery(ctx.db, filters, 200))).map((n) => (n as { "Index Name"?: string })["Index Name"]).filter(Boolean);
+    expect(await indexOf({ lineGraphEnabled: true })).toContain("polls_line_graph_created");
+    expect(await indexOf({ customColors: true })).toContain("polls_custom_colors_created");
     await sql`set enable_seqscan = on`.execute(ctx.db);
   });
 });

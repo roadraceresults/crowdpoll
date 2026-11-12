@@ -5636,6 +5636,30 @@
             }
           },
           {
+            "name": "lineGraphEnabled",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true"
+              ]
+            },
+            "description": "true: only polls whose line graph is on; blank or absent: no filter; any other value is refused (400)"
+          },
+          {
+            "name": "customColors",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true"
+              ]
+            },
+            "description": "true: only polls with at least one choice whose color was picked by hand; blank or absent: no filter; any other value is refused (400)"
+          },
+          {
             "name": "createdBy",
             "in": "query",
             "required": false,

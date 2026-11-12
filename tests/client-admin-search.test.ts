@@ -34,7 +34,7 @@ const field = (p: BrowserPage, name: string) => form(p).querySelector(`[name="${
 const searchTab = '#adminTabBar .tab[data-tab="search"]';
 
 const ORDER = [
-  "q", "state", "visibility", "choiceMode", "voteMutability", "createdBy",
+  "q", "state", "visibility", "choiceMode", "voteMutability", "lineGraphEnabled", "customColors", "createdBy",
   "createdAtOp", "createdAt", "startAtOp", "startAt", "endAtOp", "endAt",
   "voteCountOp", "voteCount", "invitedVoterCountOp", "invitedVoterCount", "bannedVoterCountOp", "bannedVoterCount"
 ];
@@ -45,7 +45,7 @@ describe("the admin search panel's structure", () => {
     const page = await openAdmin();
     for (const control of Array.from(form(page).querySelectorAll("input, select")) as HTMLInputElement[]) {
       const name = control.getAttribute("name") ?? "";
-      const label = (control.type === "radio" ? control.closest("label") : form(page).querySelector(`label[for="${control.id}"]`)) as HTMLElement | null;
+      const label = (control.type === "radio" || control.type === "checkbox" ? control.closest("label") : form(page).querySelector(`label[for="${control.id}"]`)) as HTMLElement | null;
       expect(label, `${name} ${control.value}`).not.toBeNull();
       expect(label!.textContent!.trim(), `${name} ${control.value}`).not.toBe("");
       expect(label!.hidden, `${name} ${control.value}`).toBe(false);
@@ -122,6 +122,23 @@ describe("the admin search panel's structure", () => {
     expect(form(page).querySelector('select[name="visibility"], select[name="choiceMode"], select[name="voteMutability"]')).toBeNull();
   });
 
+  it("offers Line graph enabled and Custom colors set as an unticked checkbox row under the vote mode group", async () => {
+    const page = await openAdmin();
+    const row = form(page).querySelector(".admin-checkbox-row")!;
+    expect(row.getAttribute("role")).toBe("group");
+    expect(row.getAttribute("aria-label")).toBe("Poll features");
+    expect(row.previousElementSibling!.getAttribute("aria-label")).toBe("Vote mutability");
+    const boxes = Array.from(row.querySelectorAll("input")) as HTMLInputElement[];
+    expect(boxes.map((b) => [b.type, b.name, b.value, b.checked, b.closest("label")!.textContent!.trim()])).toEqual([
+      ["checkbox", "lineGraphEnabled", "true", false, "Line graph enabled"],
+      ["checkbox", "customColors", "true", false, "Custom colors set"]
+    ]);
+    for (const box of boxes) expect(box.closest("label")!.classList.contains("admin-checkbox")).toBe(true);
+    for (const box of boxes) box.checked = true;
+    await page.click("#adminSearchClear");
+    expect(boxes.map((b) => b.checked)).toEqual([false, false]);
+  });
+
   it("holds no text outside a label, an option, a radio's text or a button", async () => {
     const page = await openAdmin();
     const walker = page.document.createTreeWalker(form(page), page.window.NodeFilter.SHOW_TEXT);
@@ -179,6 +196,51 @@ describe("the admin search request", () => {
       voteCount: "gte:0"
     });
     expect(Array.from(page.document.querySelectorAll("#pollList .poll-admin-card"))).toHaveLength(1);
+  });
+
+  it("sends lineGraphEnabled=true only while Line graph enabled is ticked", async () => {
+    const page = await openAdmin();
+    await page.click(searchTab);
+    type(page, "q", "kettle");
+    const lastParams = () => new URL(page.requests.filter((r) => r.url.startsWith("/api/admin/polls/search?")).at(-1)!.url, "http://localhost").searchParams;
+    await page.submitForm("#adminSearchForm", {});
+    await page.settle(200);
+    expect(lastParams().has("lineGraphEnabled")).toBe(false);
+    (field(page, "lineGraphEnabled") as HTMLInputElement).checked = true;
+    await page.submitForm("#adminSearchForm", {});
+    await page.settle(200);
+    expect(lastParams().get("lineGraphEnabled")).toBe("true");
+    expect(lastParams().has("customColors")).toBe(false);
+  });
+
+  it("sends both checkboxes when ticked, and the list's refresh keeps sending what was submitted", async () => {
+    const fast = await startTestContext({ ENV_ADMINS: ADMIN, ENV_POLL_ADMIN_PAGE_REFRESH_INTERVAL: "300" });
+    try {
+      const adminCookie = (await forgeSession(fast, ADMIN)).cookie;
+      const page = await openPage(fast, "admin.html", { cookie: adminCookie, scripts: SCRIPTS });
+      await page.settle(100);
+      await page.click(searchTab);
+      const searches = () => page.requests.filter((r) => r.url.startsWith("/api/admin/polls/search?"));
+      const paramsOf = (url: string) => new URL(url, "http://localhost").searchParams;
+      (field(page, "lineGraphEnabled") as HTMLInputElement).checked = true;
+      (field(page, "customColors") as HTMLInputElement).checked = true;
+      await page.submitForm("#adminSearchForm", {});
+      await page.settle(200);
+      const submitted = paramsOf(searches().at(-1)!.url);
+      expect([submitted.get("lineGraphEnabled"), submitted.get("customColors")]).toEqual(["true", "true"]);
+      const before = searches().length;
+      (field(page, "lineGraphEnabled") as HTMLInputElement).checked = false;
+      (field(page, "customColors") as HTMLInputElement).checked = false;
+      await page.settle(800);
+      const refreshes = searches().slice(before);
+      expect(refreshes.length).toBeGreaterThan(0);
+      for (const r of refreshes) {
+        expect([paramsOf(r.url).get("lineGraphEnabled"), paramsOf(r.url).get("customColors")]).toEqual(["true", "true"]);
+      }
+      page.close();
+    } finally {
+      await fast.stop();
+    }
   });
 
   it("sends nothing for the radio groups left on Any, and Clear puts them back there", async () => {

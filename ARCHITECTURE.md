@@ -945,7 +945,13 @@ and the poll cards share one container rule in `admin.css` (a selector list, med
 panel is exactly card-sized. Its controls keep every `name` that `readSearchForm()` reads, so the request is
 unchanged. Visibility, choice mode and vote mutability are radio groups that keep the controls' `name`s and
 values, with Any (`value=""`) chosen by default, so `FormData` carries what the selects sent; the panel's
-radio rules are its own, since the card wizard's `.m3-radio` rules are scoped to the cards. The panel is
+radio rules are its own, since the card wizard's `.m3-radio` rules are scoped to the cards. Under them, the
+`.admin-checkbox-row` holds two checkboxes, `lineGraphEnabled` and `customColors` (`value="true"`), sent only when
+ticked; `parseAdminSearch` accepts only `true` (blank ignored, anything else `400`). They add
+`line_graph_enabled = true` and `jsonb_path_exists(choices, '$[*] ? (@.color != null)')` (at least one saved
+choice with a hand-picked color; `pending_update` is not read), each answered by its partial index from migration
+`022-admin-search-flags` (`polls_line_graph_created`, `polls_custom_colors_created`), whose predicate the query
+repeats verbatim. The panel is
 collapsed by `button#adminSearchToggle` above it (a `data-collapsed` attribute on the form, in memory only, set by
 `adminList.js` after a user-run search leaves result cards on screen and never by the timed refresh). The Search view shows
 no status message before a search. Each admin list row also carries `createdByName` (from `polls.created_by_name`)

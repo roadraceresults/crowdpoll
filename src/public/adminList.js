@@ -233,7 +233,7 @@
   function readSearchForm(form) {
     const params = new URLSearchParams();
     const data = new FormData(form);
-    for (const name of ["q", "state", "visibility", "choiceMode", "voteMutability", "createdBy"]) {
+    for (const name of ["q", "state", "visibility", "choiceMode", "voteMutability", "lineGraphEnabled", "customColors", "createdBy"]) {
       const value = String(data.get(name) || "").trim();
       if (value) params.set(name, value);
     }

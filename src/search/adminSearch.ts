@@ -20,6 +20,8 @@ export interface AdminSearchFilters {
   visibility?: string;
   choiceMode?: string;
   voteMutability?: string;
+  lineGraphEnabled?: true;
+  customColors?: true;
   createdBy?: string;
   createdAt?: DayFilter;
   startAt?: DayFilter;
@@ -95,6 +97,13 @@ function parseCount(raw: unknown): CountFilter | undefined {
   return { op, n };
 }
 
+/** A checkbox: `true` when ticked, nothing when blank; any other value is refused. */
+function parseFlag(raw: unknown, name: string): true | undefined {
+  if (raw === undefined || (typeof raw === "string" && raw.trim() === "")) return undefined;
+  if (raw === "true") return true;
+  throw new AdminSearchError(`Invalid ${name} "${String(raw)}"; expected true.`);
+}
+
 const text = (raw: unknown): string | undefined => (typeof raw === "string" && raw.trim() !== "" ? raw.trim() : undefined);
 
 /** Reads the query string of GET /api/admin/polls/search; blanks are ignored. */
@@ -105,6 +114,8 @@ export function parseAdminSearch(query: Record<string, unknown>): AdminSearchFil
     visibility: text(query.visibility),
     choiceMode: text(query.choiceMode),
     voteMutability: text(query.voteMutability),
+    lineGraphEnabled: parseFlag(query.lineGraphEnabled, "lineGraphEnabled"),
+    customColors: parseFlag(query.customColors, "customColors"),
     createdBy: text(query.createdBy),
     createdAt: parseDay(query.createdAt),
     startAt: parseDay(query.startAt),
@@ -130,6 +141,9 @@ export function adminSearchQuery(db: Kysely<Database>, filters: AdminSearchFilte
   if (filters.visibility) query = query.where("poll_visibility", "=", filters.visibility);
   if (filters.choiceMode) query = query.where("choice_mode", "=", filters.choiceMode);
   if (filters.voteMutability) query = query.where("vote_mutability", "=", filters.voteMutability);
+  if (filters.lineGraphEnabled) query = query.where("line_graph_enabled", "=", true);
+  // At least one saved choice with a hand-picked color; written exactly as the predicate of migration 022's partial index.
+  if (filters.customColors) query = query.where(sql<boolean>`jsonb_path_exists(choices, '$[*] ? (@.color != null)')`);
   if (filters.createdBy) {
     query = query.where("created_by_name", "ilike", `%${filters.createdBy.replace(/[\\%_]/g, "\\$&")}%`);
   }

@@ -6,21 +6,17 @@ The full description, every earlier feature's decisions and the settings table a
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-`specs/20261112-152622-EXTRACT-ALL-POLLDATA/plan.md` (research R1–R7, `data-model.md` — the history file; the
-contract `contracts/cli.md` and the quickstart live alongside it).
-The requirements report is `requirements/20261112-152622-extract-all-polldata/requirements-report.md`: 9 findings,
+`specs/20261112-173521-ADMIN-SEARCH-CHECKBOXES/plan.md` (research R1–R7, `data-model.md` — the columns read and the
+two partial indexes; the contracts `contracts/api.md` A1–A6, `contracts/ui.md` U1–U6 and the quickstart live alongside it).
+The requirements report is `requirements/20261112-173521-admin-search-checkboxes/requirements-report.md`: 6 findings,
 all resolved.
 Decisions that are easy to get wrong:
-- **The extraction twin of `populate-all-polls`**: `npm run extract-all-polldata [<directory>]` (default the project
-  root's `polldata`, relative paths from `INIT_CWD`) takes the `.yaml`/`.yml` files directly in the folder, in name
-  order, and calls `runExtractAll([<absolute path>])` in process for each; output stays byte-identical (R1, R5).
-- **Skip by fingerprint**: one SHA-256 over the configuration, its `input_html` and its `input_history`, recorded in
-  the git-ignored `devScripts/extract/extract-all-polldata-history.json` after each success; no fingerprint (bad
-  configuration) means never skipped (R3, R4).
-- **Failures never stop the run**: the last `Error:` line `runExtractAll` prints is captured for the final list;
-  status 1 if any failed (R2).
-- Extraction only, no settings (FR-014). Tweaks: `extract-all` writes `oldest_age_in_days: 365` (TWEAK01);
-  `populate-poll` turns the line graph on when `type` contains "line graph" (TWEAK03).
+- **Unticked means no filter**: `lineGraphEnabled=true` / `customColors=true` are sent only for a ticked box;
+  `parseAdminSearch` accepts only `true` (blank ignored, anything else 400); both AND with every other control (R1).
+- **"Custom colors set"** is at least one saved choice with a non-null `color`:
+  `jsonb_path_exists(choices, '$[*] ? (@.color != null)')`; `pending_update` is never read (R2).
+- **Each filter has its partial index** (migration `022-admin-search-flags`), with the query predicate written exactly
+  as the index predicate, so the index-combination test still finds no sequential scan (R3).
 <!-- SPECKIT END -->
 
 ## Project Overview

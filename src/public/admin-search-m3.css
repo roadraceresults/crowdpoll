@@ -200,6 +200,74 @@
   .admin-search .admin-radio input::before{ transition:none; }
 }
 
+/* ---------- 4a. Checkbox row: Line graph enabled, Custom colors set (on the radio groups' grid) ---------- */
+.admin-search .admin-checkbox-row{
+  display:grid;
+  grid-template-columns:repeat(3, minmax(0, 1fr));
+  gap:0 8px;
+  min-width:0;
+  max-width:100%;
+  box-sizing:border-box;
+}
+@media (max-width: 359.98px){
+  .admin-search .admin-checkbox-row{ grid-template-columns:minmax(0, 1fr); }
+}
+.admin-search .admin-checkbox{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-width:0;
+  min-height:48px;
+  box-sizing:border-box;
+  padding:0 4px;
+  border-radius:var(--md-sys-shape-corner-medium);
+  color:var(--md-sys-color-on-surface);
+  font-size:var(--md-sys-typescale-body-medium-size);
+  line-height:var(--md-sys-typescale-body-medium-line-height);
+  font-weight:var(--md-sys-typescale-body-medium-weight);
+  letter-spacing:var(--md-sys-typescale-body-medium-tracking);
+  cursor:pointer;
+}
+.admin-search .admin-checkbox input{
+  appearance:none;
+  -webkit-appearance:none;
+  flex:0 0 auto;
+  box-sizing:border-box;
+  width:18px;
+  height:18px;
+  margin:0;
+  padding:0;
+  border:2px solid var(--md-sys-color-on-surface-variant);
+  border-radius:var(--md-sys-shape-corner-extra-small);
+  background:transparent;
+  display:grid;
+  place-content:center;
+  cursor:pointer;
+}
+/* The check mark: a short L, rotated, in the on-primary color. */
+.admin-search .admin-checkbox input::before{
+  content:"";
+  width:4px;
+  height:9px;
+  margin-top:-2px;
+  border:solid var(--md-sys-color-on-primary);
+  border-width:0 2px 2px 0;
+  transform:rotate(45deg) scale(0);
+  transition:transform 0.12s ease-in-out;
+}
+.admin-search .admin-checkbox input:checked{
+  border-color:var(--md-sys-color-primary);
+  background:var(--md-sys-color-primary);
+}
+.admin-search .admin-checkbox input:checked::before{ transform:rotate(45deg) scale(1); }
+.admin-search .admin-checkbox input:focus-visible{
+  outline:2px solid var(--md-sys-color-primary);
+  outline-offset:2px;
+}
+@media (prefers-reduced-motion: reduce){
+  .admin-search .admin-checkbox input::before{ transition:none; }
+}
+
 /* ---------- 5. The status line: supporting text under the view tabs ---------- */
 .admin-search-notice{
   font-family:var(--md-sys-typescale-font);
