@@ -27,7 +27,7 @@ flowchart LR
   Browser -- "/fcaptcha/* (ingress, prefix removed)" --> FC
   W1 & W2 & Wn -- "token check, private URL" --> FC
   FC -- "database 1" --> VK
-  Browser -- "GET, conditional" --> CDN
+  Browser -- "assets, avatars" --> CDN
   W1 & W2 & Wn -- "Kysely / pg" --> PG
   W1 & W2 & Wn -- "iovalkey" --> VK
   W1 & W2 & Wn -- "queries, bulk index" --> OS
@@ -390,7 +390,7 @@ flowchart LR
   VoteB --> VoteR
   VoteR -- "HINCRBY (instant)" --> Cache
   TabsApi -- "read" --> Cache & PG
-  Btn -- "Trending / Newest:<br/>conditional GET" --> CDN
+  Btn -- "Trending / Newest:<br/>conditional GET /api/trending/*" --> TabsApi
 
   Sweeps -- "flush counters (10 s)" --> PG
   Sweeps -- "publish (60 s, max-age 10 s)" --> CDN
@@ -409,7 +409,7 @@ The fleet's budget is 1,250 dynamic requests per second per live instance, cappe
 | Live Results timer | each open, visible, non-idle Live tab | 1 per 2 s × `k:live`, backing off to 1 per 10 s while unchanged | cache reads only (≤ 5 polls) |
 | Refresh on a personal tab | one visitor | burst 5, then 1 per 5 s × `k:refresh` | unchanged list: cache reads only (the shortcut below); otherwise one indexed query (≤ 200 rows) |
 | Refresh on Search | one visitor | burst 3, then 1 per 2 s × `k:search` | the 10 s search cache, or one engine query |
-| Refresh on Trending / Newest | the CDN | once the copy is 10 s old, within the refresh bucket | 1–2 conditional GETs, no instance cost in production |
+| Refresh on Trending / Newest | one visitor | once the copy is 10 s old, within the refresh and page-load buckets | 1–2 conditional GETs to `/api/trending/*`: a cache read, often a `304` |
 | Votes (for comparison) | one visitor | 1 per 2 s, never stretched | cache only; rows written later in batches |
 
 Refreshes are the variable cost, and Live Results is the largest. That is why the controller sizes
@@ -465,9 +465,11 @@ browser empties its bucket for that long.
 - **Trending and Newest** are published with `max-age` = min(recompute interval, 10 s)
   (`listingMaxAgeMs`, sent as `trendingMaxAgeMs` / `newestMaxAgeMs` in `/api/config`); Refresh
   there is offered once the copy is that old. The session-storage copy keeps the recompute
-  interval as its lifetime for a page load. Without a CDN the instance serves the objects with
-  the same `max-age`. The 10 s wait on these two tabs is enforced in the browser only, by design:
-  the objects cost no instance work in production.
+  interval as its lifetime for a page load. The instances serve the objects with the same
+  `max-age`, also when Spaces is configured (`trendingBaseUrl` is always `/api/trending`): the CDN
+  keeps one copy whatever the request's `Origin`, so a copy cached without CORS headers would hide
+  the tab. The 10 s wait on these two tabs is enforced in the browser; the server-side bound is the
+  page-load bucket.
 - **Live Results** asks every `nextRefreshMs`, and after each `304` doubles its wait from twice
   that interval up to 10 s (2 → 4 → 8 → 10 s at the defaults), never below `nextRefreshMs`. A
   `200`, a vote in the tab, adding or removing a poll, or the page becoming visible
@@ -521,8 +523,8 @@ flowchart LR
   Sweep -- "sum trend:<bucket> × 12, top 200 by recent votes then vote_count" --> Rank
   Rank -- "membershipVersion = sha256(sorted ids)" --> Counts["trending-counts.json<br/>published every run"]
   Rank -- "cardsVersion = sha256(pid:contentVersion lines); cards only when it changed" --> Cards["trending.json"]
-  Counts & Cards --> CDN["Spaces + CDN, max-age min(interval, 10 s), ETag"]
-  Browser -- "conditional GET; cards only when cardsVersion or membershipVersion differs" --> CDN
+  Counts & Cards --> Store["Valkey, served at /api/trending/*; also put in Spaces<br/>max-age min(interval, 10 s), ETag"]
+  Browser -- "conditional GET; cards only when cardsVersion or membershipVersion differs" --> Store
   Browser -- "GET /api/me/polls?pids= (logged in)" --> Overlay["overlay: voted, choiceIds, bookmarked"]
 ```
 
@@ -533,7 +535,7 @@ poll under edit keeps its place. The newest sweep (lock 10, its own interval, on
 one query — `launched_at desc, vote_count desc, id desc`, limit `ENV_MAX_NEWEST_POLLS` — as a
 walk of the partial index `polls_home_launched` (`where home_listable and launched_at is not
 null`), reads the live counters, and publishes `newest-counts.json` / `newest.json` through the
-same publisher with its own object names. Without a CDN the instances serve them at
+same publisher with its own object names. The instances serve them at
 `/api/trending/newest-counts.json` and `/api/trending/newest.json` (`/api/trending/` is the one
 base for every published listing), answering `503 newest-not-ready` before the first tick.
 `newest.js` is `trending.js`'s twin: session-storage copy (`newest:copy`), a browser bucket of

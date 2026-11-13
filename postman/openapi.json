@@ -1736,7 +1736,7 @@
                     },
                     "trendingBaseUrl": {
                       "type": "string",
-                      "description": "Where the TRENDING and Newest objects are fetched from: the delivery network base, or /api/trending when served by the instances"
+                      "description": "Where the TRENDING and Newest objects are fetched from: always /api/trending, served by the instances (a CDN copy cached without CORS headers would hide the tabs)"
                     },
                     "assetsBaseUrl": {
                       "type": "string",
@@ -5038,7 +5038,7 @@
         ],
         "operationId": "trendingCounts",
         "summary": "trending-counts.json: TRENDING order and live counts, every recompute",
-        "description": "Served by the instances when no delivery network is configured (otherwise the same object is fetched from trendingBaseUrl). Honours If-None-Match with 304; Cache-Control: public, max-age=<ENV_TRENDING_POLLS_RECOMPUTE_SWEEP_INTERVAL in seconds>. Subject to the page-load bucket.",
+        "description": "Served by the instances, which trendingBaseUrl always names (the same object is also published to Spaces when configured). Honours If-None-Match with 304; Cache-Control: public, max-age=<ENV_TRENDING_POLLS_RECOMPUTE_SWEEP_INTERVAL in seconds>. Subject to the page-load bucket.",
         "parameters": [
           {
             "name": "If-None-Match",
@@ -5115,7 +5115,7 @@
         ],
         "operationId": "trendingCards",
         "summary": "trending.json: the TRENDING cards, republished only when the set of polls changes",
-        "description": "Served by the instances when no delivery network is configured (otherwise the same object is fetched from trendingBaseUrl). Honours If-None-Match with 304; Cache-Control: public, max-age=<ENV_TRENDING_POLLS_RECOMPUTE_SWEEP_INTERVAL in seconds>. Subject to the page-load bucket.",
+        "description": "Served by the instances, which trendingBaseUrl always names (the same object is also published to Spaces when configured). Honours If-None-Match with 304; Cache-Control: public, max-age=<ENV_TRENDING_POLLS_RECOMPUTE_SWEEP_INTERVAL in seconds>. Subject to the page-load bucket.",
         "parameters": [
           {
             "name": "If-None-Match",
@@ -5192,7 +5192,7 @@
         ],
         "operationId": "newestCounts",
         "summary": "newest-counts.json: Newest order and live counts, every recompute",
-        "description": "Also served at /api/trending/newest-counts.json. Served by the instances when no delivery network is configured (otherwise the same object is fetched from trendingBaseUrl, beside the TRENDING objects). Honours If-None-Match with 304; Cache-Control: public, max-age=<ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL in seconds>. Subject to the page-load bucket. Same shape as trending-counts.json; the order is the Newest order: most recently launched first, ties by total votes, then by id.",
+        "description": "Also served at /api/trending/newest-counts.json. Served by the instances, which trendingBaseUrl always names (the same object is also published to Spaces when configured, beside the TRENDING objects). Honours If-None-Match with 304; Cache-Control: public, max-age=<ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL in seconds>. Subject to the page-load bucket. Same shape as trending-counts.json; the order is the Newest order: most recently launched first, ties by total votes, then by id.",
         "parameters": [
           {
             "name": "If-None-Match",
@@ -5269,7 +5269,7 @@
         ],
         "operationId": "newestCards",
         "summary": "newest.json: the Newest cards, republished only when the set of polls changes",
-        "description": "Also served at /api/trending/newest.json. Served by the instances when no delivery network is configured (otherwise the same object is fetched from trendingBaseUrl, beside the TRENDING objects). Honours If-None-Match with 304; Cache-Control: public, max-age=<ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL in seconds>. Subject to the page-load bucket. Same shape as trending.json.",
+        "description": "Also served at /api/trending/newest.json. Served by the instances, which trendingBaseUrl always names (the same object is also published to Spaces when configured, beside the TRENDING objects). Honours If-None-Match with 304; Cache-Control: public, max-age=<ENV_NEWEST_POLLS_RECOMPUTE_SWEEP_INTERVAL in seconds>. Subject to the page-load bucket. Same shape as trending.json.",
         "parameters": [
           {
             "name": "If-None-Match",

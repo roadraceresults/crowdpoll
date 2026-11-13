@@ -157,7 +157,9 @@ export function createApiRouter(deps: ApiDeps): Router {
       maxSigninCookieDurationMs: config.maxSigninCookieDurationMs,
       deviceEventsEnabled: config.deviceEvents.enabled,
       staySignedInDefault: config.staySignedInDefault,
-      trendingBaseUrl: config.spaces ? config.spaces.cdnUrl.replace(/\/$/, "") : "/api/trending",
+      // Always the app's own origin: the CDN keeps one copy per object whatever the request's Origin, so a
+      // copy cached without Access-Control-Allow-Origin would hide the tab; the objects are still published.
+      trendingBaseUrl: "/api/trending",
       assetsBaseUrl: config.spaces ? `${config.spaces.cdnUrl.replace(/\/$/, "")}/assets` : "/assets",
       trendingPollsRecomputeSweepIntervalMs: config.trendingPollsRecomputeSweepIntervalMs,
       newestPollsRecomputeSweepIntervalMs: config.newestPollsRecomputeSweepIntervalMs,
