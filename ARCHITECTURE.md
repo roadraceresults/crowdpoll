@@ -252,7 +252,7 @@ Kysely's migration lock until the check passes (`devScripts/MIGRATIONS-HOWTO.md`
 | `dirty`, `dirty:day:<date>` | polls to flush / to reconcile | the vote path |
 | `trend:<bucket>` | votes per poll per five minutes | the vote path |
 | `poll:<pid>` | the card projection with `contentVersion` | every content write; a listing or search that finds it missing or stale; deleted with the poll |
-| `invite:<pid>`, `ban:<pid>`, `voted:<session>`, `lastvote:<pid>:<email>` | roster sets, the session's voted polls, a voter's last choices | loaded on first use; rosters deleted on a roster change |
+| `invite:<pid>`, `ban:<pid>`, `voted:<session>`, `lastvote:<pid>:<email>` | roster sets, the session's voted polls, a voter's last choices (`[]` after a removal; decides whether the next vote is a new voter's) | loaded on first use; rosters deleted on a roster change |
 | `live:<session>`, `live:active` | a session's Live Results polls; every live session scored by its expiry | the Live Results routes |
 | `listing:trending:*`, `listing:newest:*`, `search:<hash>` | the published TRENDING and Newest objects; a search's ids for ten seconds | the trending and newest sweeps; a search miss |
 | `queue:lag`; stream `votes`, group `writers` | the writers' lag; the queue | the consumer; the vote path |
@@ -277,7 +277,7 @@ sequenceDiagram
   R-->>B: 200 { status, voteCount, choiceCounts, countsVersion, myChoiceIds, nextRefreshMs }
   loop every batch
     W->>C: XREADGROUP writers COUNT 500 BLOCK 1000 (+ XAUTOCLAIM idle entries)
-    W->>PG: one transaction: votes upsert (last wins on Dynamic-Vote, first on Final-Vote), vote_history, device_events, user_polls
+    W->>PG: one transaction: votes upsert (last wins on Dynamic-Vote, first on Final-Vote), vote_history, device_events, user_polls voted upsert or delete
     W->>C: XACK; queue:lag sampled once a second
   end
   Note over C,PG: flush sweep every 10 s (ENV_COUNTER_FLUSH_SWEEP_INTERVAL): UPDATE polls … FROM (VALUES …) for the dirty set
@@ -287,6 +287,17 @@ A vote is never refused for load: the route touches the cache only, answers from
 counters it just moved, and the row work happens later in batches. A second vote on a
 Final-Vote poll is refused even while the first is still queued, because the voted-set is
 written at enqueue time.
+
+**Removing a vote** goes through the same route: an empty selection on an open Dynamic-Vote poll from a voter who
+holds a vote. The emptiness rule runs last in `validateVoteChoicesAndState`, after the state gates and the Final-Vote
+check, so every other empty selection keeps its 400. The route moves each previous choice and `total` down by one
+(`removeVote` in `counters.ts`, a sibling of `countVote` over one private mover), leaves the trending bucket as it
+is, SREMs the pid from `voted:<session>` and sets `lastvote:<pid>:<email>` to `[]`. Whether a voter is new is
+decided from that previous selection, which every session of the address shares, so a removal from one browser and a
+re-vote from another count the voter once. The consumer writes the row as `choice_ids = {}` (the stored "participant
+who has not voted", as for an unused invitation), the `vote_history` row and the line-graph deltas, and deletes the
+`voted` relation when the voter's latest vote of the batch is empty. A poll under edit is served as its pre-edit
+state here as for a vote.
 
 ### Device evidence
 

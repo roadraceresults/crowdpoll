@@ -6,21 +6,23 @@ The full description, every earlier feature's decisions and the settings table a
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-`specs/20261112-152622-EXTRACT-ALL-POLLDATA/plan.md` (research R1–R7, `data-model.md` — the history file; the
-contract `contracts/cli.md` and the quickstart live alongside it).
-The requirements report is `requirements/20261112-152622-extract-all-polldata/requirements-report.md`: 9 findings,
-all resolved.
+`specs/20261112-173151-REMOVE-VOTE/plan.md` (research R1–R10, `data-model.md` — the states of a vote row and the
+cache keys; the contracts `contracts/api.md` and `contracts/ui-contracts.md` and the quickstart live alongside it).
+The requirements report is `requirements/20261112-173151-remove-vote/requirements-report.md`: 9 findings, all
+resolved.
 Decisions that are easy to get wrong:
-- **The extraction twin of `populate-all-polls`**: `npm run extract-all-polldata [<directory>]` (default the project
-  root's `polldata`, relative paths from `INIT_CWD`) takes the `.yaml`/`.yml` files directly in the folder, in name
-  order, and calls `runExtractAll([<absolute path>])` in process for each; output stays byte-identical (R1, R5).
-- **Skip by fingerprint**: one SHA-256 over the configuration, its `input_html` and its `input_history`, recorded in
-  the git-ignored `devScripts/extract/extract-all-polldata-history.json` after each success; no fingerprint (bad
-  configuration) means never skipped (R3, R4).
-- **Failures never stop the run**: the last `Error:` line `runExtractAll` prints is captured for the final list;
-  status 1 if any failed (R2).
-- Extraction only, no settings (FR-014). Tweaks: `extract-all` writes `oldest_age_in_days: 365` (TWEAK01);
-  `populate-poll` turns the line graph on when `type` contains "line graph" (TWEAK03).
+- **A removal is an empty selection** on an open Dynamic-Vote poll from a voter who holds a vote, through the same
+  `POST /api/polls/:pid/vote`; the emptiness rule runs **last** in `validateVoteChoicesAndState`, after the state
+  gates and the Final-Vote check (R1). Anywhere else an empty selection keeps its 400 "Select at least one choice.".
+- **"New voter" is decided from the previous selection** (`lastvote:<pid>:<email>`, shared by every session), not
+  from `voted:<session>`; a removal sets it to `[]`, SREMs the pid from the session set, moves each previous choice
+  and `total` down by one and leaves the trending bucket alone (R2, R3). A removal with nothing to remove is a 400.
+- **The stored shape is the invitee shape**: the `votes` row keeps `choice_ids = {}`; a `vote_history` row records
+  the event; the tally already computes the deltas; the consumer **deletes** the `voted` relation when the latest vote
+  of the batch is empty (R4).
+- **The card**: Submit stays enabled and reads "Remove vote" only while the selection is empty and `myChoiceIds` is
+  non-empty on a Dynamic-Vote poll; both primary buttons carry a label span and two sizers in one grid cell (R5, R6);
+  `applyVote` clears the overlay's `voted` flag and relation so "You voted" goes at once.
 <!-- SPECKIT END -->
 
 ## Project Overview

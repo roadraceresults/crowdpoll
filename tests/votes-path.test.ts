@@ -4,7 +4,7 @@ import { makePoll, polls } from "./helpers/poll-fixtures.js";
 import { castVote, QUEUE_LAG, VOTED_KEY } from "../src/votes/votePath.js";
 import { createConsumer, writeBatch } from "../src/votes/consumer.js";
 import { VOTE_GROUP, VOTE_STREAM } from "../src/votes/queue.js";
-import { readLiveCounts } from "../src/polls/counters.js";
+import { readLiveCounts, trendBucketKey } from "../src/polls/counters.js";
 import { VoteError } from "../src/polls/service.js";
 
 let ctx: TestContext;
@@ -68,6 +68,31 @@ describe("the vote path", () => {
     expect((await cast(poll._id, "lag2@example.com", ["c1"])).status).toBe("recorded");
   });
 
+  it("decides the new voter from the previous selection: a removal from another session, then a re-vote, counts once", async () => {
+    const poll = makePoll({ voteMutability: "Dynamic-Vote Poll" });
+    await polls(ctx).insertOne(poll);
+    const at = new Date();
+    await cast(poll._id, "a@example.com", ["c1"], { now: at });
+    await ctx.consumer.runOnce();
+    const bucketBefore = (await ctx.cache.hgetall(trendBucketKey(at)))[poll._id];
+    const removed = await cast(poll._id, "a@example.com", [], { sessionId: "s2-a@example.com", now: at });
+    expect(removed).toMatchObject({ status: "recorded", voteCount: 0, choiceCounts: { c1: 0 }, myChoiceIds: [] });
+    expect(await ctx.cache.sismember(VOTED_KEY("s2-a@example.com"), poll._id)).toBe(false);
+    expect((await ctx.cache.hgetall(trendBucketKey(at)))[poll._id]).toBe(bucketBefore);
+    await ctx.consumer.runOnce();
+    expect((await ctx.db.selectFrom("votes").select("choice_ids").where("poll_id", "=", poll._id).executeTakeFirstOrThrow()).choice_ids).toEqual([]);
+    expect((await ctx.db.selectFrom("polls").select("ever_voted").where("id", "=", poll._id).executeTakeFirstOrThrow()).ever_voted).toBe(true);
+    const again = await cast(poll._id, "a@example.com", ["c2"], { now: at });
+    expect(again).toMatchObject({ voteCount: 1, choiceCounts: { c1: 0, c2: 1 }, myChoiceIds: ["c2"] });
+    expect(Number((await ctx.cache.hgetall(trendBucketKey(at)))[poll._id])).toBe(Number(bucketBefore) + 1);
+  });
+
+  it("refuses a removal with nothing to remove", async () => {
+    const poll = makePoll({ voteMutability: "Dynamic-Vote Poll" });
+    await polls(ctx).insertOne(poll);
+    await expect(cast(poll._id, "none@example.com", [])).rejects.toMatchObject({ status: 400, message: "Select at least one choice." });
+  });
+
   it("refuses with VoteError and the established messages", async () => {
     const poll = makePoll({ pollState: "CLOSED" });
     await polls(ctx).insertOne(poll);
@@ -99,6 +124,35 @@ describe("the consumer", () => {
     expect(history).toHaveLength(4);
     const relations = await ctx.db.selectFrom("user_polls").selectAll().where("relation", "=", "voted").execute();
     expect(relations.map((r) => r.email).sort()).toEqual(["d@example.com", "f@example.com"]);
+  });
+
+  it("writes a vote and its removal from one batch as an empty row, two history rows and no voted relation", async () => {
+    const poll = makePoll({ voteMutability: "Dynamic-Vote Poll" });
+    await polls(ctx).insertOne(poll);
+    const at = new Date();
+    const later = new Date(at.getTime() + 1000);
+    await writeBatch(ctx.db, [
+      { pid: poll._id, email: "r@example.com", userName: "r", choiceIds: ["c1"], votedAt: at, voteMutability: "Dynamic-Vote Poll" },
+      { pid: poll._id, email: "k@example.com", userName: "k", choiceIds: ["c2"], votedAt: at, voteMutability: "Dynamic-Vote Poll" },
+      { pid: poll._id, email: "r@example.com", userName: "r", choiceIds: [], votedAt: later, voteMutability: "Dynamic-Vote Poll" }
+    ]);
+    const rows = await ctx.db.selectFrom("votes").selectAll().where("poll_id", "=", poll._id).orderBy("email").execute();
+    expect(rows.map((r) => [r.email, r.choice_ids])).toEqual([["k@example.com", ["c2"]], ["r@example.com", []]]);
+    expect(await ctx.db.selectFrom("vote_history").selectAll().where("poll_id", "=", poll._id).execute()).toHaveLength(3);
+    const relations = await ctx.db.selectFrom("user_polls").select("email").where("poll_id", "=", poll._id).where("relation", "=", "voted").execute();
+    expect(relations.map((r) => r.email)).toEqual(["k@example.com"]);
+  });
+
+  it("deletes the voted relation an earlier batch wrote when the voter removes their vote", async () => {
+    const poll = makePoll({ voteMutability: "Dynamic-Vote Poll" });
+    await polls(ctx).insertOne(poll);
+    await cast(poll._id, "gone@example.com", ["c1"]);
+    await ctx.consumer.runOnce();
+    const voted = () => ctx.db.selectFrom("user_polls").select("email").where("poll_id", "=", poll._id).where("relation", "=", "voted").execute();
+    expect(await voted()).toHaveLength(1);
+    await cast(poll._id, "gone@example.com", []);
+    await ctx.consumer.runOnce();
+    expect(await voted()).toEqual([]);
   });
 
   it("drains the stream in batches, acks, and reclaims an entry a dead consumer left pending", async () => {

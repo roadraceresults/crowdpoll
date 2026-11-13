@@ -1018,6 +1018,7 @@ function initPollCard(viewport, opts){
      state so it survives a flip the system forced (W1/W3) and is restored when the
      poll reopens (W5). null means "nothing pending — use the recorded vote". */
   let pendingSelection = null;
+  let submitLabel = 'Submit vote';
   let layoutFor = defaultBarLayout;
   const palette = expandPalette(RESULTS_PALETTE_ENTRIES.map(e => e.hex), opts.choiceBounds && opts.choiceBounds.maxChoices);
   const paletteOffset = paletteOffsetFor(opts.pid, palette.length);
@@ -1039,9 +1040,20 @@ function initPollCard(viewport, opts){
     return data ? data.filter((d) => d.selected).map((d) => d.id) : [];
   }
 
-  // FR-023: submission disabled until at least one choice is selected.
+  // A vote the viewer may still change; an empty selection then removes it.
+  function holdsVote(){
+    return Boolean(poll) && poll.voteMutability === 'Dynamic-Vote Poll' && (poll.myChoiceIds || []).length > 0;
+  }
+
+  // FR-023: submission disabled until at least one choice is selected, unless the
+  // empty selection removes the vote the viewer holds.
   function updateSubmitState(){
-    if (submitBtn) submitBtn.disabled = selectedIds().length === 0 || Boolean(viewerBlockedReason());
+    if (!submitBtn) return;
+    const empty = selectedIds().length === 0;
+    const removal = empty && holdsVote();
+    submitBtn.disabled = (empty && !removal) || Boolean(viewerBlockedReason());
+    const label = submitBtn.querySelector('.btn-vote-label');
+    if (label) label.textContent = removal ? 'Remove vote' : submitLabel;
   }
 
   /** 012 FR-058: a refused vote must say why, on the face the voter is looking at. */
@@ -1078,11 +1090,14 @@ function initPollCard(viewport, opts){
     viewport.querySelectorAll('.question').forEach((el) => { el.textContent = poll.title; });
     viewport.querySelectorAll('.subtitle').forEach((el) => { el.textContent = poll.subtitle || ''; });
     setNotes(poll.notesPreviewHtml || '');
-    // A multiple-choice ballot submits several votes. The front's sizer carries the same
-    // label (008 FR-007), so Vote keeps Submit's width.
-    const submitLabel = poll.choiceMode === 'Multiple-Choice Poll' ? 'Submit votes' : 'Submit vote';
-    if (submitBtn) submitBtn.textContent = submitLabel;
-    viewport.querySelectorAll('.btn-vote-sizer').forEach((el) => { el.textContent = submitLabel; });
+    // A multiple-choice ballot submits several votes. Both buttons' sizers carry the
+    // labels the back button may show (008 FR-007), so Vote, Submit and Remove vote
+    // keep one width; the visible label is written by updateSubmitState.
+    submitLabel = poll.choiceMode === 'Multiple-Choice Poll' ? 'Submit votes' : 'Submit vote';
+    const widths = [submitLabel, poll.voteMutability === 'Dynamic-Vote Poll' ? 'Remove vote' : ''];
+    [voteBtn, submitBtn].forEach((btn) => {
+      if (btn) btn.querySelectorAll('.btn-vote-sizer').forEach((el, i) => { el.textContent = widths[i] || ''; });
+    });
     // FR-022: totals alongside the results (app addition; see site.css).
     // 008 FR-004/FR-005: written to both faces' copies from one composition
     // in one call, so they can never show different values.
@@ -1440,7 +1455,7 @@ function initPollCard(viewport, opts){
   // applies to this card at once.
   submitBtn?.addEventListener('click', async () => {
     const ids = selectedIds();
-    if (ids.length === 0 || !poll) return;
+    if (!poll || (ids.length === 0 && !holdsVote())) return;
     clearVoteError();
     if (!window.VoteClient || !window.VoteClient.canVote()){
       showVoteError('Please wait a moment before voting again.');
@@ -1453,7 +1468,7 @@ function initPollCard(viewport, opts){
       cardFlip.classList.remove('is-flipped');
       if (opts.onVoted) opts.onVoted(opts.pid, result.outcome);
       holdVoteButton(result.outcome.nextRefreshMs || 0);
-      showVoteNotice(result.outcome.status === 'queued' ? window.VoteClient.QUEUED_NOTICE : '');
+      showVoteNotice(result.outcome.status === 'queued' ? window.VoteClient.QUEUED_NOTICE : (ids.length === 0 ? 'Your vote was removed.' : ''));
       return;
     }
     // 012 W3/W4: the poll entered EDITING; nothing was recorded, the selection
@@ -1680,15 +1695,14 @@ const POLL_CARD_TEMPLATE = `
             <!-- 012 FR-057: shown when this viewer may not vote — banned, not invited,
                  or the poll is full. Results stay readable; only the controls go. -->
             <p class="poll-blocked-message" hidden></p>
-            <p class="poll-vote-notice" hidden></p>
-            <!-- 008 FR-007: .btn-vote-sizer carries the OTHER button's label so
-                 this one resolves to the same width at every card size. Three
-                 things it depends on: the sizer text must stay identical to
-                 .submit-vote-btn's label below; the visible label needs its own
-                 span (a bare text node becomes an anonymous grid item that
-                 site.css's .vote-btn child rule can't stack); and aria-hidden
-                 keeps the button from announcing "Vote Submit vote". -->
-            <button class="btn-primary btn-vote vote-btn" type="button"><span class="btn-vote-label">Vote</span><span class="btn-vote-sizer" aria-hidden="true">Submit vote</span></button>
+            <!-- 008 FR-007: the two .btn-vote-sizer spans carry every label the
+                 back button may show (Submit vote(s), Remove vote), so both
+                 primary buttons resolve to one width at every card size. Three
+                 things it depends on: setText writes the same pair into both
+                 buttons; the visible label needs its own span (a bare text node
+                 becomes an anonymous grid item that site.css's child rule can't
+                 stack); and aria-hidden keeps the button from announcing them. -->
+            <button class="btn-primary btn-vote vote-btn" type="button"><span class="btn-vote-label">Vote</span><span class="btn-vote-sizer" aria-hidden="true"></span><span class="btn-vote-sizer" aria-hidden="true"></span></button>
           </div>
           <!-- FIX022: the vote count and, on the personal tabs, why the poll is
                listed (FIX020) sit under the action row. -->
@@ -1698,6 +1712,9 @@ const POLL_CARD_TEMPLATE = `
             <div class="card-foot-row">
               <p class="poll-totals"></p>
               <p class="poll-voted" hidden></p>
+              <!-- The vote notice (queued, or removed) takes the place "You voted" has
+                   on this line, not the action row, which keeps both its buttons. -->
+              <p class="poll-vote-notice" hidden></p>
             </div>
             <p class="poll-listed-because" hidden></p>
           </div>
@@ -1741,9 +1758,9 @@ const POLL_CARD_TEMPLATE = `
               </svg>
             </button>
             <button class="add-choice-btn" type="button" hidden>Add Choice</button>
-            <!-- 008 FR-007: this label is the width both buttons size to. If it
-                 changes, update .btn-vote-sizer on the front face to match. -->
-            <button class="btn-primary btn-vote submit-vote-btn" type="button" disabled>Submit vote</button>
+            <!-- 008 FR-007: the same label span and sizer pair as the front's Vote
+                 button, so "Submit vote" and "Remove vote" share one width. -->
+            <button class="btn-primary btn-vote submit-vote-btn" type="button" disabled><span class="btn-vote-label">Submit vote</span><span class="btn-vote-sizer" aria-hidden="true"></span><span class="btn-vote-sizer" aria-hidden="true"></span></button>
           </div>
           <!-- 008 FR-004 / FIX022: the same count as the front, in the same place
                (under the action row), so the two faces keep equal height and the
