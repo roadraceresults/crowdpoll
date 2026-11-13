@@ -185,3 +185,106 @@ describe("the collapse toggle's style", () => {
     expect(rule('.admin-search-toggle[aria-expanded="false"] svg{')).toContain("transform:rotate(180deg)");
   });
 });
+
+describe("the result rows' style", () => {
+  const css = read("admin-search-m3.css");
+  const base = read("admin.css");
+  const rule = (selector: string, sheet = css) => {
+    const at = sheet.indexOf(selector);
+    expect(at, selector).toBeGreaterThanOrEqual(0);
+    return compact(sheet.slice(sheet.indexOf("{", at) + 1, sheet.indexOf("}", at))).replace(/:\s+/g, ":");
+  };
+
+  it("frames the whole list like a card, wider than the cards' column", () => {
+    const frame = rule(".admin-card-list:has(> .admin-result) {", base);
+    for (const declaration of [
+      "gap:0",
+      "width:min(840px, 100%)",
+      "margin:0 auto",
+      "background:var(--paper-raised)",
+      "border:1px solid var(--line)",
+      "border-radius:20px",
+      "box-shadow:var(--shadow)"
+    ]) {
+      expect(frame, declaration).toContain(declaration);
+    }
+    expect(compact(mediaBlock(base, "(max-width: 479.98px)"))).toMatch(/\.admin-card-list:has\(> \.admin-result\)\s*\{[^}]*border-radius: 18px/);
+    expect(css).not.toContain(".poll-admin-card");
+  });
+
+  it("separates the results with a hairline and rounds the first and the last into the frame", () => {
+    expect(rule(".admin-result + .admin-result {", base)).toContain("border-top:1px solid var(--line)");
+    expect(rule(".admin-result:first-child {", base)).toContain("border-top-left-radius:19px");
+    expect(rule(".admin-result:last-child {", base)).toContain("border-bottom-right-radius:19px");
+  });
+
+  it("stripes every second result", () => {
+    expect(rule(".admin-result:nth-child(even){")).toContain("background:var(--md-sys-color-surface-container)");
+  });
+
+  it("draws a row at least 64px tall with its text beside the chevron, in the type tokens", () => {
+    const row = rule(".admin-result-row{");
+    expect(row).toContain("display:flex");
+    expect(row).toContain("min-height:64px");
+    expect(row).toContain("border-radius:inherit");
+    expect(row).toContain("font-size:var(--md-sys-typescale-body-medium-size)");
+    expect(row).toContain("scroll-margin-top:calc(var(--fixed-chrome-height, 0px) + 8px)");
+    expect(rule(".admin-result-main{")).toContain("flex-direction:column");
+  });
+
+  it("wraps a long title, subtitle or fact instead of cutting it", () => {
+    expect(rule(".admin-result-title,")).toContain("overflow-wrap:anywhere");
+    expect(rule(".admin-result-facts > span{")).toContain("overflow-wrap:anywhere");
+    expect(rule(".admin-result-heading,")).toContain("flex-wrap:wrap");
+    expect(css.slice(css.indexOf("7. Result rows"))).not.toContain("text-overflow");
+  });
+
+  it("separates the facts with a round primary dot and hides an empty subtitle or fact", () => {
+    const dot = rule(".admin-result-facts > span:not(:first-child)::before{");
+    for (const declaration of [
+      "width:6px",
+      "height:6px",
+      "border-radius:var(--md-sys-shape-corner-full)",
+      "background:var(--md-sys-color-primary)"
+    ]) {
+      expect(dot, declaration).toContain(declaration);
+    }
+    expect(rule(".admin-result-subtitle:empty,")).toContain("display:none");
+  });
+
+  it("hides the chevron of the row being edited, which cannot be closed", () => {
+    expect(rule(".admin-result--open .admin-result-row:disabled .admin-result-chevron{")).toContain("visibility:hidden");
+  });
+
+  it("shows the state as plain text, with no border of its own", () => {
+    expect(css).not.toContain(".admin-result-state");
+  });
+
+  it("shows hover, focus and press with a state layer, and focus with a primary ring", () => {
+    expect(rule(".admin-result-row:hover::before{")).toContain("opacity:var(--md-sys-state-hover-state-layer-opacity)");
+    expect(rule(".admin-result-row:focus-visible::before{")).toContain("opacity:var(--md-sys-state-focus-state-layer-opacity)");
+    expect(rule(".admin-result-row:active::before{")).toContain("opacity:var(--md-sys-state-pressed-state-layer-opacity)");
+    expect(rule(".admin-result-row:focus-visible{")).toContain("outline:2px solid var(--md-sys-color-primary)");
+  });
+
+  it("marks the open result, row and panel, with the secondary container and turns its chevron over", () => {
+    const open = rule(".admin-result.admin-result--open{");
+    expect(open).toContain("background:var(--md-sys-color-secondary-container)");
+    expect(open).toContain("color:var(--md-sys-color-on-secondary-container)");
+    expect(rule('.admin-result-row[aria-expanded="true"] .admin-result-chevron{')).toContain("transform:rotate(180deg)");
+  });
+
+  it("dims a held row, Search and Clear, but not the open row", () => {
+    expect(rule(".admin-result-row:disabled{")).toContain("opacity:0.38");
+    expect(rule(".admin-result--open .admin-result-row:disabled{")).toContain("opacity:1");
+    expect(rule(".admin-search .admin-search-btn:disabled,")).toContain("opacity:0.38");
+  });
+
+  it("hides a closed panel", () => {
+    expect(rule(".admin-result-panel[hidden]{")).toContain("display:none");
+  });
+
+  it("does not animate the chevron when the visitor asks for reduced motion", () => {
+    expect(compact(css)).toContain("@media (prefers-reduced-motion: reduce){ .admin-result-chevron{ transition:none; } }");
+  });
+});

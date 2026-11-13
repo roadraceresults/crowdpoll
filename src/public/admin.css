@@ -191,10 +191,48 @@
   margin: 0 auto;
 }
 
+.admin-card-list:has(> .admin-result) {
+  gap: 0;
+  width: min(840px, 100%);
+  margin: 0 auto;
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+}
+
+.admin-result + .admin-result {
+  border-top: 1px solid var(--line);
+}
+
+.admin-result:first-child {
+  border-top-left-radius: 19px;
+  border-top-right-radius: 19px;
+}
+
+.admin-result:last-child {
+  border-bottom-left-radius: 19px;
+  border-bottom-right-radius: 19px;
+}
+
 @media (max-width: 479.98px) {
   .poll-admin-card,
   .admin-search {
     border-radius: 18px;
+  }
+
+  .admin-card-list:has(> .admin-result) {
+    border-radius: 18px;
+  }
+
+  .admin-result:first-child {
+    border-top-left-radius: 17px;
+    border-top-right-radius: 17px;
+  }
+
+  .admin-result:last-child {
+    border-bottom-left-radius: 17px;
+    border-bottom-right-radius: 17px;
   }
 }
 

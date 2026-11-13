@@ -968,10 +968,28 @@ choice with a hand-picked color; `pending_update` is not read), each answered by
 `022-admin-search-flags` (`polls_line_graph_created`, `polls_custom_colors_created`), whose predicate the query
 repeats verbatim. The panel is
 collapsed by `button#adminSearchToggle` above it (a `data-collapsed` attribute on the form, in memory only, set by
-`adminList.js` after a user-run search leaves result cards on screen and never by the timed refresh). The Search view shows
+`adminList.js` after a user-run search leaves results on screen and never by the timed refresh). The Search view shows
 no status message before a search. Each admin list row also carries `createdByName` (from `polls.created_by_name`)
 and `createdByEmail` (one `creatorEmails()` query per page against the `user` table), which the read-only card shows
 as `Created By: <username> (<email>)` above its dates.
+
+In the Search view `adminList.js` draws results, not cards: one `div.admin-result` per poll, holding a disclosure
+`<button class="admin-result-row">` (`aria-expanded`, `aria-controls`) and a `div.admin-result-panel`. The request,
+the response and `adminCard.js` are unchanged; the row's cells (title and subtitle on one line; visibility, state,
+creator with date, and voters on a second) are painted from fields the response already carries. The view's state is a `resultRows` map (pid → result) and one `openPid`, both in memory:
+
+- A card controller exists only while its row is open: `openResult` creates it (`AdminCard.create`) and puts its
+  element in the panel, `closeResult` forgets it unless it holds saved wizard progress. So a search draws at most
+  one card, and only the open poll requests its invitees.
+- `selectTab` (Search, Clear, a view tab) loads with `fresh: true`: the open card is closed, and a single result is
+  opened. The timed refresh and the cards' own reloads are not fresh: they repaint changed cell text, call
+  `update` on the open card, reorder through `syncChildren`, and never open or close a row. The result of the poll
+  being edited stays in the list even when the search stops returning it.
+- `refreshCreateButton`, which already follows the edit latch (`editingPid`), also disables every row, Search and
+  Clear during an edit.
+- The list is one frame: `admin.css` gives `.admin-card-list:has(> .admin-result)` the cards' fill, border, corners
+  and shadow at `min(840px, 100%)`, with a hairline between results. Section 7 of `admin-search-m3.css` styles the
+  rows, stripes every second result and tints the open one, row and panel; the card in the panel keeps its 420 px.
 
 ## Sweeps
 

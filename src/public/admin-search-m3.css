@@ -325,3 +325,125 @@
 }
 .admin-search-toggle svg{ width:24px; height:24px; }
 .admin-search-toggle[aria-expanded="false"] svg{ transform:rotate(180deg); }
+
+/* ---------- 7. Result rows: one disclosure button per poll in a shared frame, its card under it ---------- */
+/* Material 3 lists: https://m3.material.io/components/lists/specs */
+.admin-result:nth-child(even){ background:var(--md-sys-color-surface-container); }
+.admin-result.admin-result--open{
+  background:var(--md-sys-color-secondary-container);
+  color:var(--md-sys-color-on-secondary-container);
+}
+.admin-result-row{
+  position:relative;
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  box-sizing:border-box;
+  width:100%;
+  min-height:64px;
+  margin:0;
+  padding:12px 12px 12px 20px;
+  border:0;
+  border-radius:inherit;
+  background:transparent;
+  color:var(--md-sys-color-on-surface-variant);
+  font-family:var(--md-sys-typescale-font);
+  font-size:var(--md-sys-typescale-body-medium-size);
+  line-height:var(--md-sys-typescale-body-medium-line-height);
+  font-weight:var(--md-sys-typescale-body-medium-weight);
+  letter-spacing:var(--md-sys-typescale-body-medium-tracking);
+  text-align:left;
+  cursor:pointer;
+  filter:none;
+  scroll-margin-top:calc(var(--fixed-chrome-height, 0px) + 8px);
+}
+.admin-result-row::before{
+  content:'';
+  position:absolute;
+  inset:0;
+  background:currentColor;
+  opacity:0;
+  pointer-events:none;
+}
+.admin-result-row:hover::before{ opacity:var(--md-sys-state-hover-state-layer-opacity); }
+.admin-result-row:focus-visible::before{ opacity:var(--md-sys-state-focus-state-layer-opacity); }
+.admin-result-row:active::before{ opacity:var(--md-sys-state-pressed-state-layer-opacity); }
+.admin-result-row:focus-visible{
+  outline:2px solid var(--md-sys-color-primary);
+  outline-offset:-2px;
+}
+.admin-result-row:disabled{
+  opacity:0.38;
+  cursor:default;
+}
+.admin-result-row:disabled::before{ opacity:0; }
+.admin-result--open .admin-result-row{
+  border-bottom-left-radius:0;
+  border-bottom-right-radius:0;
+  color:var(--md-sys-color-on-secondary-container);
+}
+.admin-result--open .admin-result-row:disabled{ opacity:1; }
+.admin-result-main{
+  flex:1;
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+.admin-result-heading,
+.admin-result-facts{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:baseline;
+}
+.admin-result-heading{ column-gap:12px; }
+.admin-result-title,
+.admin-result-subtitle{
+  overflow-wrap:anywhere;
+  font-size:var(--md-sys-typescale-body-large-size);
+  line-height:var(--md-sys-typescale-body-large-line-height);
+  letter-spacing:var(--md-sys-typescale-body-large-tracking);
+}
+.admin-result-title{
+  color:var(--md-sys-color-on-surface);
+  font-weight:var(--md-sys-typescale-title-medium-weight);
+}
+.admin-result--open .admin-result-title{ color:var(--md-sys-color-on-secondary-container); }
+.admin-result-subtitle{ font-weight:var(--md-sys-typescale-body-large-weight); }
+.admin-result-facts > span{ overflow-wrap:anywhere; }
+.admin-result-facts > span:not(:first-child)::before{
+  content:'';
+  display:inline-block;
+  width:6px;
+  height:6px;
+  margin:0 10px;
+  border-radius:var(--md-sys-shape-corner-full);
+  background:var(--md-sys-color-primary);
+  vertical-align:middle;
+}
+.admin-result-subtitle:empty,
+.admin-result-facts > span:empty{ display:none; }
+.admin-result-chevron{
+  flex:0 0 auto;
+  width:24px;
+  height:24px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:2;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  transition:transform 150ms;
+}
+.admin-result-row[aria-expanded="true"] .admin-result-chevron{ transform:rotate(180deg); }
+.admin-result--open .admin-result-row:disabled .admin-result-chevron{ visibility:hidden; }
+.admin-result-panel{ padding:4px 12px 20px; }
+.admin-result-panel[hidden]{ display:none; }
+@media (prefers-reduced-motion: reduce){
+  .admin-result-chevron{ transition:none; }
+}
+.admin-search .admin-search-btn:disabled,
+.admin-search .admin-search-clear:disabled{
+  opacity:0.38;
+  cursor:default;
+}

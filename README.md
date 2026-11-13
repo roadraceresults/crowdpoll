@@ -189,6 +189,14 @@ delivery network.
   puts each radio row back on Any. **Collapse Search**, above the
   panel, folds it away (the button then reads **Expand Search**); it folds itself after a search that shows results
   and stays open when nothing matched. Clicking the **Search** view tab opens a collapsed panel.
+- **Search results** — a search lists one compact row per poll instead of a card, in one frame that looks like a
+  card (up to 840 px wide), with every second row shaded. A row has two lines: the title and subtitle, then
+  **Public**, **Private (invitation)** or **Private (shared link)**, "Poll state: OPEN", "Created by: <user name,
+  else email> on <date>" and the number of voters. A line above the list says how many polls matched ("12 polls match."). Click a row, or press Enter or
+  Space on it, to open that poll's card under it; click it again to close it. One card is open at a time, and a
+  search with a single result opens it for you. The list keeps itself current without opening, closing or
+  moving anything. While you edit a poll, the rows, **Search** and **Clear** are held ("Finish editing the open
+  poll first") until you save or cancel.
 - **Create New Poll** opens the new poll's card as a six-step wizard: Who can vote, Title &
   Tags, Choices, View, How to vote, and When to vote. **Save** keeps your answers so you can
   finish later; **Publish**, available once every step has been visited and the poll is complete,

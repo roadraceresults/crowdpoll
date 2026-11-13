@@ -158,13 +158,21 @@
 
   /* Create and the other views are held while a card is being edited: the draft
      lives in that card's DOM, which a view change would replace. */
+  const HELD_TITLE = "Finish editing the open poll first";
+
   function refreshCreateButton() {
+    const editing = editingPid !== null;
     const createBtn = document.getElementById("createPollBtn");
-    if (createBtn) createBtn.disabled = editingPid !== null;
+    if (createBtn) createBtn.disabled = editing;
     document.querySelectorAll("#adminTabBar .tab").forEach((btn) => {
-      const held = editingPid !== null && btn.dataset.tab !== activeTab;
+      const held = editing && btn.dataset.tab !== activeTab;
       btn.disabled = held;
-      btn.title = held ? "Finish editing the open poll first" : "";
+      btn.title = held ? HELD_TITLE : "";
+    });
+    for (const result of resultRows.values()) holdResult(result, editing);
+    document.querySelectorAll("#adminSearchForm .admin-search-btn, #adminSearchClear").forEach((btn) => {
+      btn.disabled = editing;
+      btn.title = editing ? HELD_TITLE : "";
     });
   }
 
@@ -223,6 +231,234 @@
     }
   }
 
+  /* Disclosure pattern: https://www.w3.org/WAI/ARIA/apg/patterns/disclosure/ */
+  const resultRows = new Map();
+  let openPid = null;
+  const RESULT_HEADING = ["title", "subtitle"];
+  const RESULT_FACTS = ["visibility", "state", "creator", "voters"];
+
+  function resultTitle(poll) {
+    return (poll.title || "").trim() || "(untitled)";
+  }
+
+  function resultVisibility(poll) {
+    if (poll.pollVisibility !== "Private Poll") return "Public";
+    return poll.pollSharingMode === "Invitation Only" ? "Private (invitation)" : "Private (shared link)";
+  }
+
+  function resultCreated(poll) {
+    if (!poll.createdAt) return "";
+    return new Date(poll.createdAt).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+  }
+
+  function resultCreator(poll) {
+    const creator = poll.createdByName || poll.createdByEmail || "";
+    const created = resultCreated(poll);
+    if (!creator) return created && "Created on " + created;
+    return "Created by: " + creator + (created && " on " + created);
+  }
+
+  function resultVoters(poll) {
+    const count = Number(poll.voteCount) || 0;
+    return count.toLocaleString() + (count === 1 ? " voter" : " voters");
+  }
+
+  function resultChevron() {
+    const SVG = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(SVG, "svg");
+    svg.setAttribute("class", "admin-result-chevron");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("aria-hidden", "true");
+    svg.setAttribute("focusable", "false");
+    const path = document.createElementNS(SVG, "path");
+    path.setAttribute("d", "m6 9 6 6 6-6");
+    svg.appendChild(path);
+    return svg;
+  }
+
+  function holdResult(result, held) {
+    result.button.disabled = held;
+    const title = held ? HELD_TITLE : resultTitle(result.poll);
+    if (result.shownTitle !== title) {
+      result.shownTitle = title;
+      result.button.title = title;
+    }
+  }
+
+  function paintResult(result) {
+    const texts = {
+      title: resultTitle(result.poll),
+      subtitle: (result.poll.subtitle || "").trim(),
+      visibility: resultVisibility(result.poll),
+      state: "Poll state: " + result.poll.pollState,
+      creator: resultCreator(result.poll),
+      voters: resultVoters(result.poll)
+    };
+    for (const name of Object.keys(texts)) {
+      if (result.cells[name].textContent !== texts[name]) result.cells[name].textContent = texts[name];
+    }
+    holdResult(result, editingPid !== null);
+  }
+
+  function resultCells(className, names, cells) {
+    const group = document.createElement("span");
+    group.className = className;
+    for (const name of names) {
+      cells[name] = document.createElement("span");
+      cells[name].className = "admin-result-" + name;
+      group.appendChild(cells[name]);
+    }
+    return group;
+  }
+
+  function createResult(poll) {
+    const element = document.createElement("div");
+    element.className = "admin-result";
+    element.dataset.pid = poll.pid;
+    const panel = document.createElement("div");
+    panel.className = "admin-result-panel";
+    panel.id = "admin-result-panel-" + poll.pid;
+    panel.hidden = true;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "admin-result-row";
+    button.setAttribute("aria-expanded", "false");
+    button.setAttribute("aria-controls", panel.id);
+    const cells = {};
+    const main = document.createElement("span");
+    main.className = "admin-result-main";
+    main.append(
+      resultCells("admin-result-heading", RESULT_HEADING, cells),
+      resultCells("admin-result-facts", RESULT_FACTS, cells)
+    );
+    button.append(main, resultChevron());
+    button.addEventListener("click", () => toggleResult(poll.pid));
+    element.append(button, panel);
+    const result = { element, button, panel, cells, poll, shownTitle: null };
+    paintResult(result);
+    return result;
+  }
+
+  function closeResult() {
+    if (openPid === null) return;
+    const controller = controllers.get(openPid);
+    if (controller) {
+      controller.element.remove();
+      if (!controller.hasSavedProgress()) controllers.delete(openPid);
+    }
+    const result = resultRows.get(openPid);
+    if (result) {
+      result.panel.hidden = true;
+      result.button.setAttribute("aria-expanded", "false");
+      result.element.classList.remove("admin-result--open");
+    }
+    openPid = null;
+  }
+
+  function openResult(pid) {
+    const result = resultRows.get(pid);
+    if (!result) return;
+    if (openPid !== pid) closeResult();
+    let controller = controllers.get(pid);
+    if (!controller) {
+      controller = window.AdminCard.create(result.poll, deps);
+      controller.poll = result.poll;
+      controllers.set(pid, controller);
+    }
+    result.panel.appendChild(controller.element);
+    result.panel.hidden = false;
+    result.button.setAttribute("aria-expanded", "true");
+    result.element.classList.add("admin-result--open");
+    openPid = pid;
+  }
+
+  function revealRow(row) {
+    const box = row.getBoundingClientRect();
+    const chromeBottom = parseFloat(getComputedStyle(row).scrollMarginTop) || 0;
+    if (box.top < chromeBottom || box.bottom > window.innerHeight) row.scrollIntoView({ block: "start" });
+  }
+
+  function toggleResult(pid) {
+    if (editingPid !== null) return;
+    if (openPid === pid) {
+      closeResult();
+      return;
+    }
+    openResult(pid);
+    revealRow(resultRows.get(pid).button);
+  }
+
+  function forgetResults() {
+    resultRows.clear();
+    openPid = null;
+  }
+
+  function updateOpenCard(poll) {
+    const controller = controllers.get(poll.pid);
+    if (!controller || controller.isEditing()) return;
+    controller.poll = poll;
+    controller.update(poll);
+  }
+
+  // The result of the poll being edited stays where it is when the search stops returning it.
+  function keepEditingResult(container, nextOrder) {
+    const result = resultRows.get(editingPid);
+    const index = Array.prototype.indexOf.call(container.children, result.element);
+    nextOrder.splice(Math.min(Math.max(index, 0), nextOrder.length), 0, result.element);
+  }
+
+  function resultElements(container, polls) {
+    const nextOrder = [];
+    const seen = new Set();
+    for (const poll of polls) {
+      seen.add(poll.pid);
+      let result = resultRows.get(poll.pid);
+      if (result) {
+        result.poll = poll;
+        paintResult(result);
+      } else {
+        result = createResult(poll);
+        resultRows.set(poll.pid, result);
+      }
+      if (poll.pid === openPid) updateOpenCard(poll);
+      nextOrder.push(result.element);
+    }
+    for (const pid of [...resultRows.keys()]) {
+      if (seen.has(pid)) continue;
+      if (pid === editingPid) {
+        keepEditingResult(container, nextOrder);
+        continue;
+      }
+      if (pid === openPid) closeResult();
+      resultRows.delete(pid);
+    }
+    return nextOrder;
+  }
+
+  function cardElements(polls) {
+    const nextOrder = [];
+    for (const poll of polls) {
+      // A card being edited keeps its element and ignores its row entirely: the
+      // server reports the poll as EDITING with every capability false, and the
+      // draft lives in the DOM this would otherwise replace.
+      if (poll.pid === editingPid) {
+        nextOrder.push(controllers.get(poll.pid).element);
+        continue;
+      }
+      let controller = controllers.get(poll.pid);
+      if (controller && !controller.isEditing()) {
+        controller.poll = poll;
+        controller.update(poll);
+      } else {
+        controller = window.AdminCard.create(poll, deps);
+        controller.poll = poll;
+        controllers.set(poll.pid, controller);
+      }
+      nextOrder.push(controller.element);
+    }
+    return nextOrder;
+  }
+
   /*
     017: the structured search narrows the list to the polls matching every filled-in
     control; the list keeps its own periodic refresh, which re-runs the active search.
@@ -277,6 +513,7 @@
     search: {
       url: () => (activeSearch ? "/api/admin/polls/search?" + activeSearch.toString() : null),
       empty: "No polls match.",
+      count: (n) => (n === 1 ? "1 poll matches." : n + " polls match."),
       cutOff: () => "More polls match than are shown. Narrow the search."
     }
   };
@@ -340,7 +577,7 @@
     }
     paintTabs();
     showSearchNotice("");
-    await loadList();
+    await loadList({ fresh: true });
   }
 
   function showSearchNotice(text) {
@@ -358,64 +595,62 @@
     }
   }
 
-  async function loadList({ preserve = false, focusPid = null, message = "" } = {}) {
-    const openPid = preserve && openMenu ? openMenu.trigger.closest(".poll-admin-card")?.dataset.pid : null;
+  function emptyList() {
+    if (editingPid !== null) return;
+    forgetResults();
+    dropControllers(new Set());
+    syncChildren(document.getElementById("pollList"), []);
+  }
+
+  function noticeFor(view, count, truncated) {
+    if (truncated) return view.cutOff(count);
+    if (count === 0) return view.empty;
+    return view.count ? view.count(count) : "";
+  }
+
+  // `fresh` is a search the administrator ran (Search, Clear, a view tab): only then may a
+  // result be closed, or a single result opened, without a click on its row.
+  async function loadList({ preserve = false, focusPid = null, message = "", fresh = false } = {}) {
+    const menuPid = preserve && openMenu ? openMenu.trigger.closest(".poll-admin-card")?.dataset.pid : null;
     const scrollY = window.scrollY;
     if (!preserve) closeMenu();
 
+    const inSearch = activeTab === "search";
     const view = VIEWS[activeTab];
     const url = view.url();
     if (!url) {
       // The Search view before a search: an empty list and no message.
-      if (editingPid === null) {
-        dropControllers(new Set());
-        syncChildren(document.getElementById("pollList"), []);
-      }
+      emptyList();
       showSearchNotice("");
       return;
     }
     const res = await fetch(url);
     if (!res.ok) {
-      if (activeTab === "search") {
+      if (inSearch) {
         const body = await res.json().catch(() => ({}));
         showSearchNotice(body.error || "The search could not be run.");
+        if (fresh) emptyList();
       }
       return;
     }
     const { polls, truncated } = await res.json();
     // FIX009/FIX010: every view is capped; it says so, and says when it is empty.
-    showSearchNotice(truncated ? view.cutOff(polls.length) : polls.length === 0 ? view.empty : "");
+    showSearchNotice(noticeFor(view, polls.length, truncated));
     // SC-012 scale measurement: how many polls each refresh brings down.
     console.log(`[adminList] /admin received ${polls.length} polls`);
 
     const container = document.getElementById("pollList");
-    const nextOrder = [];
-    const seen = new Set();
-
-    for (const poll of polls) {
-      seen.add(poll.pid);
-      // A card being edited keeps its element and ignores its row entirely: the
-      // server reports the poll as EDITING with every capability false, and the
-      // draft lives in the DOM this would otherwise replace.
-      if (poll.pid === editingPid) {
-        nextOrder.push(controllers.get(poll.pid).element);
-        continue;
-      }
-      let controller = controllers.get(poll.pid);
-      if (controller && !controller.isEditing()) {
-        controller.poll = poll;
-        controller.update(poll);
-      } else {
-        controller = window.AdminCard.create(poll, deps);
-        controller.poll = poll;
-        controllers.set(poll.pid, controller);
-      }
-      nextOrder.push(controller.element);
+    if (inSearch) {
+      if (fresh && editingPid === null) closeResult();
+      syncChildren(container, resultElements(container, polls));
+      dropControllers(new Set(openPid === null ? [] : [openPid]));
+      if (fresh && editingPid === null && polls.length === 1) openResult(polls[0].pid);
+    } else {
+      forgetResults();
+      const nextOrder = cardElements(polls);
+      dropControllers(new Set(polls.map((poll) => poll.pid)));
+      syncChildren(container, nextOrder);
     }
-
-    dropControllers(seen);
-
-    syncChildren(container, nextOrder);
 
     if (focusPid) {
       const controller = controllers.get(focusPid);
@@ -425,10 +660,10 @@
       }
     }
 
-    if (openPid) {
+    if (menuPid) {
       // A menu whose trigger survived the redraw (an invitee row's) is still open.
       const kept = openMenu && openMenu.trigger.isConnected;
-      const trigger = kept ? null : cardFor(openPid)?.querySelector(".actions-menu-trigger");
+      const trigger = kept ? null : cardFor(menuPid)?.querySelector(".actions-menu-trigger");
       if (trigger) trigger.click();
       window.scrollTo(0, scrollY);
     }
@@ -515,14 +750,17 @@
     const searchForm = document.getElementById("adminSearchForm");
     if (searchForm) {
       window.M3Ripple?.add("#adminSearchForm .admin-search-btn, #adminSearchForm .admin-search-clear, #adminSearchToggle");
+      window.M3Ripple?.add("#pollList .admin-result-row");
       document.getElementById("adminSearchToggle").addEventListener("click", () => setSearchCollapsed(!searchCollapsed));
       searchForm.addEventListener("submit", async (event) => {
         event.preventDefault();
+        if (editingPid !== null) return;
         activeSearch = readSearchForm(searchForm);
         await selectTab("search");
-        if (document.querySelector("#pollList .poll-admin-card")) setSearchCollapsed(true);
+        if (document.querySelector("#pollList .admin-result")) setSearchCollapsed(true);
       });
       document.getElementById("adminSearchClear")?.addEventListener("click", () => {
+        if (editingPid !== null) return;
         searchForm.reset();
         activeSearch = null;
         setSearchCollapsed(false);
