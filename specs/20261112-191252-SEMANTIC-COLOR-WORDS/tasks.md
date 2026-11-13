@@ -75,7 +75,7 @@ None: no dependency, setting or script is added.
 - [X] T009 In `src/public/pollCard.js`, update the `SEMANTIC CHOICE COLORS` comment to say a neutral list is tested first and gives a palette color (then affirmative, then negative), and the `RESULTS-MODE` comment's "reads as "yes" or "no"" sentence to mention neutral labels taking a palette entry; no other comment changes (R6)
 - [X] T010 [P] In `ARCHITECTURE.md:798`, replace "A label that reads as Yes or No takes `#006120` or `#F91010` instead, and uses up no palette colour." with a sentence naming the three lists (positive words such as yes, agree, approve, support; negative such as no, disagree, disapprove, oppose; neutral such as neither, no opinion, which keep a palette colour), pointing to `semanticColorFor` for the full lists (FR-012)
 - [X] T011 Run `npx tsc --noEmit` and `npm test`; all pass
-- [ ] T012 Manual: the developer runs quickstart.md steps 1–5
+- [X] T012 Manual: the developer runs quickstart.md steps 1–5
 
 ---
 
