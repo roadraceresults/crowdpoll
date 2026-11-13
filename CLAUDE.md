@@ -6,17 +6,16 @@ The full description, every earlier feature's decisions and the settings table a
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-`specs/20261112-173521-ADMIN-SEARCH-CHECKBOXES/plan.md` (research R1–R7, `data-model.md` — the columns read and the
-two partial indexes; the contracts `contracts/api.md` A1–A6, `contracts/ui.md` U1–U6 and the quickstart live alongside it).
-The requirements report is `requirements/20261112-173521-admin-search-checkboxes/requirements-report.md`: 6 findings,
+`specs/20261112-191252-SEMANTIC-COLOR-WORDS/plan.md` (research R1–R6, `data-model.md` — the three word lists and the
+color order; the label table `contracts/ui.md` U1–U6 and the quickstart live alongside it).
+The requirements report is `requirements/20261112-191252-semantic-color-words/requirements-report.md`: 3 findings,
 all resolved.
 Decisions that are easy to get wrong:
-- **Unticked means no filter**: `lineGraphEnabled=true` / `customColors=true` are sent only for a ticked box;
-  `parseAdminSearch` accepts only `true` (blank ignored, anything else 400); both AND with every other control (R1).
-- **"Custom colors set"** is at least one saved choice with a non-null `color`:
-  `jsonb_path_exists(choices, '$[*] ? (@.color != null)')`; `pending_update` is never read (R2).
-- **Each filter has its partial index** (migration `022-admin-search-flags`), with the query predicate written exactly
-  as the index predicate, so the index-combination test still finds no sequential scan (R3).
+- **Neutral is tested first** in `semanticColorFor` and returns `null`, so a neutral choice takes the next palette
+  color like any unmatched one; a hand-picked color still wins (R3, R4).
+- **Whole words only, listed forms only**: the letters-only lookaround boundary stays; no `g` flag; phrase words are
+  separated by ` +`; "don't" accepts a straight or curly apostrophe (R2, R3).
+- **Nothing is stored**: colors change on the next draw; the line graph follows `resultColors()` (R1).
 <!-- SPECKIT END -->
 
 ## Project Overview

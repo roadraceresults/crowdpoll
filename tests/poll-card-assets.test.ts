@@ -181,8 +181,8 @@ describe("pollCard.js choice colours", () => {
     // from matching, while still matching "Agree2"/"yes_please"/"No1" (FR-004,
     // amended 2026-08-19 -- see research.md R3). The g flag would retain
     // lastIndex across .test() calls and make results order-dependent.
-    expect(res.text).toContain("/(?<![a-z])(?:yes|true|correct|agree|yay)(?![a-z])/i");
-    expect(res.text).toContain("/(?<![a-z])(?:no|false|incorrect|disagree|nay)(?![a-z])/i");
+    expect(res.text).toContain("/(?<![a-z])(?:yes|true|correct|agree|yay|approve|approved|approval|support|favor|favour|accept|yeah|yep|aye)(?![a-z])/i");
+    expect(res.text).toContain("/(?<![a-z])(?:no|false|incorrect|disagree|nay|disapprove|disapproved|disapproval|oppose|against|reject|nah)(?![a-z])/i");
   });
 
   it("expands the base list to one palette colour per allowed choice, never repeating a neighbour (FR-008, FIX03)", async () => {
@@ -203,6 +203,61 @@ describe("pollCard.js choice colours", () => {
       expect(out.every((c, i) => c !== out[(i + 1) % out.length])).toBe(true);
     }
     expect(expand(list, 60)).toHaveLength(60);
+  });
+
+  // semanticColorFor and the lists above it, run exactly as shipped.
+  async function servedSemanticColorFor(): Promise<(label: unknown) => string | null> {
+    const text = (await request(ctx.app).get("/pollCard.js")).text;
+    const start = text.indexOf("const SEMANTIC_AFFIRMATIVE_COLOR");
+    const end = text.indexOf("\n}\n", text.indexOf("function semanticColorFor")) + 3;
+    return new Function(`${text.slice(start, end)}; return semanticColorFor;`)() as (label: unknown) => string | null;
+  }
+
+  const GREEN = "#006120";
+  const RED = "#F91010";
+
+  it("keeps the colour of every label that holds no new word (SC-002)", async () => {
+    const colorFor = await servedSemanticColorFor();
+    const expected: [string, string | null][] = [
+      ["Yes", GREEN], ["Agree", GREEN], ["Y", GREEN], ["yup", GREEN],
+      ["No", RED], ["Disagree", RED], ["N", RED], ["nope", RED],
+      ["Yes and no", GREEN], ["Opinion: no", RED],
+      ["Not sure", null], ["Maybe", null], ["Vote for Alice", null], ["I like it", null], ["OK", null],
+      ["Approves", null], ["Approving", null], ["Agreed", null],
+      ["Unsupported", null], ["Unacceptable", null], ["", null]
+    ];
+    for (const [label, color] of expected) expect([label, colorFor(label)]).toEqual([label, color]);
+  });
+
+  it("colours approve and disapprove answers green and red (US1)", async () => {
+    const colorFor = await servedSemanticColorFor();
+    const expected: [string, string | null][] = [
+      ["Approve", GREEN], ["Strongly approve", GREEN], ["Approved", GREEN], ["Approval rating up", GREEN],
+      ["Approve2", GREEN], ["APPROVE", GREEN],
+      ["Disapprove", RED], ["Somewhat disapprove", RED], ["Disapproved", RED], ["Disapproval", RED]
+    ];
+    for (const [label, color] of expected) expect([label, colorFor(label)]).toEqual([label, color]);
+  });
+
+  it("colours the other common scale words green and red (US2)", async () => {
+    const colorFor = await servedSemanticColorFor();
+    const expected: [string, string | null][] = [
+      ["Strongly support", GREEN], ["In favor", GREEN], ["In favour", GREEN], ["Accept", GREEN],
+      ["Yeah", GREEN], ["Yep", GREEN], ["Aye", GREEN], ["support_it", GREEN], ["Customer support", GREEN],
+      ["Oppose", RED], ["Against", RED], ["Reject", RED], ["Nah", RED]
+    ];
+    for (const [label, color] of expected) expect([label, colorFor(label)]).toEqual([label, color]);
+  });
+
+  it("leaves neutral middle answers to the palette, even beside a yes or no word (US3)", async () => {
+    const res = await request(ctx.app).get("/pollCard.js");
+    expect(res.text).toContain("/(?<![a-z])(?:neither|neutral|undecided|unsure|no +opinion|no +preference|don['’]t +know|do +not +know)(?![a-z])/i");
+    const colorFor = await servedSemanticColorFor();
+    const neutral = [
+      "Neither agree nor disagree", "Neither approve nor disapprove", "No opinion", "No  opinion", "No preference",
+      "Neutral", "Undecided", "Unsure", "Don't know", "Don’t know", "Do not know", "NEUTRAL"
+    ];
+    for (const label of neutral) expect([label, colorFor(label)]).toEqual([label, null]);
   });
 });
 

@@ -370,6 +370,15 @@ describe("manual bar colours", () => {
     expect(plain[2]).toBe(palette[6]);
   });
 
+  it("draws a neutral middle answer in the next palette colour, between green and red that use none", async () => {
+    const poll = await seed("Scale", ["Agree", "Neither agree nor disagree", "Disagree", "Other"], [4, 3, 2, 1], "poll-scale");
+    page = await openPage(ctx, "index.html");
+    await page.settle(50);
+    await pause(120);
+    const start = paletteStartOf(poll._id);
+    expect(rowsOf(page).map(fillOf)).toEqual([YES, palette[start], NO, palette[(start + 1) % palette.length]]);
+  });
+
   it("colors a poll with no colors exactly as before", async () => {
     page = await openPage(ctx, "index.html");
     await page.settle(50);

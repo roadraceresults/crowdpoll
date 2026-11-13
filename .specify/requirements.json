@@ -1,5 +1,5 @@
 {
-    "requirements_directory": "requirements/20261112-173521-admin-search-checkboxes",
+    "requirements_directory": "requirements/20261112-191252-semantic-color-words",
     "last_written": {
         "requirements/20261019-153514-production-email/requirements.md": "e0bd2b0bf28c2fbd6699c99cdf364c1398d3b7aed8eb456198295f78d108ee08",
         "requirements/20261019-153514-production-email/requirements-report.md": "4f75f5e263fa092fc0fcedc4a7cdaa32128382e287f2ac0394e4957e8d8bd413",
@@ -84,6 +84,8 @@
         "requirements/20261112-152622-extract-all-polldata/requirements.md": "f6d99f7ecb14266c0903f42d8a6dc48421e6e646b62c661be59b9ce7c8bc46aa",
         "requirements/20261112-152622-extract-all-polldata/requirements-report.md": "1d21f83f609216d78c76766003669fe0bc1b5af62c3123649ffaafd852f71e9e",
         "requirements/20261112-173521-admin-search-checkboxes/requirements.md": "1e683765bfc821c753de047137a0068e81240cc7eacf6917905d064cb5401220",
-        "requirements/20261112-173521-admin-search-checkboxes/requirements-report.md": "bdd473a2d3db8b74b7cf525b91f3c7e11cd246b8e9e5537bd71464b3aa096faa"
+        "requirements/20261112-173521-admin-search-checkboxes/requirements-report.md": "bdd473a2d3db8b74b7cf525b91f3c7e11cd246b8e9e5537bd71464b3aa096faa",
+        "requirements/20261112-191252-semantic-color-words/requirements.md": "b351403f9f342c751f3977d98c65dfb3c9cf36c80dd76e9f103d85ce47720005",
+        "requirements/20261112-191252-semantic-color-words/requirements-report.md": "d64410a13e9659e36ec7b7e91013e25d457c079653108f7b1323720ec385232a"
     }
 }

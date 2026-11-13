@@ -795,7 +795,11 @@ are the same colour and raising the limit grows the palette. Each card starts at
 `paletteOffsetFor(pid, palette.length)`: FNV-1a of the poll id, modulo the palette's length, computed
 once in `initPollCard`. The bars then take consecutive entries from there in display order, wrapping
 from the last entry to the first, so a poll shows the same colours on every tab, in both views and for
-every user. A label that reads as Yes or No takes `#006120` or `#F91010` instead, and uses up no palette colour. Every bar is drawn the same way:
+every user. A label holding a positive word (yes, agree, approve, support, …) takes `#006120` and one holding a
+negative word (no, disagree, disapprove, oppose, …) takes `#F91010` instead, and neither uses up a palette colour; a
+neutral answer (neither, neutral, no opinion, don't know, …) is tested first and keeps its palette colour. The full
+lists are in `semanticColorFor` (`pollCard.js`), matched as whole words; a colour picked by hand wins over all three.
+Every bar is drawn the same way:
 - **The rest of the bar:** a tint of the fill, 90% of the way to white, for every colour: palette,
   Yes/No and manual.
 - **The label and percentage:** drawn with no shadow, in the tint's dark shade (`darkShadeOf`: the

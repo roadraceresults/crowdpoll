@@ -59,8 +59,11 @@ const RESULTS_COLOR_PALETTE = expandPalette(RESULTS_PALETTE_ENTRIES.map(e => e.h
   SEMANTIC CHOICE COLORS (009-POLL-CHOICE-COLORS)
   Choices that read as "yes" or "no" get a fixed color instead of a
   palette entry, so a viewer can read the shape of an agree/disagree
-  poll without reading the labels. Affirmative is tested first, so a
-  label matching both lists ("Yes and no") comes out affirmative.
+  poll without reading the labels. A neutral middle answer ("Neither
+  agree nor disagree", "No opinion") is tested first and gets no
+  semantic color, so it takes a palette entry like any other label.
+  Affirmative is tested next, so a label matching both the affirmative
+  and negative lists ("Yes and no") comes out affirmative.
 
   Two kinds of match:
     - word rules  -- the word appears as a WHOLE word anywhere in the
@@ -79,6 +82,9 @@ const RESULTS_COLOR_PALETTE = expandPalette(RESULTS_PALETTE_ENTRIES.map(e => e.h
       short enough ("y", "n") that word-matching them would fire on any
       label containing a stray "N", so they must stay whole-label only.
 
+  The words of a neutral phrase ("no opinion") are separated by one or
+  more spaces, and "don't" takes a straight or curly apostrophe.
+
   These regexes MUST NOT carry the `g` flag: a global regex retains
   lastIndex between .test() calls, so a module-scope one would return
   alternating true/false for identical labels and produce colors that
@@ -96,8 +102,9 @@ function dismissMaximizeHint(){
 const SEMANTIC_AFFIRMATIVE_COLOR = '#006120';
 const SEMANTIC_NEGATIVE_COLOR = '#F91010';
 
-const AFFIRMATIVE_WORDS = /(?<![a-z])(?:yes|true|correct|agree|yay)(?![a-z])/i;
-const NEGATIVE_WORDS = /(?<![a-z])(?:no|false|incorrect|disagree|nay)(?![a-z])/i;
+const AFFIRMATIVE_WORDS = /(?<![a-z])(?:yes|true|correct|agree|yay|approve|approved|approval|support|favor|favour|accept|yeah|yep|aye)(?![a-z])/i;
+const NEGATIVE_WORDS = /(?<![a-z])(?:no|false|incorrect|disagree|nay|disapprove|disapproved|disapproval|oppose|against|reject|nah)(?![a-z])/i;
+const NEUTRAL_WORDS = /(?<![a-z])(?:neither|neutral|undecided|unsure|no +opinion|no +preference|don['’]t +know|do +not +know)(?![a-z])/i;
 const AFFIRMATIVE_EXACT = ['y', 'yup'];
 const NEGATIVE_EXACT = ['n', 'nope'];
 
@@ -109,6 +116,7 @@ function semanticColorFor(label){
   if (!text) return null;
   const lower = text.toLowerCase();
 
+  if (NEUTRAL_WORDS.test(text)) return null;
   if (AFFIRMATIVE_WORDS.test(text) || AFFIRMATIVE_EXACT.includes(lower)){
     return SEMANTIC_AFFIRMATIVE_COLOR;
   }
@@ -265,9 +273,9 @@ function maximizedBarLayout(count, bounds){
 
   Bar colors are assigned semantic-first: a choice whose label reads as
   "yes" or "no" takes its fixed semantic color (see semanticColorFor
-  above), and every other choice takes the next unused entry from
-  RESULTS_COLOR_PALETTE in display order. Semantically colored choices
-  don't consume a palette entry.
+  above), and every other choice, a neutral one included, takes the next
+  unused entry from RESULTS_COLOR_PALETTE in display order. Semantically
+  colored choices don't consume a palette entry.
 */
 
 // FNV-1a: http://www.isthe.com/chongo/tech/comp/fnv/
