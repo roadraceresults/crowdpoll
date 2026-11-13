@@ -479,7 +479,7 @@ Single recommendation, applied.
 - `README.md`: a new "On a phone" item in the phone notes.
 - Tests: `npx vitest run tests/client-viewport-width.test.ts tests/viewport-width-pages.test.ts` passed, 2 files and 61 tests;
   the full suite was not run, as asked; it last passed in full before the change from 640 to 480 (205 files, 3,265 tests).
-- Committed on `phone-uiux` and pushed to `origin`, in the commit that holds this record.
+- Committed on `phone-uiux` (commit `4fe9285`); the push was not made, because the session's permission check refused it, and is left to the developer (`git push origin phone-uiux`).
 - In the commit, for awareness: `tweaks.md` and the screenshots beside it show the developer's email address, a used one-time login link and two tunnel addresses that no longer exist.
 
 2026-11-13 13:28
