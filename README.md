@@ -136,6 +136,9 @@ delivery network.
   the full name the same way.
 - **Fixed header** — the header, and the tab row beneath it on the home page, stay in place while
   you scroll; the page's content moves underneath them, never over or under.
+- **On a phone** — the site is laid out 480 px wide and scaled to fit your screen, so it looks the same on
+  every phone, only a little larger or smaller, and you can pinch to zoom as usual. With the phone turned
+  sideways, and on a tablet, it uses the screen’s own width.
 - **The tab bar on a phone** — on screens up to 900 px wide the home page's tabs are each
   a small icon beside the name, a name of more than one word wrapped word by word to shorten the row, with no scroll arrows: where more tabs wait beyond an edge the row
   fades out there, and a swipe scrolls it with your phone's own momentum. Tapping a tab that is half

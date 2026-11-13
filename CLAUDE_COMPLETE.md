@@ -5,6 +5,53 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261113-085157-FIXED-VIEWPORT-WIDTH/plan.md` (research R1–R9, `data-model.md` — the two viewport states,
+nothing stored; the contract `contracts/viewport.md` V1–V5 and the quickstart, which is the trial's checklist, live
+alongside it).
+The requirements report is `requirements/20261113-085157-fixed-viewport-width/requirements-report.md`: 9 findings, all
+resolved.
+Decisions that are easy to get wrong:
+- **The static meta line never changes**: `viewportWidth.js`, a synchronous script on the line after `colorScheme.js`
+  in all 13 pages, rewrites its content to `width=480` alone (no `initial-scale`, nothing that limits zoom) (R1, R3).
+- **The screen as held decides, not the window or the viewport's shape**: the shorter screen side in portrait, the
+  longer in landscape, orientation from `screen.orientation` (else `window.orientation`); strictly below 480 is fixed
+  (R2). The `(orientation: …)` media query is wrong here: the on-screen keyboard flips it.
+- **Decided again** on `resize`, `pageshow` and the orientation change, writing only when the decision changes (R4).
+- **`text-size-adjust: 100%`** is set on the root by the script while fixed, and removed otherwise (R5).
+- **No sheet, breakpoint, existing script or setting changes**: at 480 px a phone in portrait gets the `639.98px` phone
+  layout as designed, and the 480, 360 and 320 px rules are not reached (R6). The trial began at 640 px. It is a trial;
+  `quickstart.md` §6 records the outcome.
+The preceding features, two merged together, are
+`specs/20261112-173151-REMOVE-VOTE/plan.md` (research R1–R10, `data-model.md` — the states of a vote row and the
+cache keys; the contracts `contracts/api.md` and `contracts/ui-contracts.md` and the quickstart live alongside it).
+The requirements report is `requirements/20261112-173151-remove-vote/requirements-report.md`: 9 findings, all
+resolved.
+Decisions that are easy to get wrong:
+- **A removal is an empty selection** on an open Dynamic-Vote poll from a voter who holds a vote, through the same
+  `POST /api/polls/:pid/vote`; the emptiness rule runs **last** in `validateVoteChoicesAndState`, after the state
+  gates and the Final-Vote check (R1). Anywhere else an empty selection keeps its 400 "Select at least one choice.".
+- **"New voter" is decided from the previous selection** (`lastvote:<pid>:<email>`, shared by every session), not
+  from `voted:<session>`; a removal sets it to `[]`, SREMs the pid from the session set, moves each previous choice
+  and `total` down by one and leaves the trending bucket alone (R2, R3). A removal with nothing to remove is a 400.
+- **The stored shape is the invitee shape**: the `votes` row keeps `choice_ids = {}`; a `vote_history` row records
+  the event; the tally already computes the deltas; the consumer **deletes** the `voted` relation when the latest vote
+  of the batch is empty (R4).
+- **The card**: Submit stays enabled and reads "Remove vote" only while the selection is empty and `myChoiceIds` is
+  non-empty on a Dynamic-Vote poll; both primary buttons carry a label span and two sizers in one grid cell (R5, R6);
+  `applyVote` clears the overlay's `voted` flag and relation so "You voted" goes at once.
+
+And the plan merged after it:
+`specs/20261112-191252-SEMANTIC-COLOR-WORDS/plan.md` (research R1–R6, `data-model.md` — the three word lists and the
+color order; the label table `contracts/ui.md` U1–U6 and the quickstart live alongside it).
+The requirements report is `requirements/20261112-191252-semantic-color-words/requirements-report.md`: 3 findings,
+all resolved.
+Decisions that are easy to get wrong:
+- **Neutral is tested first** in `semanticColorFor` and returns `null`, so a neutral choice takes the next palette
+  color like any unmatched one; a hand-picked color still wins (R3, R4).
+- **Whole words only, listed forms only**: the letters-only lookaround boundary stays; no `g` flag; phrase words are
+  separated by ` +`; "don't" accepts a straight or curly apostrophe (R2, R3).
+- **Nothing is stored**: colors change on the next draw; the line graph follows `resultColors()` (R1).
+The preceding feature is
 `specs/20261112-175743-EMAIL-LOGO/plan.md` (research R1–R7, `data-model.md` — three static images, no stored data; the
 contract `contracts/email-logo.md` and the quickstart live alongside it in `specs/20261112-175743-EMAIL-LOGO/`).
 The requirements report is `requirements/20261112-175743-email-logo/requirements-report.md`: 7 findings, all resolved.

@@ -1,5 +1,5 @@
 {
-    "requirements_directory": "requirements/20261112-191252-semantic-color-words",
+    "requirements_directory": "requirements/20261113-085157-fixed-viewport-width",
     "last_written": {
         "requirements/20261019-153514-production-email/requirements.md": "e0bd2b0bf28c2fbd6699c99cdf364c1398d3b7aed8eb456198295f78d108ee08",
         "requirements/20261019-153514-production-email/requirements-report.md": "4f75f5e263fa092fc0fcedc4a7cdaa32128382e287f2ac0394e4957e8d8bd413",
@@ -90,6 +90,8 @@
         "requirements/20261112-191252-semantic-color-words/requirements.md": "b351403f9f342c751f3977d98c65dfb3c9cf36c80dd76e9f103d85ce47720005",
         "requirements/20261112-191252-semantic-color-words/requirements-report.md": "d64410a13e9659e36ec7b7e91013e25d457c079653108f7b1323720ec385232a",
         "requirements/20261112-175743-email-logo/requirements.md": "d3fb862e670f7a91e9f7406363fe6e0a543c794435dab86289f8ce4894436d73",
-        "requirements/20261112-175743-email-logo/requirements-report.md": "6f31c4ae8d1fa80c19cbe272cd7ab021dc48fd51268bc799b87815dfab9da608"
+        "requirements/20261112-175743-email-logo/requirements-report.md": "6f31c4ae8d1fa80c19cbe272cd7ab021dc48fd51268bc799b87815dfab9da608",
+        "requirements/20261113-085157-fixed-viewport-width/requirements.md": "dbdd4d84aef01bcb3234ff90f9add9e54b5253a4ec135194d624166c321bedd6",
+        "requirements/20261113-085157-fixed-viewport-width/requirements-report.md": "4d4e6bcc3393ca8cf696c3bbb7d28e9a8f36aef4dba6720a4231aaed4abba886"
     }
 }

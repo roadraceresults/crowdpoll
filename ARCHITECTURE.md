@@ -943,6 +943,46 @@ button at the right, with its menu beneath it; both are inset by `--tab-edge`, t
 edge computed from the container's padding and the 420 px card cap, so they line up with the
 cards whether or not the tab holds one.
 
+### The viewport rule (a trial)
+
+Every page declares `<meta name="viewport" content="width=device-width, initial-scale=1">`, and
+that static line never changes. `viewportWidth.js`, loaded without `defer` on the line after
+`colorScheme.js` in all 13 pages so that it runs before the first stylesheet and the first paint,
+rewrites the declaration to `width=480` on a device held narrower than 480 px. The browser then
+lays the page out 480 px wide and scales it to the screen, so every phone in portrait shows the
+same layout at a different size. A device held 480 px wide or wider, a browser that runs no
+scripts and every desktop browser (which ignores the declaration) keep the page as written.
+
+```mermaid
+flowchart LR
+  Load["script load, resize,<br/>pageshow, orientation change"] --> Held{"held width < 480?"}
+  Held -- yes --> Fixed["content = width=480<br/>root: text-size-adjust 100%"]
+  Held -- no --> Device["content = the page's own<br/>root: no text-size-adjust"]
+```
+
+- **Held width** is the screen's shorter side in portrait and its longer side in landscape. The
+  orientation comes from `screen.orientation.type`, or `window.orientation` where that is
+  missing, never from the `(orientation: …)` media query, which the on-screen keyboard flips.
+  `screen.width` alone would not do: some browsers report it for the current orientation and
+  some always for portrait.
+- **Decided again** on `resize` (a turn, a folding phone), `pageshow` (a page restored from the
+  back/forward cache) and the orientation `change`; the script writes only when the decision
+  changes, so the `resize` its own write causes ends there.
+- **`width=480` stands alone**: no `initial-scale`, so the browser fits the layout to the
+  screen, and nothing that limits zoom.
+- **`text-size-adjust: 100%`** is set on the root element while the fixed width applies, because
+  mobile browsers otherwise enlarge blocks of text on a page wider than the screen, each by its
+  own factor.
+
+Because the layout width on a phone in portrait is 480 px, such a phone gets the phone layout
+under `max-width: 639.98px` exactly as it is designed for a 480 px screen: one card column with
+the card at its full 420 px, the compact header and `headerFit.js`'s phone mode, with the 900 px
+tab bar. The rules for 480, 360 and 320 px are not reached there; they still apply to a narrow
+desktop window. Text and controls appear at `held width ÷ 480` of their designed size (16 px
+text at 12 px on a 360 px phone). The rule is a trial, begun at 640 px and then tried at 480 px:
+its checklist and outcome are in the feature's quickstart, and nothing else in the sheets or
+scripts was changed for it.
+
 ## Search
 
 Home search is one interface, `search(scope, text, limit)`, with two engines: OpenSearch
