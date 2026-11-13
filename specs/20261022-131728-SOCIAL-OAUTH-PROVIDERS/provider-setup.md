@@ -4,10 +4,11 @@ Operator steps, done once per provider, as the organization **CrowdPoll** (NC2).
 `requirements/20261022-131728-social-oauth-providers/requirements-report.md` RS1–RS4.
 The values CrowdPoll serves: homepage `https://crowdpoll.vote/`, privacy `https://crowdpoll.vote/privacy`, terms
 `https://crowdpoll.vote/terms`, support `support@crowdpoll.vote`.
-Logos: the square icon `src/public/email-logo.png` (96 × 96, transparent) where a provider asks for a square logo
+Logos: the square icon `src/public/email-logo.png` (the two figures in the speech bubble, 168 × 168, transparent) where a provider asks for a square logo
 (Google, Microsoft), and the banner `src/public/consent-banner.png` (icon and word mark, 733 × 100, transparent) for
 Amazon's consent logo. The banner is the header's own SVG (`SITE_HEADER_MARKUP` in `app.js`) rendered once with headless
 Edge at 100 px high; render it again if the header's logo changes.
+Logos already uploaded to Google and Microsoft stay as they are until they are uploaded again.
 
 ## P0. Before any provider
 

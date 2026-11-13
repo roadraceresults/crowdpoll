@@ -5,6 +5,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261112-175743-EMAIL-LOGO/plan.md` (research R1–R7, `data-model.md` — three static images, no stored data; the
+contract `contracts/email-logo.md` and the quickstart live alongside it in `specs/20261112-175743-EMAIL-LOGO/`).
+The requirements report is `requirements/20261112-175743-email-logo/requirements-report.md`: 7 findings, all resolved.
+Decisions that are easy to get wrong:
+- **The email logo comes from `og-logo.svg`, unchanged**: `devScripts/favicon-ico.ts` renders it with
+  `renderPng(browser, workDir, OG_LOGO_PATH, 56, 3)`, a 56 px window at 3×, so 168 × 168; the favicon keeps
+  `favicon.svg`, figures only; no new SVG (R1).
+- **Refusals before writing**: not 168 × 168, not 8-bit RGBA, or an opaque top-left pixel. `topLeftAlpha` (exported)
+  inflates the `IDAT` data with `node:zlib` and reads byte 4 of the first scanline; every PNG filter predicts 0 there (R2).
+- **Every email**, through `layout()`: `<img … /email-logo.png width="56" height="56" alt="CrowdPoll">`, same address;
+  the stored expected emails (`email-messages-before-heading-line-2.json`) change only in those six sizes (R3, R4).
+- **Tests**: `tests/favicon-ico.test.ts` checks the committed PNG (168 × 168, transparent) and that the RGB
+  `og-image.png` is refused (R4).
+- `email-logo.png` is also the Google and Microsoft consent logo: `provider-setup.md` describes it; uploaded copies stay
+  until re-uploaded (R6).
+No route, migration, setting or dependency change; one script, one template line, one regenerated image.
+The preceding feature is
 `specs/20261112-152622-EXTRACT-ALL-POLLDATA/plan.md` (research R1–R7, `data-model.md` — the history file; the
 contract `contracts/cli.md`, the quickstart and `tweaks.md` live alongside it in
 `specs/20261112-152622-EXTRACT-ALL-POLLDATA/`).
@@ -815,7 +832,7 @@ hand-done SES, DNS, forwarding and alarm setup (RS8, RS10, RS17). Decisions that
   unchanged. `ENV_EMAIL_FROM` replaces `ENV_SMTP_FROM`; `ENV_EMAIL_SEND_TIMEOUT` (10 s) bounds every send by a race (R1, R3, R4).
 - **Logs mask recipients** (`j•••@gmail.com`) and carry the message id; never a full address, link or token (R5).
 - **One layout, escaped**: `src/email/templates.ts`, inline styles, a hosted `email-logo.png` (written by
-  `devScripts/favicon-ico.ts`), a footer naming `support@crowdpoll.vote`, no `Reply-To`, no tracking (R6, R7).
+  `devScripts/favicon-ico.ts`, since 20261112-175743-EMAIL-LOGO from `og-logo.svg`, 56 px at 3×), a footer naming `support@crowdpoll.vote`, no `Reply-To`, no tracking (R6, R7).
 - **The honeypot replies as on success.** A filled `homepage` field on the three emailing endpoints sends nothing and consumes no
   rate limit (R8).
 - **Links are bound to their browser by a hash.** `signin_binding` (`Path=/api/auth`, 15 minutes) plus `&bind=hashToken(value)` on

@@ -35,6 +35,18 @@ Decisions that are easy to get wrong:
 - **Whole words only, listed forms only**: the letters-only lookaround boundary stays; no `g` flag; phrase words are
   separated by ` +`; "don't" accepts a straight or curly apostrophe (R2, R3).
 - **Nothing is stored**: colors change on the next draw; the line graph follows `resultColors()` (R1).
+shell commands, and other important information, read the current plan:
+`specs/20261112-175743-EMAIL-LOGO/plan.md` (research R1–R7, `data-model.md` — three static images, no stored data;
+the contract `contracts/email-logo.md` and the quickstart live alongside it).
+The requirements report is `requirements/20261112-175743-email-logo/requirements-report.md`: 7 findings, all resolved.
+Decisions that are easy to get wrong:
+- **The email logo comes from `og-logo.svg`, unchanged**: `devScripts/favicon-ico.ts` renders it in a 56 px window at
+  3× (168 × 168); the favicon keeps `favicon.svg`, figures only; no new SVG (R1).
+- **Refusals**: not 168 × 168, not 8-bit RGBA, or an opaque top-left pixel (read with `node:zlib`, no image library)
+  stops the script before writing (R2).
+- **Every email**, through `layout()`: `<img … email-logo.png width="56" height="56">`, same address; the stored
+  expected emails change only in those sizes (R3, R4).
+- `email-logo.png` is also the OAuth consent logo: `provider-setup.md` describes it; uploaded copies stay (R6).
 <!-- SPECKIT END -->
 
 ## Project Overview

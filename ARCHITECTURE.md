@@ -1308,7 +1308,8 @@ masked recipient and the provider's message id; a failure is a `MailError`, whic
 
 The messages (login link, create-account invitation, email-change verification, change notice, account deleted, and
 the poll invitation and its reminder from `invitationMessage`) are built by `src/email/templates.ts`: one table-based layout with inline styles, the hosted `/email-logo.png` (written by
-`devScripts/favicon-ico.ts`), the site's green, a footer naming `support@crowdpoll.vote`, a plain-text part with the
+`devScripts/favicon-ico.ts` from `og-logo.svg`: the figures in the speech bubble, a 168 px image shown at 56 × 56),
+the site's green, a footer naming `support@crowdpoll.vote`, a plain-text part with the
 same content, and every inserted value escaped. `layout()` takes an optional `headingLine2`, which the invitation
 uses to put the poll title on its own line under the heading; every other message is unchanged. The create-account
 invitation's link is `/create-account?token=…` (`src/auth/createAccountLinks.ts`): a single-use token whose hash is a
@@ -1563,7 +1564,12 @@ of `npm run build`. It renders the SVG at each size with a headless Chromium-bas
 (`FAVICON_BROWSER`, or Microsoft Edge's install path), checks each PNG's size, and writes the ICO
 container itself, so it needs no image library. A browser that is missing, fails, runs past 30 s or
 writes no screenshot stops it with a `[favicon]` message before the ICO is touched. It also writes `email-logo.png`,
-the 96 px logo of the email layout (rendered at 48 px and 2× scale, since a 96 px headless window comes out blank).
+the logo of the email layout, from `og-logo.svg` (the speech bubble included) rather than `favicon.svg`: a 56 px window
+at 3× scale, so 168 × 168 px on a transparent background. It refuses, before writing, a render of another size, one
+that is not an 8-bit RGBA PNG, or one whose top-left pixel is not transparent (`topLeftAlpha` inflates the first
+scanline with `node:zlib`, so the script still needs no image library). The emails keep the address
+`<ENV_EMAIL_ASSET_ORIGIN>/email-logo.png`, so recipients, development mail included, see a new drawing once
+`npm run deploy` serves it; a mail proxy's cached copy may lag.
 It is rerun, and the files committed together, whenever the drawing changes.
 
 ## Testing
