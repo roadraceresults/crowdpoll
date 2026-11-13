@@ -6,6 +6,7 @@ import { makePoll, polls } from "./helpers/poll-fixtures.js";
 import { recordVote, updatePoll } from "../src/polls/store.js";
 import { addBookmark } from "../src/polls/bookmarks.js";
 import { upsertRelation } from "../src/polls/userPolls.js";
+import { castVote } from "../src/votes/votePath.js";
 
 let ctx: TestContext;
 let cookie: string;
@@ -43,6 +44,21 @@ describe("Your Votes", () => {
     await vote(newer._id, 5);
     expect((await tab("your-votes")).body.order).toEqual([newer._id, older._id]);
     expect((await tab("your-votes")).body.order).not.toContain(other._id);
+  });
+
+  it("drops a poll whose vote was removed, and lists it again after a re-vote", async () => {
+    const poll = await seed({ voteMutability: "Dynamic-Vote Poll" });
+    let ips = 0;
+    const cast = async (choiceIds: string[]) => {
+      await castVote(ctx, { sessionId: "s-votes-reader", email: me, userName: "", ip: `10.7.0.${++ips}`, pid: poll._id, choiceIds });
+      await ctx.consumer.runOnce();
+    };
+    await cast(["c1"]);
+    expect((await tab("your-votes")).body.order).toEqual([poll._id]);
+    await cast([]);
+    expect((await tab("your-votes")).body.order ?? []).toEqual([]);
+    await cast(["c2"]);
+    expect((await tab("your-votes")).body.order).toEqual([poll._id]);
   });
 
   it("hides a private poll the user can no longer reach, and brings it back with access", async () => {

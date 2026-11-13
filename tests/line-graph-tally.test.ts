@@ -112,6 +112,23 @@ describe("kept by the vote writers", () => {
     ]);
   });
 
+  it("records a removal in its hour as -1 for each held choice and -1 voter, still equal to the tally computed afresh", async () => {
+    const pid = await seedPoll("Multiple-Choice Poll");
+    await writeBatch(ctx.db, [dynamic(pid, "a@example.com", ["c1", "c2"], at(0.5))]);
+    await writeBatch(ctx.db, [dynamic(pid, "a@example.com", [], at(2.5))]);
+    const incremental = await tallyOf(pid);
+    expect(incremental).toEqual([
+      `${at(1).toISOString()} c1 1`,
+      `${at(1).toISOString()} c2 1`,
+      `${at(1).toISOString()} voters 1`,
+      `${at(3).toISOString()} c1 -1`,
+      `${at(3).toISOString()} c2 -1`,
+      `${at(3).toISOString()} voters -1`
+    ]);
+    await rebuildLineGraphTally(ctx.db, pid);
+    expect(await tallyOf(pid)).toEqual(incremental);
+  });
+
   it("ignores a vote older than the voter's latest one, which it would not have replaced", async () => {
     const pid = await seedPoll();
     await writeBatch(ctx.db, [dynamic(pid, "a@example.com", ["c2"], at(5))]);

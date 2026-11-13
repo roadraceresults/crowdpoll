@@ -105,7 +105,7 @@ describe("site.css poll card rules (008 FR-001/FR-002)", () => {
   });
   it("sets the voting side's notes in the front's italic note style", async () => {
     const res = await request(ctx.app).get("/site.css");
-    expect(res.text).toMatch(/\.poll-voted,\s*\.poll-anonymous,\s*\.poll-listed-because,\s*\.poll-ballot-rules\{[^}]*font-style:italic;/);
+    expect(res.text).toMatch(/\.poll-voted,\s*\.poll-anonymous,\s*\.poll-vote-notice,\s*\.poll-listed-because,\s*\.poll-ballot-rules\{[^}]*font-style:italic;/);
     expect(res.text).toContain(".poll-ballot-rules[hidden]{ display:none; }");
     const m3 = await request(ctx.app).get("/pollCard-m3.css");
     expect(m3.text).toMatch(/\.card-face \.poll-listed-because,\s*\.card-face \.poll-ballot-rules\{ color:var\(--md-sys-color-outline\); \}/);
@@ -128,6 +128,13 @@ describe("pollCard.js card template (008 FR-004)", () => {
     const res = await request(ctx.app).get("/pollCard.js");
     expect(res.text).toContain("btn-vote-sizer");
   });
+
+  it("gives the back button a label span and two sizers, like the front", async () => {
+    const res = await request(ctx.app).get("/pollCard.js");
+    const sizer = '<span class="btn-vote-sizer" aria-hidden="true"></span>';
+    expect(res.text).toContain(`submit-vote-btn" type="button" disabled><span class="btn-vote-label">Submit vote</span>${sizer}${sizer}</button>`);
+    expect(res.text).toContain(`vote-btn" type="button"><span class="btn-vote-label">Vote</span>${sizer}${sizer}</button>`);
+  });
 });
 
 describe("site.css button sizing (008 FR-007)", () => {
@@ -139,6 +146,18 @@ describe("site.css button sizing (008 FR-007)", () => {
     // out beside the label would make the button about twice as wide as
     // intended, instead of matching "Submit vote".
     expect(res.text).toContain(".vote-btn > *");
+  });
+
+  it("styles the vote notice as the foot's status text, beside the count", async () => {
+    const res = await request(ctx.app).get("/site.css");
+    expect(res.text).toMatch(/\.poll-voted,\n\.poll-anonymous,\n\.poll-vote-notice\{ flex:0 0 auto; margin-left:auto; \}/);
+    expect(res.text).not.toContain(".poll-vote-notice{\n  color:");
+  });
+
+  it("stacks the back button's label and sizers the same way", async () => {
+    const res = await request(ctx.app).get("/site.css");
+    expect(res.text).toContain(".vote-btn, .submit-vote-btn{ display:grid;");
+    expect(res.text).toContain(".vote-btn > *, .submit-vote-btn > *{ grid-area:1 / 1; }");
   });
 });
 

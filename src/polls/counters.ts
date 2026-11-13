@@ -36,20 +36,20 @@ export function countsFromHash(hash: Record<string, string>): LiveCounts | null 
   return { voteCount: Number(hash.total ?? 0), choiceCounts, countsVersion: Number(hash.seq) };
 }
 
-export async function countVote(
+async function moveCounts(
   cache: Cache,
   pid: string,
   addChoiceIds: string[],
-  removeChoiceIds: string[] = [],
-  isNewVoter = true,
-  now: Date = new Date()
+  removeChoiceIds: string[],
+  voterDelta: -1 | 0 | 1,
+  now: Date
 ): Promise<LiveCounts> {
   const key = COUNTS_KEY(pid);
   for (const id of addChoiceIds) await cache.hincrby(key, id, 1);
   for (const id of removeChoiceIds) await cache.hincrby(key, id, -1);
-  if (isNewVoter) await cache.hincrby(key, "total", 1);
+  if (voterDelta !== 0) await cache.hincrby(key, "total", voterDelta);
   await cache.hincrby(key, "seq", 1);
-  if (isNewVoter) {
+  if (voterDelta === 1) {
     const bucket = trendBucketKey(now);
     await cache.hincrby(bucket, pid, 1);
     await cache.expire(bucket, TREND_BUCKET_TTL_MS);
@@ -59,6 +59,27 @@ export async function countVote(
   await cache.sadd(day, pid);
   await cache.expire(day, DIRTY_DAY_TTL_MS);
   return countsFromHash(await cache.hgetall(key))!;
+}
+
+export async function countVote(
+  cache: Cache,
+  pid: string,
+  addChoiceIds: string[],
+  removeChoiceIds: string[] = [],
+  isNewVoter = true,
+  now: Date = new Date()
+): Promise<LiveCounts> {
+  return moveCounts(cache, pid, addChoiceIds, removeChoiceIds, isNewVoter ? 1 : 0, now);
+}
+
+/** A voter withdraws: each held choice and `total` go down by one; the trending bucket keeps the vote it saw. */
+export async function removeVote(
+  cache: Cache,
+  pid: string,
+  previousChoiceIds: string[],
+  now: Date = new Date()
+): Promise<LiveCounts> {
+  return moveCounts(cache, pid, [], previousChoiceIds, -1, now);
 }
 
 export async function readLiveCounts(cache: Cache, pids: string[]): Promise<Map<string, LiveCounts>> {

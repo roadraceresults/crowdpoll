@@ -455,9 +455,6 @@ export function validateVoteChoicesAndState(
   choiceIds: string[],
   hasExistingVote: boolean
 ): void {
-  if (choiceIds.length === 0) {
-    throw new VoteError(400, "Select at least one choice.");
-  }
   if (poll.choiceMode === "Single-Choice Poll" && choiceIds.length > 1) {
     throw new VoteError(400, "This poll only allows selecting one choice.");
   }
@@ -479,6 +476,10 @@ export function validateVoteChoicesAndState(
   }
   if (poll.voteMutability === "Final-Vote Poll" && hasExistingVote) {
     throw new VoteError(409, "You have already voted on this poll and cannot change your vote.");
+  }
+  // An empty selection is a removal only where a vote can change and one is held.
+  if (choiceIds.length === 0 && !(poll.voteMutability === "Dynamic-Vote Poll" && hasExistingVote)) {
+    throw new VoteError(400, "Select at least one choice.");
   }
 }
 

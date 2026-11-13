@@ -2,7 +2,7 @@ import { sql } from "kysely";
 import type { Cache } from "../cache/cache.js";
 import type { AppConfig } from "../config.js";
 import type { Db } from "../db/client.js";
-import { countVote, rebuildIfMissing, type LiveCounts } from "../polls/counters.js";
+import { countVote, rebuildIfMissing, removeVote, type LiveCounts } from "../polls/counters.js";
 import { effectiveVoterLimit, validateVoteChoicesAndState, VoteError } from "../polls/service.js";
 import type { PollVisibility } from "../polls/store.js";
 import { readProjection, type PollProjection } from "../polls/versions.js";
@@ -180,17 +180,23 @@ export async function castVote(deps: VotePathDeps, vote: VoteRequest): Promise<V
     throw new VoteError(400, "That choice is no longer available — please choose again.");
   }
 
+  // The previous selection is shared by every session of the address, so a voter who
+  // removed their vote elsewhere is a new voter here, and one who re-votes is not.
   const votedBefore = await hasVotedBefore(deps, vote.sessionId, vote.email, vote.pid);
-  await assertEligible(deps, projection, vote.email, vote.userId ?? "", !votedBefore);
+  const previous = votedBefore ? await previousChoices(deps, vote.pid, vote.email) : [];
+  const isNewVoter = previous.length === 0;
+  await assertEligible(deps, projection, vote.email, vote.userId ?? "", isNewVoter);
   validateVoteChoicesAndState(
     { pollState: projection.pollState as never, choiceMode: projection.choiceMode as never, voteMutability: projection.voteMutability as never },
     choiceIds,
-    votedBefore
+    !isNewVoter
   );
 
-  const previous = votedBefore ? await previousChoices(deps, vote.pid, vote.email) : [];
+  const removal = choiceIds.length === 0;
   await rebuildIfMissing(deps, vote.pid);
-  const counts: LiveCounts = await countVote(deps.cache, vote.pid, choiceIds, previous, !votedBefore, now);
+  const counts: LiveCounts = removal
+    ? await removeVote(deps.cache, vote.pid, previous, now)
+    : await countVote(deps.cache, vote.pid, choiceIds, previous, isNewVoter, now);
   await deps.cache.xadd(VOTE_STREAM, {
     pid: vote.pid,
     email: vote.email,
@@ -202,7 +208,8 @@ export async function castVote(deps: VotePathDeps, vote: VoteRequest): Promise<V
       ? { accountId: vote.device.accountId, browserHash: vote.device.browserHash ?? "", hardwareHash: vote.device.hardwareHash ?? "" }
       : {})
   });
-  await deps.cache.sadd(VOTED_KEY(vote.sessionId), VOTED_MARKER, vote.pid);
+  if (removal) await deps.cache.srem(VOTED_KEY(vote.sessionId), vote.pid);
+  else await deps.cache.sadd(VOTED_KEY(vote.sessionId), VOTED_MARKER, vote.pid);
   await deps.cache.set(LAST_VOTE_KEY(vote.pid, vote.email), JSON.stringify(choiceIds), VOTED_TTL_MS);
 
   const lagMs = Number((await deps.cache.get(QUEUE_LAG_KEY)) ?? 0);

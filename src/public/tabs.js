@@ -989,7 +989,12 @@
       window.DeltaClient.applyCounters(controller.state, {
         [pid]: { voteCount: outcome.voteCount, choiceCounts: outcome.choiceCounts, countsVersion: outcome.countsVersion }
       });
-      window.DeltaClient.setOverlay(controller.state, pid, { voted: true, choiceIds: outcome.myChoiceIds });
+      const entry = { voted: outcome.myChoiceIds.length > 0, choiceIds: outcome.myChoiceIds };
+      if (outcome.myChoiceIds.length === 0) {
+        const current = controller.state.overlay.get(pid) || controller.state.cards.get(pid).overlay || {};
+        if (Array.isArray(current.relations)) entry.relations = current.relations.filter((r) => r !== "voted");
+      }
+      window.DeltaClient.setOverlay(controller.state, pid, entry);
       controller.grid.reapply(controller.state, pid);
     });
     if (maximized) maximized.grid.patchRetained(pid, { outcome: outcome });

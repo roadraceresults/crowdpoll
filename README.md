@@ -61,7 +61,9 @@ delivery network.
 - **Vote** — press **Vote** on a card, pick your choice(s) and **Submit vote** (**Submit votes** on a multiple-choice poll). The card shows
   the new counts at once. On a very busy site the card may say your vote is *queued*; it has
   been counted and will be stored within moments. Under the count, the voting side says
-  *Multiple-choice poll* and *You may change your vote* when they apply.
+  *Multiple-choice poll* and *You may change your vote* when they apply. On a poll that says
+  *You may change your vote*, un-set every choice and the button reads **Remove vote**: pressing
+  it withdraws your vote, and you may vote again later.
 - **Add Choice** — on a Private poll whose creator lets voters add choices, the voting side of
   the card has an **Add Choice** button while the poll is open. Type a choice of up to 35
   characters and press **Save**: it appears last on the card at once, for every voter, and can be

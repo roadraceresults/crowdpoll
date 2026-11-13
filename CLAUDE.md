@@ -5,7 +5,26 @@ The full description, every earlier feature's decisions and the settings table a
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
-shell commands, and other important information, read the current plan:
+shell commands, and other important information, read the current plans (two features, merged together):
+`specs/20261112-173151-REMOVE-VOTE/plan.md` (research R1–R10, `data-model.md` — the states of a vote row and the
+cache keys; the contracts `contracts/api.md` and `contracts/ui-contracts.md` and the quickstart live alongside it).
+The requirements report is `requirements/20261112-173151-remove-vote/requirements-report.md`: 9 findings, all
+resolved.
+Decisions that are easy to get wrong:
+- **A removal is an empty selection** on an open Dynamic-Vote poll from a voter who holds a vote, through the same
+  `POST /api/polls/:pid/vote`; the emptiness rule runs **last** in `validateVoteChoicesAndState`, after the state
+  gates and the Final-Vote check (R1). Anywhere else an empty selection keeps its 400 "Select at least one choice.".
+- **"New voter" is decided from the previous selection** (`lastvote:<pid>:<email>`, shared by every session), not
+  from `voted:<session>`; a removal sets it to `[]`, SREMs the pid from the session set, moves each previous choice
+  and `total` down by one and leaves the trending bucket alone (R2, R3). A removal with nothing to remove is a 400.
+- **The stored shape is the invitee shape**: the `votes` row keeps `choice_ids = {}`; a `vote_history` row records
+  the event; the tally already computes the deltas; the consumer **deletes** the `voted` relation when the latest vote
+  of the batch is empty (R4).
+- **The card**: Submit stays enabled and reads "Remove vote" only while the selection is empty and `myChoiceIds` is
+  non-empty on a Dynamic-Vote poll; both primary buttons carry a label span and two sizers in one grid cell (R5, R6);
+  `applyVote` clears the overlay's `voted` flag and relation so "You voted" goes at once.
+
+And the plan merged after it:
 `specs/20261112-191252-SEMANTIC-COLOR-WORDS/plan.md` (research R1–R6, `data-model.md` — the three word lists and the
 color order; the label table `contracts/ui.md` U1–U6 and the quickstart live alongside it).
 The requirements report is `requirements/20261112-191252-semantic-color-words/requirements-report.md`: 3 findings,

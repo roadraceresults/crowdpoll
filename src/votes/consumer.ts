@@ -139,19 +139,26 @@ export async function writeBatch(db: Db, queued: QueuedVote[]): Promise<void> {
     );
     if (events.length > 0) await trx.insertInto("device_events").values(events).execute();
     await markEverVoted(trx, [...new Set(votes.map((v) => v.pid))]);
-    const latest = new Map<string, Date>();
+    // The voter's latest vote of the batch decides whether they hold the poll as voted.
+    const latest = new Map<string, QueuedVote>();
     for (const v of votes) {
       const key = `${v.email}\n${v.pid}`;
       const seen = latest.get(key);
-      if (!seen || v.votedAt > seen) latest.set(key, v.votedAt);
+      if (!seen || v.votedAt > seen.votedAt) latest.set(key, v);
     }
+    const kept = [...latest.values()];
     await upsertUserPolls(
       trx,
-      [...latest.keys()].map((key) => {
-        const [email, pid] = key.split("\n");
-        return { email: email!, pid: pid!, relation: "voted" as const };
-      })
+      kept.filter((v) => v.choiceIds.length > 0).map((v) => ({ email: v.email, pid: v.pid, relation: "voted" as const }))
     );
+    const removed = kept.filter((v) => v.choiceIds.length === 0);
+    if (removed.length > 0) {
+      await trx
+        .deleteFrom("user_polls")
+        .where("relation", "=", "voted")
+        .where(sql`(email, poll_id)`, "in", sql`(${sql.join(removed.map((v) => sql`(${v.email}, ${v.pid})`))})`)
+        .execute();
+    }
   });
 }
 

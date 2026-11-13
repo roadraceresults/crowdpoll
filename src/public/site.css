@@ -269,6 +269,7 @@
 .card-foot .poll-totals{ margin:0; }
 .poll-voted,
 .poll-anonymous,
+.poll-vote-notice,
 .poll-listed-because,
 .poll-ballot-rules{
   font-family:'Inter', sans-serif;
@@ -281,7 +282,8 @@
   text-align:right;
 }
 .poll-voted,
-.poll-anonymous{ flex:0 0 auto; margin-left:auto; }
+.poll-anonymous,
+.poll-vote-notice{ flex:0 0 auto; margin-left:auto; }
 .poll-listed-because,
 .poll-ballot-rules{ margin-top:2px; }
 .poll-voted[hidden],
@@ -312,27 +314,27 @@
 /* 008-POLL-CARD-BACK-SIDE FR-007: the two primary buttons carry the same
    .btn-vote rules, so they matched only while pollCard.css's min-width:25%
    floor exceeded both labels -- at narrow card widths "Submit vote" won and
-   "Vote" stayed short. The front button now contains a hidden copy of the
-   longer label and both children share one grid cell, so the column resolves
-   to max(label, sizer) and the pair matches at every width.
+   "Vote" stayed short. Both buttons now contain hidden copies of every label
+   the back button may show and all children share one grid cell, so each
+   column resolves to the widest and the pair matches at every width.
 
    The grid is load-bearing, not stylistic: .btn-primary sets display:flex, and
    a row flex container's max-content width is the SUM of its items -- a sizer
    laid out beside the label would make this button about twice as wide as
-   intended. Scoped to .vote-btn so .submit-vote-btn stays a flex button and is
-   left alone; it already sizes to its own (longer) label.
+   intended. Both buttons stack their children, since the back button's label
+   changes between "Submit vote" and "Remove vote" without moving.
 
    Two cascade facts this relies on: site.css loads after pollCard.css
    (index.html), so display:grid beats .btn-primary's display:flex at equal
    specificity; and .vote-btn[hidden] above (0,2,0) still beats .vote-btn
    (0,1,0), so 007-closed-state's hiding of the button keeps working. */
-.vote-btn{ display:grid; justify-content:center; align-content:center; }
+.vote-btn, .submit-vote-btn{ display:grid; justify-content:center; align-content:center; }
 
 /* FIX017: the front action row is space-between with Live Results on the left
    and Vote on the right; on the Live Results tab the link is hidden, which
    would leave Vote as the first item, at the left. It keeps the right edge. */
 .card-front .actions .vote-btn{ margin-left:auto; }
-.vote-btn > *{ grid-area:1 / 1; }
+.vote-btn > *, .submit-vote-btn > *{ grid-area:1 / 1; }
 .btn-vote-sizer{ visibility:hidden; height:0; overflow:hidden; }
 
 /* FR-001: replaces "Live Results" (front) in place.
@@ -799,17 +801,8 @@
 .card-viewport:not(.maximized-card-viewport):not(.card-shell-viewport) .question:hover,
 .card-viewport:not(.maximized-card-viewport):not(.card-shell-viewport) .subtitle:hover{ text-decoration:underline; }
 
-/* 017: a vote accepted while the writers lag says so, in the footer slot the
-   other card messages use, until the next render of the card. */
-.poll-vote-notice{
-  color:var(--muted);
-  font-family:'Inter', sans-serif;
-  font-weight:600;
-  font-size:clamp(12px, calc(1vw + 2px), 13.5px);
-  line-height:1.4;
-  display:flex;
-  align-items:center;
-}
+/* 017: a vote accepted while the writers lag, or a vote removed, says so on the
+   count's line, where "You voted" sits, until the next render of the card. */
 .poll-vote-notice[hidden]{ display:none; }
 
 .hp-field {

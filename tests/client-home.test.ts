@@ -326,20 +326,21 @@ describe("a bar's percentage", () => {
     expect(totals).toContain("2 voters");
   });
 
-  it("labels Submit in the plural on a multiple-choice poll, and the front's sizer with it", async () => {
+  it("labels Submit in the plural on a multiple-choice poll, and both buttons' sizers with it and with Remove vote", async () => {
     await polls(ctx).insertMany([
-      makePoll({ title: "Pick any", choiceMode: "Multiple-Choice Poll" }),
-      makePoll({ title: "Pick one" }),
+      makePoll({ title: "Pick any", choiceMode: "Multiple-Choice Poll", voteMutability: "Dynamic-Vote Poll" }),
+      makePoll({ title: "Pick one", voteMutability: "Final-Vote Poll" }),
     ]);
     await trendingSweep(ctx, ctx.config, ctx.trendingPublisher);
     page = await openPage(ctx, "index.html");
     const labelsOf = (title: string) => {
       const card = Array.from(page!.document.querySelectorAll('.tab-panel[data-panel="trending"] .card-viewport'))
         .find((el) => el.querySelector(".card-back .question")!.textContent === title)!;
-      return [card.querySelector(".submit-vote-btn")!.textContent, card.querySelector(".btn-vote-sizer")!.textContent];
+      const sizers = (button: string) => Array.from(card.querySelectorAll(`${button} .btn-vote-sizer`)).map((el) => el.textContent);
+      return { label: card.querySelector(".submit-vote-btn .btn-vote-label")!.textContent, front: sizers(".vote-btn"), back: sizers(".submit-vote-btn") };
     };
-    expect(labelsOf("Pick any")).toEqual(["Submit votes", "Submit votes"]);
-    expect(labelsOf("Pick one")).toEqual(["Submit vote", "Submit vote"]);
+    expect(labelsOf("Pick any")).toEqual({ label: "Submit votes", front: ["Submit votes", "Remove vote"], back: ["Submit votes", "Remove vote"] });
+    expect(labelsOf("Pick one")).toEqual({ label: "Submit vote", front: ["Submit vote", ""], back: ["Submit vote", ""] });
   });
 });
 

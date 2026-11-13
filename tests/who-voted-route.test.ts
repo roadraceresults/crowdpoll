@@ -150,6 +150,24 @@ describe("what it lists", () => {
     expect(res.body.voters).toEqual([expect.objectContaining({ name: "Deleted user", choiceIds: ["c2"] })]);
   });
 
+  it("no longer lists a voter who removed their vote, who is then among those not yet voted", async () => {
+    const poll = await seed({ voteMutability: "Dynamic-Vote Poll", invitedVoterList: [viewerEmail, "gone@example.com"] });
+    const gone = await forgeSession(ctx, "gone@example.com");
+    const cast = async (choiceIds: string[], ip: string) => {
+      for (const key of await ctx.cache.scan("floor:*")) await ctx.cache.del(key);
+      const res = await request(ctx.app).post(`/api/polls/${poll._id}/vote`).set("Cookie", gone.cookie).set("X-Forwarded-For", ip).send({ choiceIds });
+      expect(res.status).toBe(200);
+      await ctx.consumer.runOnce();
+    };
+    await cast(["c1"], "10.8.0.1");
+    expect((await voters(poll._id, viewer.cookie)).body.voters).toEqual([expect.objectContaining({ choiceIds: ["c1"] })]);
+    await cast([], "10.8.0.2");
+    expect((await voters(poll._id, viewer.cookie)).body.voters).toEqual([]);
+    const results = await request(ctx.app).get(`/api/admin/polls/${poll._id}/results`).set("Cookie", admin.cookie);
+    expect(results.status).toBe(200);
+    expect(results.body.notYetVoted.map((v: { emailAddress: string }) => v.emailAddress)).toContain("gone@example.com");
+  });
+
   it("sends settleMs only while the live counters count a vote not yet written", async () => {
     const poll = await seed({ currentVotes: [vote("a@example.com", "Ann", ["c1"])] });
     await ctx.cache.hset(COUNTS_KEY(poll._id), { c1: "1", total: "1", seq: "1" });

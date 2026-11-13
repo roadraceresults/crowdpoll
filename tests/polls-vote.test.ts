@@ -172,6 +172,130 @@ describe("POST /api/polls/:pid/vote", () => {
     expect(rows[0]!.choice_ids).toEqual(["c2"]);
   });
 
+  it("removes a Dynamic-Vote vote on an empty selection, refuses a second removal, and lets the voter vote again", async () => {
+    const poll = makePoll({ voteMutability: "Dynamic-Vote Poll" });
+    await polls(ctx).insertOne(poll);
+    const { cookie } = await voter();
+    expect((await vote(poll._id, cookie, ["c1"])).status).toBe(200);
+    for (const key of await ctx.cache.scan("floor:*")) await ctx.cache.del(key);
+    const removed = await vote(poll._id, cookie, []);
+    expect(removed.status).toBe(200);
+    expect(removed.body).toMatchObject({ status: "recorded", voteCount: 0, choiceCounts: { c1: 0 }, myChoiceIds: [] });
+    await drain();
+    const rows = await ctx.db.selectFrom("votes").selectAll().where("poll_id", "=", poll._id).execute();
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.choice_ids).toEqual([]);
+    for (const key of await ctx.cache.scan("floor:*")) await ctx.cache.del(key);
+    const again = await vote(poll._id, cookie, []);
+    expect(again.status).toBe(400);
+    expect(again.body.error).toBe("Select at least one choice.");
+    expect((await readLiveCounts(ctx.cache, [poll._id])).get(poll._id)).toMatchObject({ voteCount: 0, choiceCounts: { c1: 0 } });
+    for (const key of await ctx.cache.scan("floor:*")) await ctx.cache.del(key);
+    const revote = await vote(poll._id, cookie, ["c2"]);
+    expect(revote.status).toBe(200);
+    expect(revote.body).toMatchObject({ voteCount: 1, choiceCounts: { c1: 0, c2: 1 }, myChoiceIds: ["c2"] });
+  });
+
+  it("refuses an empty selection where it removes nothing: a Final-Vote vote, no vote held, an unused invitation", async () => {
+    const finalPoll = makePoll({ voteMutability: "Final-Vote Poll" });
+    await polls(ctx).insertOne(finalPoll);
+    const { cookie } = await voter();
+    expect((await vote(finalPoll._id, cookie, ["c1"])).status).toBe(200);
+    for (const key of await ctx.cache.scan("floor:*")) await ctx.cache.del(key);
+    const finalRemoval = await vote(finalPoll._id, cookie, []);
+    expect(finalRemoval.status).toBe(409);
+    expect(finalRemoval.body.error).toBe("You have already voted on this poll and cannot change your vote.");
+    expect((await readLiveCounts(ctx.cache, [finalPoll._id])).get(finalPoll._id)).toMatchObject({ voteCount: 1, choiceCounts: { c1: 1 }, countsVersion: 1 });
+
+    const dynamicPoll = makePoll({ voteMutability: "Dynamic-Vote Poll" });
+    await polls(ctx).insertOne(dynamicPoll);
+    for (const key of await ctx.cache.scan("floor:*")) await ctx.cache.del(key);
+    const noVote = await vote(dynamicPoll._id, cookie, []);
+    expect(noVote.status).toBe(400);
+    expect(noVote.body.error).toBe("Select at least one choice.");
+
+    const invitation = makePoll({
+      voteMutability: "Dynamic-Vote Poll",
+      pollVisibility: "Private Poll",
+      pollSharingMode: "Invitation Only",
+      invitedVoterList: ["placeholder@example.com"],
+      currentVotes: [{ emailAddress: "placeholder@example.com", userName: "", choiceIds: [], votedAt: null }]
+    });
+    await polls(ctx).insertOne(invitation);
+    const invitee = await voter("placeholder@example.com");
+    const placeholder = await vote(invitation._id, invitee.cookie, []);
+    expect(placeholder.status).toBe(400);
+    expect(placeholder.body.error).toBe("Select at least one choice.");
+  });
+
+  it("puts a removal through the same gates as a vote: the poll's state, the ban, the vote floor and the address cap", async () => {
+    const poll = makePoll({ voteMutability: "Dynamic-Vote Poll" });
+    await polls(ctx).insertOne(poll);
+    const { cookie } = await voter();
+    expect((await vote(poll._id, cookie, ["c1"])).status).toBe(200);
+    const removal = async () => {
+      for (const key of await ctx.cache.scan("floor:*")) await ctx.cache.del(key);
+      return vote(poll._id, cookie, []);
+    };
+    // A poll under edit serves its stashed state; without one it reads as never launched.
+    await polls(ctx).updateOne({ _id: poll._id }, { $set: { pollState: "EDITING", pollStateBeforeEditUpdate: null } });
+    const editing = await removal();
+    expect(editing.status).toBe(409);
+    expect(editing.body).toEqual({ error: "This poll is not open for voting." });
+    await polls(ctx).updateOne({ _id: poll._id }, { $set: { pollState: "CLOSED" } });
+    const closed = await removal();
+    expect(closed.status).toBe(409);
+    expect(closed.body.error).toBe("This poll is not open for voting.");
+    await polls(ctx).updateOne({ _id: poll._id }, { $set: { pollState: "WAITING TO OPEN" } });
+    const waiting = await removal();
+    expect(waiting.status).toBe(409);
+    expect(waiting.body.error).toBe("This poll has not started yet.");
+    expect((await readLiveCounts(ctx.cache, [poll._id])).get(poll._id)).toMatchObject({ voteCount: 1, choiceCounts: { c1: 1 } });
+    await polls(ctx).updateOne({ _id: poll._id }, { $set: { pollState: "EDITING", pollStateBeforeEditUpdate: "OPEN" } });
+    const stashedOpen = await removal();
+    expect(stashedOpen.status).toBe(200);
+    expect(stashedOpen.body).toMatchObject({ voteCount: 0, choiceCounts: { c1: 0 }, myChoiceIds: [] });
+    await polls(ctx).updateOne({ _id: poll._id }, { $set: { pollState: "OPEN", pollStateBeforeEditUpdate: null } });
+    for (const key of await ctx.cache.scan("floor:*")) await ctx.cache.del(key);
+    expect((await vote(poll._id, cookie, ["c1"])).status).toBe(200);
+
+    const bannedPoll = makePoll({ voteMutability: "Dynamic-Vote Poll", bannedVoterList: ["banned-removal@example.com"] });
+    await polls(ctx).insertOne(bannedPoll);
+    const banned = await voter("banned-removal@example.com");
+    for (const key of await ctx.cache.scan("floor:*")) await ctx.cache.del(key);
+    const refused = await vote(bannedPoll._id, banned.cookie, []);
+    expect(refused.status).toBe(403);
+    expect(refused.body.error).toMatch(/removed from this poll/);
+
+    // The removal spends the session's vote floor, so a vote right after it waits.
+    const removed = await removal();
+    expect(removed.status).toBe(200);
+    const tooSoon = await vote(poll._id, cookie, ["c2"]);
+    expect(tooSoon.status).toBe(429);
+    expect(tooSoon.body.retryAfterMs).toBeGreaterThan(0);
+    expect(tooSoon.body.nextRefreshMs).toBe(100);
+  });
+
+  it("counts a removal toward the per-address cap", async () => {
+    const small = await startTestContext({ ENV_MAX_VOTES_PER_IP_PER_MINUTE: "2", ENV_MIN_VOTE_REFRESH_INTERVAL: "1" });
+    try {
+      const poll = makePoll({ voteMutability: "Dynamic-Vote Poll" });
+      await polls(small).insertOne(poll);
+      const { cookie } = await forgeSession(small, "capped-remover@example.com");
+      const send = (choiceIds: string[]) =>
+        request(small.app).post(`/api/polls/${poll._id}/vote`).set("X-Forwarded-For", "203.0.113.78").set("Cookie", cookie).send({ choiceIds });
+      expect((await send(["c1"])).status).toBe(200);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      expect((await send([])).status).toBe(200);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      const capped = await send(["c2"]);
+      expect(capped.status).toBe(429);
+      expect(capped.body.code).toBe("ip-vote-cap");
+    } finally {
+      await small.stop();
+    }
+  });
+
   it("409s a second vote on a Final-Vote Poll, inside the lag window and after it", async () => {
     const poll = makePoll();
     await polls(ctx).insertOne(poll);

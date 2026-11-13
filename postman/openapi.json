@@ -963,7 +963,7 @@
           "myChoiceIds",
           "nextRefreshMs"
         ],
-        "description": "A vote answered at once from the live counts; status is queued while the writers lag past ENV_VOTE_QUEUE_LAG_NOTICE.",
+        "description": "A vote answered at once from the live counts; status is queued while the writers lag past ENV_VOTE_QUEUE_LAG_NOTICE. myChoiceIds is empty after a removal.",
         "properties": {
           "status": {
             "type": "string",
@@ -2720,7 +2720,7 @@
           "polls"
         ],
         "operationId": "submitVote",
-        "summary": "Cast or change a vote — answered at once from the live counts, written by the vote consumer",
+        "summary": "Cast, change or remove a vote — answered at once from the live counts, written by the vote consumer",
         "security": [
           {
             "sessionCookie": []
@@ -2758,10 +2758,11 @@
                 "properties": {
                   "choiceIds": {
                     "type": "array",
+                    "description": "The caller's selection. An empty array removes the caller's vote on an open Dynamic-Vote poll on which they hold one; elsewhere an empty array is refused.",
                     "items": {
                       "type": "string"
                     },
-                    "minItems": 1
+                    "minItems": 0
                   }
                 }
               }
@@ -2780,7 +2781,7 @@
             }
           },
           "400": {
-            "description": "Empty choiceIds, or >1 on a Single-Choice Poll",
+            "description": "Empty choiceIds without a vote to remove, an unknown choice, or >1 on a Single-Choice Poll",
             "content": {
               "application/json": {
                 "schema": {
@@ -2813,7 +2814,7 @@
             }
           },
           "409": {
-            "description": "The poll is not open for voting. The served projection is the gate, whatever route the voter took (011 FR-004). 012 FR-044: when the reason is that the poll is being edited, the body also carries code=POLL_EDITING so the card can offer a retry rather than the closed-poll treatment. EDITING-POLL-AVAILABLE: the projection of an EDITING poll publishes its stashed state, so a poll stashed from OPEN keeps accepting votes and POLL_EDITING is no longer reachable for it through the normal flow; the code remains for the direct validation path.",
+            "description": "The poll is not open for voting. The served projection is the gate, whatever route the voter took (011 FR-004). 012 FR-044: when the reason is that the poll is being edited, the body also carries code=POLL_EDITING so the card can offer a retry rather than the closed-poll treatment. EDITING-POLL-AVAILABLE: the projection of an EDITING poll publishes its stashed state, so a poll stashed from OPEN keeps accepting votes and POLL_EDITING is no longer reachable for it through the normal flow; the code remains for the direct validation path. Also a removal, or a second vote, on a Final-Vote Poll.",
             "content": {
               "application/json": {
                 "schema": {
