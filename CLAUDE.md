@@ -6,21 +6,17 @@ The full description, every earlier feature's decisions and the settings table a
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-`specs/20261112-152622-EXTRACT-ALL-POLLDATA/plan.md` (research R1–R7, `data-model.md` — the history file; the
-contract `contracts/cli.md` and the quickstart live alongside it).
-The requirements report is `requirements/20261112-152622-extract-all-polldata/requirements-report.md`: 9 findings,
-all resolved.
+`specs/20261112-175743-EMAIL-LOGO/plan.md` (research R1–R7, `data-model.md` — three static images, no stored data;
+the contract `contracts/email-logo.md` and the quickstart live alongside it).
+The requirements report is `requirements/20261112-175743-email-logo/requirements-report.md`: 7 findings, all resolved.
 Decisions that are easy to get wrong:
-- **The extraction twin of `populate-all-polls`**: `npm run extract-all-polldata [<directory>]` (default the project
-  root's `polldata`, relative paths from `INIT_CWD`) takes the `.yaml`/`.yml` files directly in the folder, in name
-  order, and calls `runExtractAll([<absolute path>])` in process for each; output stays byte-identical (R1, R5).
-- **Skip by fingerprint**: one SHA-256 over the configuration, its `input_html` and its `input_history`, recorded in
-  the git-ignored `devScripts/extract/extract-all-polldata-history.json` after each success; no fingerprint (bad
-  configuration) means never skipped (R3, R4).
-- **Failures never stop the run**: the last `Error:` line `runExtractAll` prints is captured for the final list;
-  status 1 if any failed (R2).
-- Extraction only, no settings (FR-014). Tweaks: `extract-all` writes `oldest_age_in_days: 365` (TWEAK01);
-  `populate-poll` turns the line graph on when `type` contains "line graph" (TWEAK03).
+- **The email logo comes from `og-logo.svg`, unchanged**: `devScripts/favicon-ico.ts` renders it in a 56 px window at
+  3× (168 × 168); the favicon keeps `favicon.svg`, figures only; no new SVG (R1).
+- **Refusals**: not 168 × 168, not 8-bit RGBA, or an opaque top-left pixel (read with `node:zlib`, no image library)
+  stops the script before writing (R2).
+- **Every email**, through `layout()`: `<img … email-logo.png width="56" height="56">`, same address; the stored
+  expected emails change only in those sizes (R3, R4).
+- `email-logo.png` is also the OAuth consent logo: `provider-setup.md` describes it; uploaded copies stay (R6).
 <!-- SPECKIT END -->
 
 ## Project Overview

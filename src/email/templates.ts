@@ -66,7 +66,7 @@ ${headingLine2}`, ...lead, ...(messageBox ? [messageBox.text] : []), ...rest];
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F4F5F0;"><tr><td align="center" style="padding:24px 12px;">` +
     `<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background:#FFFFFF;border-radius:12px;overflow:hidden;">` +
     `<tr><td style="background:${PRIMARY};padding:16px 24px;">` +
-    `<img src="${escapeHtml(origin)}/email-logo.png" width="48" height="48" alt="CrowdPoll" style="vertical-align:middle;border:0;">` +
+    `<img src="${escapeHtml(origin)}/email-logo.png" width="56" height="56" alt="CrowdPoll" style="vertical-align:middle;border:0;">` +
     `<span style="vertical-align:middle;margin-left:12px;font-family:${FONT};font-size:22px;font-weight:700;color:${ON_PRIMARY};">CrowdPoll</span>` +
     `</td></tr>` +
     `<tr><td style="padding:24px;">` +

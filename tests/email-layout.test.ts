@@ -54,6 +54,15 @@ describe("layout() headingLine2", () => {
   });
 });
 
+describe("layout() header logo", () => {
+  it("shows the hosted logo at 56 × 56 with its alt text", () => {
+    const { html } = layout({ origin: "https://crowdpoll.vote", preheader: "p", heading: "H", paragraphs: ["B"] });
+    expect(html).toContain(
+      '<img src="https://crowdpoll.vote/email-logo.png" width="56" height="56" alt="CrowdPoll" style="vertical-align:middle;border:0;">'
+    );
+  });
+});
+
 describe("layout() messageBox", () => {
   const base = {
     origin: "https://crowdpoll.vote",

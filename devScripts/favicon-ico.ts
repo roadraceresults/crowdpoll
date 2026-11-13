@@ -1,9 +1,9 @@
 /**
  * Renders src/public/favicon.svg at 16, 32 and 48 px with a headless Chromium-based
- * browser and writes them, as PNG images, into src/public/favicon.ico; also writes a 96 px
- * src/public/email-logo.png for the email layout (48 px at 2x: a 96 px window renders blank), and the
- * 1200 × 630 src/public/og-image.png the link previews carry, rendered from src/public/og-logo.svg (the brand
- * logo with its speech bubble, centred on white).
+ * browser and writes them, as PNG images, into src/public/favicon.ico; also writes a 168 px
+ * src/public/email-logo.png for the email layout, rendered from src/public/og-logo.svg (the brand logo with its
+ * speech bubble) at 56 px and 3x on a transparent background, refused when its size is wrong or its background is
+ * not transparent, and the 1200 × 630 src/public/og-image.png the link previews carry, the same logo centred on white.
  * Rerun whenever favicon.svg or og-logo.svg changes; not part of `npm run build`.
  * Usage: npx tsx devScripts/favicon-ico.ts   (FAVICON_BROWSER overrides the Edge path)
  */
@@ -12,12 +12,13 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "no
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { inflateSync } from "node:zlib";
 
 const SIZES = [16, 32, 48];
 const SVG_PATH = path.resolve("src/public/favicon.svg");
 const ICO_PATH = "src/public/favicon.ico";
-const EMAIL_LOGO_SIZE = 48;
-const EMAIL_LOGO_SCALE = 2;
+const EMAIL_LOGO_SIZE = 56;
+const EMAIL_LOGO_SCALE = 3;
 const EMAIL_LOGO_PATH = "src/public/email-logo.png";
 const OG_LOGO_PATH = path.resolve("src/public/og-logo.svg");
 const OG_IMAGE_PATH = "src/public/og-image.png";
@@ -28,10 +29,13 @@ const OG_IMAGE_MAX_BYTES = 300_000;
 const DEFAULT_BROWSER = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
 const ICO_HEADER_BYTES = 6;
 const ICO_ENTRY_BYTES = 16;
+const PNG_SIGNATURE_BYTES = 8;
+const PNG_RGBA_COLOUR_TYPE = 6;
+const FIRST_PIXEL_ALPHA_OFFSET = 4;
 
 class FaviconError extends Error {}
 
-function renderPng(browser: string, workDir: string, size: number, scale = 1): Buffer {
+function renderPng(browser: string, workDir: string, svgPath: string, size: number, scale = 1): Buffer {
   const pngPath = path.join(workDir, `${size}x${scale}.png`);
   try {
     execFileSync(
@@ -45,7 +49,7 @@ function renderPng(browser: string, workDir: string, size: number, scale = 1): B
         `--user-data-dir=${path.join(workDir, "profile")}`,
         `--window-size=${size},${size}`,
         `--screenshot=${pngPath}`,
-        pathToFileURL(SVG_PATH).href,
+        pathToFileURL(svgPath).href,
       ],
       { stdio: "ignore", timeout: 30000 }
     );
@@ -105,6 +109,24 @@ img{height:${OG_IMAGE_FIGURE_HEIGHT}px;width:auto}
   return png;
 }
 
+/** Reads the PNG chunk layout described in https://www.w3.org/TR/png/#5Chunk-layout */
+export function topLeftAlpha(png: Buffer): number {
+  const bitDepth = png.readUInt8(24);
+  const colourType = png.readUInt8(25);
+  if (bitDepth !== 8 || colourType !== PNG_RGBA_COLOUR_TYPE) {
+    throw new FaviconError("The email logo is not an 8-bit RGBA PNG");
+  }
+  const imageData: Buffer[] = [];
+  for (let offset = PNG_SIGNATURE_BYTES; offset < png.length; ) {
+    const length = png.readUInt32BE(offset);
+    const type = png.toString("ascii", offset + 4, offset + 8);
+    if (type === "IDAT") imageData.push(png.subarray(offset + 8, offset + 8 + length));
+    offset += 12 + length;
+  }
+  const scanlines = inflateSync(Buffer.concat(imageData));
+  return scanlines[FIRST_PIXEL_ALPHA_OFFSET];
+}
+
 function buildIco(pngs: Buffer[]): Buffer {
   const header = Buffer.alloc(ICO_HEADER_BYTES + ICO_ENTRY_BYTES * pngs.length);
   header.writeUInt16LE(0, 0);
@@ -133,10 +155,11 @@ function main(): void {
   }
   const workDir = mkdtempSync(path.join(tmpdir(), "favicon-"));
   try {
-    const ico = buildIco(SIZES.map((size) => renderPng(browser, workDir, size)));
+    const ico = buildIco(SIZES.map((size) => renderPng(browser, workDir, SVG_PATH, size)));
     writeFileSync(ICO_PATH, ico);
     console.log(`[favicon] wrote ${ICO_PATH} (${SIZES.join(", ")} px, ${ico.length} bytes)`);
-    const logo = renderPng(browser, workDir, EMAIL_LOGO_SIZE, EMAIL_LOGO_SCALE);
+    const logo = renderPng(browser, workDir, OG_LOGO_PATH, EMAIL_LOGO_SIZE, EMAIL_LOGO_SCALE);
+    if (topLeftAlpha(logo) !== 0) throw new FaviconError("The email logo's background is not transparent");
     writeFileSync(EMAIL_LOGO_PATH, logo);
     console.log(`[favicon] wrote ${EMAIL_LOGO_PATH} (${EMAIL_LOGO_SIZE * EMAIL_LOGO_SCALE} px, ${logo.length} bytes)`);
     const ogImage = renderOgImage(browser, workDir);
