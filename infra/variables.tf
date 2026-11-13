@@ -151,7 +151,8 @@ variable "valkey_size" {
   default = "db-s-1vcpu-1gb"
 }
 
-# Addresses outside the app allowed to reach PostgreSQL (e.g. a developer's machine); set in secrets.auto.tfvars.
+# Addresses outside the app allowed to reach PostgreSQL and Valkey (e.g. a developer's machine, for
+# devScripts/populate-prod.ps1); set in secrets.auto.tfvars.
 
 variable "database_trusted_ips" {
   type    = list(string)

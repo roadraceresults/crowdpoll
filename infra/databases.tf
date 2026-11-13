@@ -1,5 +1,5 @@
 # The managed clusters keep today's names; the app attaches them by name (app.tf) and only the app may connect,
-# plus, for PostgreSQL, the addresses in database_trusted_ips (the git-ignored secrets.auto.tfvars).
+# plus the addresses in database_trusted_ips (the git-ignored secrets.auto.tfvars), on both clusters.
 
 resource "digitalocean_database_cluster" "pg" {
   name       = "db-pgsql-tor1-crowdpoll"
@@ -42,5 +42,13 @@ resource "digitalocean_database_firewall" "valkey" {
   rule {
     type  = "app"
     value = digitalocean_app.crowdpoll.id
+  }
+
+  dynamic "rule" {
+    for_each = var.database_trusted_ips
+    content {
+      type  = "ip_addr"
+      value = rule.value
+    }
   }
 }
