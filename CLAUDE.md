@@ -43,6 +43,24 @@ Decisions that are easy to get wrong:
   plot clears it (R6).
 - **One highlight**, drawn last and wider; dimming is CSS under `.has-highlight`; it is cleared when its line leaves
   the drawn set; nothing is stored (R5).
+
+And the plan merged after it (branch `admin-search`):
+`specs/20261113-102117-ADMIN-SEARCH-RESULTS/plan.md` (research R1–R13, `data-model.md` — the states of a result row,
+nothing stored; the contract `contracts/ui.md` U1–U9 and the quickstart live alongside it).
+The requirements report is `requirements/20261113-102117-admin-search-results/requirements-report.md`: 9 findings, all
+resolved.
+Decisions that are easy to get wrong:
+- **Search view only, client only**: `adminList.js` draws one `div.admin-result` (a disclosure `<button>` and a panel)
+  per poll; the other views and the creator-only page keep cards; `adminCard.js`, the route and `openapi.json` do not
+  change (R1, R3).
+- **A card exists only while its row is open**: created on open, forgotten on close unless it holds saved wizard
+  progress; one `openPid` (R5).
+- **Only a fresh load opens by itself**: `selectTab` (Search, Clear, a view tab) closes the open card and opens a
+  single result; the periodic refresh and card actions never open, close or move a card, and the editing poll's row is
+  never removed (R6, R8).
+- **Held during an edit**: every row, Search and Clear are `disabled` with "Finish editing the open poll first" (R7).
+- **The list is wider than the 420 px column**: `min(840px, 100%)`, one card-like frame (`admin.css`) of two-line, zebra-striped rows; the
+  card keeps 420 px (R2).
 <!-- SPECKIT END -->
 
 ## Project Overview

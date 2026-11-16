@@ -24,7 +24,15 @@ async function openAdmin(
   options: { as?: string; storage?: Record<string, string>; beforeScripts?: (window: BrowserPage["window"]) => void } = {}
 ): Promise<BrowserPage> {
   const session = options.as ?? cookie;
-  const page = await openPage(ctx, "admin.html", { cookie: session, scripts: SCRIPTS, sessionStorage: options.storage, beforeScripts: options.beforeScripts });
+  const page = await openPage(ctx, "admin.html", {
+    cookie: session,
+    scripts: SCRIPTS,
+    sessionStorage: options.storage,
+    beforeScripts: (window) => {
+      window.HTMLElement.prototype.scrollIntoView = () => {};
+      options.beforeScripts?.(window);
+    }
+  });
   await page.settle(100);
   return page;
 }
@@ -465,6 +473,420 @@ describe("collapsing the search panel", () => {
       page.close();
     } finally {
       await fast.stop();
+    }
+  });
+});
+
+const results = (p: BrowserPage) => Array.from(p.document.querySelectorAll<HTMLElement>("#pollList .admin-result"));
+const openResults = (p: BrowserPage) => Array.from(p.document.querySelectorAll<HTMLElement>("#pollList .admin-result--open"));
+const rowOf = (p: BrowserPage, title: string) =>
+  Array.from(p.document.querySelectorAll<HTMLButtonElement>("#pollList .admin-result-row")).find(
+    (row) => row.querySelector(".admin-result-title")!.textContent === title
+  )!;
+const resultOf = (p: BrowserPage, title: string) => rowOf(p, title).closest<HTMLElement>(".admin-result")!;
+const cardIn = (result: HTMLElement) => result.querySelector<HTMLElement>(".admin-result-panel > .poll-admin-card");
+const HELD = "Finish editing the open poll first";
+
+async function search(p: BrowserPage, values: Record<string, string>) {
+  await p.click(searchTab);
+  for (const [name, value] of Object.entries(values)) type(p, name, value);
+  await p.submitForm("#adminSearchForm", {});
+  await p.settle(300);
+}
+
+async function clickRow(p: BrowserPage, title: string) {
+  rowOf(p, title).click();
+  await p.settle(100);
+}
+
+const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000);
+
+async function seedKettles() {
+  await polls(ctx).deleteMany({});
+  await polls(ctx).insertMany([
+    makePoll({ title: "Kettle one", pollState: "OPEN", createdAt: daysAgo(1) }),
+    makePoll({ title: "Kettle two", pollState: "CLOSED", createdAt: daysAgo(2) }),
+    makePoll({ title: "Kettle three", pollState: "OPEN", createdAt: daysAgo(3) })
+  ]);
+}
+
+describe("the search results list", () => {
+  it("draws one compact row per poll, in the search's order, with the six facts and no card", async () => {
+    await polls(ctx).deleteMany({});
+    const owner = await forgeSession(ctx, "row-owner@example.com");
+    const named = makePoll({ title: "Kettle with a name", pollState: "OPEN", createdAt: daysAgo(1) });
+    const emailOnly = makePoll({ title: "", subtitle: "kettle spare", pollState: "CLOSED", pollVisibility: "Private Poll", createdAt: daysAgo(2) });
+    const ownerless = makePoll({ title: "Kettle alone", pollState: "OPEN", createdAt: daysAgo(3) });
+    await polls(ctx).insertMany([named, emailOnly, ownerless]);
+    await ctx.db.updateTable("polls").set({ created_by_id: owner.userId, created_by_name: "Olive Owner", vote_count: 1204 }).where("id", "=", named._id).execute();
+    await ctx.db.updateTable("polls").set({ created_by_id: owner.userId, vote_count: 1 }).where("id", "=", emailOnly._id).execute();
+    const page = await openAdmin();
+    await search(page, { q: "kettle" });
+
+    const list = page.document.getElementById("pollList")!;
+    expect(Array.from(list.children).map((child) => [child.tagName, child.className, (child as HTMLElement).dataset.pid])).toEqual([
+      ["DIV", "admin-result", named._id],
+      ["DIV", "admin-result", emailOnly._id],
+      ["DIV", "admin-result", ownerless._id]
+    ]);
+    expect(list.querySelector(".poll-admin-card")).toBeNull();
+
+    for (const result of results(page)) {
+      const [row, panel] = Array.from(result.children) as [HTMLButtonElement, HTMLElement];
+      expect([row.tagName, row.className, row.type, row.hasAttribute("tabindex")]).toEqual(["BUTTON", "admin-result-row", "button", false]);
+      expect([panel.tagName, panel.className, panel.hidden, panel.children.length]).toEqual(["DIV", "admin-result-panel", true, 0]);
+      expect(row.getAttribute("aria-controls")).toBe(panel.id);
+      expect(row.getAttribute("aria-expanded")).toBe("false");
+      const classes = (parent: Element) => Array.from(parent.children).map((child) => child.getAttribute("class"));
+      expect(classes(row)).toEqual(["admin-result-main", "admin-result-chevron"]);
+      expect(classes(row.firstElementChild!)).toEqual(["admin-result-heading", "admin-result-facts"]);
+      expect(classes(row.querySelector(".admin-result-heading")!)).toEqual(["admin-result-title", "admin-result-subtitle"]);
+      expect(classes(row.querySelector(".admin-result-facts")!)).toEqual([
+        "admin-result-visibility", "admin-result-state", "admin-result-creator", "admin-result-voters"
+      ]);
+      expect(row.lastElementChild!.getAttribute("aria-hidden")).toBe("true");
+    }
+
+    const date = (poll: { createdAt: Date }) => poll.createdAt.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+    const cells = (result: HTMLElement) =>
+      Array.from(result.querySelectorAll(".admin-result-heading > span, .admin-result-facts > span")).map((cell) => cell.textContent);
+    expect(results(page).map(cells)).toEqual([
+      ["Kettle with a name", "", "Public", "Poll state: OPEN", `Created by: Olive Owner on ${date(named)}`, (1204).toLocaleString() + " voters"],
+      ["(untitled)", "kettle spare", "Private (shared link)", "Poll state: CLOSED", `Created by: row-owner@example.com on ${date(emailOnly)}`, "1 voter"],
+      ["Kettle alone", "", "Public", "Poll state: OPEN", `Created on ${date(ownerless)}`, "0 voters"]
+    ]);
+    expect(results(page).map((result) => result.querySelector(".admin-result-row")!.getAttribute("title"))).toEqual(["Kettle with a name", "(untitled)", "Kettle alone"]);
+  });
+
+  it("keeps full cards, and no rows, in the Newest view", async () => {
+    await seedKettles();
+    const page = await openAdmin();
+    const list = page.document.getElementById("pollList")!;
+    expect(Array.from(list.children).every((child) => child.classList.contains("poll-admin-card"))).toBe(true);
+    expect(list.children.length).toBe(3);
+    expect(results(page)).toEqual([]);
+  });
+
+  it("opens a row's card under it, closes it on a second click, and keeps one card open at a time", async () => {
+    await seedKettles();
+    const page = await openAdmin();
+    await search(page, { q: "kettle" });
+    expect(openResults(page)).toEqual([]);
+
+    rowOf(page, "Kettle two").focus();
+    await clickRow(page, "Kettle two");
+    const two = resultOf(page, "Kettle two");
+    expect(openResults(page)).toEqual([two]);
+    expect(rowOf(page, "Kettle two").getAttribute("aria-expanded")).toBe("true");
+    expect(two.querySelector<HTMLElement>(".admin-result-panel")!.hidden).toBe(false);
+    expect(two.querySelector(".admin-result-panel")!.children.length).toBe(1);
+    expect(cardIn(two)!.dataset.pid).toBe(two.dataset.pid);
+    expect(page.document.querySelectorAll("#pollList .poll-admin-card").length).toBe(1);
+    expect(page.document.activeElement).toBe(rowOf(page, "Kettle two"));
+    expect(two.firstElementChild).toBe(rowOf(page, "Kettle two"));
+
+    await clickRow(page, "Kettle three");
+    expect(openResults(page)).toEqual([resultOf(page, "Kettle three")]);
+    expect(cardIn(two)).toBeNull();
+    expect(two.querySelector<HTMLElement>(".admin-result-panel")!.hidden).toBe(true);
+    expect(rowOf(page, "Kettle two").getAttribute("aria-expanded")).toBe("false");
+
+    await clickRow(page, "Kettle three");
+    expect(openResults(page)).toEqual([]);
+    expect(page.document.querySelector("#pollList .poll-admin-card")).toBeNull();
+    expect(results(page).length).toBe(3);
+  });
+
+  it("shows the same card as the other views: its read-only face, from which the wizard opens", async () => {
+    await seedKettles();
+    const page = await openAdmin();
+    await search(page, { q: "kettle" });
+    await clickRow(page, "Kettle one");
+    const card = cardIn(resultOf(page, "Kettle one"))!;
+    expect(card.querySelector(".card-readonly")).not.toBeNull();
+    expect(card.querySelector(".card-state-buttons")).not.toBeNull();
+    card.querySelector<HTMLElement>(".card-readonly .wizard-summary-link")!.click();
+    await page.settle(100);
+    expect(cardIn(resultOf(page, "Kettle one"))!.classList.contains("poll-admin-card--new")).toBe(true);
+  });
+
+  it("asks for a poll's invitees only when its row is opened", async () => {
+    await polls(ctx).deleteMany({});
+    const invited = makePoll({ title: "Kettle by invitation", pollState: "OPEN", pollVisibility: "Private Poll", pollSharingMode: "Invitation Only" });
+    await polls(ctx).insertMany([invited, makePoll({ title: "Kettle for all", pollState: "OPEN", createdAt: daysAgo(1) })]);
+    const page = await openAdmin();
+    const inviteeRequests = () => page.requests.filter((r) => r.url.startsWith(`/api/admin/polls/${invited._id}/invitees`)).length;
+    await page.click(searchTab);
+    const before = inviteeRequests();
+    await search(page, { q: "kettle" });
+    expect(results(page).length).toBe(2);
+    expect(inviteeRequests()).toBe(before);
+    expect(resultOf(page, "Kettle by invitation").querySelector(".admin-result-visibility")!.textContent).toBe("Private (invitation)");
+    await clickRow(page, "Kettle by invitation");
+    expect(inviteeRequests()).toBeGreaterThan(before);
+  });
+
+  it("draws a single result open, and every row closed after any other search the administrator runs", async () => {
+    await seedKettles();
+    const page = await openAdmin();
+    await search(page, { q: "kettle", state: "CLOSED" });
+    expect(results(page).length).toBe(1);
+    expect(openResults(page)).toEqual([resultOf(page, "Kettle two")]);
+    expect(cardIn(resultOf(page, "Kettle two"))).not.toBeNull();
+
+    await search(page, { state: "" });
+    expect(results(page).length).toBe(3);
+    expect(openResults(page)).toEqual([]);
+    expect(page.document.querySelector("#pollList .poll-admin-card")).toBeNull();
+
+    await clickRow(page, "Kettle one");
+    await page.submitForm("#adminSearchForm", {});
+    await page.settle(300);
+    expect(openResults(page)).toEqual([]);
+  });
+
+  it("shows the last search like a fresh one on returning to the Search view", async () => {
+    await seedKettles();
+    const page = await openAdmin();
+    await search(page, { q: "kettle" });
+    await clickRow(page, "Kettle one");
+    await page.click('#adminTabBar .tab[data-tab="newest"]');
+    await page.settle(200);
+    expect(results(page)).toEqual([]);
+    expect(page.document.querySelectorAll("#pollList > .poll-admin-card").length).toBe(3);
+    await page.click(searchTab);
+    await page.settle(200);
+    expect(results(page).length).toBe(3);
+    expect(openResults(page)).toEqual([]);
+
+    await search(page, { state: "CLOSED" });
+    await clickRow(page, "Kettle two");
+    expect(openResults(page)).toEqual([]);
+    await page.click('#adminTabBar .tab[data-tab="newest"]');
+    await page.settle(200);
+    await page.click(searchTab);
+    await page.settle(200);
+    expect(openResults(page)).toEqual([resultOf(page, "Kettle two")]);
+  });
+
+  it("empties the list and hides the notice on Clear", async () => {
+    await seedKettles();
+    const page = await openAdmin();
+    await search(page, { q: "kettle" });
+    await clickRow(page, "Kettle one");
+    await page.click("#adminSearchClear");
+    await page.settle(200);
+    expect(page.document.getElementById("pollList")!.children.length).toBe(0);
+    expect(page.document.getElementById("adminSearchNotice")!.hidden).toBe(true);
+  });
+
+  it("collapses the search panel once rows are on screen", async () => {
+    await seedKettles();
+    const page = await openAdmin();
+    await search(page, { q: "kettle" });
+    expect(results(page).length).toBe(3);
+    expect(form(page).hasAttribute("data-collapsed")).toBe(true);
+  });
+});
+
+describe("the results list while a card is being edited", () => {
+  const heldControls = (p: BrowserPage) => [
+    ...Array.from(p.document.querySelectorAll<HTMLButtonElement>("#pollList .admin-result-row")),
+    form(p).querySelector<HTMLButtonElement>(".admin-search-btn")!,
+    p.document.getElementById("adminSearchClear") as HTMLButtonElement
+  ];
+
+  async function startEditing(p: BrowserPage, title: string) {
+    await clickRow(p, title);
+    cardIn(resultOf(p, title))!.querySelector<HTMLElement>(".card-readonly .wizard-summary-link")!.click();
+    await p.settle(150);
+    expect(p.document.querySelector(".poll-admin-card--new")).not.toBeNull();
+  }
+
+  it("holds every row, Search and Clear, and releases them when the edit is cancelled", async () => {
+    await seedKettles();
+    const page = await openAdmin();
+    await search(page, { q: "kettle" });
+    await startEditing(page, "Kettle one");
+    const editing = page.document.querySelector<HTMLElement>(".admin-result--open")!;
+
+    expect(heldControls(page).length).toBe(5);
+    for (const control of heldControls(page)) {
+      expect(control.disabled).toBe(true);
+      expect(control.getAttribute("title")).toBe(HELD);
+    }
+
+    const other = results(page).find((result) => result !== editing)!;
+    other.querySelector<HTMLButtonElement>(".admin-result-row")!.click();
+    editing.querySelector<HTMLButtonElement>(".admin-result-row")!.click();
+    await page.settle(100);
+    expect(openResults(page)).toEqual([editing]);
+    expect(cardIn(editing)!.classList.contains("poll-admin-card--new")).toBe(true);
+
+    const searches = () => page.requests.filter((r) => r.url.startsWith("/api/admin/polls/search?")).length;
+    const before = searches();
+    await page.submitForm("#adminSearchForm", {});
+    await page.click("#adminSearchClear");
+    await page.settle(200);
+    expect(searches()).toBe(before);
+    expect(results(page).length).toBe(3);
+
+    const cancel = Array.from(cardIn(editing)!.querySelectorAll<HTMLButtonElement>(".wizard-footer button")).find((b) => b.textContent === "Cancel")!;
+    cancel.click();
+    await page.settle(300);
+    expect(page.document.querySelector(".poll-admin-card--new")).toBeNull();
+    for (const control of heldControls(page)) expect(control.disabled).toBe(false);
+    expect(Array.from(page.document.querySelectorAll("#pollList .admin-result-row")).map((row) => row.getAttribute("title")).sort()).toEqual(["Kettle one", "Kettle three", "Kettle two"]);
+    expect(form(page).querySelector<HTMLButtonElement>(".admin-search-btn")!.title).toBe("");
+    expect((page.document.getElementById("adminSearchClear") as HTMLButtonElement).title).toBe("");
+    expect(openResults(page)).toEqual([editing]);
+    expect(cardIn(editing)).not.toBeNull();
+  });
+});
+
+describe("the results list on a refresh", () => {
+  let fast: TestContext;
+  let fastCookie: string;
+
+  beforeAll(async () => {
+    fast = await startTestContext({ ENV_ADMINS: ADMIN, ENV_POLL_ADMIN_PAGE_REFRESH_INTERVAL: "300" });
+    fastCookie = (await forgeSession(fast, ADMIN)).cookie;
+  });
+  afterAll(async () => {
+    await fast.stop();
+  });
+
+  async function openFast(seeded: ReturnType<typeof makePoll>[]) {
+    await polls(fast).deleteMany({});
+    await polls(fast).insertMany(seeded);
+    const page = await openPage(fast, "admin.html", {
+      cookie: fastCookie,
+      scripts: SCRIPTS,
+      beforeScripts: (window) => {
+        window.HTMLElement.prototype.scrollIntoView = () => {};
+      }
+    });
+    await page.settle(100);
+    return page;
+  }
+  const setRow = (pid: string, values: { poll_state?: string; vote_count?: number }) =>
+    fast.db.updateTable("polls").set(values).where("id", "=", pid).execute();
+
+  it("updates rows in place and leaves the open card, the focus and the other rows alone", async () => {
+    const one = makePoll({ title: "Kettle one", pollState: "OPEN", createdAt: daysAgo(1) });
+    const two = makePoll({ title: "Kettle two", pollState: "OPEN", createdAt: daysAgo(2) });
+    const page = await openFast([one, two]);
+    await search(page, { state: "OPEN" });
+    await clickRow(page, "Kettle one");
+    const nodes = results(page);
+    const card = cardIn(nodes[0]!)!;
+    const row = nodes[0]!.querySelector<HTMLButtonElement>(".admin-result-row")!;
+    row.focus();
+
+    await setRow(two._id, { vote_count: 7 });
+    await setRow(one._id, { vote_count: 3 });
+    await page.settle(900);
+    expect(results(page)).toEqual(nodes);
+    expect(nodes[1]!.querySelector(".admin-result-voters")!.textContent).toBe("7 voters");
+    expect(nodes[0]!.querySelector(".admin-result-voters")!.textContent).toBe("3 voters");
+    expect(openResults(page)).toEqual([nodes[0]]);
+    expect(cardIn(nodes[0]!)).toBe(card);
+    expect(page.document.activeElement).toBe(row);
+    expect(page.document.getElementById("adminSearchNotice")!.textContent).toBe("2 polls match.");
+    page.close();
+  });
+
+  it("removes a poll that stops matching, adds a new match closed in its place, and never opens one", async () => {
+    const one = makePoll({ title: "Kettle one", pollState: "OPEN", createdAt: daysAgo(1) });
+    const two = makePoll({ title: "Kettle two", pollState: "OPEN", createdAt: daysAgo(2) });
+    const page = await openFast([one, two]);
+    await search(page, { state: "OPEN" });
+    await clickRow(page, "Kettle two");
+
+    await setRow(two._id, { poll_state: "CLOSED" });
+    await page.settle(900);
+    expect(results(page).map((result) => result.dataset.pid)).toEqual([one._id]);
+    expect(openResults(page)).toEqual([]);
+    expect(page.document.querySelector("#pollList .poll-admin-card")).toBeNull();
+    expect(page.document.getElementById("adminSearchNotice")!.textContent).toBe("1 poll matches.");
+
+    const newest = makePoll({ title: "Kettle newest", pollState: "OPEN" });
+    await polls(fast).insertOne(newest);
+    await page.settle(900);
+    expect(results(page).map((result) => result.dataset.pid)).toEqual([newest._id, one._id]);
+    expect(openResults(page)).toEqual([]);
+    page.close();
+  });
+
+  it("does not reopen a single result the administrator closed", async () => {
+    const page = await openFast([makePoll({ title: "Kettle only", pollState: "OPEN" })]);
+    await search(page, { state: "OPEN" });
+    expect(openResults(page).length).toBe(1);
+    await clickRow(page, "Kettle only");
+    expect(openResults(page)).toEqual([]);
+    await page.settle(900);
+    expect(openResults(page)).toEqual([]);
+    page.close();
+  });
+
+  it("keeps the row and card of the poll being edited, and draws new rows held", async () => {
+    const one = makePoll({ title: "Kettle one", pollState: "OPEN", createdAt: daysAgo(1) });
+    const two = makePoll({ title: "Kettle two", pollState: "OPEN", createdAt: daysAgo(2) });
+    const page = await openFast([one, two]);
+    await search(page, { state: "OPEN" });
+    await clickRow(page, "Kettle two");
+    const editing = resultOf(page, "Kettle two");
+    cardIn(editing)!.querySelector<HTMLElement>(".card-readonly .wizard-summary-link")!.click();
+    await page.settle(150);
+    const card = cardIn(editing)!;
+    expect(card.classList.contains("poll-admin-card--new")).toBe(true);
+
+    await setRow(two._id, { poll_state: "CLOSED" });
+    const newest = makePoll({ title: "Kettle newest", pollState: "OPEN" });
+    await polls(fast).insertOne(newest);
+    await page.settle(900);
+    expect(results(page).length).toBe(3);
+    expect(results(page)).toContain(editing);
+    expect(openResults(page)).toEqual([editing]);
+    expect(cardIn(editing)).toBe(card);
+    expect(card.classList.contains("poll-admin-card--new")).toBe(true);
+    const added = rowOf(page, "Kettle newest");
+    expect(added.disabled).toBe(true);
+    expect(added.getAttribute("title")).toBe(HELD);
+    page.close();
+  });
+});
+
+describe("the count of matching polls", () => {
+  const notice = (p: BrowserPage) => p.document.getElementById("adminSearchNotice") as HTMLElement;
+
+  it("says how many polls match, in the Search view only", async () => {
+    await seedKettles();
+    const page = await openAdmin();
+    expect(notice(page).textContent).toBe("");
+    await search(page, { q: "kettle" });
+    expect(notice(page).textContent).toBe("3 polls match.");
+    expect(notice(page).hidden).toBe(false);
+    await search(page, { state: "CLOSED" });
+    expect(notice(page).textContent).toBe("1 poll matches.");
+    await page.click('#adminTabBar .tab[data-tab="rejected"]');
+    await page.settle(200);
+    expect(notice(page).textContent).toBe("No rejected polls.");
+  });
+
+  it("keeps the cut-off sentence when more polls match than are shown", async () => {
+    const capped = await startTestContext({ ENV_ADMINS: ADMIN, ENV_POLL_ADMIN_PAGE_REFRESH_INTERVAL: "60000", ENV_MAX_POLLS_ADMIN_SEARCH_RESULTS: "1" });
+    try {
+      const adminCookie = (await forgeSession(capped, ADMIN)).cookie;
+      await polls(capped).insertMany([makePoll({ title: "Kettle one" }), makePoll({ title: "Kettle two" })]);
+      const page = await openPage(capped, "admin.html", { cookie: adminCookie, scripts: SCRIPTS });
+      await page.settle(100);
+      await search(page, { q: "kettle" });
+      expect(notice(page).textContent).toBe("More polls match than are shown. Narrow the search.");
+      expect(results(page).length).toBe(1);
+      page.close();
+    } finally {
+      await capped.stop();
     }
   });
 });

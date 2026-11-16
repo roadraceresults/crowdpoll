@@ -168,6 +168,30 @@
   margin: 0 auto;
 }
 
+.admin-card-list:has(> .admin-result) {
+  gap: 0;
+  width: min(840px, 100%);
+  margin: 0 auto;
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+}
+
+.admin-result + .admin-result {
+  border-top: 1px solid var(--line);
+}
+
+.admin-result:first-child {
+  border-top-left-radius: 19px;
+  border-top-right-radius: 19px;
+}
+
+.admin-result:last-child {
+  border-bottom-left-radius: 19px;
+  border-bottom-right-radius: 19px;
+}
+
 .card-status-line {
   margin: 0 0 10px;
   padding: 8px 10px;
