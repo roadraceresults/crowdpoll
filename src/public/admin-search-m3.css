@@ -79,10 +79,6 @@
   max-width:100%;
   box-sizing:border-box;
 }
-@media (max-width: 319.98px){
-  .admin-search .admin-field-pair{ grid-template-columns:minmax(0, 1fr); }
-}
-
 /* ---------- 3. Actions: a text button and a filled button ---------- */
 .admin-search .admin-search-actions{
   display:flex;
@@ -146,9 +142,6 @@
   max-width:100%;
   box-sizing:border-box;
 }
-@media (max-width: 359.98px){
-  .admin-search .admin-radio-group{ grid-template-columns:minmax(0, 1fr); }
-}
 .admin-search .admin-radio{
   display:flex;
   align-items:center;
@@ -208,9 +201,6 @@
   min-width:0;
   max-width:100%;
   box-sizing:border-box;
-}
-@media (max-width: 359.98px){
-  .admin-search .admin-checkbox-row{ grid-template-columns:minmax(0, 1fr); }
 }
 .admin-search .admin-checkbox{
   display:flex;

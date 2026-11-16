@@ -36,7 +36,10 @@ const LAYER_ORDER = [
   "legal-m3.css",
   "footer-m3.css",
   "line-graph-m3.css",
-  "who-voted-m3.css"
+  "who-voted-m3.css",
+  "phone-m3.css",
+  "phone-card-m3.css",
+  "phone-admin-m3.css"
 ];
 
 interface PageAssets {
@@ -49,67 +52,62 @@ const PAGES: Record<string, PageAssets> = {
   "index.html": {
     sheets: ["tabs.css", "pollCard.css", "site.css"],
     scripts: ["app.js", "headerFit.js", "fixedChrome.js", "addChoiceDialog.js", "pollCard.js", "deviceEvidence.js", "voteClient.js", "deltaClient.js", "lineGraph.js", "whoVoted.js", "tabs.js", "trending.js", "newest.js", "searchTab.js", "liveResults.js", "tabBarScroll.js", "tabBarScrollArrows.js", "backToTopFab.js"],
-    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "back-arrow-m3.css", "tabs-modal-m3.css", "add-choice-m3.css", "live-idle-prompt-m3.css", "empty-tab-line-m3.css", "pollCard-m3.css", "single-column-m3.css", "tab-bar-scroll-arrows-m3.css", "snackbar-m3.css", "footer-m3.css", "line-graph-m3.css", "who-voted-m3.css"]
+    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "back-arrow-m3.css", "tabs-modal-m3.css", "add-choice-m3.css", "live-idle-prompt-m3.css", "empty-tab-line-m3.css", "pollCard-m3.css", "single-column-m3.css", "tab-bar-scroll-arrows-m3.css", "snackbar-m3.css", "footer-m3.css", "line-graph-m3.css", "who-voted-m3.css", "phone-m3.css", "phone-card-m3.css"]
   },
   "profile.html": {
     sheets: ["tabs.css", "pollCard.css", "site.css"],
     scripts: ["app.js", "headerFit.js", "fixedChrome.js", "backArrow.js", "deviceEvidence.js", "cardShell.js", "profileCard.js", "backToTopFab.js"],
-    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "card-shell-m3.css", "profile-editor-m3.css", "footer-m3.css"]
+    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "card-shell-m3.css", "profile-editor-m3.css", "footer-m3.css", "phone-m3.css"]
   },
   "settings.html": {
     sheets: ["tabs.css", "pollCard.css", "site.css"],
     scripts: ["app.js", "headerFit.js", "fixedChrome.js", "deviceEvidence.js", "cardShell.js", "settingsCard.js", "backToTopFab.js"],
-    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "card-shell-m3.css", "profile-editor-m3.css", "site-settings-m3.css", "footer-m3.css"]
+    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "card-shell-m3.css", "profile-editor-m3.css", "site-settings-m3.css", "footer-m3.css", "phone-m3.css"]
   },
   "login.html": {
     sheets: ["tabs.css", "pollCard.css", "site.css"],
     scripts: ["app.js", "headerFit.js", "fixedChrome.js", "cardShell.js", "humanCheck.js", "loginCard.js", "backToTopFab.js"],
-    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "card-shell-m3.css", "human-check-m3.css", "footer-m3.css"]
+    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "card-shell-m3.css", "human-check-m3.css", "footer-m3.css", "phone-m3.css"]
   },
   "create-account.html": {
     sheets: ["tabs.css", "pollCard.css", "site.css"],
     scripts: ["app.js", "headerFit.js", "fixedChrome.js", "cardShell.js", "humanCheck.js", "createAccountCard.js", "backToTopFab.js"],
-    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "card-shell-m3.css", "human-check-m3.css", "footer-m3.css"]
+    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "card-shell-m3.css", "human-check-m3.css", "footer-m3.css", "phone-m3.css"]
   },
   "confirm-signin.html": {
     sheets: ["tabs.css", "pollCard.css", "site.css"],
     scripts: ["app.js", "headerFit.js", "fixedChrome.js", "cardShell.js", "confirmSigninCard.js", "backToTopFab.js"],
-    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "card-shell-m3.css", "footer-m3.css"]
+    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "card-shell-m3.css", "footer-m3.css", "phone-m3.css"]
   },
   "invite.html": {
     sheets: ["tabs.css", "pollCard.css", "site.css"],
     scripts: ["app.js", "headerFit.js", "fixedChrome.js", "cardShell.js", "humanCheck.js", "inviteCard.js", "backToTopFab.js"],
-    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "card-shell-m3.css", "human-check-m3.css", "footer-m3.css"]
+    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "card-shell-m3.css", "human-check-m3.css", "footer-m3.css", "phone-m3.css"]
   },
   "not-authorized.html": {
     sheets: ["tabs.css", "pollCard.css", "site.css"],
     scripts: ["app.js", "headerFit.js", "fixedChrome.js", "cardShell.js", "notAuthorizedCard.js", "backToTopFab.js"],
-    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "card-shell-m3.css", "footer-m3.css"]
+    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "card-shell-m3.css", "footer-m3.css", "phone-m3.css"]
   },
   "privacy.html": {
     sheets: ["tabs.css", "pollCard.css", "site.css"],
     scripts: ["app.js", "headerFit.js", "fixedChrome.js", "backArrow.js", "backToTopFab.js"],
-    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "back-arrow-m3.css", "legal-m3.css", "footer-m3.css"]
+    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "back-arrow-m3.css", "legal-m3.css", "footer-m3.css", "phone-m3.css"]
   },
   "terms.html": {
     sheets: ["tabs.css", "pollCard.css", "site.css"],
     scripts: ["app.js", "headerFit.js", "fixedChrome.js", "backArrow.js", "backToTopFab.js"],
-    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "back-arrow-m3.css", "legal-m3.css", "footer-m3.css"]
+    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "back-arrow-m3.css", "legal-m3.css", "footer-m3.css", "phone-m3.css"]
   },
   "accept-terms.html": {
     sheets: ["tabs.css", "pollCard.css", "site.css"],
     scripts: ["app.js", "headerFit.js", "fixedChrome.js", "cardShell.js", "acceptTermsCard.js", "backToTopFab.js"],
-    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "card-shell-m3.css", "footer-m3.css"]
+    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "card-shell-m3.css", "footer-m3.css", "phone-m3.css"]
   },
   "admin.html": {
     sheets: ["styles.css", "tabs.css", "pollCard.css", "admin.css", "site.css"],
     scripts: ["app.js", "headerFit.js", "fixedChrome.js", "backArrow.js", "notesEditor.js", "deviceEvidence.js", "adminCard.js", "adminList.js", "backToTopFab.js"],
-    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "back-arrow-m3.css", "tabs-modal-m3.css", "discard-dialog-m3.css", "admin-card-m3.css", "admin-search-m3.css", "snackbar-m3.css", "footer-m3.css"]
-  },
-  "admin-results.html": {
-    sheets: ["styles.css", "tabs.css", "pollCard.css", "admin.css", "site.css"],
-    scripts: ["app.js", "headerFit.js", "fixedChrome.js", "deviceEvidence.js", "adminResults.js", "backToTopFab.js"],
-    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "footer-m3.css"]
+    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "back-arrow-m3.css", "tabs-modal-m3.css", "discard-dialog-m3.css", "admin-card-m3.css", "admin-search-m3.css", "snackbar-m3.css", "footer-m3.css", "phone-m3.css", "phone-admin-m3.css"]
   }
 };
 
@@ -322,7 +320,7 @@ describe("Material 3 page assets", () => {
     for (const selector of selectors) expect(selector).toContain(":not(.card-shell-viewport)");
   });
 
-  it("has no Tab Bar on the six pages other than the home page, so the fixed-chrome sheet's .tab-bar-wrap rule never applies there", () => {
+  it("has no Tab Bar on the eleven pages other than the home page, so the fixed-chrome sheet's .tab-bar-wrap rule never applies there", () => {
     for (const file of Object.keys(PAGES)) {
       if (file === "index.html") continue;
       expect(read(file), file).not.toContain("tab-bar-wrap");

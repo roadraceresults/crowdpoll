@@ -256,5 +256,5 @@
     section.hidden = false;
   }
 
-  window.WhoVoted = { show: show, hide: hide };
+  window.WhoVoted = { show: show, hide: hide, qualifies: qualifies };
 })();

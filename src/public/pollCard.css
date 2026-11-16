@@ -598,11 +598,6 @@ body.card-demo-page .page-decor{
   margin:0;
 }
 
-/* ---------- Responsive rules ---------- */
-@media (max-width:479.98px){
-  .card-face{ padding:16px 20px 14px; border-radius:18px; }
-}
-
 /* A poll not published yet: who shared it, and nothing else. */
 .card-viewport.is-placeholder .results-scroll-wrap,
 .card-viewport.is-placeholder .actions,

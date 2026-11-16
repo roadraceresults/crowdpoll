@@ -22,6 +22,12 @@ function mediaBlock(css: string, condition: string): string {
 
 const compact = (text: string) => text.replace(/\s+/g, " ");
 
+/** Whether the phone layout's sheet puts the selector's items in one column. */
+function phoneStacks(selector: string): boolean {
+  const rules = [...read("phone-admin-m3.css").matchAll(/([^{}]+)\{([^{}]*)\}/g)];
+  return rules.some(([, selectors, body]) => selectors!.includes(selector) && /grid-template-columns:\s*minmax\(0, ?1fr\)\s*(;|$)/.test(body!.trim()));
+}
+
 describe("the search panel shares the poll cards' geometry", () => {
   const css = read("admin.css");
 
@@ -42,9 +48,7 @@ describe("the search panel shares the poll cards' geometry", () => {
     }
   });
 
-  it("gives both selectors the narrow-screen corners and padding", () => {
-    const corners = compact(mediaBlock(css, "(max-width: 479.98px)"));
-    expect(corners).toMatch(/\.poll-admin-card,\s*\.admin-search\s*\{[^}]*border-radius: 18px/);
+  it("gives both selectors the narrow-screen padding", () => {
     const padding = compact(mediaBlock(css, "(max-width: 639.98px)"));
     expect(padding).toMatch(/\.poll-admin-card,\s*\.admin-search\s*\{[^}]*padding: 14px/);
   });
@@ -92,8 +96,8 @@ describe("the search panel's Material 3 layer", () => {
     expect(rule(".admin-search .admin-field-pair{")).toContain("grid-template-columns:minmax(0, 1fr) minmax(0, 1fr)");
   });
 
-  it("stacks an operator and its value under 320px", () => {
-    expect(compact(mediaBlock(css, "(max-width: 319.98px)")).replace(/:\s+/g, ":")).toContain("grid-template-columns:minmax(0, 1fr)");
+  it("stacks an operator and its value in the phone layout", () => {
+    expect(phoneStacks(".admin-field-pair")).toBe(true);
   });
 
   it("declares no literal font size and no dark-scheme block", () => {
@@ -111,9 +115,9 @@ describe("the radio groups", () => {
     return compact(css.slice(css.indexOf("{", at) + 1, css.indexOf("}", at))).replace(/:\s+/g, ":");
   };
 
-  it("lays each group out as three options in a row, stacking on a very narrow panel", () => {
+  it("lays each group out as three options in a row, stacking in the phone layout", () => {
     expect(rule(".admin-search .admin-radio-group{")).toContain("grid-template-columns:repeat(3, minmax(0, 1fr))");
-    expect(compact(mediaBlock(css, "(max-width: 359.98px)")).replace(/:\s+/g, ":")).toContain("grid-template-columns:minmax(0, 1fr)");
+    expect(phoneStacks(".admin-radio-group")).toBe(true);
   });
 
   it("makes every option at least 48px tall and may shrink inside the panel", () => {

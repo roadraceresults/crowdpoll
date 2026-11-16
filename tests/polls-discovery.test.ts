@@ -180,7 +180,7 @@ describe("the custom email message stays with the creator", () => {
     return text.includes("Zebra") || text.includes("invitationMessage") || text.includes("linkPreviewMessage");
   };
 
-  it("is in no card, tab, live, listing, page or export answer, only in the creator's admin detail", async () => {
+  it("is in no card, tab, live, listing or page answer, only in the creator's admin detail", async () => {
     const invite = makePoll({
       _id: randomUUID(), title: "Invite", pollVisibility: "Private Poll", pollSharingMode: "Invitation Only",
       invitedVoterList: [INVITEE], invitationMessage: SECRET, linkPreviewMessage: LINK_SECRET
@@ -198,9 +198,7 @@ describe("the custom email message stays with the creator", () => {
       () => request(ctx.app).post("/api/tabs/watching/refresh").set("Cookie", inviteeCookie).send({}),
       () => request(ctx.app).post(`/api/live/${invite._id}`).set("Cookie", inviteeCookie).send({}),
       () => request(ctx.app).get(`/poll/${pub._id}`),
-      () => request(ctx.app).get("/api/admin/polls").set("Cookie", adminCookie),
-      () => request(ctx.app).get(`/api/admin/polls/${invite._id}/export.json`).set("Cookie", adminCookie),
-      () => request(ctx.app).get(`/api/admin/polls/${invite._id}/export.md`).set("Cookie", adminCookie)
+      () => request(ctx.app).get("/api/admin/polls").set("Cookie", adminCookie)
     ];
     for (const ask of asks) {
       for (const key of await ctx.cache.scan("floor:*")) await ctx.cache.del(key);

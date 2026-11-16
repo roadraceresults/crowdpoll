@@ -55,6 +55,13 @@ describe("the footer's Delete Account link", () => {
     expect(item(page).querySelector("a")!.getAttribute("href")).toBe("/profile#delete-account");
     expect(page.document.querySelector(".site-footer nav")!.textContent).toBe("Privacy Policy · Terms of Service · Cookie Use · Delete Account");
   });
+
+  it("puts every separator dot in its own element, so the phone layout can size it", async () => {
+    page = await openPage(ctx, "index.html", { scripts: ["app.js"] });
+    const dots = Array.from(page.document.querySelectorAll(".site-footer .site-footer-dot"));
+    expect(dots.map((dot) => dot.textContent)).toEqual(["·", "·", "·", "·"]);
+    expect(page.document.querySelector(".site-footer p")!.textContent).toBe("Privacy: privacy@crowdpoll.vote · Other questions: support@crowdpoll.vote");
+  });
 });
 
 describe("the footer's look (C1, TWEAKS07)", () => {

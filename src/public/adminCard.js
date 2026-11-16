@@ -353,16 +353,6 @@
     return btn;
   }
 
-  function iconLink(symbol, label, href, enabled) {
-    if (!enabled) return iconButton(symbol, label, false, null);
-    const a = el("a", "admin-icon-btn");
-    a.href = href;
-    a.title = label;
-    a.setAttribute("aria-label", label);
-    a.appendChild(svgIcon(symbol));
-    return a;
-  }
-
   function menuItem(text, label, onSelect) {
     const btn = el("button", null, text);
     btn.type = "button";
@@ -370,14 +360,6 @@
     btn.setAttribute("aria-label", label);
     btn.addEventListener("click", onSelect);
     return btn;
-  }
-
-  function menuLink(text, label, href) {
-    const a = el("a", null, text);
-    a.href = href;
-    a.setAttribute("role", "menuitem");
-    a.setAttribute("aria-label", label);
-    return a;
   }
 
   function readOnlyField(labelText, value, extraClass) {
@@ -2488,9 +2470,7 @@
       menu.hidden = true;
       menu.append(
         menuItem("Duplicate Poll", "Duplicate poll: " + current.title, () => deps.onDuplicate(current)),
-        menuItem("Copy Poll Link", "Copy link to poll: " + current.title, () => deps.onCopyLink(current)),
-        menuLink("View Results", "View results for poll: " + current.title,
-                 "/admin/poll/results?PID=" + encodeURIComponent(current.pid))
+        menuItem("Copy Poll Link", "Copy link to poll: " + current.title, () => deps.onCopyLink(current))
       );
       if (current.canRescreen) {
         menu.append(menuItem("Re-attempt Screening", "Re-attempt screening for poll: " + current.title,
@@ -2540,8 +2520,6 @@
       icons.append(
         iconButton("icon-copy", "Duplicate poll: " + current.title, true, () => deps.onDuplicate(current)),
         iconButton("icon-link", "Copy link to poll: " + current.title, true, () => deps.onCopyLink(current)),
-        iconLink("icon-results", "View results for poll: " + current.title,
-                 "/admin/poll/results?PID=" + encodeURIComponent(current.pid), true),
         iconButton("icon-trash", "Delete poll: " + current.title, current.canDelete, () => deps.onDelete(current))
       );
       const menu = buildActionsMenu();

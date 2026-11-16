@@ -302,7 +302,7 @@ describe("site.css fill boundary (009 FR-012)", () => {
  */
 describe("Admin list icons are self-hosted SVG symbols (012 FR-039)", () => {
   // No pen: the Settings Summary's links open the editor.
-  const SYMBOLS = ["icon-copy", "icon-link", "icon-results", "icon-trash"];
+  const SYMBOLS = ["icon-copy", "icon-link", "icon-trash"];
 
   // admin.html is served behind the admin gate rather than as a static file, so the
   // markup is read from disk — the same way the other page-shape tests read it.
@@ -335,39 +335,12 @@ describe("Admin list icons are self-hosted SVG symbols (012 FR-039)", () => {
     // control reached out of visual context is unambiguous. The icon and the menu
     // item build their label from the same expression, so the two affordances
     // cannot describe the same action differently.
-    for (const label of ["Duplicate poll: ", "Copy link to poll: ", "View results for poll: ", "Delete poll: "]) {
+    for (const label of ["Duplicate poll: ", "Copy link to poll: ", "Delete poll: "]) {
       expect(script.text, label).toContain(`"${label}"`);
     }
     expect(script.text).toMatch(/btn\.title = label/);
     expect(script.text).toMatch(/setAttribute\("aria-label", label\)/);
   });
-});
-
-/**
- * 012 regression guard — the radio-group width collision found in manual validation.
- *
- * `admin.css` has a long-standing rule, `.admin-field textarea, .admin-field input,
- * .admin-field select { width: 100% }`, written for text boxes. The mechanics radio
- * groups are `.admin-field` elements too, so every radio inherited `width: 100%`,
- * stretched across the row, and squeezed its label into a one-character column —
- * each option rendered as a vertical stack of single letters.
- *
- * The fix is an explicit reset on the radio, not a narrowing of the shared rule,
- * which other fields depend on. These assertions exist because the failure is
- * invisible to every server-side test and to `tsc`: the markup and the script were
- * both correct, and only the rendered result was wrong.
- */
-describe("Mechanics radio groups survive the shared .admin-field rules (012 FR-005)", () => {
-  const css = readFileSync("src/public/admin.css", "utf8");
-
-  it("still has the shared full-width rule the radios must opt out of", () => {
-    // The admin search form's fields still rely on it.
-    expect(css).toMatch(/\.admin-field input[^{]*\{[^}]*width:\s*100%/);
-  });
-
-  // "resets the radio's width" and "never breaks option labels mid-word": retired.
-  // The admin card's editing face was replaced by the wizard; its radio groups and
-  // their rules went with it.
 });
 
 // Save and Publish availability is decided in one place (012 FR-012): retired.

@@ -169,8 +169,87 @@
     return cardEl.querySelector((flipped ? ".card-back" : ".card-front") + " .maximize-btn");
   }
 
-  function closeMaximized(options) {
-    if (maximized) maximized.grid.restore(options);
+  /*
+    A view opened from a card is one step of the browser's history, at the same address, so the
+    browser's Back closes it. Every other way of closing it takes that step back.
+  */
+  let droppingStep = false;
+  let addressAfterDrop = "";
+
+  function hasMaximizedStep() {
+    return Boolean(history.state && history.state.maximizedPid);
+  }
+
+  function stateWithoutStep() {
+    const state = Object.assign({}, history.state);
+    delete state.maximizedPid;
+    return state;
+  }
+
+  function setMaximizedStep(pid, replace) {
+    const state = Object.assign({}, history.state, { maximizedPid: pid });
+    if (replace) history.replaceState(state, "");
+    else history.pushState(state, "");
+  }
+
+  /* Deferred, so the address a tab change or a search writes in the same turn is carried over to the step left standing. */
+  function dropMaximizedStep() {
+    if (droppingStep || !hasMaximizedStep()) return;
+    droppingStep = true;
+    setTimeout(() => {
+      addressAfterDrop = location.href;
+      history.back();
+    }, 0);
+  }
+
+  function onHistoryStep() {
+    if (droppingStep) {
+      droppingStep = false;
+      history.replaceState(history.state, "", addressAfterDrop);
+      return;
+    }
+    const pid = history.state && history.state.maximizedPid;
+    if (!pid) {
+      if (maximized) maximized.grid.restore({ viaHistory: true });
+      return;
+    }
+    if (maximized && maximized.pid === pid) return;
+    const grid = controllers[activeTab] && controllers[activeTab].grid;
+    if (grid && grid.cardOf(pid)) grid.maximize(pid, { viaHistory: true });
+    else history.replaceState(stateWithoutStep(), "");
+  }
+
+  function closeMaximized(options = {}) {
+    if (!maximized) return;
+    if (hasMaximizedStep() && !options.quiet && !droppingStep) history.back();
+    else maximized.grid.restore(options);
+  }
+
+  // ---- The Submit bar: Back and Submit kept on screen while voting in a maximized card in the phone layout ----
+
+  function maximizedCard() {
+    return maximized ? maximized.grid.cardOf(maximized.pid) : null;
+  }
+
+  function syncVoteBar() {
+    const bar = document.getElementById("voteBar");
+    if (!bar) return;
+    const card = maximizedCard();
+    const shown = Boolean(card) && card.element.querySelector(".card-flip").classList.contains("is-flipped") && window.PollCard.isPhoneLayout();
+    bar.hidden = !shown;
+    document.documentElement.classList.toggle("vote-bar-shown", shown);
+    if (!shown) return;
+    const cardSubmit = card.element.querySelector(".submit-vote-btn");
+    const submit = bar.querySelector(".vote-bar-submit");
+    submit.textContent = cardSubmit.querySelector(".btn-vote-label").textContent;
+    submit.disabled = cardSubmit.disabled;
+    submit.hidden = cardSubmit.hidden;
+    bar.querySelector(".vote-bar-count").textContent = card.element.querySelectorAll(".voting-list > .vote-row.is-selected").length + " selected";
+  }
+
+  function clickInMaximizedCard(selector) {
+    const card = maximizedCard();
+    if (card) card.element.querySelector(selector).click();
   }
 
   function setBackArrowShown(shown) {
@@ -189,6 +268,7 @@
     let notesShown = null;
     let votersShown = null;
     let pinnedPid = null;
+    let extraShown = null;
     const opts = Object.assign(
       {
         isSignedIn: isSignedIn,
@@ -196,8 +276,10 @@
         onChoicesAdded: (pid, answer) => applyAddedChoices(cardOpts.tab, pid, answer),
         onLive: (pid) => { if (window.LiveResults) window.LiveResults.addPoll(pid); },
         onBookmark: (pid, bookmarked) => toggleBookmark(pid, bookmarked),
-        onMaximize: (pid) => maximize(pid),
-        onMinimize: () => restore(),
+        onMaximize: (pid, how) => maximize(pid, Object.assign({ fromCard: true }, how)),
+        onMinimize: () => closeMaximized(),
+        onFace: syncVoteBar,
+        onSelection: syncVoteBar,
         choiceBounds: {
           minChoices: (config && config.minChoices) || 2,
           maxChoices: (config && config.maxChoices) || 50,
@@ -225,6 +307,7 @@
         } else if (!changed || changed.has(pid)) {
           card.applyPoll(detail);
         }
+        syncExtras(pid, detail);
         syncLineGraph(pid, card, detail);
         syncNotes(pid, detail);
         syncVoters(pid, detail);
@@ -259,33 +342,84 @@
         const template = document.getElementById("maximizedCardGrid");
         if (!template) return null;
         maximizedEl = template.content.firstElementChild.cloneNode(true);
+        maximizedEl.querySelectorAll(".extras-tab").forEach((tab) => {
+          const content = maximizedEl.querySelector(".maximized-" + tab.dataset.extra);
+          content.id = "maximized-" + tab.dataset.extra + "-" + cardOpts.tab;
+          tab.setAttribute("aria-controls", content.id);
+          tab.addEventListener("click", () => showExtra(tab.dataset.extra));
+        });
         gridEl.after(maximizedEl);
       }
       return maximizedEl;
     }
 
-    function maximize(pid) {
+    function maximize(pid, how = {}) {
       const card = mounted.get(pid);
       if (!card || maximizedPid === pid) return;
-      closeMaximized({ quiet: true });
+      const stepHeld = Boolean(maximized) && hasMaximizedStep();
+      if (maximized) maximized.grid.restore({ quiet: true, keepStep: true });
       const view = maximizedView();
       if (!view) return;
+      if (how.fromCard) setMaximizedStep(pid, stepHeld);
+      else if (stepHeld && !how.viaHistory) dropMaximizedStep();
+      extraShown = how.open || null;
       returnScrollY = window.scrollY;
       maximizedPid = pid;
       gridEl.hidden = true;
       view.hidden = false;
       setBackArrowShown(true);
       view.insertBefore(card.element, view.querySelector(".col-rule"));
-      card.setMaximized(true);
+      card.setMaximized(true, { choices: how.choices });
       const top = gridEl.parentNode.getBoundingClientRect().top;
       const fixedChromeHeight = window.FixedChrome ? window.FixedChrome.height() : 0;
       if (top < fixedChromeHeight) window.scrollTo(0, window.scrollY + top - fixedChromeHeight);
       maximized = { grid: api, pid: pid };
       const detail = card.detail();
-      if (detail && detail.lineGraphEnabled) mountLineGraph(pid, card, detail);
+      if (how.face === "vote") card.showVoteFace();
+      syncExtras(pid, detail);
+      syncLineGraph(pid, card, detail);
       syncNotes(pid, detail);
       syncVoters(pid, detail);
+      syncVoteBar();
       shownMaximizeButton(card.element).focus();
+    }
+
+    /* In the phone layout the extras share a tab bar, one shown at a time, and the Who voted report and the graph are asked for when theirs is first shown. */
+    function extraDeferred(extra) {
+      return window.PollCard.isPhoneLayout() && extraShown !== extra;
+    }
+
+    /* The tab shown is the one asked for while the poll has it, else the leftmost the poll has. */
+    function syncExtras(pid, detail) {
+      if (pid !== maximizedPid || !detail) return;
+      const has = {
+        notes: Boolean(detail.notesPreviewHtml),
+        voters: Boolean(window.WhoVoted?.qualifies?.(detail)),
+        graph: Boolean(detail.lineGraphEnabled)
+      };
+      const tabs = Array.from(maximizedEl.querySelectorAll(".extras-tab"));
+      if (!has[extraShown]) {
+        const first = tabs.find((tab) => has[tab.dataset.extra]);
+        extraShown = first ? first.dataset.extra : null;
+      }
+      tabs.forEach((tab) => {
+        const shown = tab.dataset.extra === extraShown;
+        if (has[tab.dataset.extra]) tab.removeAttribute("aria-disabled");
+        else tab.setAttribute("aria-disabled", "true");
+        tab.classList.toggle("is-active", shown);
+        tab.setAttribute("aria-selected", String(shown));
+      });
+      maximizedEl.querySelector(".maximized-space-right").dataset.shown = extraShown || "";
+    }
+
+    function showExtra(extra) {
+      const card = mounted.get(maximizedPid);
+      const detail = card && card.detail();
+      if (!detail || maximizedEl.querySelector('.extras-tab[data-extra="' + extra + '"]').getAttribute("aria-disabled") === "true") return;
+      extraShown = extra;
+      syncExtras(maximizedPid, detail);
+      syncLineGraph(maximizedPid, card, detail);
+      syncVoters(maximizedPid, detail);
     }
 
     // The graph is drawn only while the poll's setting is on. A setting switched on while the
@@ -302,7 +436,7 @@
     }
 
     function syncLineGraph(pid, card, detail) {
-      if (pid !== maximizedPid || graphPid === pid || !detail.lineGraphEnabled) return;
+      if (pid !== maximizedPid || graphPid === pid || !detail || !detail.lineGraphEnabled || extraDeferred("graph")) return;
       mountLineGraph(pid, card, detail);
     }
 
@@ -329,7 +463,7 @@
     }
 
     function syncVoters(pid, detail) {
-      if (pid !== maximizedPid || !detail) return;
+      if (pid !== maximizedPid || !detail || extraDeferred("voters")) return;
       if (votersShown && votersShown.pid === pid && votersShown.countsVersion === detail.countsVersion &&
           votersShown.contentVersion === detail.contentVersion) return;
       votersShown = { pid: pid, countsVersion: detail.countsVersion, contentVersion: detail.contentVersion };
@@ -373,6 +507,9 @@
       }
       retainedDetail = null;
       pinnedPid = null;
+      if (window.PollCard.isPhoneLayout()) mounted.forEach((held) => held.render());
+      syncVoteBar();
+      if (!options.viaHistory && !options.keepStep) dropMaximizedStep();
       if (options.quiet) return;
       window.scrollTo(0, returnScrollY);
       if (leftTheTab) setTimeout(focusTabStart, 0);
@@ -423,6 +560,7 @@
       }
       retainedDetail = next;
       mounted.get(pid).applyPoll(next);
+      syncExtras(pid, next);
       syncVoters(pid, next);
     }
 
@@ -444,6 +582,7 @@
       const detail = window.DeltaClient.toPollDetail(state, pid);
       if (!card || !detail) return;
       card.applyPoll(detail);
+      syncExtras(pid, detail);
       syncVoters(pid, detail);
     }
 
@@ -1292,6 +1431,10 @@
       });
     }
     applyGuestState();
+    if (hasMaximizedStep()) history.replaceState(stateWithoutStep(), "");
+    window.addEventListener("popstate", onHistoryStep);
+    document.querySelector("#voteBar .vote-bar-back")?.addEventListener("click", () => clickInMaximizedCard(".back-btn"));
+    document.querySelector("#voteBar .vote-bar-submit")?.addEventListener("click", () => clickInMaximizedCard(".submit-vote-btn"));
     document.querySelector("#maximizedBack .maximized-back")?.addEventListener("click", () => closeMaximized());
     document.addEventListener("keydown", (event) => {
       if (event.key !== "Escape" || !maximized) return;

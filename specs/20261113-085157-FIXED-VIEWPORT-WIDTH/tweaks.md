@@ -28,7 +28,6 @@ To properly review this we need to view it on phones.
 Is there any possible way to do this while it is running on the local development server?
 
 ### RECOMMENDATION
-
 Yes.  
 What was found in the code:
 
@@ -487,4 +486,5 @@ Single recommendation, applied.
 ## TWEAK08 <short title here>
 [ ] Resolved
 [ ] Run Tests
-tweak requirements...
+
+ 

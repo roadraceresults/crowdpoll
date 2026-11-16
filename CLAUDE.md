@@ -6,22 +6,28 @@ The full description, every earlier feature's decisions and the settings table a
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-`specs/20261113-085157-FIXED-VIEWPORT-WIDTH/plan.md` (research R1–R9, `data-model.md` — the two viewport states,
-nothing stored; the contract `contracts/viewport.md` V1–V5 and the quickstart, which is the trial's checklist, live
-alongside it).
-The requirements report is `requirements/20261113-085157-fixed-viewport-width/requirements-report.md`: 9 findings, all
-resolved.
+`specs/20261113-140600-PHONE-LAYOUT-REDESIGN/plan.md` (research R1–R15, `data-model.md` — `essentialChoices`, the
+card's view state and the history key, nothing stored; the contracts `contracts/phone-layout.md` P1–P6,
+`contracts/poll-card.md` C1–C5 and H1–H6, `contracts/removed-results.md` X1–X4 and the quickstart, which is the device
+checklist, live alongside it).
+The requirements report is `requirements/20261113-140600-phone-layout-redesign/requirements-report.md`: 14 findings,
+all resolved; its design section predates three of them, so `requirements.md` and the spec are right where they differ.
 Decisions that are easy to get wrong:
-- **The static meta line never changes**: `viewportWidth.js`, a synchronous script on the line after `colorScheme.js`
-  in all 13 pages, rewrites its content to `width=480` alone (no `initial-scale`, nothing that limits zoom) (R1, R3).
-- **The screen as held decides, not the window or the viewport's shape**: the shorter screen side in portrait, the
-  longer in landscape, orientation from `screen.orientation` (else `window.orientation`); strictly below 480 is fixed
-  (R2). The `(orientation: …)` media query is wrong here: the on-screen keyboard flips it.
-- **Decided again** on `resize`, `pageshow` and the orientation change, writing only when the decision changes (R4).
-- **`text-size-adjust: 100%`** is set on the root by the script while fixed, and removed otherwise (R5).
-- **No sheet, breakpoint, existing script or setting changes**: at 480 px a phone in portrait gets the `639.98px` phone
-  layout as designed, and the 480, 360 and 320 px rules are not reached (R6). The trial began at 640 px. It is a trial;
-  `quickstart.md` §6 records the outcome.
+- **The phone layout is `@media (max-width: 480px)` only**: three last-loaded layers (`phone-m3.css`,
+  `phone-card-m3.css`, `phone-admin-m3.css`) override the old `639.98px` phone rules, which stay for 481–639 px; the
+  480, 360 and 320 px blocks are deleted; nothing changes at 481 px and wider except Back (R1, R12).
+- **Sizes come from the tokens**: typescale × 1.25 in `m3-tokens.css` under the same query, `label-small` held at
+  15 px; no phone rule multiplies a token down; 64 px targets are a transparent halo on 48 px controls or 64 px rows
+  (R2, R3).
+- **Scripts ask `PollCard.isPhoneLayout()`** (`matchMedia("(max-width: 480px)")`), not a CSS marker; `--single-column`
+  stays for 481–639 px (R4).
+- **`essentialChoices`**: four leaders (all if ≤ 5) on the card, ten (all if ≤ 12) maximized, of which only those above 2%
+  (above 0% if ≤ 12) when any is (TWEAK05, on trial), own choices added after the leaders; the combined share shows on single-choice polls only; the voting side always lists every choice (R5).
+- **Vote with hidden choices opens the maximized view on its voting side**; the Submit bar only clicks the card's own
+  buttons (R7, R9).
+- **Back**: a view opened from a card pushes `{maximizedPid}` at the same address, at every width; every other way of
+  closing calls `history.back()`; a link landing pushes nothing (R10).
+- **Poll Results is gone** with its three API routes and `exportPoll*`; `computeResults` stays (R13).
 <!-- SPECKIT END -->
 
 ## Project Overview

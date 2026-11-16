@@ -218,6 +218,8 @@
     min-width:min(375px, 100%);
     align-self:flex-start;
   }
+  .extras-tabs,
+  .vote-bar{ display:none; }
 
   /* ---------- Responsive rules ---------- */
   /* Header-related responsive rules (site-header, header-actions, btn-header-*,

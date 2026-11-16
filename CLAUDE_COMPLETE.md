@@ -5,6 +5,47 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261113-140600-PHONE-LAYOUT-REDESIGN/plan.md` (research R1–R15, `data-model.md` — `essentialChoices`, the
+card's view state and the history key, nothing stored; the contracts `contracts/phone-layout.md` P1–P6,
+`contracts/poll-card.md` C1–C5 and H1–H6, `contracts/removed-results.md` X1–X4 and the quickstart, which is the device
+checklist, live alongside it).
+The requirements report is `requirements/20261113-140600-phone-layout-redesign/requirements-report.md`: 14 findings,
+all resolved; its design section predates three of them, so `requirements.md` and the spec are right where they differ.
+Decisions that are easy to get wrong:
+- **The phone layout is `@media (max-width: 480px)` only**: three last-loaded layers (`phone-m3.css`,
+  `phone-card-m3.css`, `phone-admin-m3.css`) override the old `639.98px` phone rules, which stay for 481–639 px; the
+  480, 360 and 320 px blocks are deleted, with the wizard's 292 px floor; nothing changes at 481 px and wider except
+  Back (R1, R12). `.page` is at least 480 px wide.
+- **Sizes come from the tokens**: typescale × 1.25 in `m3-tokens.css` under the same query, `label-small` held at
+  15 px; no phone rule multiplies a token down; 64 px targets are a transparent `::after` halo (`inset:-8px`) on 48 px
+  controls or 64 px rows (R2, R3). The home tab bar's tabs are 64 px rows (56 px was planned), and the row under the
+  bar is 64 px (R11). Sizes are layout pixels at the 480 px layout width.
+- **Scripts ask `PollCard.isPhoneLayout()`** (`matchMedia("(max-width: 480px)")`), not a CSS marker; `--single-column`
+  stays for 481–639 px (R4).
+- **`essentialChoices`**: four leaders (all if ≤ 5) on the card, ten (all if ≤ 12) maximized, of which only those above 2%
+  (above 0% if ≤ 12) when any is (TWEAK05, on trial), own choices added after the leaders; the combined share shows on single-choice polls only; the voting side always lists every choice (R5).
+- **Rows are marked `is-phone` and sized by the sheet**: `phoneBarLayout()` gives 44 px bars 8 px apart and 64 px
+  voting rows; the script writes no font size on a phone row, `phone-card-m3.css` sets it from `label-large`. The
+  maximized view uses the same sizes in the phone layout, not `maximizedBarLayout` (R6).
+- **Vote with hidden choices opens the maximized view on its voting side** (`onMaximize(pid, { face: "vote" })`, then
+  `showVoteFace()`); such a card builds no ballot on its back until it is turned (R6, R7). The Submit bar (`#voteBar`)
+  only clicks the card's own `.back-btn` and `.submit-vote-btn` and copies Submit's label and disabled state; it
+  leaves Add Choice in the card, hides the card's own Back and Submit and the Back-to-top button, and sits at
+  `bottom: var(--cookie-banner-offset, 0px)` (R9).
+- **The maximized view's extras share a tab bar in the phone layout** (`.extras-tabs` of `button.extras-tab`: Read More,
+  Polling History, Who Voted; one section shown, the leftmost available by default, a missing one `aria-disabled`); the
+  voters report and the graph are asked for when their tab is first shown, at once above 480 px. The
+  face turned away is `position:absolute`, so the card is as tall as the side showing; the 0.7 s rotation is kept for
+  the maximized flip, with `perspective-origin` held near the top of the card (R8).
+- **Back**: a view opened from a card pushes `{maximizedPid}` at the same address, at every width; every other way of
+  closing calls `history.back()`; a link landing pushes nothing (R10). A close that is not the browser's Back or an
+  on-screen control (a tab change, a search, a login change) drops the step on the next turn of the event loop, and
+  the `popstate` listener carries the address written in that turn over to the step it lands on. A step still in the
+  state on load is cleared with `replaceState`, not reopened. Tab changes still use `replaceState` only.
+- **Poll Results is gone** with its three API routes and `exportPoll*`; `computeResults` stays (R13). `src/public/`
+  holds 12 pages; the four removed addresses answer `404` for every caller (`tests/removed-results.test.ts`).
+No migration, setting, cookie, storage key or dependency; three new stylesheets, one page and three routes removed.
+The preceding feature is
 `specs/20261113-085157-FIXED-VIEWPORT-WIDTH/plan.md` (research R1–R9, `data-model.md` — the two viewport states,
 nothing stored; the contract `contracts/viewport.md` V1–V5 and the quickstart, which is the trial's checklist, live
 alongside it).
@@ -12,14 +53,16 @@ The requirements report is `requirements/20261113-085157-fixed-viewport-width/re
 resolved.
 Decisions that are easy to get wrong:
 - **The static meta line never changes**: `viewportWidth.js`, a synchronous script on the line after `colorScheme.js`
-  in all 13 pages, rewrites its content to `width=480` alone (no `initial-scale`, nothing that limits zoom) (R1, R3).
+  in every page (13 then, 12 now), rewrites its content to `width=480` alone (no `initial-scale`, nothing that limits
+  zoom) (R1, R3).
 - **The screen as held decides, not the window or the viewport's shape**: the shorter screen side in portrait, the
   longer in landscape, orientation from `screen.orientation` (else `window.orientation`); strictly below 480 is fixed
   (R2). The `(orientation: …)` media query is wrong here: the on-screen keyboard flips it.
 - **Decided again** on `resize`, `pageshow` and the orientation change, writing only when the decision changes (R4).
 - **`text-size-adjust: 100%`** is set on the root by the script while fixed, and removed otherwise (R5).
-- **No sheet, breakpoint, existing script or setting changes**: at 480 px a phone in portrait gets the `639.98px` phone
-  layout as designed, and the 480, 360 and 320 px rules are not reached (R6). The trial began at 640 px. It is a trial;
+- **No sheet, breakpoint, existing script or setting changes**: at 480 px a phone in portrait got the `639.98px` phone
+  layout as designed, and the 480, 360 and 320 px rules were not reached (R6); the phone layout redesign above has
+  since given that width its own layout and deleted those rules. The trial began at 640 px. It is a trial;
   `quickstart.md` §6 records the outcome.
 The preceding features, two merged together, are
 `specs/20261112-173151-REMOVE-VOTE/plan.md` (research R1–R10, `data-model.md` — the states of a vote row and the
@@ -217,8 +260,8 @@ The requirements report is `requirements/20261110-160141-invitation-custom-messa
 and 9 findings, all resolved.
 Decisions that are easy to get wrong:
 - **Admin-only**: `invitationMessage` is in `NON_CONTENT_FIELDS` and only on the admin detail (with
-  `invitationMessageHtml`); never in projections, card, tab, delta, admin list (which has only the boolean `hasInvitationMessage`), SEO,
-  exports or `search` (R1, R2, TWEAK02).
+  `invitationMessageHtml`); never in projections, card, tab, delta, admin list (which has only the boolean `hasInvitationMessage`), SEO
+  or `search` (R1, R2, TWEAK02).
 - **Reviewed like notes**: screened with them (`ScreeningInput.invitationMessage`; the verdict then names the "custom
   email message"), and on an ever-voted published poll held in `pending_update`; emails read only the approved column (R4).
 - **HTML only via `renderNotesHtml`**, passed from `sender.ts` as `messageBox` after the first paragraph; text part
@@ -1014,7 +1057,7 @@ validation guide live alongside it in `specs/029-MANUAL-BAR-COLORS/`). The archi
 - **The picker has no palette in the stylesheet**: swatches take their colour from an inline `--swatch`; the stylesheet
   holds only Material 3 tokens, and `m3-assets.test.ts` pins each page's sheets (R8).
 - **The colour reaches cards through `projectPoll` and `deltaClient.js`**, which rebuilds each card's choices and must copy 
-  `color`; `computeResults` and so the exports do not carry it. Trending and Newest publish and refetch their cards object when 
+  `color`; `computeResults` does not carry it. Trending and Newest publish and refetch their cards object when 
   `cardsVersion` (a hash of `pid:contentVersion`) changes, not only when the set of polls does, so a colour change reaches them 
   within a recompute plus the CDN `max-age`; the delta-driven tabs show it on the next content refresh (FIX01).
 No migration, no new dependency; the one new route is behind `requireOwnPoll`.
@@ -1126,8 +1169,8 @@ all resolved into `requirements/024-high-level-requirements-MATERIAL3-MERGE.md`.
 - **Six steps committed on branch `024-MATERIAL3-MERGE` (Steps 1–5 as one commit), and one PR
   into `dev` after Step 6; `dev` gets 024 once.** Step 1
   (tokens, ripple, Roboto) changes nothing visible; the tooltips are Step 2's. Dark is opt-in via
-  `data-theme="dark"` until Step 5, which adds the `@media` twins and gives `admin.html` /
-  `admin-results.html` `data-theme="light"` (R13).
+  `data-theme="dark"` until Step 5, which adds the `@media` twins and gives `admin.html` (and the
+  results page, since removed) `data-theme="light"` (R13).
 - **`window.M3Ripple.add(selector)`**, called as `window.M3Ripple?.add(…)` by `app.js`, `tabs.js`,
   `liveResults.js`, `adminCard.js` and `pollCard.js`; `m3-ripple.js` is the first script. The
   `.m3-ripple` rules live in `m3-tokens.css` (R3, R4).

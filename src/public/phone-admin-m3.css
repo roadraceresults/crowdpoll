@@ -1,0 +1,261 @@
+@media (max-width: 480px){
+  .admin-toolbar{ gap:16px; min-height:64px; margin-bottom:0; }
+  .admin-toolbar .admin-create-btn{
+    position:relative;
+    height:48px;
+    padding:0 24px;
+    overflow:visible;
+    font-size:var(--md-sys-typescale-label-large-size);
+    line-height:var(--md-sys-typescale-label-large-line-height);
+  }
+
+  .admin-tab-bar{ width:100%; margin:0 0 16px; justify-content:safe center; }
+  .admin-tab-bar .tab{
+    height:auto;
+    min-height:64px;
+    padding:0 14px;
+    font-size:var(--md-sys-typescale-label-small-size);
+    line-height:var(--md-sys-typescale-label-small-line-height);
+  }
+  .admin-tab-bar .tab.is-active::after{ left:14px; right:14px; }
+
+  .admin-card-list{ gap:16px; }
+  .admin-search{ margin-bottom:16px; }
+  .admin-search-notice{
+    width:100%;
+    margin:0 0 16px;
+    font-size:var(--md-sys-typescale-body-medium-size);
+    line-height:var(--md-sys-typescale-body-medium-line-height);
+  }
+  .admin-search-toggle-row{ width:100%; margin:0 0 8px; padding-block:8px; }
+  .admin-search-toggle{ min-height:48px; overflow:visible; }
+  .admin-search-toggle svg{ width:28px; height:28px; }
+  .admin-search-toggle::before,
+  .admin-search .admin-search-btn::before,
+  .admin-search .admin-search-clear::before{ border-radius:inherit; }
+
+  .admin-search .m3-outlined :is(input, select){ height:64px; }
+  .admin-search .admin-field-pair,
+  .admin-search .admin-radio-group,
+  .admin-search .admin-checkbox-row{ grid-template-columns:minmax(0, 1fr); }
+  .admin-search .admin-field-pair{ gap:16px; }
+  .admin-search .admin-radio-group,
+  .admin-search .admin-checkbox-row{ gap:0; }
+  .admin-search .admin-radio,
+  .admin-search .admin-checkbox{
+    min-height:64px;
+    gap:16px;
+    padding:0 8px;
+    font-size:var(--md-sys-typescale-body-large-size);
+    line-height:var(--md-sys-typescale-body-large-line-height);
+  }
+  .admin-search .admin-radio input,
+  .admin-search .admin-checkbox input{ width:24px; height:24px; }
+  .admin-search .admin-radio input::before{ width:12px; height:12px; }
+  .admin-search .admin-checkbox input::before{ width:6px; height:12px; }
+  .admin-search .admin-search-actions{ gap:16px; padding-block:8px; }
+  .admin-search .admin-search-btn,
+  .admin-search .admin-search-clear{ height:48px; min-height:48px; overflow:visible; }
+  .admin-search .admin-search-clear{ padding:0 20px; }
+
+  .poll-admin-card .card-status-line{ padding:12px 16px; }
+  .poll-admin-card .card-readonly-header,
+  .poll-admin-card .card-header{ gap:16px; margin-bottom:16px; }
+  .poll-admin-card .card-state{ align-items:center; gap:8px 12px; }
+  .poll-admin-card .card-actions,
+  .poll-admin-card .card-readonly-header .card-actions{ gap:16px; }
+  .poll-admin-card .admin-icon-btn,
+  .poll-admin-card .actions-menu-trigger{ width:48px; height:48px; overflow:visible; }
+  .poll-admin-card .admin-icon-btn svg,
+  .poll-admin-card .actions-menu-trigger svg,
+  .poll-admin-card .invitee-row .actions-menu-trigger svg{ width:28px; height:28px; }
+  .poll-admin-card :is(.admin-state-btn, .admin-rescreen-btn){ height:48px; padding:0 20px; overflow:visible; }
+  .poll-admin-card .card-readonly{ gap:16px; }
+  .poll-admin-card .card-panel{ gap:8px; padding:16px; }
+  .poll-admin-card .card-dates-panel .card-state-buttons{ gap:16px; margin-bottom:8px; }
+  .poll-admin-card .card-field{ gap:12px; }
+  .poll-admin-card .not-your-poll-chip,
+  .poll-admin-card .invitee-chip{ height:28px; padding:0 10px; }
+
+  .actions-menu{ min-width:240px; max-width:400px; }
+  .actions-menu a,
+  .actions-menu button{
+    height:auto;
+    min-height:64px;
+    padding:0 20px;
+    font-size:var(--md-sys-typescale-title-small-size);
+    line-height:var(--md-sys-typescale-title-small-line-height);
+  }
+  .actions-menu button:has(.invitee-menu-reason){
+    flex-direction:column;
+    align-items:flex-start;
+    justify-content:center;
+    padding-block:10px;
+    white-space:normal;
+  }
+
+  .poll-admin-card .wizard-summary{ padding:16px; }
+  .poll-admin-card .wizard-summary .question{
+    font-size:var(--md-sys-typescale-title-large-size);
+    line-height:var(--md-sys-typescale-title-large-line-height);
+  }
+  .poll-admin-card .wizard-summary-text{ margin-top:4px; line-height:32px; }
+  .poll-admin-card .wizard-summary-title + .wizard-summary-text,
+  .poll-admin-card .wizard-summary-subtitle + .wizard-summary-text{ margin-top:8px; }
+  .poll-admin-card .wizard-summary-link{ padding-block:5px; }
+  .poll-admin-card .wizard-summary .question .wizard-summary-link,
+  .poll-admin-card .wizard-summary .subtitle .wizard-summary-link{ padding-block:3px; }
+  .poll-admin-card .wizard-summary-swatch{ width:28px; height:28px; }
+  .poll-admin-card .wizard-summary-copy-link{
+    display:flex;
+    align-items:center;
+    width:fit-content;
+    height:48px;
+    margin:12px 0 8px;
+    padding:0 24px;
+    font-size:var(--md-sys-typescale-label-large-size);
+    line-height:var(--md-sys-typescale-label-large-line-height);
+  }
+
+  .poll-admin-card--new{ gap:20px; }
+  .poll-admin-card .wizard-steps::before{ top:44px; }
+  .poll-admin-card .wizard-step-btn{ grid-template-rows:20px 48px; }
+  .poll-admin-card .wizard-step-label{ line-height:var(--md-sys-typescale-label-small-line-height); }
+  .poll-admin-card .wizard-step-circle{ width:48px; height:48px; }
+  .poll-admin-card .is-visited .wizard-step-circle{ font-size:var(--md-sys-typescale-title-medium-size); }
+
+  .poll-admin-card .wizard-panel{ gap:16px; padding:16px; }
+  .poll-admin-card .wizard-fields{ gap:24px; }
+  .poll-admin-card .wizard-how{ gap:8px; }
+  .poll-admin-card .wizard-question{ margin-top:12px; }
+  .poll-admin-card .wizard-question:first-child{ margin-top:0; }
+  .poll-admin-card .wizard-note,
+  .poll-admin-card .wizard-error{ margin-left:44px; }
+  .poll-admin-card .wizard-help summary{ min-height:48px; padding:0 16px; margin-left:-16px; overflow:visible; }
+  .poll-admin-card .wizard-help{ padding-block:8px; }
+  .poll-admin-card .wizard-panel-actions{ padding-block:8px; }
+
+  .poll-admin-card .m3-radio-list{ gap:0; }
+  .poll-admin-card .m3-radio-item{ gap:16px; min-height:64px; padding:12px 8px 12px 4px; box-sizing:border-box; }
+  .poll-admin-card .m3-radio{ width:24px; height:24px; margin:3px 0 0 4px; }
+  .poll-admin-card .m3-radio::before{ width:12px; height:12px; }
+  .poll-admin-card .m3-switch-row{ min-height:64px; padding:12px 4px; box-sizing:border-box; }
+  .poll-admin-card .m3-switch::before{ font-size:var(--md-sys-typescale-label-medium-size); }
+
+  .poll-admin-card .m3-field-box{ gap:0; padding:0; }
+  .poll-admin-card .m3-field-label{ line-height:var(--md-sys-typescale-title-small-line-height); }
+  .poll-admin-card .m3-field-input{
+    min-height:64px;
+    padding-block:17px;
+    font-size:var(--md-sys-typescale-body-large-size);
+    line-height:var(--md-sys-typescale-body-large-line-height);
+  }
+  .poll-admin-card .m3-field--choices .m3-field-input{ min-height:calc(4 * var(--md-sys-typescale-body-large-line-height) + 34px); }
+  .poll-admin-card .m3-field-below{ padding-top:8px; }
+  .poll-admin-card .m3-chip-row{ gap:16px; padding-block:8px; }
+  .poll-admin-card .m3-chip{ height:48px; gap:0; padding:0 0 0 16px; }
+  .poll-admin-card .m3-chip-remove{
+    width:48px;
+    height:48px;
+    overflow:visible;
+    font-size:var(--md-sys-typescale-title-large-size);
+    line-height:48px;
+  }
+  .poll-admin-card .m3-chip-input{ height:64px; min-width:120px; padding-block:0; }
+  .poll-admin-card .wizard-paste{ gap:16px; margin-top:0; }
+  .poll-admin-card :is(.m3-filled-btn, .m3-tonal-btn, .btn-header-primary, .btn-header-ghost){ height:48px; overflow:visible; }
+  .poll-admin-card .wizard-footer{ flex-wrap:wrap; gap:16px; padding-block:8px; }
+  .poll-admin-card .wizard-footer-right{ gap:16px; margin-left:auto; }
+  .poll-admin-card .wizard-footer :is(.btn-header-ghost, .btn-header-primary){ padding:0 24px; }
+
+  .poll-admin-card .wizard-notes-preview{ min-height:64px; }
+  .poll-admin-card .wizard-notes-edit{ overflow:visible; padding-left:16px; }
+  .poll-admin-card .wizard-notes-edit::after{ content:''; position:absolute; inset:-17px -8px; }
+  .poll-admin-card .wizard-notes-edit-chevron{ width:24px; height:24px; }
+  .poll-admin-card .notes-editor-bar{ gap:16px; padding:8px 8px 8px 16px; }
+  .poll-admin-card .notes-editor-actions,
+  .poll-admin-card .notes-editor-toolbar{ gap:16px; }
+  .poll-admin-card .notes-editor-toolbar{ padding:8px; }
+  .poll-admin-card .notes-editor-actions button,
+  .poll-admin-card .notes-editor-mark{
+    position:relative;
+    min-width:48px;
+    min-height:48px;
+    padding:0 16px;
+    font-size:var(--md-sys-typescale-label-large-size);
+    line-height:var(--md-sys-typescale-label-large-line-height);
+  }
+  .poll-admin-card .notes-editor-text{ padding:12px 16px; }
+  .poll-admin-card .notes-editor-counter{ padding:4px 16px 8px; }
+
+  .poll-admin-card .m3-datetime{
+    box-sizing:border-box;
+    min-height:64px;
+    margin:0;
+    padding:0 4px;
+  }
+
+  .poll-admin-card .wizard-color-list{ gap:0; }
+  .poll-admin-card .wizard-color-row{ gap:16px; min-height:64px; }
+  .poll-admin-card .wizard-color-btn{ gap:12px; padding:0 16px; overflow:visible; }
+  .poll-admin-card .wizard-color-dot{ width:28px; height:28px; }
+  .poll-admin-card .wizard-color-popover{ gap:16px; padding:16px; }
+  .poll-admin-card .wizard-swatch{ overflow:visible; }
+  .poll-admin-card .wizard-swatch-check{ width:22px; height:22px; }
+
+  .poll-admin-card .card-invitees-panel{ gap:16px; }
+  .poll-admin-card .invitees-heading{ align-items:center; }
+  .poll-admin-card .invitees-add{ gap:8px; }
+  .poll-admin-card .invitees-input{
+    min-height:96px;
+    padding:16px;
+    font-size:var(--md-sys-typescale-body-large-size);
+    line-height:var(--md-sys-typescale-body-large-line-height);
+  }
+  .poll-admin-card .invitees-add-actions{ gap:16px; padding-block:8px; }
+  .poll-admin-card .invitees-invite-btn{
+    min-height:48px;
+    overflow:visible;
+    line-height:var(--md-sys-typescale-label-large-line-height);
+  }
+  .poll-admin-card .invitee-row{ gap:4px 12px; min-height:64px; padding:8px 0; box-sizing:border-box; }
+  .poll-admin-card .invitee-confirm{ gap:16px; margin:8px 0; padding:16px; }
+  .poll-admin-card .invitee-confirm-text{ flex-basis:100%; }
+  .poll-admin-card .invitee-confirm button{
+    min-height:48px;
+    padding:0 20px;
+    overflow:visible;
+    line-height:var(--md-sys-typescale-label-large-line-height);
+  }
+  .poll-admin-card .invitees-pager{ gap:16px; padding-block:8px; }
+  .poll-admin-card .invitees-pager-range{ margin-right:0; }
+  .poll-admin-card .invitees-page-btn{ width:48px; height:48px; overflow:visible; }
+  .poll-admin-card .invitees-page-btn svg{ width:28px; height:28px; }
+
+  .modal{
+    padding:24px;
+    font-size:var(--md-sys-typescale-body-medium-size);
+    line-height:var(--md-sys-typescale-body-medium-line-height);
+  }
+  .modal-actions{ gap:16px; }
+  .modal .modal-action,
+  .modal .modal-ok{ height:48px; min-width:64px; padding:0 20px; overflow:visible; }
+
+  .admin-toolbar .admin-create-btn::after,
+  .admin-search-toggle::after,
+  .admin-search .admin-search-btn::after,
+  .admin-search .admin-search-clear::after,
+  .poll-admin-card :is(.admin-icon-btn, .actions-menu-trigger, .admin-state-btn, .admin-rescreen-btn)::after,
+  .poll-admin-card :is(.m3-filled-btn, .m3-tonal-btn, .btn-header-primary, .btn-header-ghost)::after,
+  .poll-admin-card .wizard-help summary::after,
+  .poll-admin-card .m3-chip-remove::after,
+  .poll-admin-card .notes-editor-actions button::after,
+  .poll-admin-card .notes-editor-mark::after,
+  .poll-admin-card .wizard-color-btn::after,
+  .poll-admin-card .wizard-swatch::after,
+  .poll-admin-card .invitees-invite-btn::after,
+  .poll-admin-card .invitee-confirm button::after,
+  .poll-admin-card .invitees-page-btn::after,
+  .modal .modal-action::after,
+  .modal .modal-ok::after{ content:''; position:absolute; inset:-8px; }
+}

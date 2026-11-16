@@ -14,8 +14,8 @@ const VIEWPORT_SCRIPT = '<script src="/viewportWidth.js"></script>';
 const COLOR_SCHEME_SCRIPT = '<script src="/colorScheme.js"></script>';
 
 describe("the viewport rule in every page's head", () => {
-  it("covers all 13 pages", () => {
-    expect(pages).toHaveLength(13);
+  it("covers all 12 pages", () => {
+    expect(pages).toHaveLength(12);
   });
 
   it.each(pages)("%s keeps the static viewport declaration", (name) => {
