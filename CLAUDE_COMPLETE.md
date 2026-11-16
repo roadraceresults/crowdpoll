@@ -54,7 +54,8 @@ resolved.
 Decisions that are easy to get wrong:
 - **The static meta line never changes**: `viewportWidth.js`, a synchronous script on the line after `colorScheme.js`
   in every page (13 then, 12 now), rewrites its content to `width=480` alone (no `initial-scale`, nothing that limits
-  zoom) (R1, R3).
+  zoom) (R1, R3). On iOS only it adds `maximum-scale=<held width / 480>`, which stops Safari zooming in on a focused
+  field (phone layout TWEAK38); Safari ignores it for pinching.
 - **The screen as held decides, not the window or the viewport's shape**: the shorter screen side in portrait, the
   longer in landscape, orientation from `screen.orientation` (else `window.orientation`); strictly below 480 is fixed
   (R2). The `(orientation: …)` media query is wrong here: the on-screen keyboard flips it.

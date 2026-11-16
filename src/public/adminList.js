@@ -170,7 +170,7 @@
       btn.title = held ? HELD_TITLE : "";
     });
     for (const result of resultRows.values()) holdResult(result, editing);
-    document.querySelectorAll("#adminSearchForm .admin-search-btn, #adminSearchClear").forEach((btn) => {
+    document.querySelectorAll("#adminSearchForm .admin-search-btn, #adminSearchForm .admin-search-clear").forEach((btn) => {
       btn.disabled = editing;
       btn.title = editing ? HELD_TITLE : "";
     });
@@ -759,12 +759,14 @@
         await selectTab("search");
         if (document.querySelector("#pollList .admin-result")) setSearchCollapsed(true);
       });
-      document.getElementById("adminSearchClear")?.addEventListener("click", () => {
-        if (editingPid !== null) return;
-        searchForm.reset();
-        activeSearch = null;
-        setSearchCollapsed(false);
-        void selectTab("search");
+      searchForm.querySelectorAll(".admin-search-clear").forEach((clear) => {
+        clear.addEventListener("click", () => {
+          if (editingPid !== null) return;
+          searchForm.reset();
+          activeSearch = null;
+          setSearchCollapsed(false);
+          void selectTab("search");
+        });
       });
     }
     // Create New Poll works from any view: the new poll is the newest, so the page

@@ -90,6 +90,13 @@
           </div>
 
           <form class="admin-search" id="adminSearchForm" autocomplete="off" aria-label="Search polls" hidden>
+            <div class="admin-search-actions">
+              <button class="btn-primary admin-search-btn" type="submit">Search</button>
+              <button class="admin-search-clear" type="button" id="adminSearchClear">
+                <span class="admin-search-clear-text">Reset search fields</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="11" fill="currentColor" stroke="none"/><path d="M8.5 8.5l7 7M15.5 8.5l-7 7"/></svg>
+              </button>
+            </div>
             <div class="m3-outlined">
               <input id="search-q" class="admin-search-text" name="q" type="search" placeholder=" ">
               <label for="search-q">Words in the title, subtitle or choices</label>
@@ -171,19 +178,12 @@
                 <label for="search-invitedVoterCount">Count</label>
               </div>
             </div>
-            <div class="admin-field-pair">
-              <div class="m3-outlined">
-                <select id="search-bannedVoterCountOp" name="bannedVoterCountOp"><option value="gte">at least</option><option value="lte">at most</option><option value="eq">exactly</option></select>
-                <label for="search-bannedVoterCountOp">Banned users count</label>
-              </div>
-              <div class="m3-outlined">
-                <input id="search-bannedVoterCount" name="bannedVoterCount" type="number" placeholder=" " min="0">
-                <label for="search-bannedVoterCount">Count</label>
-              </div>
-            </div>
             <div class="admin-search-actions">
-              <button class="admin-search-clear" type="button" id="adminSearchClear">Clear</button>
               <button class="btn-primary admin-search-btn" type="submit">Search</button>
+              <button class="admin-search-clear" type="button">
+                <span class="admin-search-clear-text">Reset search fields</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="11" fill="currentColor" stroke="none"/><path d="M8.5 8.5l7 7M15.5 8.5l-7 7"/></svg>
+              </button>
             </div>
           </form>
 

@@ -96,8 +96,8 @@ describe("the search panel's Material 3 layer", () => {
     expect(rule(".admin-search .admin-field-pair{")).toContain("grid-template-columns:minmax(0, 1fr) minmax(0, 1fr)");
   });
 
-  it("stacks an operator and its value in the phone layout", () => {
-    expect(phoneStacks(".admin-field-pair")).toBe(true);
+  it("keeps an operator beside its value in the phone layout too", () => {
+    expect(phoneStacks(".admin-field-pair")).toBe(false);
   });
 
   it("declares no literal font size and no dark-scheme block", () => {
@@ -115,9 +115,9 @@ describe("the radio groups", () => {
     return compact(css.slice(css.indexOf("{", at) + 1, css.indexOf("}", at))).replace(/:\s+/g, ":");
   };
 
-  it("lays each group out as three options in a row, stacking in the phone layout", () => {
+  it("lays each group out as three options in a row, in the phone layout too", () => {
     expect(rule(".admin-search .admin-radio-group{")).toContain("grid-template-columns:repeat(3, minmax(0, 1fr))");
-    expect(phoneStacks(".admin-radio-group")).toBe(true);
+    expect(phoneStacks(".admin-radio-group")).toBe(false);
   });
 
   it("makes every option at least 48px tall and may shrink inside the panel", () => {

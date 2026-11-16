@@ -112,6 +112,17 @@
   background:transparent;
   color:var(--md-sys-color-primary);
 }
+.admin-search .admin-search-clear{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+}
+.admin-search .admin-search-clear svg{
+  flex:0 0 auto;
+  width:24px;
+  height:24px;
+}
+.admin-search .admin-search-clear svg path{ stroke:var(--md-sys-color-on-primary); }
 .admin-search .admin-search-btn::before,
 .admin-search .admin-search-clear::before{
   content:'';

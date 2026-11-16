@@ -77,7 +77,23 @@ describe("viewportWidth.js on a screen held narrower than 480 px", () => {
     page.close();
   });
 
-  it("writes nothing that limits zoom, and touches nothing but the page", async () => {
+  it.each([
+    [390, 844, "0.8125"],
+    [375, 667, "0.7813"],
+    [430, 932, "0.8959"]
+  ])("on an iPhone %i × %i, caps the scale at the fitted one, so a focused field is not zoomed in on", async (width, height, scale) => {
+    const page = await openHeld({ width, height, orientation: "portrait-primary" }, (window) => {
+      Object.defineProperty(window.navigator, "userAgent", {
+        value: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1",
+        configurable: true
+      });
+    });
+    expect(content(page)).toBe(`${FIXED}, maximum-scale=${scale}`);
+    expect(content(page)).not.toMatch(/initial-scale|minimum-scale|user-scalable/);
+    page.close();
+  });
+
+  it("writes nothing that limits zoom on other phones, and touches nothing but the page", async () => {
     let globalsBefore: string[] = [];
     const page = await openHeld({ width: 390, height: 844, orientation: "portrait-primary" }, (window) => {
       globalsBefore = Object.getOwnPropertyNames(window);

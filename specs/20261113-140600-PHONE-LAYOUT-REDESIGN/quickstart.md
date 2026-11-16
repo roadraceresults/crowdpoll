@@ -74,7 +74,7 @@ accept-terms page, the not-authorized page, `/profile`, `/settings`, `/privacy`,
 
 - [ ] The admin card has three icons and the menu; no results icon, no "View Results".
 - [ ] A poll is created from "Create New Poll" through the six steps to Publish without zooming (SC-008).
-- [ ] The search form is one field per row and searches.
+- [ ] The search form has each operator beside its value (TWEAK20), each group of three radio buttons in one row (TWEAK13) and the two checkboxes side by side (TWEAK14), and searches.
 - [ ] An invitee is added, its menu opened, and removed.
 
 ## 7. Unchanged elsewhere, and the two open questions

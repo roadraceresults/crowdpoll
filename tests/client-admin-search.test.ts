@@ -44,9 +44,9 @@ const searchTab = '#adminTabBar .tab[data-tab="search"]';
 const ORDER = [
   "q", "state", "visibility", "choiceMode", "voteMutability", "lineGraphEnabled", "customColors", "createdBy",
   "createdAtOp", "createdAt", "startAtOp", "startAt", "endAtOp", "endAt",
-  "voteCountOp", "voteCount", "invitedVoterCountOp", "invitedVoterCount", "bannedVoterCountOp", "bannedVoterCount"
+  "voteCountOp", "voteCount", "invitedVoterCountOp", "invitedVoterCount"
 ];
-const PAIRS = ["createdAt", "startAt", "endAt", "voteCount", "invitedVoterCount", "bannedVoterCount"];
+const PAIRS = ["createdAt", "startAt", "endAt", "voteCount", "invitedVoterCount"];
 
 describe("the admin search panel's structure", () => {
   it("gives every control a visible label", async () => {
@@ -71,8 +71,7 @@ describe("the admin search panel's structure", () => {
       startAtOp: labelOf("startAtOp"),
       endAtOp: labelOf("endAtOp"),
       voteCountOp: labelOf("voteCountOp"),
-      invitedVoterCountOp: labelOf("invitedVoterCountOp"),
-      bannedVoterCountOp: labelOf("bannedVoterCountOp")
+      invitedVoterCountOp: labelOf("invitedVoterCountOp")
     }).toEqual({
       q: "Words in the title, subtitle or choices",
       state: "State (Initialized, Open, Closed, etc.)",
@@ -81,8 +80,7 @@ describe("the admin search panel's structure", () => {
       startAtOp: "Starts on",
       endAtOp: "Ends on",
       voteCountOp: "Voter count",
-      invitedVoterCountOp: "Invitee count",
-      bannedVoterCountOp: "Banned users count"
+      invitedVoterCountOp: "Invitee count"
     });
   });
 
@@ -145,6 +143,24 @@ describe("the admin search panel's structure", () => {
     for (const box of boxes) box.checked = true;
     await page.click("#adminSearchClear");
     expect(boxes.map((b) => b.checked)).toEqual([false, false]);
+  });
+
+  it("has a Reset control above and below the fields, each with its text and an X icon, and both reset the form", async () => {
+    const page = await openAdmin();
+    const clears = Array.from(form(page).querySelectorAll(".admin-search-clear")) as HTMLButtonElement[];
+    expect(clears).toHaveLength(2);
+    expect(clears.map((clear) => clear.id)).toEqual(["adminSearchClear", ""]);
+    for (const clear of clears) {
+      expect(clear.type).toBe("button");
+      expect(clear.querySelector(".admin-search-clear-text")!.textContent).toBe("Reset search fields");
+      expect(clear.querySelector("svg")!.getAttribute("aria-hidden")).toBe("true");
+    }
+    const text = form(page).querySelector("#search-q") as HTMLInputElement;
+    for (const clear of clears) {
+      text.value = "budget";
+      clear.click();
+      expect(text.value).toBe("");
+    }
   });
 
   it("holds no text outside a label, an option, a radio's text or a button", async () => {

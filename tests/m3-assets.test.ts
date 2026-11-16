@@ -286,11 +286,11 @@ describe("Material 3 page assets", () => {
     expect(legend).toContain("grid-auto-flow:column;");
     expect(legend).toContain("grid-template-rows:repeat(var(--line-graph-legend-rows,1),auto);");
     expect(legend).toContain("grid-auto-columns:minmax(0,max-content);");
-    expect(legend).toContain("column-gap:8px;");
+    expect(legend).toContain("column-gap:4px;");
     expect(css.match(/\.line-graph-legend\.is-measuring\{[^}]*\}/)![0]).toContain("grid-auto-columns:max-content;");
     const entry = css.match(/\.line-graph-legend-entry\{[^}]*\}/)![0];
     expect(entry).toContain("min-height:18px;");
-    expect(entry).toContain("padding:08px;");
+    expect(entry).toContain("padding:0px2px;");
   });
 
   it("sets the line graph legend in the axis labels' size and outlines the show-all button", () => {
