@@ -6,7 +6,7 @@
 
 .line-graph{
   display:grid;
-  gap:12px;
+  gap:4px;
 }
 
 .line-graph-title{
@@ -17,14 +17,15 @@
   line-height:var(--md-sys-typescale-title-large-line-height);
   letter-spacing:var(--md-sys-typescale-title-large-tracking);
   color:var(--md-sys-color-on-surface);
+  overflow-wrap:anywhere;
 }
 
 .line-graph-subtitle{
-  margin:0;
+  margin:-4px 0 0;
   font-family:var(--md-sys-typescale-font);
-  font-size:var(--md-sys-typescale-body-medium-size);
-  line-height:var(--md-sys-typescale-body-medium-line-height);
-  letter-spacing:var(--md-sys-typescale-body-medium-tracking);
+  font-size:var(--md-sys-typescale-label-small-size);
+  line-height:var(--md-sys-typescale-label-small-line-height);
+  letter-spacing:var(--md-sys-typescale-label-small-tracking);
   color:var(--md-sys-color-on-surface-variant);
 }
 
@@ -38,41 +39,116 @@
 }
 .line-graph-note[hidden]{ display:none; }
 
-.line-graph-legend{
+/* The readout row: the selected time ("Latest" at rest) and the vote total. */
+.line-graph-readout{
   display:flex;
-  flex-wrap:wrap;
-  align-items:center;
-  gap:6px 16px;
+  align-items:baseline;
+  gap:16px;
   font-family:var(--md-sys-typescale-font);
   font-size:var(--md-sys-typescale-label-large-size);
   line-height:var(--md-sys-typescale-label-large-line-height);
   letter-spacing:var(--md-sys-typescale-label-large-tracking);
+}
+.line-graph-readout[hidden]{ display:none; }
+
+.line-graph-readout-time{
+  font-weight:var(--md-sys-typescale-title-small-weight);
+  color:var(--md-sys-color-on-surface);
+}
+
+/* A table filled column by column, each column as wide as its widest entry.
+   lineGraph.js sets the number of rows: the fewest whose columns fit the width. */
+.line-graph-legend{
+  display:grid;
+  grid-auto-flow:column;
+  grid-template-rows:repeat(var(--line-graph-legend-rows, 1), auto);
+  grid-auto-columns:minmax(0, max-content);
+  justify-content:start;
+  justify-items:start;
+  column-gap:4px;
+  font-family:var(--md-sys-typescale-font);
+  font-size:var(--md-sys-typescale-label-small-size);
+  line-height:var(--md-sys-typescale-label-small-line-height);
+  letter-spacing:-.4px;
   color:var(--md-sys-color-on-surface);
 }
 .line-graph-legend[hidden]{ display:none; }
-
-.line-graph-legend-entry{
-  display:inline-flex;
-  align-items:center;
-  gap:8px;
+/* While lineGraph.js reads the entries' own widths: one row, nothing shrunk. */
+.line-graph-legend.is-measuring{
+  grid-template-rows:auto;
+  grid-auto-columns:max-content;
 }
 
+/* Each entry is a toggle button that highlights its line. */
+.line-graph-legend-entry{
+  appearance:none;
+  position:relative;
+  overflow:hidden;
+  display:inline-flex;
+  align-items:center;
+  gap:3px;
+  min-height:18px;
+  max-width:100%;
+  margin:0;
+  padding:0px 2px;
+  border:none;
+  border-radius:var(--md-sys-shape-corner-small);
+  background:transparent;
+  cursor:pointer;
+  font:inherit;
+  letter-spacing:0px;
+  color:inherit;
+  text-align:start;
+}
+.line-graph-legend-entry[aria-pressed="true"]{
+  background:var(--md-sys-color-secondary-container);
+  color:var(--md-sys-color-on-secondary-container);
+}
+.line-graph.has-highlight .line-graph-legend-entry[aria-pressed="false"]{ opacity:0.6; }
+
+.line-graph-legend-label{ overflow-wrap:anywhere; }
+
 .line-graph-dot{
-  width:12px;
-  height:12px;
+  width:9px;
+  height:9px;
   border-radius:var(--md-sys-shape-corner-full);
   flex:none;
 }
 
+/* A fixed width, so an entry is as wide with "5%" as with "100%" and the legend never re-wraps. */
 .line-graph-legend-pct{
+  /* min-width:4.5ch; */
+  font-variant-numeric:tabular-nums;
   font-weight:var(--md-sys-typescale-label-large-weight);
   color:var(--md-sys-color-on-surface-variant);
 }
+.line-graph-legend-entry[aria-pressed="true"] .line-graph-legend-pct{ color:inherit; }
 
 .line-graph-total{
   margin-left:auto;
   color:var(--md-sys-color-on-surface-variant);
 }
+
+/* Outlined button: https://m3.material.io/components/buttons/specs */
+.line-graph-show-all{
+  appearance:none;
+  position:relative;
+  overflow:hidden;
+  height:24px;
+  padding:0 12px;
+  margin:0;
+  border:1px solid var(--md-sys-color-outline);
+  border-radius:var(--md-sys-shape-corner-full);
+  background:transparent;
+  cursor:pointer;
+  font-family:var(--md-sys-typescale-font);
+  font-size:var(--md-sys-typescale-label-small-size);
+  font-weight:var(--md-sys-typescale-label-small-weight);
+  line-height:var(--md-sys-typescale-label-small-line-height);
+  letter-spacing:var(--md-sys-typescale-label-small-tracking);
+  color:var(--md-sys-color-primary);
+}
+.line-graph-show-all[hidden]{ display:none; }
 
 .line-graph-svg{
   display:block;
@@ -97,8 +173,15 @@
 }
 
 .line-graph-line{
+  stroke-width:2;
   stroke-linejoin:round;
   stroke-linecap:round;
+}
+.line-graph-line.is-highlighted{ stroke-width:4; }
+
+.line-graph.has-highlight .line-graph-line:not(.is-highlighted),
+.line-graph.has-highlight .line-graph-marker:not(.is-highlighted){
+  opacity:0.25;
 }
 
 .line-graph-marker{
@@ -107,11 +190,28 @@
   pointer-events:none;
 }
 
-/* Segmented button: https://m3.material.io/components/segmented-buttons/specs */
-.line-graph-scales{
-  display:inline-flex;
-  justify-self:start;
+/* The row under the plot: the show-all button at the start, the scale buttons in the middle.
+   The show-all button's box and the empty box after the scale buttons share the free space equally, which centers the scale buttons. */
+.line-graph-controls{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:8px;
+  margin-top:8px;
 }
+.line-graph-controls-start{
+  display:flex;
+  flex:1 1 0;
+  min-width:max-content;
+}
+.line-graph-controls::after{
+  content:'';
+  flex:1 1 0;
+}
+.line-graph-controls:has(> .line-graph-scales[hidden]){ display:none; }
+
+/* Segmented button: https://m3.material.io/components/segmented-buttons/specs */
+.line-graph-scales{ display:inline-flex; }
 .line-graph-scales[hidden]{ display:none; }
 
 .line-graph-segment{
@@ -122,7 +222,7 @@
   align-items:center;
   justify-content:center;
   gap:8px;
-  height:40px;
+  height:24px;
   padding:0 12px;
   margin:0;
   border:1px solid var(--md-sys-color-outline);
@@ -130,10 +230,10 @@
   background:transparent;
   cursor:pointer;
   font-family:var(--md-sys-typescale-font);
-  font-size:var(--md-sys-typescale-label-large-size);
-  font-weight:var(--md-sys-typescale-label-large-weight);
-  line-height:var(--md-sys-typescale-label-large-line-height);
-  letter-spacing:var(--md-sys-typescale-label-large-tracking);
+  font-size:var(--md-sys-typescale-label-small-size);
+  font-weight:var(--md-sys-typescale-label-small-weight);
+  line-height:var(--md-sys-typescale-label-small-line-height);
+  letter-spacing:var(--md-sys-typescale-label-small-tracking);
   color:var(--md-sys-color-on-surface);
 }
 .line-graph-segment + .line-graph-segment{ margin-left:-1px; }
@@ -157,7 +257,9 @@
   flex:none;
 }
 
-.line-graph-segment::before{
+.line-graph-segment::before,
+.line-graph-legend-entry::before,
+.line-graph-show-all::before{
   content:'';
   position:absolute;
   inset:0;
@@ -165,11 +267,19 @@
   opacity:0;
   pointer-events:none;
 }
-.line-graph-segment:hover::before{ opacity:var(--md-sys-state-hover-state-layer-opacity); }
-.line-graph-segment:focus-visible::before{ opacity:var(--md-sys-state-focus-state-layer-opacity); }
-.line-graph-segment:active::before{ opacity:var(--md-sys-state-pressed-state-layer-opacity); }
+.line-graph-segment:hover::before,
+.line-graph-legend-entry:hover::before,
+.line-graph-show-all:hover::before{ opacity:var(--md-sys-state-hover-state-layer-opacity); }
+.line-graph-segment:focus-visible::before,
+.line-graph-legend-entry:focus-visible::before,
+.line-graph-show-all:focus-visible::before{ opacity:var(--md-sys-state-focus-state-layer-opacity); }
+.line-graph-segment:active::before,
+.line-graph-legend-entry:active::before,
+.line-graph-show-all:active::before{ opacity:var(--md-sys-state-pressed-state-layer-opacity); }
 
 .line-graph-segment:focus-visible,
+.line-graph-legend-entry:focus-visible,
+.line-graph-show-all:focus-visible,
 .line-graph-plot:focus-visible{
   outline:3px solid var(--md-sys-color-secondary);
   outline-offset:2px;
@@ -178,6 +288,7 @@
 
 .line-graph-plot{
   position:relative;
+  margin-top:8px;
   touch-action:pan-y;
 }
 
@@ -185,45 +296,6 @@
   stroke:var(--md-sys-color-outline);
   stroke-width:1;
   pointer-events:none;
-}
-
-/* Rich tooltip: https://m3.material.io/components/tooltips/specs */
-.line-graph-tooltip{
-  position:absolute;
-  max-width:min(240px, 80%);
-  display:grid;
-  gap:4px;
-  padding:12px 16px;
-  border:none;
-  border-radius:var(--md-sys-shape-corner-medium);
-  background:var(--md-sys-color-surface-container);
-  box-shadow:var(--md-sys-elevation-2);
-  pointer-events:none;
-  font-family:var(--md-sys-typescale-font);
-  font-size:var(--md-sys-typescale-body-medium-size);
-  line-height:var(--md-sys-typescale-body-medium-line-height);
-  letter-spacing:var(--md-sys-typescale-body-medium-tracking);
-  color:var(--md-sys-color-on-surface);
-}
-
-.line-graph-tooltip-time{
-  font-size:var(--md-sys-typescale-title-small-size);
-  font-weight:var(--md-sys-typescale-title-small-weight);
-  line-height:var(--md-sys-typescale-title-small-line-height);
-  letter-spacing:var(--md-sys-typescale-title-small-tracking);
-  color:var(--md-sys-color-on-surface);
-}
-
-.line-graph-tooltip-entry{
-  display:flex;
-  align-items:center;
-  gap:8px;
-}
-
-.line-graph-tooltip-pct{
-  margin-left:auto;
-  padding-left:12px;
-  color:var(--md-sys-color-on-surface-variant);
 }
 
 .line-graph-live{

@@ -768,18 +768,29 @@ is cached for `ENV_LINE_GRAPH_REFRESH_INTERVAL` (clamped up to the live floor), 
 poll shares one computation per interval. A deleted account's anonymized votes count once per poll,
 because deletion gives each poll one placeholder address, in `line_graph_selection` too.
 
-`lineGraph.js` draws hand-rolled SVG: title, subtitle, a legend with each line's current share and
-the vote total, the plot, and an M3 segmented button of the available scales. On every draw (open,
+`lineGraph.js` draws hand-rolled SVG: title, subtitle, a readout row (the selected time, "Latest" at
+rest, and the vote total), a legend of toggle buttons with each line's share, the plot, and an M3
+segmented button of the available scales. The response lists the series in choice order; the browser
+orders them by current share (ties in choice order) and, on a graph of more than 10 lines, draws the leading ones (those whose
+current shares together reach 80% of all the lines' shares, with ties of the last one, 10 at most) until the viewer presses
+"Show all N choices" ("Show top M choices" goes back), so the legend, the lines, the markers, the Y axis and the
+announcement all follow the drawn lines. On every draw (open,
 scale switch, refresh, resize) `renderSvg()` derives the Y-axis top from the drawn series of the
 scale shown: the smallest of 25, 50, 75 and 100 at or above the highest point (25 with no line),
 with gridlines every 5, 10, 15 or 25%. A line's colour is the
 choice's manual hex from the response, else the colour the card itself assigned (`card.resultColors()`),
 so lines and bars never disagree in hue; `PollCard.lineColorOn` shades a colour under 3:1 against the
 panel's computed background to the nearest same-hue shade that reaches it, and a
-`data-theme` change on `<html>` (a `MutationObserver`) redraws. A pointer over the plot places a crosshair, ringed markers and
-a rich tooltip at the nearest bucket with every line's share and the time (with the hour on hourly
-scales), formatted in the viewer's locale and time zone; a touch reading stays until a press outside
-the plot. The plot is one Tab stop: focus shows the newest point, the arrow keys, Home and End move
+`data-theme` change on `<html>` (a `MutationObserver`) redraws. A pointer over the plot places a crosshair and ringed markers
+at the nearest bucket, and the readout row and the legend show the time (with the hour on hourly
+scales, in the viewer's time zone and always in the US English form, "Apr 16, 2026") and every drawn line's share at it: only
+text changes and an entry's width does not depend on its value, so the plot never moves. The legend is
+a table filled column by column, each column as wide as its widest entry: `layoutLegend()` measures the
+entries once and takes the fewest rows whose columns fit, again on a resize. A press on
+the plot (a touch or a click) pins the time; a press or a focus move to the legend or the show-all
+button keeps it, and one anywhere else outside the plot clears it. A legend button highlights one
+line at a time: it is drawn last and wider, and the rest are dimmed in CSS. Neither the highlight
+nor the show-all state is stored. The plot is one Tab stop: focus shows the newest point, the arrow keys, Home and End move
 it, and a polite live region reads each point. A refresh or resize keeps the crosshair at the same
 bucket time. A scale click redraws from the held response; a timer refetches it every
 `lineGraphRefreshIntervalMs` from `/api/config` and keeps the chosen scale. Fewer than two points shows "Not enough voting data to graph yet"; a `404` shows

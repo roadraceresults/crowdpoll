@@ -100,12 +100,15 @@ delivery network.
 - **Vote history graph** — beside a maximized poll, a line graph shows how each choice's share of
   the vote has moved over time, in the same colours as its bars (a colour too faint for the light or
   dark theme is drawn in a deeper or brighter shade of itself, so every line stays visible), with a
-  legend giving each line's current share and the total count of votes (of voters, on a
-  multiple-choice poll, where the votes cast can outnumber them). Choose **1 Day**, **1 Week**,
+  legend giving each line's current share, highest first and read down its columns (as many columns as fit the width), and the total count of votes (of voters, on a
+  multiple-choice poll, where the votes cast can outnumber them). A poll with more than 10 lines shows
+  the leading ones, those that together hold 80% of the shares and never more than 10; **Show all** draws the rest. Tap a choice in the legend to pick out its line
+  (the others are dimmed); tap it again to go back. Choose **1 Day**, **1 Week**,
   **1 Month** or **1 Year** (only the ranges the poll's history covers are offered; the longest is
   shown first). The scale ends at 25, 50, 75 or 100%, whichever fits the lines shown, so small
   shares fill the graph. Point at the graph, or touch it on a phone, to read every line's share at that
-  moment; on a phone the reading stays after you lift your finger, until you tap outside the graph.
+  moment: the legend shows the time and the shares, and nothing covers the graph. A reading you
+  touched or clicked stays, also while you use the legend, until you tap outside the graph.
   From the keyboard, Tab to the graph and use the Left and Right arrow keys (Home and End for the
   ends, Escape to hide the reading); a screen reader reads each point. Times are in your own time
   zone. The graph updates itself about once a minute while it is open. Anyone who may see a
