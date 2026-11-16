@@ -159,3 +159,23 @@ describe("TRENDING recompute", () => {
     expect((await request(ctx.app).get("/api/trending/trending.json").set("If-None-Match", cards.headers.etag!)).status).toBe(304);
   });
 });
+
+describe("listing base URL with a delivery network", () => {
+  it("points the pages at the app's own /api/trending, while assets still load from the CDN", async () => {
+    const spacesCtx = await startTestContext({
+      ENV_SPACES_BUCKET: "bucket",
+      ENV_SPACES_REGION: "tor1",
+      ENV_SPACES_KEY: "key",
+      ENV_SPACES_SECRET: "secret",
+      ENV_SPACES_CDN_URL: "https://cdn.example.com/",
+      ENV_SPACES_ALLOW_LOCAL_ORIGIN: "1"
+    });
+    try {
+      const config = (await request(spacesCtx.app).get("/api/config")).body;
+      expect(config.trendingBaseUrl).toBe("/api/trending");
+      expect(config.assetsBaseUrl).toBe("https://cdn.example.com/assets");
+    } finally {
+      await spacesCtx.stop();
+    }
+  });
+});
