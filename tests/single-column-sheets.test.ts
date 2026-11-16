@@ -107,7 +107,7 @@ describe("the cards", () => {
       const open = home.indexOf("{", start);
       blocks.push(flat(home.slice(open + 1, blockEnd(home, open) - 1)));
     }
-    const rule = ".card-flip .card-face .question{ font-size:calc(clamp(18px, 1.8vw, var(--md-sys-typescale-title-large-size)) * 0.75); line-height:1.27; }";
+    const rule = ".card-flip .card-face .question, .line-graph .line-graph-title{ font-size:calc(clamp(18px, 1.8vw, var(--md-sys-typescale-title-large-size)) * 0.75); line-height:1.27; }";
     expect(blocks.filter((body) => body.includes(rule))).toHaveLength(1);
     expect(inside).not.toContain(".card-face .question{");
   });

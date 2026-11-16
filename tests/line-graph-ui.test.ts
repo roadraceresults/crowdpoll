@@ -140,6 +140,9 @@ function stubLineGraph(p: BrowserPage, answer: "404" | "fail"): void {
 }
 
 const noteText = (side: HTMLElement) => side.querySelector(".line-graph-note")?.textContent ?? null;
+/** The readout row's time label: "Latest" at rest, the selected time otherwise. */
+const readoutTime = (side: HTMLElement) => side.querySelector(".line-graph-readout-time")?.textContent ?? null;
+const legendPcts = (side: HTMLElement) => Array.from(side.querySelectorAll(".line-graph-legend-pct")).map((pct) => pct.textContent);
 
 type ServedScale = { buckets: number[]; series: { label: string; points: number[] }[] };
 
@@ -147,6 +150,12 @@ type ServedScale = { buckets: number[]; series: { label: string; points: number[
 async function servedScale(pid: string, scale?: string): Promise<ServedScale> {
   const body = (await request(ctx.app).get(`/api/polls/${pid}/line-graph`)).body;
   return body.scales[scale ?? body.defaultScale];
+}
+
+/** The served series in the order the graph lists them: highest current share first, ties as served. */
+function byCurrentShare(served: ServedScale): ServedScale["series"] {
+  const last = served.buckets.length - 1;
+  return [...served.series].sort((a, b) => b.points[last]! - a.points[last]!);
 }
 
 describe("mount (C1, C2, C4, C5, FR-018)", () => {
@@ -173,7 +182,28 @@ describe("mount (C1, C2, C4, C5, FR-018)", () => {
     for (const entry of entries) {
       expect(entry.closest("svg")).toBeNull();
       expect(entry.textContent!.trim().length).toBeGreaterThan(0);
+      expect(entry.tagName).toBe("BUTTON");
+      expect((entry as HTMLButtonElement).type).toBe("button");
+      expect(entry.getAttribute("aria-pressed")).toBe("false");
     }
+    const total = side.querySelector(".line-graph-total")!;
+    expect(total.parentElement!.classList.contains("line-graph-readout")).toBe(true);
+    expect(side.querySelector(".line-graph-legend .line-graph-total")).toBeNull();
+  });
+
+  it("reads Latest and the latest shares at rest", async () => {
+    const poll = await seedPoll("Resting");
+    await seedHistory(poll._id);
+    await sweeps();
+    page = await open();
+    const side = await maximize(page, "Resting");
+    const served = await servedScale(poll._id);
+    const last = served.buckets.length - 1;
+
+    expect(side.querySelector(".line-graph-tooltip")).toBeNull();
+    expect((side.querySelector(".line-graph-readout") as HTMLElement).hidden).toBe(false);
+    expect(readoutTime(side)).toBe("Latest");
+    expect(legendPcts(side)).toEqual(byCurrentShare(served).map((s) => `${s.points[last]}%`));
   });
 
   it("shows each drawn line's current percentage and the total vote count in the legend", async () => {
@@ -269,7 +299,7 @@ describe("line colours per theme (C2)", () => {
     expect(legendDots(side)[2]!.style.background).toBe("rgb(8, 8, 253)");
   });
 
-  it("shades a colour under 3:1 on the dark surface, the same in the line, legend dot and tooltip dot", async () => {
+  it("shades a colour under 3:1 on the dark surface, the same in the line and the legend dot", async () => {
     const poll = await seedPoll("Dark");
     await seedHistory(poll._id);
     await sweeps();
@@ -280,9 +310,6 @@ describe("line colours per theme (C2)", () => {
     expect(lineStroke(side, "c3")).toBe("#4444FD");
     expect(lineStroke(side, "c1")).toBe("#007527");
     expect(legendDots(side)[2]!.style.background).toBe("rgb(68, 68, 253)");
-    side.querySelector("svg.line-graph-svg")!.dispatchEvent(new page.window.MouseEvent("pointermove", { clientX: 320, bubbles: true }));
-    const tooltipDots = Array.from(side.querySelectorAll(".line-graph-tooltip .line-graph-dot")) as HTMLElement[];
-    expect(tooltipDots[2]!.style.background).toBe("rgb(68, 68, 253)");
   });
 
   it("redraws for the new theme when the page's colour scheme changes, and stops listening on close", async () => {
@@ -318,6 +345,7 @@ describe("placeholders and unmount (C6, C9, C1)", () => {
     const side = await maximize(page, "Sparse");
     expect(noteText(side)).toBe("Not enough voting data to graph yet");
     expect(side.querySelector("svg.line-graph-svg")).toBeNull();
+    expect((side.querySelector(".line-graph-readout") as HTMLElement).hidden).toBe(true);
     expect(side.querySelector(".line-graph-title")!.textContent).toBe("Sparse");
   });
 
@@ -329,6 +357,7 @@ describe("placeholders and unmount (C6, C9, C1)", () => {
     const side = await maximize(page, "Hidden");
     expect(noteText(side)).toBe("Results are not available yet");
     expect(side.querySelector("svg.line-graph-svg")).toBeNull();
+    expect((side.querySelector(".line-graph-readout") as HTMLElement).hidden).toBe(true);
   });
 
   it("renders the quiet unavailable placeholder on a failed first load", async () => {
@@ -339,6 +368,7 @@ describe("placeholders and unmount (C6, C9, C1)", () => {
     const side = await maximize(page, "Flaky");
     expect(noteText(side)).toBe("Graph unavailable right now");
     expect(side.querySelector("svg.line-graph-svg")).toBeNull();
+    expect((side.querySelector(".line-graph-readout") as HTMLElement).hidden).toBe(true);
   });
 
   it("empties the column on unmount", async () => {
@@ -363,12 +393,12 @@ describe("scale selector (C3, C5)", () => {
       .map((t) => t.textContent!)
       .filter((text) => !text.endsWith("%"));
 
-  /** The labels the renderer should draw for a served series. */
+  /** The labels the renderer should draw for a served series: no space inside a label. */
   function expectedLabels(buckets: number[], hourly: boolean): string[] {
-    const format = new Intl.DateTimeFormat(undefined, hourly ? { hour: "numeric" } : { month: "short", day: "numeric" });
+    const format = new Intl.DateTimeFormat("en-US", hourly ? { hour: "numeric" } : { month: "short", day: "numeric" });
     const step = Math.max(1, Math.round(buckets.length / 6));
     const out: string[] = [];
-    for (let i = 0; i < buckets.length - 1; i += step) out.push(format.format(new Date(buckets[i]!)));
+    for (let i = 0; i < buckets.length - 1; i += step) out.push(format.format(new Date(buckets[i]!)).replace(/\s/g, ""));
     return out;
   }
 
@@ -416,7 +446,6 @@ describe("scale selector (C3, C5)", () => {
 });
 
 describe("crosshair (C7)", () => {
-  const tooltip = (side: HTMLElement) => side.querySelector(".line-graph-tooltip");
   const crosshair = (side: HTMLElement) => side.querySelector("svg.line-graph-svg .line-graph-crosshair");
 
   /** jsdom gives the SVG a zero-size rect, so the renderer reads clientX as a viewBox coordinate: 0 is the oldest bucket, 320 the newest. */
@@ -424,12 +453,11 @@ describe("crosshair (C7)", () => {
     side.querySelector("svg.line-graph-svg")!.dispatchEvent(new p.window.MouseEvent(type, { clientX, bubbles: true }));
   }
 
-  /** The tooltip's time line: date and hour on hourly scales, date (with year) on daily ones. */
+  /** The readout's time: date and hour on hourly scales, date (with year) on daily ones. */
   function timeText(bucketMs: number, hourly: boolean): string {
     const options: Intl.DateTimeFormatOptions = hourly ? { month: "short", day: "numeric", hour: "numeric" } : { year: "numeric", month: "short", day: "numeric" };
-    return new Intl.DateTimeFormat(undefined, options).format(new Date(bucketMs));
+    return new Intl.DateTimeFormat("en-US", options).format(new Date(bucketMs));
   }
-
 
   it("shows every drawn choice and the time once at the nearest bucket on pointermove", async () => {
     const poll = await seedPoll("Hover");
@@ -440,19 +468,25 @@ describe("crosshair (C7)", () => {
     const served = await servedScale(poll._id);
     const last = served.buckets.length - 1;
 
+    const ranked = byCurrentShare(served);
+    const legend = side.querySelector(".line-graph-legend")!;
+
     pointer(page, side, "pointermove", 320);
     expect(crosshair(side)).not.toBeNull();
-    const tip = tooltip(side)!;
-    expect(tip.querySelectorAll(".line-graph-tooltip-time").length).toBe(1);
-    expect(tip.querySelector(".line-graph-tooltip-time")!.textContent).toBe(timeText(served.buckets[last]!, true));
-    const entries = Array.from(tip.querySelectorAll(".line-graph-tooltip-entry"));
-    expect(entries.map((entry) => entry.querySelector(".line-graph-tooltip-label")!.textContent)).toEqual(served.series.map((s) => s.label));
-    expect(entries.map((entry) => entry.querySelector(".line-graph-tooltip-pct")!.textContent)).toEqual(served.series.map((s) => `${s.points[last]}%`));
+    expect(side.querySelector(".line-graph-tooltip")).toBeNull();
+    expect(side.querySelectorAll(".line-graph-readout-time").length).toBe(1);
+    expect(readoutTime(side)).toBe(timeText(served.buckets[last]!, true));
+    // Month first, then the day, on every device: "Nov 14, 3 PM".
+    expect(readoutTime(side)).toMatch(/^[A-Z][a-z]{2} \d{1,2}, \d{1,2}\s[AP]M$/);
+    const entries = Array.from(legend.querySelectorAll(".line-graph-legend-entry"));
+    expect(entries.map((entry) => entry.querySelector(".line-graph-legend-label")!.textContent)).toEqual(ranked.map((s) => s.label));
+    expect(legendPcts(side)).toEqual(ranked.map((s) => `${s.points[last]}%`));
 
     pointer(page, side, "pointermove", 0);
-    const moved = tooltip(side)!;
-    expect(moved.querySelector(".line-graph-tooltip-time")!.textContent).toBe(timeText(served.buckets[0]!, true));
-    expect(Array.from(moved.querySelectorAll(".line-graph-tooltip-pct")).map((pct) => pct.textContent)).toEqual(served.series.map((s) => `${s.points[0]}%`));
+    expect(side.querySelector(".line-graph-tooltip")).toBeNull();
+    expect(readoutTime(side)).toBe(timeText(served.buckets[0]!, true));
+    expect(legendPcts(side)).toEqual(ranked.map((s) => `${s.points[0]}%`));
+    expect(Array.from(legend.querySelectorAll(".line-graph-legend-entry"))).toEqual(entries);
   });
 
   it("omits the hour from the time on daily scales", async () => {
@@ -465,7 +499,7 @@ describe("crosshair (C7)", () => {
     const served = await servedScale(old._id);
 
     pointer(page, side, "pointermove", 320);
-    expect(tooltip(side)!.querySelector(".line-graph-tooltip-time")!.textContent).toBe(timeText(served.buckets[served.buckets.length - 1]!, false));
+    expect(readoutTime(side)).toBe(timeText(served.buckets[served.buckets.length - 1]!, false));
   });
 
   it("removes the crosshair on pointerleave", async () => {
@@ -477,10 +511,10 @@ describe("crosshair (C7)", () => {
 
     pointer(page, side, "pointermove", 160);
     expect(crosshair(side)).not.toBeNull();
-    expect(tooltip(side)).not.toBeNull();
+    expect(readoutTime(side)).not.toBe("Latest");
     pointer(page, side, "pointerleave", 160);
     expect(crosshair(side)).toBeNull();
-    expect(tooltip(side)).toBeNull();
+    expect(readoutTime(side)).toBe("Latest");
   });
 
   it("places the crosshair on pointerdown (touch)", async () => {
@@ -493,52 +527,65 @@ describe("crosshair (C7)", () => {
 
     pointer(page, side, "pointerdown", 0);
     expect(crosshair(side)).not.toBeNull();
-    expect(tooltip(side)!.querySelector(".line-graph-tooltip-time")!.textContent).toBe(timeText(served.buckets[0]!, true));
+    expect(readoutTime(side)).toBe(timeText(served.buckets[0]!, true));
   });
 
-  /** jsdom lays nothing out: the plot and the tooltip are given widths, every other element keeps jsdom's 0. */
-  function stubWidths(p: BrowserPage, plotWidth: number, tooltipWidth = 100): void {
-    Object.defineProperty(p.window.HTMLElement.prototype, "clientWidth", {
-      configurable: true,
-      get(this: HTMLElement) {
-        return this.classList.contains("line-graph-plot") ? plotWidth : 0;
-      }
-    });
-    Object.defineProperty(p.window.HTMLElement.prototype, "offsetWidth", {
-      configurable: true,
-      get(this: HTMLElement) {
-        return this.classList.contains("line-graph-tooltip") ? tooltipWidth : 0;
-      }
-    });
-  }
-
-  /** The crosshair's x in plot pixels: the SVG is 320 viewBox units wide while the panel reports no width. */
-  const crosshairPx = (side: HTMLElement, plotWidth: number) => (Number(crosshair(side)!.getAttribute("x1")) / 320) * plotWidth;
-
-  it("opens the tooltip right of the crosshair, flips it left near the right edge, and keeps it inside the plot", async () => {
-    const poll = await seedPoll("Placed");
+  it("pins a clicked time", async () => {
+    const poll = await seedPoll("Pinned");
     await seedHistory(poll._id);
     await sweeps();
     page = await open();
-    const side = await maximize(page, "Placed");
-    stubWidths(page, 400);
+    const side = await maximize(page, "Pinned");
+    const served = await servedScale(poll._id);
+    const last = served.buckets.length - 1;
+    const svg = side.querySelector("svg.line-graph-svg")!;
+    const move = (clientX: number, buttons: number) => svg.dispatchEvent(new page!.window.MouseEvent("pointermove", { clientX, buttons, bubbles: true }));
 
-    pointer(page, side, "pointermove", 0);
-    let tip = tooltip(side) as HTMLElement;
-    expect(tip.style.left).toBe(`${crosshairPx(side, 400) + 12}px`);
-    expect(tip.style.top).toBe("8px");
-    expect(tip.style.transform).toBe("");
+    pointer(page, side, "pointerdown", 0);
+    pointer(page, side, "pointerleave", 0);
+    expect(crosshair(side)).not.toBeNull();
+    expect(readoutTime(side)).toBe(timeText(served.buckets[0]!, true));
 
-    pointer(page, side, "pointermove", 320);
-    tip = tooltip(side) as HTMLElement;
-    expect(tip.style.left).toBe(`${crosshairPx(side, 400) - 12 - 100}px`);
-    expect(tip.style.transform).toBe("");
+    move(320, 0);
+    expect(readoutTime(side)).toBe(timeText(served.buckets[0]!, true));
+    move(320, 1);
+    expect(readoutTime(side)).toBe(timeText(served.buckets[last]!, true));
+    pointer(page, side, "pointerdown", 0);
+    expect(readoutTime(side)).toBe(timeText(served.buckets[0]!, true));
 
-    stubWidths(page, 110);
-    pointer(page, side, "pointermove", 0);
-    expect((tooltip(side) as HTMLElement).style.left).toBe("0px");
-    pointer(page, side, "pointermove", 320);
-    expect((tooltip(side) as HTMLElement).style.left).toBe("0px");
+    const escape = new page.window.KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+    side.querySelector(".line-graph-plot")!.dispatchEvent(escape);
+    expect(crosshair(side)).toBeNull();
+    expect(readoutTime(side)).toBe("Latest");
+
+    // Unpinned again: the time follows the mouse and leaves with it.
+    move(320, 0);
+    expect(readoutTime(side)).toBe(timeText(served.buckets[last]!, true));
+    pointer(page, side, "pointerleave", 320);
+    expect(crosshair(side)).toBeNull();
+
+    pointer(page, side, "pointerdown", 0);
+    page.document.body.dispatchEvent(new page.window.MouseEvent("pointerdown", { bubbles: true }));
+    expect(crosshair(side)).toBeNull();
+    expect(readoutTime(side)).toBe("Latest");
+  });
+
+  it("unpins a clicked time when the scale changes", async () => {
+    const old = await seedPoll("Unpinned");
+    await voteHistory(ctx).insertOne({ pid: old._id, emailAddress: "a@example.com", userName: "", choiceIds: ["c1"], votedAt: new Date(Date.now() - 32 * 24 * HOUR) });
+    await voteHistory(ctx).insertOne({ pid: old._id, emailAddress: "b@example.com", userName: "", choiceIds: ["c2"], votedAt: new Date(Date.now() - 2 * HOUR) });
+    await sweeps();
+    page = await open();
+    const side = await maximize(page, "Unpinned");
+
+    pointer(page, side, "pointerdown", 160);
+    (Array.from(side.querySelectorAll(".line-graph-segment")).find((b) => b.textContent === "1 Day") as HTMLElement).click();
+    expect(crosshair(side)).toBeNull();
+    expect(readoutTime(side)).toBe("Latest");
+
+    pointer(page, side, "pointermove", 160);
+    pointer(page, side, "pointerleave", 160);
+    expect(crosshair(side)).toBeNull();
   });
 
   it("rings a marker on every line at the crosshair, after the lines, and strengthens the 0% grid line", async () => {
@@ -586,14 +633,14 @@ describe("crosshair (C7)", () => {
     touch(page, svg, "pointerdown", 160);
     touch(page, svg, "pointerleave", 160);
     expect(crosshair(side)).not.toBeNull();
-    expect(tooltip(side)).not.toBeNull();
+    expect(readoutTime(side)).not.toBe("Latest");
 
-    touch(page, tooltip(side)!, "pointerdown", 160);
+    touch(page, side.querySelector(".line-graph-legend-entry")!, "pointerdown", 160);
     expect(crosshair(side)).not.toBeNull();
 
     touch(page, page.document.body, "pointerdown", 0);
     expect(crosshair(side)).toBeNull();
-    expect(tooltip(side)).toBeNull();
+    expect(readoutTime(side)).toBe("Latest");
   });
 
   it("hides the crosshair when the scale changes", async () => {
@@ -609,15 +656,14 @@ describe("crosshair (C7)", () => {
     (Array.from(side.querySelectorAll(".line-graph-segment")).find((b) => b.textContent === "1 Day") as HTMLElement).click();
     await page.settle(10);
     expect(crosshair(side)).toBeNull();
-    expect(tooltip(side)).toBeNull();
+    expect(readoutTime(side)).toBe("Latest");
   });
 });
 
 describe("keyboard (C3, C4, FR-015–FR-018)", () => {
   const segments = (side: HTMLElement) => Array.from(side.querySelectorAll(".line-graph-segment")) as HTMLButtonElement[];
   const plotOf = (side: HTMLElement) => side.querySelector(".line-graph-plot") as HTMLElement;
-  const tooltipTime = (side: HTMLElement) => side.querySelector(".line-graph-tooltip .line-graph-tooltip-time")?.textContent ?? null;
-  const hourly = (bucketMs: number) => new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", hour: "numeric" }).format(new Date(bucketMs));
+  const hourly = (bucketMs: number) => new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", hour: "numeric" }).format(new Date(bucketMs));
 
   function press(p: BrowserPage, key: string): KeyboardEvent {
     const event = new p.window.KeyboardEvent("keydown", { key, bubbles: true, cancelable: true });
@@ -670,30 +716,30 @@ describe("keyboard (C3, C4, FR-015–FR-018)", () => {
 
     const last = served.buckets.length - 1;
     plot.focus();
-    expect(tooltipTime(side)).toBe(hourly(served.buckets[last]!));
+    expect(readoutTime(side)).toBe(hourly(served.buckets[last]!));
     const spoken = (i: number) => [hourly(served.buckets[i]!), ...served.series.map((s) => `${s.label} ${s.points[i]}%`)].join(", ");
     expect(live.textContent).toBe(spoken(last));
 
     expect(press(page, "ArrowLeft").defaultPrevented).toBe(true);
-    expect(tooltipTime(side)).toBe(hourly(served.buckets[last - 1]!));
+    expect(readoutTime(side)).toBe(hourly(served.buckets[last - 1]!));
     expect(live.textContent).toBe(spoken(last - 1));
     expect(press(page, "Home").defaultPrevented).toBe(true);
-    expect(tooltipTime(side)).toBe(hourly(served.buckets[0]!));
+    expect(readoutTime(side)).toBe(hourly(served.buckets[0]!));
     press(page, "ArrowLeft");
-    expect(tooltipTime(side)).toBe(hourly(served.buckets[0]!));
+    expect(readoutTime(side)).toBe(hourly(served.buckets[0]!));
     expect(press(page, "End").defaultPrevented).toBe(true);
-    expect(tooltipTime(side)).toBe(hourly(served.buckets[last]!));
+    expect(readoutTime(side)).toBe(hourly(served.buckets[last]!));
     press(page, "ArrowRight");
-    expect(tooltipTime(side)).toBe(hourly(served.buckets[last]!));
+    expect(readoutTime(side)).toBe(hourly(served.buckets[last]!));
 
     expect(press(page, "Escape").defaultPrevented).toBe(true);
-    expect(tooltipTime(side)).toBeNull();
+    expect(readoutTime(side)).toBe("Latest");
     expect(page.document.querySelector(".maximized-card-grid:not([hidden]) .line-graph")).not.toBeNull();
     plot.blur();
     plot.focus();
-    expect(tooltipTime(side)).not.toBeNull();
+    expect(readoutTime(side)).not.toBe("Latest");
     plot.blur();
-    expect(tooltipTime(side)).toBeNull();
+    expect(readoutTime(side)).toBe("Latest");
     expect(side.querySelector(".line-graph-crosshair")).toBeNull();
   });
 
@@ -710,16 +756,16 @@ describe("keyboard (C3, C4, FR-015–FR-018)", () => {
 
     svg.dispatchEvent(new page.window.MouseEvent("pointerdown", { clientX: 0, bubbles: true }));
     plot.focus();
-    expect(tooltipTime(side)).toBe(hourly(served.buckets[0]!));
+    expect(readoutTime(side)).toBe(hourly(served.buckets[0]!));
     plot.blur();
     plot.focus();
-    expect(tooltipTime(side)).toBe(hourly(served.buckets[last]!));
+    expect(readoutTime(side)).toBe(hourly(served.buckets[last]!));
 
     // A click on a plot that already has focus fires no focus event; the flag must not survive the blur.
     svg.dispatchEvent(new page.window.MouseEvent("pointerdown", { clientX: 0, bubbles: true }));
     plot.blur();
     plot.focus();
-    expect(tooltipTime(side)).toBe(hourly(served.buckets[last]!));
+    expect(readoutTime(side)).toBe(hourly(served.buckets[last]!));
   });
 });
 
@@ -828,7 +874,6 @@ describe("auto refresh (C8, C9)", () => {
     expect(counter.calls()).toBe(after);
   });
 
-  const tooltipTime = (side: HTMLElement) => side.querySelector(".line-graph-tooltip .line-graph-tooltip-time")?.textContent ?? null;
   const hover = (p: BrowserPage, side: HTMLElement, clientX: number) =>
     side.querySelector("svg.line-graph-svg")!.dispatchEvent(new p.window.MouseEvent("pointermove", { clientX, bubbles: true }));
 
@@ -841,12 +886,12 @@ describe("auto refresh (C8, C9)", () => {
     const side = await maximize(page, "Held");
 
     hover(page, side, 0);
-    const placed = tooltipTime(side);
-    expect(placed).not.toBeNull();
+    const placed = readoutTime(side);
+    expect(placed).not.toBe("Latest");
     const before = page.requests.filter((r) => r.url.includes("/line-graph")).length;
     await page.settle(4 * INTERVAL);
     expect(page.requests.filter((r) => r.url.includes("/line-graph")).length).toBeGreaterThan(before);
-    expect(tooltipTime(side)).toBe(placed);
+    expect(readoutTime(side)).toBe(placed);
   });
 
   it("raises the Y axis on a refresh that brings a higher point, keeping the crosshair's time", async () => {
@@ -858,13 +903,13 @@ describe("auto refresh (C8, C9)", () => {
     const side = await maximize(page, "Rising");
     expect(yAxisLabels(side.querySelector("svg.line-graph-svg")!)).toEqual([0, 5, 10, 15, 20, 25]);
     hover(page, side, 0);
-    const placed = tooltipTime(side);
+    const placed = readoutTime(side);
 
     await seedVotes(poll._id, 0, ["c1", "c1"]);
     for (const key of await ctx.cache.scan("line-graph:*")) await ctx.cache.del(key);
     await page.settle(4 * INTERVAL);
     expect(yAxisLabels(side.querySelector("svg.line-graph-svg")!)).toEqual([0, 10, 20, 30, 40, 50]);
-    expect(tooltipTime(side)).toBe(placed);
+    expect(readoutTime(side)).toBe(placed);
   });
 
   it("moves the crosshair to the newest point when its time is gone after a refresh", async () => {
@@ -875,7 +920,7 @@ describe("auto refresh (C8, C9)", () => {
     stubInterval(page);
     const side = await maximize(page, "Shifted");
     hover(page, side, 0);
-    const placed = tooltipTime(side);
+    const placed = readoutTime(side);
 
     // The next responses start one bucket later, so the crosshair's time no longer exists.
     const real = page.window.fetch;
@@ -893,10 +938,10 @@ describe("auto refresh (C8, C9)", () => {
     }) as typeof fetch;
     await page.settle(4 * INTERVAL);
 
-    const format = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", hour: "numeric" });
+    const format = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", hour: "numeric" });
     expect(newest).not.toBeNull();
-    expect(tooltipTime(side)).not.toBe(placed);
-    expect(tooltipTime(side)).toBe(format.format(new Date(newest!)));
+    expect(readoutTime(side)).not.toBe(placed);
+    expect(readoutTime(side)).toBe(format.format(new Date(newest!)));
   });
 
   it("clears the timer on unmount", async () => {
@@ -940,8 +985,7 @@ describe("adaptive Y axis (ADAPTIVE-Y-AXIS C1–C3)", () => {
     expect(firstPoint.split(",")[1]).toBe(topLabel.getAttribute("y"));
 
     svg.dispatchEvent(new page!.window.MouseEvent("pointermove", { clientX: 0, bubbles: true }));
-    const shown = Array.from(side.querySelectorAll(".line-graph-tooltip .line-graph-tooltip-pct")).map((s) => s.textContent);
-    expect(shown).toEqual(["25%", "25%", "25%", "25%"]);
+    expect(legendPcts(side)).toEqual(["25%", "25%", "25%", "25%"]);
   });
 
   it("ends the axis at 50% with a gridline every 10% for a highest point of 50%", async () => {

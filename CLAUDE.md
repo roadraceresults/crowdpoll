@@ -28,6 +28,21 @@ Decisions that are easy to get wrong:
 - **Back**: a view opened from a card pushes `{maximizedPid}` at the same address, at every width; every other way of
   closing calls `history.back()`; a link landing pushes nothing (R10).
 - **Poll Results is gone** with its three API routes and `exportPoll*`; `computeResults` stays (R13).
+
+The plan merged with it (branch `line-graph-fix`):
+`specs/20261113-150353-LINE-GRAPH-READABILITY/plan.md` (research R1–R10, `data-model.md` — five in-memory fields, nothing
+stored; the contract `contracts/ui.md` U1–U7 and the quickstart live alongside it).
+The requirements report is `requirements/20261113-150353-line-graph-readability/requirements-report.md`: 8 findings,
+all resolved.
+Decisions that are easy to get wrong:
+- **The response is in choice order, not share order**: `lineGraph.js` orders the series by current share itself and,
+  above 10 lines, draws the leading ones (`leadingCount()`: 80% of the shares, 10 at most); `drawnSeries()` feeds the legend, lines, markers, Y axis and announcement (R2, R8).
+- **The legend is the readout**: no `.line-graph-tooltip`; moving the selected time changes text only, and an entry's
+  width never depends on its value, so the plot does not move (R3, R4).
+- **A press or focus move to the legend or the show-all button keeps the selected time**; anywhere else outside the
+  plot clears it (R6).
+- **One highlight**, drawn last and wider; dimming is CSS under `.has-highlight`; it is cleared when its line leaves
+  the drawn set; nothing is stored (R5).
 <!-- SPECKIT END -->
 
 ## Project Overview
