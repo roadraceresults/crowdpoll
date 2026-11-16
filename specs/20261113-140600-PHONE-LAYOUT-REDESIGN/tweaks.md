@@ -6,7 +6,7 @@
 |---|---|
 | Feature directory | `specs/20261113-140600-PHONE-LAYOUT-REDESIGN` |
 | Tweak file created | 2026-11-13 19:05 |
-| Last updated | 2026-11-15 21:12 |
+| Last updated | 2026-11-16 09:15 |
 
 Legend: `[ ]` open · `[X]` Resolved · `[-]` Resolved (manually)  
 (or accepted as-is) by the developer.
@@ -547,7 +547,7 @@ The server itself was not launched by the AI, so the first start and its migrati
 2026-11-15 21:12
 
 ## TWEAK09 Commit, Merge Main And Line Graph Fix  
-[ ] Resolved  
+[X] Resolved  
 [ ] Run Tests  
 
 No tests yet.
@@ -555,3 +555,45 @@ First,
 commit and merge
 then
 merge the branch line-graph-fix into the current branch
+
+### RECOMMENDATION
+
+Commit this feature on `phone-uiux`, merge `origin/main` into it, then merge `origin/line-graph-fix` into it, with no test run and no push.  
+
+Assumptions made instead of questions:  
+
+- "Commit and merge" names no target, so the first merge brings `main` into this branch (two commits it lacked), which any later merge into `main` needs anyway;  
+  this branch was not merged into `main`, since nothing has been tested yet.  
+- This clone has no local `main` or `line-graph-fix`, so the branches merged are the fetched `origin/main` and `origin/line-graph-fix`.  
+- Nothing is pushed: the tweak does not ask for it.  
+
+2026-11-16 09:15
+
+### ACCEPTED RECOMMENDATION
+
+The feature is committed and both merges are on `phone-uiux`, locally only.  
+No test was run, as the tweak asks, so the merged result is untested;  
+`npx tsc --noEmit` passes on it.  
+
+- Commits on `phone-uiux`  
+  - `cb72d72`: the feature with tweaks 01 to 08 (86 files).  
+  - `06d8473`: merge of `origin/main` (`d7acf8b`), no conflict.  
+  - `501e31d`: merge of `origin/line-graph-fix` (`19ff000`), four conflicts resolved by hand.  
+- Conflicts  
+  - `.specify/feature.json`, `.specify/requirements.json`, `.specify/analyze-findings.json`: this feature's versions kept, so Spec Kit still points at the phone layout redesign.  
+  - `CLAUDE.md`: this feature's section kept, and the line graph plan's section added after it;  
+    the older plans that `line-graph-fix` still listed were left out, as they are already in `CLAUDE_COMPLETE.md`.  
+- Checked by reading, not by running  
+  - The phone sheets name only `.line-graph-title` and `.line-graph-subtitle`, which the merged line graph still has;  
+    the tooltip classes it removed are not used by this feature.  
+  - `tests/m3-assets.test.ts`, `README.md` and `ARCHITECTURE.md` merged without conflict; their merged content was not reviewed line by line.  
+- Tests: none run;  
+  every test written for tweaks 03 to 07 and the merged line graph tests are still unrun together.  
+- Not done: no push, and no merge into `main`.  
+
+2026-11-16 09:15
+
+## TWEAK10 <short title here>  
+[ ] Resolved  
+[ ] Run Tests  
+tweak requirements...  
