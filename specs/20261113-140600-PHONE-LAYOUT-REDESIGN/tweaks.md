@@ -6,7 +6,7 @@
 |---|---|
 | Feature directory | `specs/20261113-140600-PHONE-LAYOUT-REDESIGN` |
 | Tweak file created | 2026-11-13 19:05 |
-| Last updated | 2026-11-16 09:15 |
+| Last updated | 2026-11-16 09:20 |
 
 Legend: `[ ]` open · `[X]` Resolved · `[-]` Resolved (manually)  
 (or accepted as-is) by the developer.
@@ -593,7 +593,41 @@ No test was run, as the tweak asks, so the merged result is untested;
 
 2026-11-16 09:15
 
-## TWEAK10 <short title here>  
+## TWEAK10 Merge Admin Search  
+[X] Resolved  
+[ ] Run Tests  
+
+Still no tests yet.
+merge the branch admin-search into phone-uiux branch
+
+### RECOMMENDATION
+
+Merge `origin/admin-search` into `phone-uiux`, with no test run and no push.  
+This clone has no local `admin-search`, so the fetched `origin/admin-search` (`1d4a097`) is merged.  
+
+2026-11-16 09:20
+
+### ACCEPTED RECOMMENDATION
+
+`origin/admin-search` is merged into `phone-uiux` as `2d1600d`, locally only.  
+No test was run, as the tweak asks, so the merged result is untested;  
+`npx tsc --noEmit` passes on it.  
+
+- Conflicts, resolved by hand  
+  - `.specify/feature.json`, `.specify/requirements.json`, `.specify/analyze-findings.json`: this feature's versions kept.  
+  - `CLAUDE.md`: this feature's and the line graph's sections kept, the admin search plan's section added after them.  
+  - `src/public/admin.css`: the result list's frame, hairline and corner rules are taken;  
+    the `(max-width: 479.98px)` block that `admin-search` extended is not, because this feature deleted that block (R12).  
+- Test changed, not run  
+  - `tests/admin-search-assets.test.ts`: the expectation of an 18 px frame radius in the `479.98px` block now expects that block to be absent.  
+- Gap left by the merge, not fixed here  
+  - The phone layer `phone-admin-m3.css` has no rule for the new `.admin-result` rows, so at 480 px and narrower they keep their desktop sizes, without the 64 px targets of this feature;  
+    the frame keeps its 20 px radius there instead of 18 px.  
+- Not done: no push, and no merge into `main`.  
+
+2026-11-16 09:20
+
+## TWEAK11 <short title here>  
 [ ] Resolved  
 [ ] Run Tests  
 tweak requirements...  
