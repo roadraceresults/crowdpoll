@@ -304,7 +304,7 @@ state here as for a vote.
 While `ENV_DEVICE_EVENTS_ENABLED` is true, `device_events` gains one row per accepted vote and one per session, for later
 offline analysis. Nothing refuses, warns or changes a count on a fingerprint.
 
-- **In the browser**: `deviceEvidence.js` (`index`, `profile`, `settings`, `admin`, `admin-results`) computes at idle, for a
+- **In the browser**: `deviceEvidence.js` (`index`, `profile`, `settings`, `admin`) computes at idle, for a
   signed-in user with the Terms accepted, when the page can vote or a sign-in is due. It injects the vendored
   `/vendor/fingerprintjs-5.3.0.min.js` only then, always with `monitoring: false`, and keeps the value in page memory. The
   value is the library's `visitorId` and a hash of what browsers report alike (screen resolution, colour depth, processor
@@ -511,7 +511,7 @@ the cache without touching PostgreSQL:
 - Trending and Newest are at most a recompute (60 s) plus 10 s of `max-age` old.
 - Search returns identical results for 10 s, and a new or edited public poll is searchable after
   the outbox drain (up to 15 s).
-- Poll rows' `vote_count` (admin pages, rankings, exports) trail the live counts by up to the
+- Poll rows' `vote_count` (the admin page, rankings) trail the live counts by up to the
   flush interval (10 s).
 - Scheduled starts and ends show after the next schedule sweep (up to 60 s).
 
@@ -618,7 +618,7 @@ overrides put the bars back in flow so the card grows and the page scrolls.
 stateDiagram-v2
   [*] --> Grid
   Grid --> Maximized: title, subtitle, Show more or maximize button
-  Maximized --> Grid: minimize button, Escape, the active tab (scroll and focus restored)
+  Maximized --> Grid: minimize button, Escape, the active tab, the browser's Back (scroll and focus restored)
   Maximized --> Grid: another tab, a search, a login change (quiet: neither restored)
   Maximized --> Grid: the poll leaves the tab's list (any tab but Trending and Newest)
   Maximized --> Retained: a Trending or Newest recompute drops the poll
@@ -629,7 +629,11 @@ One page holds at most one maximized card (`maximized` in `tabs.js`), and every 
 `restore`. Trending and Newest pass `retainMaximized`: they receive only a new list, so the
 browser cannot tell a recompute from a deletion, and a dropped poll stays shown until it is
 closed; its own votes and bookmarks are applied to it by `patchRetained`. Every other tab closes
-the view at once when its poll leaves. The address and the browser history are never changed.
+the view at once when its poll leaves. The address is never changed. A view opened from a card adds
+one step to the browser history, at the same address, so the browser's Back closes it (see
+[The phone layout](#the-phone-layout), which describes the step; it is added at every width). In the
+phone layout the view has one column, shorter bars and a tab bar for its extras, also described
+there.
 
 ### Poll notes
 
@@ -770,18 +774,29 @@ is cached for `ENV_LINE_GRAPH_REFRESH_INTERVAL` (clamped up to the live floor), 
 poll shares one computation per interval. A deleted account's anonymized votes count once per poll,
 because deletion gives each poll one placeholder address, in `line_graph_selection` too.
 
-`lineGraph.js` draws hand-rolled SVG: title, subtitle, a legend with each line's current share and
-the vote total, the plot, and an M3 segmented button of the available scales. On every draw (open,
+`lineGraph.js` draws hand-rolled SVG: title, subtitle, a readout row (the selected time, "Latest" at
+rest, and the vote total), a legend of toggle buttons with each line's share, the plot, and an M3
+segmented button of the available scales. The response lists the series in choice order; the browser
+orders them by current share (ties in choice order) and, on a graph of more than 10 lines, draws the leading ones (those whose
+current shares together reach 80% of all the lines' shares, with ties of the last one, 10 at most) until the viewer presses
+"Show all N choices" ("Show top M choices" goes back), so the legend, the lines, the markers, the Y axis and the
+announcement all follow the drawn lines. On every draw (open,
 scale switch, refresh, resize) `renderSvg()` derives the Y-axis top from the drawn series of the
 scale shown: the smallest of 25, 50, 75 and 100 at or above the highest point (25 with no line),
 with gridlines every 5, 10, 15 or 25%. A line's colour is the
 choice's manual hex from the response, else the colour the card itself assigned (`card.resultColors()`),
 so lines and bars never disagree in hue; `PollCard.lineColorOn` shades a colour under 3:1 against the
 panel's computed background to the nearest same-hue shade that reaches it, and a
-`data-theme` change on `<html>` (a `MutationObserver`) redraws. A pointer over the plot places a crosshair, ringed markers and
-a rich tooltip at the nearest bucket with every line's share and the time (with the hour on hourly
-scales), formatted in the viewer's locale and time zone; a touch reading stays until a press outside
-the plot. The plot is one Tab stop: focus shows the newest point, the arrow keys, Home and End move
+`data-theme` change on `<html>` (a `MutationObserver`) redraws. A pointer over the plot places a crosshair and ringed markers
+at the nearest bucket, and the readout row and the legend show the time (with the hour on hourly
+scales, in the viewer's time zone and always in the US English form, "Apr 16, 2026") and every drawn line's share at it: only
+text changes and an entry's width does not depend on its value, so the plot never moves. The legend is
+a table filled column by column, each column as wide as its widest entry: `layoutLegend()` measures the
+entries once and takes the fewest rows whose columns fit, again on a resize. A press on
+the plot (a touch or a click) pins the time; a press or a focus move to the legend or the show-all
+button keeps it, and one anywhere else outside the plot clears it. A legend button highlights one
+line at a time: it is drawn last and wider, and the rest are dimmed in CSS. Neither the highlight
+nor the show-all state is stored. The plot is one Tab stop: focus shows the newest point, the arrow keys, Home and End move
 it, and a polite live region reads each point. A refresh or resize keeps the crosshair at the same
 bucket time. A scale click redraws from the held response; a timer refetches it every
 `lineGraphRefreshIntervalMs` from `/api/config` and keeps the chosen scale. Fewer than two points shows "Not enough voting data to graph yet"; a `404` shows
@@ -796,7 +811,7 @@ denominator is the number of voters (`voteCount`, which grows only on a voter's 
 multiple-choice poll it is the sum of the choice counts, that is, the number of selections, so the
 percentages add up to 100 apart from rounding. The rule is in three places that must agree:
 `DeltaClient.percentDenominator` (used by `toPollDetail` and by `patchRetained` in `tabs.js`) for the
-cards, and `computeResults` for the results page and the exports.
+cards, and `computeResults`, whose formula the line graph's points follow (`polls/lineGraph.ts`).
 
 ### Result bar colours
 
@@ -945,6 +960,157 @@ button at the right, with its menu beneath it; both are inset by `--tab-edge`, t
 edge computed from the container's padding and the 420 px card cap, so they line up with the
 cards whether or not the tab holds one.
 
+### The viewport rule (a trial)
+
+Every page declares `<meta name="viewport" content="width=device-width, initial-scale=1">`, and
+that static line never changes. `viewportWidth.js`, loaded without `defer` on the line after
+`colorScheme.js` in all 12 pages so that it runs before the first stylesheet and the first paint,
+rewrites the declaration to `width=480` on a device held narrower than 480 px. The browser then
+lays the page out 480 px wide and scales it to the screen, so every phone in portrait shows the
+same layout at a different size. A device held 480 px wide or wider, a browser that runs no
+scripts and every desktop browser (which ignores the declaration) keep the page as written.
+
+```mermaid
+flowchart LR
+  Load["script load, resize,<br/>pageshow, orientation change"] --> Held{"held width < 480?"}
+  Held -- yes --> Fixed["content = width=480<br/>root: text-size-adjust 100%"]
+  Held -- no --> Device["content = the page's own<br/>root: no text-size-adjust"]
+```
+
+- **Held width** is the screen's shorter side in portrait and its longer side in landscape. The
+  orientation comes from `screen.orientation.type`, or `window.orientation` where that is
+  missing, never from the `(orientation: …)` media query, which the on-screen keyboard flips.
+  `screen.width` alone would not do: some browsers report it for the current orientation and
+  some always for portrait.
+- **Decided again** on `resize` (a turn, a folding phone), `pageshow` (a page restored from the
+  back/forward cache) and the orientation `change`; the script writes only when the decision
+  changes, so the `resize` its own write causes ends there.
+- **`width=480` stands alone**: no `initial-scale`, so the browser fits the layout to the
+  screen, and nothing that limits zoom.
+- **`text-size-adjust: 100%`** is set on the root element while the fixed width applies, because
+  mobile browsers otherwise enlarge blocks of text on a page wider than the screen, each by its
+  own factor.
+
+Because the layout width on a phone in portrait is 480 px, such a phone gets the phone layout
+under `max-width: 480px` (below), which is designed for exactly that width. There are no rules
+for narrower widths: the page is at least 480 px wide. Text and controls appear at
+`held width ÷ 480` of their designed size (20 px text at 15 px on a 360 px phone). The rule is a
+trial, begun at 640 px and then tried at 480 px: its checklist and outcome are in the feature's
+quickstart, and nothing else in the sheets or scripts was changed for it.
+
+### The phone layout
+
+The phone layout is every rule under `@media (max-width: 480px)`. Because of the viewport rule that
+is every phone in portrait, always at a layout width of 480 px; it is also a desktop window 480 px
+wide or narrower. All sizes below are layout pixels at the 480 px layout width. From 481 to 639 px
+the older phone rules under `max-width: 639.98px` apply unchanged, and nothing changes at 640 px
+and wider. The older rules for widths under 480, 360 and 320 px are deleted.
+
+| Where | Pages | Holds |
+|---|---|---|
+| `m3-tokens.css`, one block under the query | all 12 | the type scale × 1.25, rounded to a whole pixel; `label-small` held at 15 px, so no text is smaller |
+| `phone-m3.css` | all 12 | the page frame (a 480 px minimum width, 16 px gutters, the 64 px header, the 64 px tab bar and the 64 px row under it, footer, cookie notice, Back-to-top), the shared card frame (the full 448 px column, padding 20 px, radius 20 px), the card-shell and legal pages |
+| `phone-card-m3.css` | `index.html` | the compact poll card, the maximized view, the extras tab bar, the Submit bar |
+| `phone-admin-m3.css` | `admin.html` | the admin toolbar, view tabs, search form, admin card and wizard |
+
+- **Last-loaded layers.** The three sheets are the last entries of `LAYER_ORDER`, so they win over
+  the `639.98px` rules, which also match at 480 px and are not edited. Each sheet is one media
+  block and follows the layer rules: tokens only, no literal font size, no dark twin.
+- **Sizes come from the tokens.** Every layer takes its sizes from the type scale, so the token
+  block resizes the site. The phone sheets replace the older rules that multiply a token by 0.75
+  or carry a literal size with the plain token; no phone rule multiplies a token down.
+- **Touch targets are 64 px.** A control keeps a 48 px visible shape and gets a 64 × 64 px target
+  from a transparent `::after` with `inset:-8px`; neighbouring controls sit at least 16 px apart.
+  A row that is itself the control (a vote row, a menu item, a tab, an extras tab, the "more
+  choices" row) is 64 px tall instead.
+- **Scripts ask `PollCard.isPhoneLayout()`**, which is `matchMedia("(max-width: 480px)").matches`,
+  the same query string as the sheets. `tabs.js` uses the same function. The `--single-column`
+  marker and `isSingleColumn()` stay for 481 to 639 px.
+
+**The compact card.** In the phone layout a card does not scroll and has no fixed height.
+`essentialChoices(sorted, ownIds, limits)` in `pollCard.js`, a pure function, picks the bars from the
+share-sorted list and returns `{ shown, hiddenCount, hiddenShare }`:
+
+| View | `limits` | Shown |
+|---|---|---|
+| The card in a tab | `{ lead: 4, allUpTo: 5 }` | every choice when there are five or fewer, else the four leaders |
+| The maximized view | `{ lead: 10, allUpTo: 12, abovePct: 2, allAbovePct: 0 }` | when there are twelve or fewer, the choices whose `pct` is above 0, or all when none is; else those of the ten leaders whose `pct` is above 2, or all ten when none is |
+
+The viewer's own choices that are not among the leaders are added after them, in share order. The
+bars are 44 px tall and 8 px apart (`phoneBarLayout`). Each row carries the class `is-phone` and the
+script writes no font size on it: `phone-card-m3.css` sets the size from the `label-large` token.
+When choices are hidden, the list ends with one row, `button.more-row`: "More choices · 18%" on a
+single-choice poll, where the share is the hidden choices' combined share, and "More choices" on a
+multiple-choice poll. The title is cut at three lines, the subtitle and the notes at one. A tap on
+the title, the subtitle, a bar or the "more choices" row opens the maximized view; a tap on the
+notes line opens it with Notes open.
+
+**Vote.** The voting side always lists every choice, in 64 px rows. When the card shows every
+choice, Vote turns it over in place. When choices are hidden, Vote calls
+`onMaximize(pid, { face: "vote" })`, and `maximize` in `tabs.js` moves the card and then calls its
+`showVoteFace()`, so the view opens on its voting side. Such a card builds no ballot on its back
+until it is turned, so the hidden back never makes the card taller.
+
+**The maximized view.** It is one column: the card, then the extras. The results side uses the
+maximized limits and the same 44 px bars, not `maximizedBarLayout`; its last row is
+`button.show-all-row`, "Show all 37 choices · 30%", then "Show few choices". The card's `choiceView` is
+`essential` (that list), `all`, or `voted`: `setMaximized(true, { choices: 'voted' })`, which `tabs.js` passes on when
+the view is opened from the "More choices" row, shows every choice at 1% or more and the row "Remaining choices · 0%". The face turned away is taken out
+of the layout (`position:absolute`), so the card is as tall as the side showing; the turn keeps its
+rotation. The `#maximizedCardGrid` template starts its right column with `div.extras-tabs`, a tab bar of
+three `button.extras-tab` (Read More, Polling History, Who Voted) for `.maximized-notes`,
+`.maximized-graph` and `.maximized-voters`, styled from the tokens the Home tab bar uses.
+`syncExtras` selects one tab (the one asked for while the poll has it, else the leftmost the poll
+has; Read More when the notes line opened the view), marks a tab the poll lacks
+`aria-disabled="true"` and writes the choice to `data-shown` on the column, and the phone sheet
+hides the two sections not named there. `tabs.js` asks for the voters report and mounts the graph
+when their tab is first shown (`extraDeferred`); above 480 px the bar is hidden and all three
+sections show and load at once, as before.
+
+**The Submit bar.** `#voteBar` in `index.html` sits outside the cards and holds Back, a count
+("2 selected") and Submit. `syncVoteBar` shows it while a card is maximized, turned to its voting
+side and `isPhoneLayout()`; the card reports turns and selection changes through its `onFace` and
+`onSelection` options. The bar's buttons only click the card's own `.back-btn` and
+`.submit-vote-btn`, and the bar copies the Submit button's label and disabled state, so every vote
+rule stays in `pollCard.js`. While the bar shows, the card's own Back and Submit and the Back-to-top
+button are hidden; Add Choice stays in the card. The bar is fixed at
+`bottom: var(--cookie-banner-offset, 0px)`, above the cookie notice.
+
+**The history step.** This part applies at every width.
+
+```mermaid
+stateDiagram-v2
+  [*] --> List
+  List --> Step: a card is maximized (pushState, same address)
+  Step --> List: the browser's Back (popstate closes the view)
+  Step --> List: Back arrow, Minimize, Escape, the active tab (history.back())
+  Step --> List: a tab change, a search, a login change, the poll leaves (closed at once, then history.back())
+  List --> NoStep: a poll opened from a link (nothing pushed)
+  NoStep --> List: any close (restore, no step taken back)
+```
+
+- **Opening.** `maximize` from a card pushes `{ ...history.state, maximizedPid }` with an empty
+  address argument, so the address does not change. A view opened from a card while another view
+  holds a step reuses that step (`replaceState`).
+- **The browser's Back.** `onHistoryStep`, the `popstate` listener, closes the view with `restore`
+  when the state it lands on has no `maximizedPid`.
+- **The on-screen ways out.** The Back arrow, Minimize, Escape and the active tab go through
+  `closeMaximized`, which calls `history.back()` when the current state holds the step and lets
+  that `popstate` close the view. No step is left behind.
+- **Every other close** (another tab, a search, a login change, the poll leaving the list, a view
+  from a link replacing it) closes the view at once; `dropMaximizedStep` then calls
+  `history.back()` on the next turn of the event loop. The listener writes the address the page had
+  before that step back onto the step it lands on, so a tab or search written in the same turn is
+  kept.
+- **A poll opened from a link** (`showLandingPoll`) pushes nothing, and its close takes no step
+  back.
+- **On load** a state that still has `maximizedPid` (a reload, or a return from another page) is
+  cleared with `replaceState`; the view is not reopened. A `popstate` onto such a state (Forward)
+  reopens the view without pushing when the card is in the current tab, and clears the state
+  otherwise.
+
+Tab changes still use `replaceState` only: the pushed step is the view, never a tab.
+
 ## Search
 
 Home search is one interface, `search(scope, text, limit)`, with two engines: OpenSearch
@@ -970,10 +1136,28 @@ choice with a hand-picked color; `pending_update` is not read), each answered by
 `022-admin-search-flags` (`polls_line_graph_created`, `polls_custom_colors_created`), whose predicate the query
 repeats verbatim. The panel is
 collapsed by `button#adminSearchToggle` above it (a `data-collapsed` attribute on the form, in memory only, set by
-`adminList.js` after a user-run search leaves result cards on screen and never by the timed refresh). The Search view shows
+`adminList.js` after a user-run search leaves results on screen and never by the timed refresh). The Search view shows
 no status message before a search. Each admin list row also carries `createdByName` (from `polls.created_by_name`)
 and `createdByEmail` (one `creatorEmails()` query per page against the `user` table), which the read-only card shows
 as `Created By: <username> (<email>)` above its dates.
+
+In the Search view `adminList.js` draws results, not cards: one `div.admin-result` per poll, holding a disclosure
+`<button class="admin-result-row">` (`aria-expanded`, `aria-controls`) and a `div.admin-result-panel`. The request,
+the response and `adminCard.js` are unchanged; the row's cells (title and subtitle on one line; visibility, state,
+creator with date, and voters on a second) are painted from fields the response already carries. The view's state is a `resultRows` map (pid → result) and one `openPid`, both in memory:
+
+- A card controller exists only while its row is open: `openResult` creates it (`AdminCard.create`) and puts its
+  element in the panel, `closeResult` forgets it unless it holds saved wizard progress. So a search draws at most
+  one card, and only the open poll requests its invitees.
+- `selectTab` (Search, Clear, a view tab) loads with `fresh: true`: the open card is closed, and a single result is
+  opened. The timed refresh and the cards' own reloads are not fresh: they repaint changed cell text, call
+  `update` on the open card, reorder through `syncChildren`, and never open or close a row. The result of the poll
+  being edited stays in the list even when the search stops returning it.
+- `refreshCreateButton`, which already follows the edit latch (`editingPid`), also disables every row, Search and
+  Clear during an edit.
+- The list is one frame: `admin.css` gives `.admin-card-list:has(> .admin-result)` the cards' fill, border, corners
+  and shadow at `min(840px, 100%)`, with a hairline between results. Section 7 of `admin-search-m3.css` styles the
+  rows, stripes every second result and tints the open one, row and panel; the card in the panel keeps its 420 px.
 
 ## Sweeps
 
@@ -1127,7 +1311,7 @@ twice. Only OPEN polls send; a resend is refused while the poll is not open. A f
 to `layout` as `messageBox`, drawn after the first paragraph as one rounded `div` (`overflow-wrap:anywhere`) in the HTML
 and as its own paragraph in the text; with no message the email is unchanged. The column is in `NON_CONTENT_FIELDS`, so a
 write of it alone bumps no content version, and it reaches only the admin detail (`invitationMessage`,
-`invitationMessageHtml`) — never a projection, card, tab, delta, the SEO page, an export or `search`; admin list rows carry only the boolean
+`invitationMessageHtml`) — never a projection, card, tab, delta, the SEO page or `search`; admin list rows carry only the boolean
 `hasInvitationMessage`, for the read-only card's summary line.
 Screening reads it with the notes (`ScreeningInput.invitationMessage`); on an ever-voted published poll a change waits in
 `pending_update` and `applyPendingUpdate` writes it, so an unreviewed message is never mailed.
@@ -1177,7 +1361,7 @@ flowchart TD
     C -- yes --> K{"route kind"}
     K -- "search, rescreen" --> D403
     K -- "page, list, create" --> OWN["allowed; the list holds only polls they created"]
-    K -- ":pid route, results page" --> O{"polls.created_by_id = user.id?"}
+    K -- ":pid route" --> O{"polls.created_by_id = user.id?"}
     O -- yes --> OK2["allowed"]
     O -- no --> D404["404"]
 ```
@@ -1456,7 +1640,7 @@ sequenceDiagram
 - **Deletion** (`DELETE /api/me`, same-origin, `{ confirm: "DELETE" }`, `src/legal/deleteAccount.ts`) runs in one
   transaction: the user's own polls are deleted with their history and device events (and queued for removal from the search index), the user's device events are deleted, their
   votes on other polls are rewritten to a per-poll `deleted-<uuid>@deleted.invalid` and "Deleted user" (counts unchanged;
-  the results page shows "Deleted user"), their invitations (by email key, with their invitation history), bookmarks, `user_polls` and login links are deleted,
+  the Who voted report shows "Deleted user"), their invitations (by email key, with their invitation history), bookmarks, `user_polls` and login links are deleted,
   bans are kept, and the user row goes, taking sessions with it. The address is added to `deleted-accounts` first and
   removed again if the transaction fails; afterwards the cached sessions, rosters and counters are dropped and the
   "account deleted" notice is sent.

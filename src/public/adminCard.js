@@ -8,6 +8,7 @@
 
   const DEFAULT_CHOICE_LABELS = ["Choice 1", "Choice 2"];
   const CHOICE_LABEL_MAX = 35;
+  const SUMMARY_CHOICES_NAMED = 5;
   const HEARTBEAT_INTERVAL_MS = 10000;
   const DISCARD_HEADLINE = "Discard changes?";
   const DISCARD_TEXT = "Your edits will be lost.";
@@ -353,16 +354,6 @@
     return btn;
   }
 
-  function iconLink(symbol, label, href, enabled) {
-    if (!enabled) return iconButton(symbol, label, false, null);
-    const a = el("a", "admin-icon-btn");
-    a.href = href;
-    a.title = label;
-    a.setAttribute("aria-label", label);
-    a.appendChild(svgIcon(symbol));
-    return a;
-  }
-
   function menuItem(text, label, onSelect) {
     const btn = el("button", null, text);
     btn.type = "button";
@@ -372,12 +363,9 @@
     return btn;
   }
 
-  function menuLink(text, label, href) {
-    const a = el("a", null, text);
-    a.href = href;
-    a.setAttribute("role", "menuitem");
-    a.setAttribute("aria-label", label);
-    return a;
+  // The phone layout's own query (phone-admin-m3.css); pollCard.js, which has the same test, is not on this page.
+  function isPhoneLayout() {
+    return typeof window.matchMedia === "function" && window.matchMedia("(max-width: 480px)").matches;
   }
 
   function readOnlyField(labelText, value, extraClass) {
@@ -937,16 +925,20 @@
       const kind = who === "public" ? "Public Poll" : "Private Poll";
       const title = s.title.trim();
       const subtitle = s.subtitle.trim();
+      // On the phone layout the wizard's own summary is the title and subtitle alone, as
+      // plain text: the steps below it say the rest (TWEAK43).
+      const brief = part === summaryPart && isPhoneLayout();
       if (title) {
         const heading = el("p", "question wizard-summary-title");
-        heading.appendChild(part(title, 2, "title"));
+        heading.appendChild(brief ? plainPart(title) : part(title, 2, "title"));
         section.appendChild(heading);
       }
       if (subtitle) {
         const sub = el("p", "subtitle wizard-summary-subtitle");
-        sub.appendChild(part(subtitle, 2, "subtitle"));
+        sub.appendChild(brief ? plainPart(subtitle) : part(subtitle, 2, "subtitle"));
         section.appendChild(sub);
       }
+      if (brief) return section;
       if (s.notesHtml) {
         const notes = el("span", "wizard-summary-notes-text");
         notes.innerHTML = s.notesHtml;
@@ -995,7 +987,14 @@
       if (s.answered.has(3) && choiceLines(s).length) {
         const choicesLine = line();
         choicesLine.classList.add("wizard-summary-choices");
-        choicesLine.append("Voters choose from ", part(choiceLines(s).map((l) => l.trim()).join(", "), 3, "labels"), ".");
+        // The summary names five choices at most and counts the rest, at rest and in the
+        // wizard alike (TWEAK27, TWEAK36); the Choices step lists them all.
+        const labels = choiceLines(s).map((l) => l.trim());
+        const named = labels.slice(0, SUMMARY_CHOICES_NAMED);
+        const more = labels.length - named.length;
+        choicesLine.append("Voters choose from ", part(named.join(", "), 3, "labels"));
+        if (more) choicesLine.append("... (" + more + (more === 1 ? " more choice)" : " more choices)"));
+        choicesLine.append(".");
       }
       if (s.answered.has(4)) buildColorsSummaryLine(s, line, part);
       // How to vote, once Step 5 is answered.
@@ -1057,14 +1056,16 @@
     function refreshWizardChrome() {
       const summary = card.querySelector(".wizard-summary");
       if (summary) summary.replaceWith(buildSummary());
-      const footer = card.querySelector(".wizard-footer");
-      if (footer) footer.replaceWith(buildFooter());
-      const next = card.querySelector(".wizard-next");
-      if (next) setNextBlocked(next);
+      card.querySelectorAll(".wizard-footer").forEach((footer) => {
+        const fresh = buildFooter();
+        fresh.className = footer.className;
+        footer.replaceWith(fresh);
+      });
+      card.querySelectorAll(".wizard-next").forEach(setNextBlocked);
       if (existing) {
         const note = card.querySelector(".wizard-review-note");
         const needed = reviewNeeded();
-        const fresh = card.querySelector(".wizard-footer");
+        const fresh = card.querySelector(".wizard-footer:not(.wizard-footer--top)");
         if (needed && !note && fresh) fresh.before(reviewNote());
         else if (!needed && note) note.remove();
       }
@@ -2171,12 +2172,20 @@
       const st = WIZARD_STEPS[wizard.step - 1];
       const panel = el("section", "wizard-panel");
       const heading = el("h3", "wizard-panel-heading", "Step " + st.n + " · " + st.name);
-      panel.appendChild(heading);
+      const hasNext = st.n < WIZARD_STEPS.length;
+      // On the phone layout a step can be taller than the screen, so Next is also beside the heading.
+      if (hasNext && isPhoneLayout()) {
+        const top = el("div", "wizard-panel-top");
+        top.append(heading, nextButton());
+        panel.appendChild(top);
+      } else {
+        panel.appendChild(heading);
+      }
       const body = st.n === 1 ? buildStep1() : st.n === 2 ? buildStep2() : st.n === 3 ? buildStep3() :
         st.n === 4 ? buildColorsStep() : st.n === 5 ? buildStep5() : buildStep6();
       if (existing) lockStep(body, st.n);
       panel.appendChild(body);
-      if (st.n < WIZARD_STEPS.length) {
+      if (hasNext) {
         const actions = el("div", "wizard-panel-actions");
         actions.appendChild(nextButton());
         panel.appendChild(actions);
@@ -2270,6 +2279,14 @@
       return footer;
     }
 
+    // On the phone layout the footer's buttons are also above the step circles, since the
+    // step can be taller than the screen (TWEAK44).
+    function buildTopFooter() {
+      const footer = buildFooter();
+      footer.classList.add("wizard-footer--top");
+      return footer;
+    }
+
     // /publish sends every saved poll back to screening, with or without votes, so
     // the card says so first.
     function reviewNote() {
@@ -2293,13 +2310,13 @@
       const focusedStep = document.activeElement && document.activeElement.closest &&
         document.activeElement.closest(".poll-admin-card") === card;
       const listed = !existing && showsInvitees();
-      card.replaceChildren(status, buildSummary(), buildCircles(), buildStepPanel(),
+      card.replaceChildren(status, buildSummary(), ...(isPhoneLayout() ? [buildTopFooter()] : []), buildCircles(), buildStepPanel(),
         ...(existing && reviewNeeded() ? [reviewNote()] : []), buildFooter(), ...(listed ? [inviteesPanel()] : []));
       if (listed && invitees.data === null) loadInvitees();
       if (focusedStep) {
         const target = card.querySelector(".m3-radio:checked:not(:disabled)") ||
           card.querySelector(".wizard-fields .m3-field-input:not(:disabled)") ||
-          card.querySelector(".wizard-next") || card.querySelector(".wizard-panel-heading");
+          card.querySelector(".wizard-panel-actions .wizard-next") || card.querySelector(".wizard-panel-heading");
         if (target && target.focus) target.focus();
         // The default title opens selected, so typing replaces it.
         if (wizard.step === 2 && target && target.select && !titleIsSet()) target.select();
@@ -2488,9 +2505,7 @@
       menu.hidden = true;
       menu.append(
         menuItem("Duplicate Poll", "Duplicate poll: " + current.title, () => deps.onDuplicate(current)),
-        menuItem("Copy Poll Link", "Copy link to poll: " + current.title, () => deps.onCopyLink(current)),
-        menuLink("View Results", "View results for poll: " + current.title,
-                 "/admin/poll/results?PID=" + encodeURIComponent(current.pid))
+        menuItem("Copy Poll Link", "Copy link to poll: " + current.title, () => deps.onCopyLink(current))
       );
       if (current.canRescreen) {
         menu.append(menuItem("Re-attempt Screening", "Re-attempt screening for poll: " + current.title,
@@ -2540,8 +2555,6 @@
       icons.append(
         iconButton("icon-copy", "Duplicate poll: " + current.title, true, () => deps.onDuplicate(current)),
         iconButton("icon-link", "Copy link to poll: " + current.title, true, () => deps.onCopyLink(current)),
-        iconLink("icon-results", "View results for poll: " + current.title,
-                 "/admin/poll/results?PID=" + encodeURIComponent(current.pid), true),
         iconButton("icon-trash", "Delete poll: " + current.title, current.canDelete, () => deps.onDelete(current))
       );
       const menu = buildActionsMenu();
@@ -2620,29 +2633,34 @@
       }
       const launched = readOnlyField("Launched", formatLaunched(current.launchedAt));
       if (!current.launchedAt) launched.querySelector(".card-field-value").classList.add("admin-date-absent");
+      const voted = [readOnlyField("Voter Count", String(current.voteCount ?? 0))];
+      // On a multiple-choice poll the voters and the votes cast differ, so both show.
+      if (current.choiceMode === "Multiple-Choice Poll") {
+        voted.push(readOnlyField("Vote Count", String(current.voteTotal ?? 0)));
+      }
+      // On the phone layout the vote counts join the dates, and the counts panel holds the invitation counts only.
+      const phone = isPhoneLayout();
       const dates = readOnlyPanel("card-dates-panel", [
         states,
         ...(createdBy ? [createdBy] : []),
         readOnlyField("Created", formatTimestamp(current.createdAt)),
-        launched
+        launched,
+        ...(phone ? voted : [])
       ]);
 
-      const counts = [readOnlyField("Voter Count", String(current.voteCount ?? 0))];
-      // On a multiple-choice poll the voters and the votes cast differ, so both show.
-      if (current.choiceMode === "Multiple-Choice Poll") {
-        counts.push(readOnlyField("Vote Count", String(current.voteTotal ?? 0)));
-      }
+      const counts = phone ? [] : voted;
       if (showsInvitees()) {
         counts.push(countField("Invitation Count", "invitations", current.invitationCount),
                     countField("Accepted Count", "accepted", current.acceptedCount));
       }
-      counts.push(readOnlyField("Banned Voter Count", String(current.bannedVoterCount ?? 0)));
+      counts.push(readOnlyField("Banned Voter Count", String(current.bannedVoterCount ?? 0), "card-banned-count"));
 
       const focused = invitees && invitees.panel.contains(document.activeElement) ? document.activeElement : null;
       const selection = focused && typeof focused.selectionStart === "number" ? [focused.selectionStart, focused.selectionEnd] : null;
       const body = el("div", "card-readonly");
       body.append(buildSummary(readOnlyAnswers(), readOnlyPart),
-                  dates, readOnlyPanel("card-counts-panel", counts),
+                  dates,
+                  ...(phone && !showsInvitees() ? [] : [readOnlyPanel("card-counts-panel", counts)]),
                   ...(showsInvitees() ? [inviteesPanel()] : []));
       card.replaceChildren(status, buildReadOnlyHeader(now), body);
       if (focused && focused.isConnected) {

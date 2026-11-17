@@ -5,48 +5,62 @@ The full description, every earlier feature's decisions and the settings table a
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
-shell commands, and other important information, read the current plans (two features, merged together):
-`specs/20261112-173151-REMOVE-VOTE/plan.md` (research R1–R10, `data-model.md` — the states of a vote row and the
-cache keys; the contracts `contracts/api.md` and `contracts/ui-contracts.md` and the quickstart live alongside it).
-The requirements report is `requirements/20261112-173151-remove-vote/requirements-report.md`: 9 findings, all
-resolved.
+shell commands, and other important information, read the current plan:
+`specs/20261113-140600-PHONE-LAYOUT-REDESIGN/plan.md` (research R1–R15, `data-model.md` — `essentialChoices`, the
+card's view state and the history key, nothing stored; the contracts `contracts/phone-layout.md` P1–P6,
+`contracts/poll-card.md` C1–C5 and H1–H6, `contracts/removed-results.md` X1–X4 and the quickstart, which is the device
+checklist, live alongside it).
+The requirements report is `requirements/20261113-140600-phone-layout-redesign/requirements-report.md`: 14 findings,
+all resolved; its design section predates three of them, so `requirements.md` and the spec are right where they differ.
 Decisions that are easy to get wrong:
-- **A removal is an empty selection** on an open Dynamic-Vote poll from a voter who holds a vote, through the same
-  `POST /api/polls/:pid/vote`; the emptiness rule runs **last** in `validateVoteChoicesAndState`, after the state
-  gates and the Final-Vote check (R1). Anywhere else an empty selection keeps its 400 "Select at least one choice.".
-- **"New voter" is decided from the previous selection** (`lastvote:<pid>:<email>`, shared by every session), not
-  from `voted:<session>`; a removal sets it to `[]`, SREMs the pid from the session set, moves each previous choice
-  and `total` down by one and leaves the trending bucket alone (R2, R3). A removal with nothing to remove is a 400.
-- **The stored shape is the invitee shape**: the `votes` row keeps `choice_ids = {}`; a `vote_history` row records
-  the event; the tally already computes the deltas; the consumer **deletes** the `voted` relation when the latest vote
-  of the batch is empty (R4).
-- **The card**: Submit stays enabled and reads "Remove vote" only while the selection is empty and `myChoiceIds` is
-  non-empty on a Dynamic-Vote poll; both primary buttons carry a label span and two sizers in one grid cell (R5, R6);
-  `applyVote` clears the overlay's `voted` flag and relation so "You voted" goes at once.
+- **The phone layout is `@media (max-width: 480px)` only**: three last-loaded layers (`phone-m3.css`,
+  `phone-card-m3.css`, `phone-admin-m3.css`) override the old `639.98px` phone rules, which stay for 481–639 px; the
+  480, 360 and 320 px blocks are deleted; nothing changes at 481 px and wider except Back (R1, R12).
+- **Sizes come from the tokens**: typescale × 1.25 in `m3-tokens.css` under the same query, `label-small` held at
+  15 px; no phone rule multiplies a token down; 64 px targets are a transparent halo on 48 px controls or 64 px rows
+  (R2, R3).
+- **Scripts ask `PollCard.isPhoneLayout()`** (`matchMedia("(max-width: 480px)")`), not a CSS marker; `--single-column`
+  stays for 481–639 px (R4).
+- **`essentialChoices`**: four leaders (all if ≤ 5) on the card, ten (all if ≤ 12) maximized, of which only those above 2%
+  (above 0% if ≤ 12) when any is (TWEAK05, on trial), own choices added after the leaders; the combined share shows on single-choice polls only; the voting side always lists every choice (R5).
+- **Vote with hidden choices opens the maximized view on its voting side**; the Submit bar only clicks the card's own
+  buttons (R7, R9).
+- **Back**: a view opened from a card pushes `{maximizedPid}` at the same address, at every width; every other way of
+  closing calls `history.back()`; a link landing pushes nothing (R10).
+- **Poll Results is gone** with its three API routes and `exportPoll*`; `computeResults` stays (R13).
 
-And the plan merged after it:
-`specs/20261112-191252-SEMANTIC-COLOR-WORDS/plan.md` (research R1–R6, `data-model.md` — the three word lists and the
-color order; the label table `contracts/ui.md` U1–U6 and the quickstart live alongside it).
-The requirements report is `requirements/20261112-191252-semantic-color-words/requirements-report.md`: 3 findings,
+The plan merged with it (branch `line-graph-fix`):
+`specs/20261113-150353-LINE-GRAPH-READABILITY/plan.md` (research R1–R10, `data-model.md` — five in-memory fields, nothing
+stored; the contract `contracts/ui.md` U1–U7 and the quickstart live alongside it).
+The requirements report is `requirements/20261113-150353-line-graph-readability/requirements-report.md`: 8 findings,
 all resolved.
 Decisions that are easy to get wrong:
-- **Neutral is tested first** in `semanticColorFor` and returns `null`, so a neutral choice takes the next palette
-  color like any unmatched one; a hand-picked color still wins (R3, R4).
-- **Whole words only, listed forms only**: the letters-only lookaround boundary stays; no `g` flag; phrase words are
-  separated by ` +`; "don't" accepts a straight or curly apostrophe (R2, R3).
-- **Nothing is stored**: colors change on the next draw; the line graph follows `resultColors()` (R1).
-shell commands, and other important information, read the current plan:
-`specs/20261112-175743-EMAIL-LOGO/plan.md` (research R1–R7, `data-model.md` — three static images, no stored data;
-the contract `contracts/email-logo.md` and the quickstart live alongside it).
-The requirements report is `requirements/20261112-175743-email-logo/requirements-report.md`: 7 findings, all resolved.
+- **The response is in choice order, not share order**: `lineGraph.js` orders the series by current share itself and,
+  above 10 lines, draws the leading ones (`leadingCount()`: 80% of the shares, 10 at most); `drawnSeries()` feeds the legend, lines, markers, Y axis and announcement (R2, R8).
+- **The legend is the readout**: no `.line-graph-tooltip`; moving the selected time changes text only, and an entry's
+  width never depends on its value, so the plot does not move (R3, R4).
+- **A press or focus move to the legend or the show-all button keeps the selected time**; anywhere else outside the
+  plot clears it (R6).
+- **One highlight**, drawn last and wider; dimming is CSS under `.has-highlight`; it is cleared when its line leaves
+  the drawn set; nothing is stored (R5).
+
+And the plan merged after it (branch `admin-search`):
+`specs/20261113-102117-ADMIN-SEARCH-RESULTS/plan.md` (research R1–R13, `data-model.md` — the states of a result row,
+nothing stored; the contract `contracts/ui.md` U1–U9 and the quickstart live alongside it).
+The requirements report is `requirements/20261113-102117-admin-search-results/requirements-report.md`: 9 findings, all
+resolved.
 Decisions that are easy to get wrong:
-- **The email logo comes from `og-logo.svg`, unchanged**: `devScripts/favicon-ico.ts` renders it in a 56 px window at
-  3× (168 × 168); the favicon keeps `favicon.svg`, figures only; no new SVG (R1).
-- **Refusals**: not 168 × 168, not 8-bit RGBA, or an opaque top-left pixel (read with `node:zlib`, no image library)
-  stops the script before writing (R2).
-- **Every email**, through `layout()`: `<img … email-logo.png width="56" height="56">`, same address; the stored
-  expected emails change only in those sizes (R3, R4).
-- `email-logo.png` is also the OAuth consent logo: `provider-setup.md` describes it; uploaded copies stay (R6).
+- **Search view only, client only**: `adminList.js` draws one `div.admin-result` (a disclosure `<button>` and a panel)
+  per poll; the other views and the creator-only page keep cards; `adminCard.js`, the route and `openapi.json` do not
+  change (R1, R3).
+- **A card exists only while its row is open**: created on open, forgotten on close unless it holds saved wizard
+  progress; one `openPid` (R5).
+- **Only a fresh load opens by itself**: `selectTab` (Search, Clear, a view tab) closes the open card and opens a
+  single result; the periodic refresh and card actions never open, close or move a card, and the editing poll's row is
+  never removed (R6, R8).
+- **Held during an edit**: every row, Search and Clear are `disabled` with "Finish editing the open poll first" (R7).
+- **The list is wider than the 420 px column**: `min(840px, 100%)`, one card-like frame (`admin.css`) of two-line, zebra-striped rows; the
+  card keeps 420 px (R2).
 <!-- SPECKIT END -->
 
 ## Project Overview

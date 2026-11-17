@@ -36,7 +36,10 @@ const LAYER_ORDER = [
   "legal-m3.css",
   "footer-m3.css",
   "line-graph-m3.css",
-  "who-voted-m3.css"
+  "who-voted-m3.css",
+  "phone-m3.css",
+  "phone-card-m3.css",
+  "phone-admin-m3.css"
 ];
 
 interface PageAssets {
@@ -49,67 +52,62 @@ const PAGES: Record<string, PageAssets> = {
   "index.html": {
     sheets: ["tabs.css", "pollCard.css", "site.css"],
     scripts: ["app.js", "headerFit.js", "fixedChrome.js", "addChoiceDialog.js", "pollCard.js", "deviceEvidence.js", "voteClient.js", "deltaClient.js", "lineGraph.js", "whoVoted.js", "tabs.js", "trending.js", "newest.js", "searchTab.js", "liveResults.js", "tabBarScroll.js", "tabBarScrollArrows.js", "backToTopFab.js"],
-    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "back-arrow-m3.css", "tabs-modal-m3.css", "add-choice-m3.css", "live-idle-prompt-m3.css", "empty-tab-line-m3.css", "pollCard-m3.css", "single-column-m3.css", "tab-bar-scroll-arrows-m3.css", "snackbar-m3.css", "footer-m3.css", "line-graph-m3.css", "who-voted-m3.css"]
+    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "back-arrow-m3.css", "tabs-modal-m3.css", "add-choice-m3.css", "live-idle-prompt-m3.css", "empty-tab-line-m3.css", "pollCard-m3.css", "single-column-m3.css", "tab-bar-scroll-arrows-m3.css", "snackbar-m3.css", "footer-m3.css", "line-graph-m3.css", "who-voted-m3.css", "phone-m3.css", "phone-card-m3.css"]
   },
   "profile.html": {
     sheets: ["tabs.css", "pollCard.css", "site.css"],
     scripts: ["app.js", "headerFit.js", "fixedChrome.js", "backArrow.js", "deviceEvidence.js", "cardShell.js", "profileCard.js", "backToTopFab.js"],
-    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "card-shell-m3.css", "profile-editor-m3.css", "footer-m3.css"]
+    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "card-shell-m3.css", "profile-editor-m3.css", "footer-m3.css", "phone-m3.css"]
   },
   "settings.html": {
     sheets: ["tabs.css", "pollCard.css", "site.css"],
     scripts: ["app.js", "headerFit.js", "fixedChrome.js", "deviceEvidence.js", "cardShell.js", "settingsCard.js", "backToTopFab.js"],
-    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "card-shell-m3.css", "profile-editor-m3.css", "site-settings-m3.css", "footer-m3.css"]
+    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "card-shell-m3.css", "profile-editor-m3.css", "site-settings-m3.css", "footer-m3.css", "phone-m3.css"]
   },
   "login.html": {
     sheets: ["tabs.css", "pollCard.css", "site.css"],
     scripts: ["app.js", "headerFit.js", "fixedChrome.js", "cardShell.js", "humanCheck.js", "loginCard.js", "backToTopFab.js"],
-    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "card-shell-m3.css", "human-check-m3.css", "footer-m3.css"]
+    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "card-shell-m3.css", "human-check-m3.css", "footer-m3.css", "phone-m3.css"]
   },
   "create-account.html": {
     sheets: ["tabs.css", "pollCard.css", "site.css"],
     scripts: ["app.js", "headerFit.js", "fixedChrome.js", "cardShell.js", "humanCheck.js", "createAccountCard.js", "backToTopFab.js"],
-    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "card-shell-m3.css", "human-check-m3.css", "footer-m3.css"]
+    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "card-shell-m3.css", "human-check-m3.css", "footer-m3.css", "phone-m3.css"]
   },
   "confirm-signin.html": {
     sheets: ["tabs.css", "pollCard.css", "site.css"],
     scripts: ["app.js", "headerFit.js", "fixedChrome.js", "cardShell.js", "confirmSigninCard.js", "backToTopFab.js"],
-    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "card-shell-m3.css", "footer-m3.css"]
+    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "card-shell-m3.css", "footer-m3.css", "phone-m3.css"]
   },
   "invite.html": {
     sheets: ["tabs.css", "pollCard.css", "site.css"],
     scripts: ["app.js", "headerFit.js", "fixedChrome.js", "cardShell.js", "humanCheck.js", "inviteCard.js", "backToTopFab.js"],
-    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "card-shell-m3.css", "human-check-m3.css", "footer-m3.css"]
+    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "card-shell-m3.css", "human-check-m3.css", "footer-m3.css", "phone-m3.css"]
   },
   "not-authorized.html": {
     sheets: ["tabs.css", "pollCard.css", "site.css"],
     scripts: ["app.js", "headerFit.js", "fixedChrome.js", "cardShell.js", "notAuthorizedCard.js", "backToTopFab.js"],
-    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "card-shell-m3.css", "footer-m3.css"]
+    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "card-shell-m3.css", "footer-m3.css", "phone-m3.css"]
   },
   "privacy.html": {
     sheets: ["tabs.css", "pollCard.css", "site.css"],
     scripts: ["app.js", "headerFit.js", "fixedChrome.js", "backArrow.js", "backToTopFab.js"],
-    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "back-arrow-m3.css", "legal-m3.css", "footer-m3.css"]
+    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "back-arrow-m3.css", "legal-m3.css", "footer-m3.css", "phone-m3.css"]
   },
   "terms.html": {
     sheets: ["tabs.css", "pollCard.css", "site.css"],
     scripts: ["app.js", "headerFit.js", "fixedChrome.js", "backArrow.js", "backToTopFab.js"],
-    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "back-arrow-m3.css", "legal-m3.css", "footer-m3.css"]
+    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "back-arrow-m3.css", "legal-m3.css", "footer-m3.css", "phone-m3.css"]
   },
   "accept-terms.html": {
     sheets: ["tabs.css", "pollCard.css", "site.css"],
     scripts: ["app.js", "headerFit.js", "fixedChrome.js", "cardShell.js", "acceptTermsCard.js", "backToTopFab.js"],
-    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "card-shell-m3.css", "footer-m3.css"]
+    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "card-shell-m3.css", "footer-m3.css", "phone-m3.css"]
   },
   "admin.html": {
     sheets: ["styles.css", "tabs.css", "pollCard.css", "admin.css", "site.css"],
     scripts: ["app.js", "headerFit.js", "fixedChrome.js", "backArrow.js", "notesEditor.js", "deviceEvidence.js", "adminCard.js", "adminList.js", "backToTopFab.js"],
-    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "back-arrow-m3.css", "tabs-modal-m3.css", "discard-dialog-m3.css", "admin-card-m3.css", "admin-search-m3.css", "snackbar-m3.css", "footer-m3.css"]
-  },
-  "admin-results.html": {
-    sheets: ["styles.css", "tabs.css", "pollCard.css", "admin.css", "site.css"],
-    scripts: ["app.js", "headerFit.js", "fixedChrome.js", "deviceEvidence.js", "adminResults.js", "backToTopFab.js"],
-    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "footer-m3.css"]
+    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "back-arrow-m3.css", "tabs-modal-m3.css", "discard-dialog-m3.css", "admin-card-m3.css", "admin-search-m3.css", "snackbar-m3.css", "footer-m3.css", "phone-m3.css", "phone-admin-m3.css"]
   }
 };
 
@@ -272,6 +270,62 @@ describe("Material 3 page assets", () => {
     expect(line).toContain("stroke-linecap:round;");
   });
 
+  it("lays the line graph legend out as a table of 18px rows under a tight title block", () => {
+    const css = read("line-graph-m3.css").replace(/\s+/g, "");
+    expect(css.match(/\.line-graph\{[^}]*\}/)![0]).toContain("gap:4px;");
+    expect(css.match(/\.line-graph-subtitle\{[^}]*\}/)![0]).toContain("margin:-4px00;");
+    expect(css.match(/\.line-graph-plot\{[^}]*\}/)![0]).toContain("margin-top:8px;");
+    const controls = css.match(/\.line-graph-controls\{[^}]*\}/)![0];
+    expect(controls).toContain("margin-top:8px;");
+    expect(controls).toContain("display:flex;");
+    expect(css.match(/\.line-graph-show-all\{[^}]*\}/)![0]).toContain("margin:0;");
+    expect(css.match(/\.line-graph-controls-start\{[^}]*\}/)![0]).toContain("flex:110;");
+    expect(css.match(/\.line-graph-controls::after\{[^}]*\}/)![0]).toContain("flex:110;");
+    const legend = css.match(/\.line-graph-legend\{[^}]*\}/)![0];
+    expect(legend).toContain("display:grid;");
+    expect(legend).toContain("grid-auto-flow:column;");
+    expect(legend).toContain("grid-template-rows:repeat(var(--line-graph-legend-rows,1),auto);");
+    expect(legend).toContain("grid-auto-columns:minmax(0,max-content);");
+    expect(legend).toContain("column-gap:4px;");
+    expect(css.match(/\.line-graph-legend\.is-measuring\{[^}]*\}/)![0]).toContain("grid-auto-columns:max-content;");
+    const entry = css.match(/\.line-graph-legend-entry\{[^}]*\}/)![0];
+    expect(entry).toContain("min-height:18px;");
+    expect(entry).toContain("padding:0px2px;");
+  });
+
+  it("sets the line graph legend in the axis labels' size and outlines the show-all button", () => {
+    const css = read("line-graph-m3.css").replace(/\s+/g, "");
+    const legend = css.match(/\.line-graph-legend\{[^}]*\}/)![0];
+    const axis = css.match(/\.line-graph-svgtext\{[^}]*\}/)![0];
+    expect(legend).toContain("font-size:var(--md-sys-typescale-label-small-size);");
+    expect(axis).toContain("font-size:var(--md-sys-typescale-label-small-size);");
+    const showAll = css.match(/\.line-graph-show-all\{[^}]*\}/)![0];
+    expect(showAll).toContain("border:1pxsolidvar(--md-sys-color-outline);");
+    expect(showAll).toContain("font-size:var(--md-sys-typescale-label-small-size);");
+    expect(showAll).toContain("height:24px;");
+    expect(css.match(/\.line-graph-subtitle\{[^}]*\}/)![0]).toContain("font-size:var(--md-sys-typescale-label-small-size);");
+  });
+
+  it("sizes the line graph scale buttons as the show-all button and the legend dots at 9px", () => {
+    const css = read("line-graph-m3.css").replace(/\s+/g, "");
+    const segment = css.match(/\.line-graph-segment\{[^}]*\}/)![0];
+    expect(segment).toContain("height:24px;");
+    expect(segment).toContain("padding:012px;");
+    expect(segment).toContain("font-size:var(--md-sys-typescale-label-small-size);");
+    const dot = css.match(/\.line-graph-dot\{[^}]*\}/)![0];
+    expect(dot).toContain("width:9px;");
+    expect(dot).toContain("height:9px;");
+  });
+
+  it("sets the line graph title as the maximized card's title", () => {
+    const css = read("line-graph-m3.css").replace(/\s+/g, "");
+    const title = css.match(/\.line-graph-title\{[^}]*\}/)![0];
+    expect(title).toContain("font-size:var(--md-sys-typescale-title-large-size);");
+    expect(title).toContain("line-height:var(--md-sys-typescale-title-large-line-height);");
+    expect(title).toContain("font-weight:var(--md-sys-typescale-title-large-weight);");
+    expect(title).toContain("overflow-wrap:anywhere;");
+  });
+
   it("lets a maximized card be only as tall as its bars need", () => {
     expect(read("pollCard-m3.css")).toContain(".maximized-card-flip{ min-height:0; }");
   });
@@ -322,7 +376,7 @@ describe("Material 3 page assets", () => {
     for (const selector of selectors) expect(selector).toContain(":not(.card-shell-viewport)");
   });
 
-  it("has no Tab Bar on the six pages other than the home page, so the fixed-chrome sheet's .tab-bar-wrap rule never applies there", () => {
+  it("has no Tab Bar on the eleven pages other than the home page, so the fixed-chrome sheet's .tab-bar-wrap rule never applies there", () => {
     for (const file of Object.keys(PAGES)) {
       if (file === "index.html") continue;
       expect(read(file), file).not.toContain("tab-bar-wrap");

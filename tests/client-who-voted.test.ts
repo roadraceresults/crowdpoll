@@ -404,10 +404,12 @@ describe("structure", () => {
     const view = template.content.firstElementChild!.cloneNode(true) as Element;
     const right = view.querySelector(".maximized-space-right")!;
     expect(Array.from(right.children).map((child) => child.className)).toEqual([
+      "extras-tabs",
       "maximized-notes",
       "maximized-voters",
       "maximized-graph"
     ]);
+    expect(Array.from(right.querySelectorAll<HTMLElement>(".extras-tab")).map((tab) => tab.dataset.extra)).toEqual(["notes", "graph", "voters"]);
   });
 
   it("keeps the panel's look in M3 tokens with no height cap or scrolling of its own", () => {

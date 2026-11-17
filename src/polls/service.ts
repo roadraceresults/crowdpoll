@@ -908,38 +908,6 @@ export function createRequirePollOwner({
 
 export const LIMITS = { TITLE_MAX, SUBTITLE_MAX, NOTES_MAX, INVITATION_MESSAGE_MAX, LINK_PREVIEW_MESSAGE_MAX, CHOICE_LABEL_MAX, EMAIL_MAX, MAX_INVITED, KEYWORDS_MAX };
 
-/** FR-055: poll config + results only, excluding the voter roll; `hideChoices` leaves out who chose what (Anonymous Votes). */
-export function exportPollData(
-  poll: Pick<Poll, "_id" | "title" | "subtitle" | "notes" | "choices" | "currentVotes"> & Partial<Pick<Poll, "choiceMode">>,
-  hideChoices = false
-) {
-  const results = computeResults(poll);
-  return {
-    pid: poll._id,
-    title: poll.title,
-    subtitle: poll.subtitle,
-    notes: poll.notes,
-    choices: results.choices,
-    totalVoted: results.totalVoted,
-    participants: poll.currentVotes
-      .filter((v) => v.choiceIds.length > 0)
-      .map((v) => ({ emailAddress: v.emailAddress, userName: v.userName, ...(hideChoices ? {} : { choiceIds: v.choiceIds }) }))
-  };
-}
-
-export function exportPollMarkdown(poll: Pick<Poll, "_id" | "title" | "subtitle" | "notes" | "choices" | "currentVotes"> & Partial<Pick<Poll, "choiceMode">>): string {
-  const data = exportPollData(poll);
-  let md = `# ${data.title}\n\n`;
-  if (data.subtitle) md += `${data.subtitle}\n\n`;
-  if (data.notes) md += `${data.notes}\n\n`;
-  md += `| Choice | Votes | % |\n|---|---|---|\n`;
-  data.choices.forEach((c) => {
-    md += `| ${c.label} | ${c.count} | ${c.pct}% |\n`;
-  });
-  md += `\nTotal voted: ${data.totalVoted}\n`;
-  return md;
-}
-
 export class AdminError extends Error {
   status: number;
   constructor(status: number, message: string) {

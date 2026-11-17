@@ -5,6 +5,7 @@ import { JSDOM, VirtualConsole } from "jsdom";
 const publicDir = path.resolve("src/public");
 const PHONE_QUERY = "(max-width: 639.98px)";
 const TABLET_QUERY = "(max-width: 900px)";
+const PHONE_LAYOUT_QUERY = "(max-width: 480px)";
 const isPhoneQuery = (query: string) => query === PHONE_QUERY || query === TABLET_QUERY;
 
 export interface StubbedUser {
@@ -24,6 +25,8 @@ export interface StubbedHomeOptions {
   user?: StubbedUser | null;
   signinMethod?: string;
   phone?: boolean;
+  /** Whether the 480px phone layout's own query matches; the wider phone and tablet queries follow `phone`. */
+  phoneLayout?: boolean;
   reducedMotion?: boolean;
   tabBarLayout?: TabBarLayout;
   /** Makes every animation frame carry a time stamp older than the moment it was asked for, as a browser can. */
@@ -35,6 +38,7 @@ export interface StubbedHome {
   window: JSDOM["window"];
   document: Document;
   setPhone(isPhone: boolean): void;
+  setPhoneLayout(isPhoneLayout: boolean): void;
   setUser(user: StubbedUser | null): void;
   tabBarScroll(): number;
   setTabBarScroll(value: number): void;
@@ -81,16 +85,19 @@ export async function openStubbedHome(options: StubbedHomeOptions): Promise<Stub
   const html = readFileSync(path.join(publicDir, "index.html"), "utf8").replace(/<script[^>]*><\/script>/g, "");
   const dom = new JSDOM(html, { url: "http://localhost/", runScripts: "outside-only", pretendToBeVisual: true, virtualConsole: new VirtualConsole() });
   const { window } = dom;
-  const state = { phone: options.phone ?? true, user: options.user ?? null, scroll: 0 };
+  const state = { phone: options.phone ?? true, phoneLayout: options.phoneLayout ?? false, user: options.user ?? null, scroll: 0 };
   const phoneListeners: Array<() => void> = [];
+  const phoneLayoutListeners: Array<() => void> = [];
 
   window.matchMedia = ((query: string) => ({
     get matches() {
+      if (query === PHONE_LAYOUT_QUERY) return state.phoneLayout;
       return isPhoneQuery(query) ? state.phone : options.reducedMotion === true && query.includes("prefers-reduced-motion");
     },
     media: query,
     addEventListener: (_type: string, listener: () => void) => {
       if (isPhoneQuery(query)) phoneListeners.push(listener);
+      if (query === PHONE_LAYOUT_QUERY) phoneLayoutListeners.push(listener);
     },
     removeEventListener: () => {}
   })) as unknown as typeof window.matchMedia;
@@ -129,6 +136,10 @@ export async function openStubbedHome(options: StubbedHomeOptions): Promise<Stub
     setPhone(isPhone) {
       state.phone = isPhone;
       phoneListeners.forEach((listener) => listener());
+    },
+    setPhoneLayout(isPhoneLayout) {
+      state.phoneLayout = isPhoneLayout;
+      phoneLayoutListeners.forEach((listener) => listener());
     },
     setUser(user) {
       state.user = user;

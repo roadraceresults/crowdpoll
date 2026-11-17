@@ -15,7 +15,7 @@ import { localScreener, screenWithTimeout } from "../polls/screening.js";
 import { projectPoll } from "../polls/versions.js";
 import { renderNotesHtml, renderNotesPreview } from "../polls/notes.js";
 import { adminSearch, AdminSearchError, parseAdminSearch } from "../search/adminSearch.js";
-import { hidesChoicesFrom, mayViewResults, mayWatch } from "../polls/access.js";
+import { mayViewResults, mayWatch } from "../polls/access.js";
 import { addBookmark, BookmarkCapError, removeBookmark } from "../polls/bookmarks.js";
 import {
   countTitleCollisions,
@@ -48,7 +48,6 @@ import {
   NO_VIEW_PERMISSION,
   NO_VOTE_PERMISSION,
   createDefaultPoll,
-  computeResults,
   validatePollFields,
   validateStateAction,
   applyChoiceColors,
@@ -65,8 +64,6 @@ import {
   normalizedChoiceKey,
   duplicateChoiceError,
   choicesFullError,
-  exportPollData,
-  exportPollMarkdown,
   editModeFor,
   capabilitiesFor,
   hasEverBeenVotedOn,
@@ -1090,74 +1087,6 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
       sendReminder({ db, config }, poll._id, email).catch((err) =>
         console.error(`[invitations] Reminder for poll ${poll._id} failed:`, err)
       );
-    })
-  );
-
-  // GET /api/admin/polls/:pid/results — aggregate + participant lists (FR-054).
-  router.get(
-    "/api/admin/polls/:pid/results",
-    requireOwnPoll,
-    wrap(async (req, res) => {
-      const poll = await findPoll(db, pidOf(req));
-      if (!poll) {
-        res.status(404).json({ error: "Not found" });
-        return;
-      }
-      const results = computeResults(poll);
-      const hideChoices = hidesChoicesFrom(poll, (await callerEmail(sessions, req))?.email, config);
-      const voted = poll.currentVotes
-        .filter((v) => v.choiceIds.length > 0)
-        .map((v) => ({ emailAddress: v.emailAddress, userName: v.userName, ...(hideChoices ? {} : { choiceIds: v.choiceIds }) }))
-        .sort((a, b) => a.userName.localeCompare(b.userName));
-      const body: Record<string, unknown> = {
-        pid: poll._id,
-        title: poll.title,
-        subtitle: poll.subtitle,
-        choiceMode: poll.choiceMode,
-        choices: results.choices,
-        // Aggregates are computed from the poll, never from the roster below, so
-        // they stay correct when an over-sized roster is withheld.
-        totalVoted: results.totalVoted,
-        voted: withinDisplayLimit(voted)
-      };
-      if (isInvitationOnly(poll)) {
-        body.notYetVoted = withinDisplayLimit(
-          poll.currentVotes
-            .filter((v) => v.choiceIds.length === 0)
-            .map((v) => ({ emailAddress: v.emailAddress, userName: v.userName }))
-        );
-      }
-      res.json(body);
-    })
-  );
-
-  // GET /api/admin/polls/:pid/export.{json,md} — FR-055.
-  router.get(
-    "/api/admin/polls/:pid/export.json",
-    requireOwnPoll,
-    wrap(async (req, res) => {
-      const poll = await findPoll(db, pidOf(req));
-      if (!poll) {
-        res.status(404).json({ error: "Not found" });
-        return;
-      }
-      res.setHeader("Content-Disposition", `attachment; filename="${poll._id}.json"`);
-      res.json(exportPollData(poll, hidesChoicesFrom(poll, (await callerEmail(sessions, req))?.email, config)));
-    })
-  );
-
-  router.get(
-    "/api/admin/polls/:pid/export.md",
-    requireOwnPoll,
-    wrap(async (req, res) => {
-      const poll = await findPoll(db, pidOf(req));
-      if (!poll) {
-        res.status(404).send("Not found");
-        return;
-      }
-      res.setHeader("Content-Type", "text/markdown; charset=utf-8");
-      res.setHeader("Content-Disposition", `attachment; filename="${poll._id}.md"`);
-      res.send(exportPollMarkdown(poll));
     })
   );
 

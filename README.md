@@ -5,7 +5,7 @@ PostgreSQL and [BetterAuth](https://better-auth.com). Visitors browse polls on a
 nine-tab home page (Home, Your Polls, Shared With You, Your Votes, Trending, Newest, Watching, Live Results,
 Search — each tab with its own icon, under a rule that runs the full width of the window), vote
 once per poll (or change their vote on a poll that allows it), watch the polls they care about,
-and follow up to five polls update live. Administrators create, edit, screen, moderate and export polls. Login emails a
+and follow up to five polls update live. Administrators create, edit, screen and moderate polls. Login emails a
 one-time login link (no passwords, ever), or goes through Google, Apple, Microsoft or Amazon: `ENV_SIGNIN_METHOD`
 chooses the email link alone (`native`), the providers alone (`oauth`) or both.
 
@@ -87,7 +87,9 @@ delivery network.
   choice visible at once and no scrolling inside the card. The card works exactly as it does in
   the grid. Close it with the same icon, now a minimize icon, the **Escape** key, or a click on the
   tab you are on; the tab comes back as you
-  left it. Switching tabs or searching closes it too. A poll that leaves Trending or Newest while
+  left it. Your browser's or phone's Back button closes it too, and leaves you on the same page; only a
+  poll opened from a link is different, where Back leaves the page as it always did.
+  Switching tabs or searching closes it too. A poll that leaves Trending or Newest while
   you have it open stays open until you close it.
 - **Who voted** — on a private poll whose **Users can see who voted for what** switch is on, the
   maximized view shows who voted for what, below the notes and above the line graph, to everyone who
@@ -100,12 +102,15 @@ delivery network.
 - **Vote history graph** — beside a maximized poll, a line graph shows how each choice's share of
   the vote has moved over time, in the same colours as its bars (a colour too faint for the light or
   dark theme is drawn in a deeper or brighter shade of itself, so every line stays visible), with a
-  legend giving each line's current share and the total count of votes (of voters, on a
-  multiple-choice poll, where the votes cast can outnumber them). Choose **1 Day**, **1 Week**,
+  legend giving each line's current share, highest first and read down its columns (as many columns as fit the width), and the total count of votes (of voters, on a
+  multiple-choice poll, where the votes cast can outnumber them). A poll with more than 10 lines shows
+  the leading ones, those that together hold 80% of the shares and never more than 10; **Show all** draws the rest. Tap a choice in the legend to pick out its line
+  (the others are dimmed); tap it again to go back. Choose **1 Day**, **1 Week**,
   **1 Month** or **1 Year** (only the ranges the poll's history covers are offered; the longest is
   shown first). The scale ends at 25, 50, 75 or 100%, whichever fits the lines shown, so small
   shares fill the graph. Point at the graph, or touch it on a phone, to read every line's share at that
-  moment; on a phone the reading stays after you lift your finger, until you tap outside the graph.
+  moment: the legend shows the time and the shares, and nothing covers the graph. A reading you
+  touched or clicked stays, also while you use the legend, until you tap outside the graph.
   From the keyboard, Tab to the graph and use the Left and Right arrow keys (Home and End for the
   ends, Escape to hide the reading); a screen reader reads each point. Times are in your own time
   zone. The graph updates itself about once a minute while it is open. Anyone who may see a
@@ -136,6 +141,28 @@ delivery network.
   the full name the same way.
 - **Fixed header** — the header, and the tab row beneath it on the home page, stay in place while
   you scroll; the page's content moves underneath them, never over or under.
+- **On a phone** — the site is laid out 480 px wide and scaled to fit your screen, so it looks the same on
+  every phone, only a little larger or smaller, and you can pinch to zoom as usual. With the phone turned
+  sideways, and on a tablet, it uses the screen’s own width. Text is larger than on a wide screen, and
+  every button, link and row is large enough to tap with a thumb.
+- **Poll cards on a phone** — each card is short, one to a row, and nothing scrolls inside it. A poll with
+  five choices or fewer shows them all. A longer poll shows its four leading choices, then any choice you
+  voted for, then a row such as **More choices · 18%**; the percentage is the share those choices hold
+  together, and is shown on single-choice polls only. The title takes up to three lines, and the subtitle
+  and the notes one line each. Tap the title, a bar, the **more choices** row or the notes line to open
+  the poll maximized; the notes line opens it with the notes showing.
+- **Voting on a phone** — the voting side always lists every choice. On a card that shows all its choices,
+  **Vote** turns the card over where it is. On a longer poll, **Vote** opens the poll maximized on its
+  voting side: the full ballot scrolls with the page, and **Back**, the number of choices you have
+  selected and **Submit vote** stay fixed at the bottom of the screen, above the cookie notice.
+- **A maximized poll on a phone** — the poll fills the column. Of twelve choices or fewer, those with votes are shown (all of them when none has); a
+  longer poll shows those of its ten leading choices that have more than 2% (all ten when none has) and any choice you voted for, with **Show all 37 choices · 30%**
+  under them (then **Show few choices**). Opened from the card's **More choices** row, it shows every choice
+  with 1% or more instead, then **Remaining choices · 0%** for the rest. Under the card a tab bar reads **Read More** (the poll's
+  notes), **Polling History** (the vote history graph) and **Who Voted**. One of them shows at a time:
+  the leftmost the poll has to begin with, and a tab the poll lacks is greyed out. The list of voters
+  and the graph are loaded when you first show their tab. Your phone's Back button closes a
+  poll you opened from a card and returns you to the list where you left it.
 - **The tab bar on a phone** — on screens up to 900 px wide the home page's tabs are each
   a small icon beside the name, a name of more than one word wrapped word by word to shorten the row, with no scroll arrows: where more tabs wait beyond an edge the row
   fades out there, and a swipe scrolls it with your phone's own momentum. Tapping a tab that is half
@@ -189,6 +216,14 @@ delivery network.
   puts each radio row back on Any. **Collapse Search**, above the
   panel, folds it away (the button then reads **Expand Search**); it folds itself after a search that shows results
   and stays open when nothing matched. Clicking the **Search** view tab opens a collapsed panel.
+- **Search results** — a search lists one compact row per poll instead of a card, in one frame that looks like a
+  card (up to 840 px wide), with every second row shaded. A row has two lines: the title and subtitle, then
+  **Public**, **Private (invitation)** or **Private (shared link)**, "Poll state: OPEN", "Created by: <user name,
+  else email> on <date>" and the number of voters. A line above the list says how many polls matched ("12 polls match."). Click a row, or press Enter or
+  Space on it, to open that poll's card under it; click it again to close it. One card is open at a time, and a
+  search with a single result opens it for you. The list keeps itself current without opening, closing or
+  moving anything. While you edit a poll, the rows, **Search** and **Clear** are held ("Finish editing the open
+  poll first") until you save or cancel.
 - **Create New Poll** opens the new poll's card as a six-step wizard: Who can vote, Title &
   Tags, Choices, View, How to vote, and When to vote. **Save** keeps your answers so you can
   finish later; **Publish**, available once every step has been visited and the poll is complete,
@@ -200,8 +235,7 @@ delivery network.
   wizard, **Cancel** or **Escape** drops the change (asking first), and **Next >>** or a step circle
   keeps it. The notes are saved with **Save**, **Publish** or **Save changes**, are screened with the
   title, subtitle and choices, and on a poll with votes wait for review like a changed subtitle.
-  The read-only card shows their first two lines after the summary. Duplicates and both exports
-  carry them.
+  The read-only card shows their first two lines after the summary. Duplicates carry them.
 - **View** — on the View step, the poll's creator or an administrator can turn on **Select colors for
   the poll choices** (off: colors are automatically assigned) and then choose a color for one or more
   choices from a fixed palette of eighteen, shown as a grid of named swatches. Turning the switch off
@@ -252,9 +286,9 @@ whatever is stored for their account.
 
 - **Create Poll** — with both Create Poll and View Polls, the header's **Create Poll** link and the
   profile menu's **Poll Administration** entry open the admin page. There you see only the polls you created, with no views and no search form,
-  and you can create, edit, publish, open, close, archive, duplicate, delete and view the results
-  of those polls. Re-attempting a rejected poll's review stays with administrators; edit and
-  publish the poll again instead. Any other poll's page answers "not found".
+  and you can create, edit, publish, open, close, archive, duplicate and delete those polls.
+  Re-attempting a rejected poll's review stays with administrators; edit and
+  publish the poll again instead. Any other poll answers "not found".
 - **Vote on Polls** — without it, every poll card says "You do not have permission to vote." and
   offers no vote.
 - **View Polls** — without it, no tab shows any poll card, only "You do not have permission to view
@@ -313,6 +347,19 @@ winget install PostgreSQL.PostgreSQL.16        # PostgreSQL 16; create a databas
 
 Create the `app01` database (for example with pgAdmin or `createdb app01`); the server creates
 every table on start-up.
+
+Where Windows Smart App Control is on, the installed server cannot run: its `postgres.exe` is not
+code-signed and is blocked, so connections are reset and the service does not start. Run PostgreSQL
+in Docker Desktop instead, with the password of your `ENV_DATABASE_URL`:
+
+```powershell
+docker run -d --name crowdpoll-pg --restart unless-stopped `
+  -e POSTGRES_PASSWORD=<password> -e POSTGRES_DB=app01 `
+  -p 127.0.0.1:5432:5432 -v crowdpoll-pgdata:/var/lib/postgresql/data postgres:16
+```
+
+`devScripts/launch-dev.ps1` uses whatever already answers on the database port, and starts the
+Windows service only when nothing does.
 
 ## First-time setup
 
@@ -761,7 +808,7 @@ wizard, **Who can vote**. Its three options store these settings:
 |---|---|---|
 | **Poll Visibility** | `Public Poll` / `Private Poll` | A public poll can appear on TRENDING and in search results for everyone. A private poll reaches only the people it is shared with, through their My PRIVATE POLLS tab |
 | **Sharing Mode** (private polls only) | `Anyone With The Link` / `Invitation Only` | Whether anyone holding the poll's link may take part, or only the addresses on its invited list |
-| **Anonymous Votes** (private polls only) | `Yes` / `No` | `Yes` (the default) hides who voted for which choice from everyone but administrators: the creator's results and JSON export list who took part and the counts, but not their choices, and the voting side of the card says "Votes are anonymous." `No` reveals the choices to the creator, and shows the names, without addresses, in the **Who voted** panel of the maximized poll to everyone who may see its results — its creator, its invitees, people it was shared with by link — and to administrators. Administrators always see who voted for what. A public poll never shows names |
+| **Anonymous Votes** (private polls only) | `Yes` / `No` | `Yes` (the default) hides who voted for which choice, and the voting side of the card says "Votes are anonymous." `No` shows the names, without addresses, in the **Who voted** panel of the maximized poll to everyone who may see its results — its creator, its invitees, people it was shared with by link — and to administrators. A public poll never shows names |
 
 **Anyone you send the link to** is `Private Poll` with `Anyone With The Link`, **Only people
 you invite** is `Private Poll` with `Invitation Only`, and **Everyone on CrowdPoll** is

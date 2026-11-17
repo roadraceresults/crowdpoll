@@ -117,7 +117,7 @@ describe("Restricted-access polls (US7)", () => {
   });
 });
 
-describe("Participants, bans, and exports (US8)", () => {
+describe("Participants and bans (US8)", () => {
   let ctx: TestContext;
   let adminCookie: string;
   beforeAll(async () => {
@@ -126,126 +126,6 @@ describe("Participants, bans, and exports (US8)", () => {
   });
   afterAll(async () => {
     await ctx.stop();
-  });
-
-  it("GET results shows voted (with choices) and not-yet-voted (invitation-only), excluding banned (FR-054)", async () => {
-    const poll = makePoll({
-      pollVisibility: "Private Poll", pollSharingMode: "Invitation Only",
-      invitedVoterList: ["voted@example.com", "pending@example.com", "banned@example.com"],
-      bannedVoterList: ["banned@example.com"],
-      currentVotes: [
-        { emailAddress: "voted@example.com", userName: "voted", choiceIds: ["c1"], votedAt: new Date()},
-        { emailAddress: "pending@example.com", userName: "pending", choiceIds: [], votedAt: null}
-      ]
-    });
-    await polls(ctx).insertOne(poll);
-    const res = await request(ctx.app).get(`/api/admin/polls/${poll._id}/results`).set("Cookie", adminCookie);
-    expect(res.status).toBe(200);
-    const votedEmails = res.body.voted.map((v: { emailAddress: string }) => v.emailAddress);
-    expect(votedEmails).toEqual(["voted@example.com"]);
-    const notYetEmails = res.body.notYetVoted.map((v: { emailAddress: string }) => v.emailAddress);
-    expect(notYetEmails).toEqual(["pending@example.com"]);
-    expect(votedEmails).not.toContain("banned@example.com");
-    expect(notYetEmails).not.toContain("banned@example.com");
-  });
-
-  it("GET results names the choice mode, so the page can add the votes cast on a multiple-choice poll (TWEAK02)", async () => {
-    const poll = makePoll({
-      choiceMode: "Multiple-Choice Poll",
-      currentVotes: [
-        { emailAddress: "a@example.com", userName: "A", choiceIds: ["c1", "c2"], votedAt: new Date() },
-        { emailAddress: "b@example.com", userName: "B", choiceIds: ["c1"], votedAt: new Date() }
-      ]
-    });
-    await polls(ctx).insertOne(poll);
-    const res = await request(ctx.app).get(`/api/admin/polls/${poll._id}/results`).set("Cookie", adminCookie);
-    expect(res.status).toBe(200);
-    expect(res.body.choiceMode).toBe("Multiple-Choice Poll");
-    expect(res.body.totalVoted).toBe(2);
-    // The per-choice counts sum to the votes cast, which the page derives.
-    expect(res.body.choices.reduce((sum: number, c: { count: number }) => sum + c.count, 0)).toBe(3);
-  });
-
-  it("carries notYetVoted only when the poll is private AND Invitation Only", async () => {
-    const cases = [
-      { settings: { pollVisibility: "Private Poll", pollSharingMode: "Invitation Only" }, present: true },
-      { settings: { pollVisibility: "Private Poll", pollSharingMode: "Anyone With The Link" }, present: false },
-      { settings: { pollVisibility: "Public Poll", pollSharingMode: "Invitation Only" }, present: false }
-    ] as const;
-    for (const { settings, present } of cases) {
-      const poll = makePoll({
-        ...settings,
-        invitedVoterList: ["pending@example.com"],
-        currentVotes: [{ emailAddress: "pending@example.com", userName: "", choiceIds: [], votedAt: null }]
-      });
-      await polls(ctx).insertOne(poll);
-      const res = await request(ctx.app).get(`/api/admin/polls/${poll._id}/results`).set("Cookie", adminCookie);
-      expect(res.status).toBe(200);
-      expect("notYetVoted" in res.body, JSON.stringify(settings)).toBe(present);
-    }
-  });
-
-  it("hides who chose what from the creator of an anonymous private poll, in the results and the JSON export", async () => {
-    const votes = [
-      { emailAddress: "a@example.com", userName: "A", choiceIds: ["c1"], votedAt: new Date(0) },
-      { emailAddress: "b@example.com", userName: "B", choiceIds: ["c2"], votedAt: new Date(0) }
-    ];
-    const anonymous = makePoll({ pollVisibility: "Private Poll", voteAnonymity: "Yes", currentVotes: votes });
-    const named = makePoll({ pollVisibility: "Private Poll", voteAnonymity: "No", currentVotes: votes });
-    const open = makePoll({ pollVisibility: "Public Poll", voteAnonymity: "Yes", currentVotes: votes });
-    await polls(ctx).insertMany([anonymous, named, open]);
-    const creator = await forgeSession(ctx, "anon-creator@example.com");
-    await ctx.db
-      .updateTable("polls")
-      .set({ created_by_id: creator.userId })
-      .where("id", "in", [anonymous._id, named._id, open._id])
-      .execute();
-    const results = (pid: string, cookie: string) =>
-      request(ctx.app).get(`/api/admin/polls/${pid}/results`).set("Cookie", cookie);
-    const exported = (pid: string, cookie: string) =>
-      request(ctx.app).get(`/api/admin/polls/${pid}/export.json`).set("Cookie", cookie);
-
-    const hidden = await results(anonymous._id, creator.cookie);
-    expect(hidden.status).toBe(200);
-    expect(hidden.body.voted).toEqual([
-      { emailAddress: "a@example.com", userName: "A" },
-      { emailAddress: "b@example.com", userName: "B" }
-    ]);
-    expect(hidden.body.choices.map((c: { count: number }) => c.count)).toEqual([1, 1]);
-    expect(hidden.body.totalVoted).toBe(2);
-    const hiddenExport = await exported(anonymous._id, creator.cookie);
-    expect(hiddenExport.body.participants.every((p: object) => !("choiceIds" in p))).toBe(true);
-
-    for (const pid of [named._id, open._id]) {
-      expect((await results(pid, creator.cookie)).body.voted[0].choiceIds).toEqual(["c1"]);
-      expect((await exported(pid, creator.cookie)).body.participants[0].choiceIds).toEqual(["c1"]);
-    }
-    expect((await results(anonymous._id, adminCookie)).body.voted[0].choiceIds).toEqual(["c1"]);
-    expect((await exported(anonymous._id, adminCookie)).body.participants[0].choiceIds).toEqual(["c1"]);
-  });
-
-  it("shows an administrator identical results whatever voteAnonymity says", async () => {
-    const votes = [
-      { emailAddress: "a@example.com", userName: "A", choiceIds: ["c1"], votedAt: new Date(0) },
-      { emailAddress: "b@example.com", userName: "B", choiceIds: ["c2"], votedAt: new Date(0) }
-    ];
-    const shared = {
-      pollVisibility: "Private Poll" as const,
-      pollSharingMode: "Invitation Only" as const,
-      invitedVoterList: ["a@example.com", "b@example.com", "c@example.com"],
-      currentVotes: votes
-    };
-    const anonymous = makePoll({ ...shared, voteAnonymity: "Yes" });
-    const named = makePoll({ ...shared, voteAnonymity: "No" });
-    await polls(ctx).insertMany([anonymous, named]);
-    const strip = (body: Record<string, unknown>) => {
-      const { pid: _pid, ...rest } = body;
-      return rest;
-    };
-    const resA = await request(ctx.app).get(`/api/admin/polls/${anonymous._id}/results`).set("Cookie", adminCookie);
-    const resB = await request(ctx.app).get(`/api/admin/polls/${named._id}/results`).set("Cookie", adminCookie);
-    expect(resA.status).toBe(200);
-    expect(strip(resA.body)).toEqual(strip(resB.body));
   });
 
   it("removing a participant drops their vote and bans them; banned address rejected on vote (FR-050/051)", async () => {
@@ -285,28 +165,6 @@ describe("Participants, bans, and exports (US8)", () => {
     expect(res.status).toBe(200);
     const detail = await request(ctx.app).get(`/api/admin/polls/${poll._id}`).set("Cookie", adminCookie);
     expect(detail.body.bannedVoterList).not.toContain("banned2@example.com");
-  });
-
-  it("exports every stored choice and vote (011: no removed markers to exclude)", async () => {
-    const poll = makePoll({
-      choices: [
-        { id: "c1", label: "Choice 1", position: 0},
-        { id: "c2", label: "Choice 2", position: 1}
-      ],
-      currentVotes: [
-        { emailAddress: "a@example.com", userName: "a", choiceIds: ["c2"], votedAt: new Date()}
-      ]
-    });
-    await polls(ctx).insertOne(poll);
-
-    const json = await request(ctx.app).get(`/api/admin/polls/${poll._id}/export.json`).set("Cookie", adminCookie);
-    expect(json.status).toBe(200);
-    expect(json.body.choices.map((c: { label: string }) => c.label)).toEqual(["Choice 1", "Choice 2"]);
-
-    const md = await request(ctx.app).get(`/api/admin/polls/${poll._id}/export.md`).set("Cookie", adminCookie);
-    expect(md.status).toBe(200);
-    expect(md.text).toContain("Choice 1");
-    expect(md.text).toContain("Choice 2");
   });
 });
 
@@ -508,34 +366,6 @@ describe("Roster display ceiling (014 FR-034, FR-035, FR-044a)", () => {
     }));
   }
 
-  async function resultsFor(count: number) {
-    const poll = makePoll({ currentVotes: voters(count) });
-    await polls(ctx).insertOne(poll);
-    const res = await request(ctx.app)
-      .get(`/api/admin/polls/${poll._id}/results`)
-      .set("Cookie", adminCookie);
-    return { poll, res };
-  }
-
-  it("returns the whole roster at the ceiling", async () => {
-    const { res } = await resultsFor(LIMIT);
-    expect(res.status).toBe(200);
-    expect(res.body.voted).toHaveLength(LIMIT);
-  });
-
-  it("returns the whole roster one below the ceiling", async () => {
-    const { res } = await resultsFor(LIMIT - 1);
-    expect(res.body.voted).toHaveLength(LIMIT - 1);
-  });
-
-  it("withholds the roster one above the ceiling, keeping the aggregate true", async () => {
-    const { res } = await resultsFor(LIMIT + 1);
-    expect(res.body.voted).toEqual([]);
-    // totalVoted is computed from the poll, never from the array above it.
-    expect(res.body.totalVoted).toBe(LIMIT + 1);
-    expect(res.body.choices.reduce((sum: number, c: { count: number }) => sum + c.count, 0)).toBe(LIMIT + 1);
-  });
-
   it("keeps the card's three counts accurate when a roster is withheld", async () => {
     const poll = makePoll({ currentVotes: voters(LIMIT + 3), bannedVoterList: ["b@example.com"] });
     await polls(ctx).insertOne(poll);
@@ -559,15 +389,5 @@ describe("Roster display ceiling (014 FR-034, FR-035, FR-044a)", () => {
       .send({ clientGuid: "ceiling-guard" });
     expect(res.status).toBe(200);
     expect(res.body.poll.invitedVoterList).toEqual([]);
-  });
-
-  it("exempts the JSON export, which exists to hand over what the screen withholds", async () => {
-    const poll = makePoll({ currentVotes: voters(LIMIT + 2) });
-    await polls(ctx).insertOne(poll);
-    const res = await request(ctx.app)
-      .get(`/api/admin/polls/${poll._id}/export.json`)
-      .set("Cookie", adminCookie);
-    expect(res.status).toBe(200);
-    expect(res.body.participants).toHaveLength(LIMIT + 2);
   });
 });

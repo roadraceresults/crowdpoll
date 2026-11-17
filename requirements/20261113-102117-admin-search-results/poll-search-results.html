@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Poll search results — Material 3 inspired</title>
+  <style>
+    :root {
+      font-family: Roboto, "Segoe UI", Arial, sans-serif;
+      color: #242a27;
+      background: #f6f7f5;
+      font-synthesis: none;
+      --surface: #fff;
+      --surface-alt: #f2f3f2;
+      --surface-hover: #e8ebea;
+      --surface-expanded: #e5eae7;
+      --text: #242a27;
+      --text-secondary: #59625e;
+      --outline: #d8ded9;
+      --accent: #2e694a;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; padding: 48px 20px; }
+    .results { width: min(100%, 900px); margin: 0 auto; }
+    .results-header { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 0 16px 16px; }
+    h1 { margin: 0; font-size: 22px; font-weight: 500; line-height: 1.3; letter-spacing: 0; }
+    .match-count { font-size: 18px; font-weight:500; color: var(--text-secondary); white-space: nowrap; }
+    .poll-list { overflow: hidden; background: var(--surface); border: 1px solid var(--outline); border-radius: 16px; }
+    .poll { background: var(--surface); }
+    .poll:nth-child(even) { background: var(--surface-alt); }
+    .poll + .poll { border-top: 1px solid rgba(90, 102, 94, .08); }
+    .poll[open] { background: var(--surface-expanded); }
+    .poll-heading { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 16px; min-height: 78px; padding: 14px 20px; transition: background-color .15s ease; }
+    .poll-heading::-webkit-details-marker { display: none; }
+    .poll-heading:hover { background: var(--surface-hover); }
+    .poll[open] .poll-heading:hover { background: #dde5df; }
+    .poll-heading:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; border-radius: 4px; }
+    .poll-main { flex: 1; min-width: 0; }
+    .title-line { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin-bottom: 7px; }
+    .poll-title { font-size: 16px; line-height: 1.35; font-weight: 500; overflow-wrap: anywhere; }
+    .poll-subtitle { font-size: 16px; line-height: 1.35; font-weight: 400; overflow-wrap: anywhere; }
+    .badge { display: inline-flex; align-items: center; border: 1px solid #63836f; color: #2e694a; border-radius: 7px; padding: 2px 8px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; line-height: 1.5; }
+    .metadata { display: flex; flex-wrap: wrap; align-items: center; column-gap: 8px; row-gap: 4px; color: var(--text-secondary); font-size: 13px; line-height: 1.4; }
+    .metadata > span + span::before { content: '·'; margin-right: 8px; color: #8b938e; }
+    .chevron { flex: 0 0 auto; width: 44px; height: 44px; display: grid; place-items: center; color: #59625e; }
+    .chevron svg { width: 22px; height: 22px; transition: transform .15s ease; }
+    .poll[open] .chevron svg { transform: rotate(180deg); }
+    .poll-body { padding: 0 20px 20px; }
+    .details-panel { margin-right: 60px; padding: 16px; background: rgba(255,255,255,.65); border: 1px solid var(--outline); border-radius: 12px; }
+    .details-panel h2 { font-size: 14px; font-weight: 600; margin: 0 0 8px; }
+    .details-panel p { margin: 0 0 14px; color: var(--text-secondary); line-height: 1.5; font-size: 14px; }
+    .action { display: inline-block; border-radius: 100px; background: var(--accent); color: #fff; text-decoration: none; padding: 10px 18px; font-size: 14px; font-weight: 600; }
+    .action:hover { background: #24583e; }
+    .action:focus-visible { outline: 3px solid #89b79b; outline-offset: 3px; }
+    @media (max-width: 600px) {
+      body { padding: 24px 12px; }
+      .results-header { padding: 0 4px 12px; }
+      h1 { font-size: 20px; }
+      .poll-heading { gap: 8px; padding: 12px 12px 12px 16px; min-height: 88px; }
+      .title-line { gap: 6px 8px; }
+      .metadata { font-size: 12px; }
+      .poll-body { padding: 0 12px 12px; }
+      .details-panel { margin-right: 0; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .poll-heading, .chevron svg { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="results">
+    <header class="results-header">
+      <h1>7 polls match</h1>
+    </header>
+    <section class="poll-list" aria-label="Poll search results">
+      <details class="poll">
+        <summary class="poll-heading"><div class="poll-main"><div class="title-line"><span class="poll-title">NBA Champion 2027</span><span class="poll-subtitle">subtitle goes here</span></div><div class="metadata"><span>Public</span><span>Poll state: OPEN</span><span>Created by: devadmin01 on Nov 12, 2026</span><span>1,008 voters</span></div></div><span class="chevron" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></summary>
+        <div class="poll-body"><div class="details-panel"><h2>Poll details</h2><p>Voting options, results, and additional information about the NBA Champion 2027 poll would appear here.</p><a class="action" href="#" onclick="event.preventDefault()">View poll</a></div></div>
+      </details>
+      <details class="poll">
+        <summary class="poll-heading"><div class="poll-main"><div class="title-line"><span class="poll-title">NFL Super Bowl Champion 2027</span><span class="poll-subtitle">subtitle goes here</span></div><div class="metadata"><span>Private (invitation)</span><span>Poll state: OPEN</span><span>Created by: devadmin01 on Nov 12, 2026</span><span>918 voters</span></div></div><span class="chevron" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></summary>
+        <div class="poll-body"><div class="details-panel"><h2>Poll details</h2><p>Voting options, results, and additional information about this poll would appear here.</p><a class="action" href="#" onclick="event.preventDefault()">View poll</a></div></div>
+      </details>
+      <details class="poll">
+        <summary class="poll-heading"><div class="poll-main"><div class="title-line"><span class="poll-title">Top US Netflix Show This Week</span><span class="poll-subtitle">subtitle goes here</span></div><div class="metadata"><span>Private (shared link)</span><span>Created by: devadmin01 on Nov 7, 2026</span><span>1,148 voters</span></div></div><span class="chevron" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></summary>
+        <div class="poll-body"><div class="details-panel"><h2>Poll details</h2><p>Voting options, results, and additional information about this poll would appear here.</p><a class="action" href="#" onclick="event.preventDefault()">View poll</a></div></div>
+      </details>
+      <details class="poll">
+        <summary class="poll-heading"><div class="poll-main"><div class="title-line"><span class="poll-title">Spain - National Parliament Voting Intention</span><span class="poll-subtitle">subtitle goes here</span></div><div class="metadata"><span>Public</span><span>Poll state: CLOSED</span><span>Created by: devadmin01 on Aug 4, 2026</span><span>1,149 voters</span></div></div><span class="chevron" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></summary>
+        <div class="poll-body"><div class="details-panel"><h2>Poll details</h2><p>Voting options, results, and additional information about this poll would appear here.</p><a class="action" href="#" onclick="event.preventDefault()">View poll</a></div></div>
+      </details>
+      <details class="poll">
+        <summary class="poll-heading"><div class="poll-main"><div class="title-line"><span class="poll-title">France - President Emmanuel Macron's Approval Rating</span><span class="poll-subtitle">subtitle goes here</span></div><div class="metadata"><span>Public</span><span>Poll state: OPEN</span><span>Created by: devadmin01 on Aug 4, 2026</span><span>1,150 voters</span></div></div><span class="chevron" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></summary>
+        <div class="poll-body"><div class="details-panel"><h2>Poll details</h2><p>Voting options, results, and additional information about this poll would appear here.</p><a class="action" href="#" onclick="event.preventDefault()">View poll</a></div></div>
+      </details>
+      <details class="poll">
+        <summary class="poll-heading"><div class="poll-main"><div class="title-line"><span class="poll-title">United Kingdom - Parliament Voting Intention</span><span class="poll-subtitle">subtitle goes here</span></div><div class="metadata"><span>Public</span><span>Poll state: ARCHIVED</span><span>Created by: devadmin01 on Aug 4, 2026</span><span>1,150 voters</span></div></div><span class="chevron" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></summary>
+        <div class="poll-body"><div class="details-panel"><h2>Poll details</h2><p>Voting options, results, and additional information about this poll would appear here.</p><a class="action" href="#" onclick="event.preventDefault()">View poll</a></div></div>
+      </details>
+      <details class="poll">
+        <summary class="poll-heading"><div class="poll-main"><div class="title-line"><span class="poll-title">Trump Approval Rating</span><span class="poll-subtitle">subtitle goes here</span></div><div class="metadata"><span>Public</span><span>Poll state: OPEN</span><span>Created by: devadmin01 on Nov 14, 2025</span><span>1,147 voters</span></div></div><span class="chevron" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></summary>
+        <div class="poll-body"><div class="details-panel"><h2>Poll details</h2><p>Voting options, results, and additional information about this poll would appear here.</p><a class="action" href="#" onclick="event.preventDefault()">View poll</a></div></div>
+      </details>
+    </section>
+  </main>
+</body>
+</html>

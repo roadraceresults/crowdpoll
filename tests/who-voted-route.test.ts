@@ -163,9 +163,8 @@ describe("what it lists", () => {
     expect((await voters(poll._id, viewer.cookie)).body.voters).toEqual([expect.objectContaining({ choiceIds: ["c1"] })]);
     await cast([], "10.8.0.2");
     expect((await voters(poll._id, viewer.cookie)).body.voters).toEqual([]);
-    const results = await request(ctx.app).get(`/api/admin/polls/${poll._id}/results`).set("Cookie", admin.cookie);
-    expect(results.status).toBe(200);
-    expect(results.body.notYetVoted.map((v: { emailAddress: string }) => v.emailAddress)).toContain("gone@example.com");
+    const stored = await polls(ctx).findOne({ _id: poll._id });
+    expect(stored?.currentVotes.find((v) => v.emailAddress === "gone@example.com")?.choiceIds).toEqual([]);
   });
 
   it("sends settleMs only while the live counters count a vote not yet written", async () => {

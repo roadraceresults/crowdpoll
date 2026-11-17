@@ -1,9 +1,7 @@
 import { readFileSync } from "node:fs";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { clearPolls, forgeSession, startTestContext, type TestContext } from "./helpers/setup.js";
+import { forgeSession, startTestContext, type TestContext } from "./helpers/setup.js";
 import { openPage, type BrowserPage } from "./helpers/browser.js";
-import { makePoll } from "./helpers/poll-fixtures.js";
-import { insertPoll, recordVote } from "../src/polls/store.js";
 
 let ctx: TestContext;
 let page: BrowserPage | null = null;
@@ -171,24 +169,5 @@ describe("the delete dialog (C7)", () => {
     await page.settle(100);
     expect(page.requests.some((r) => r.method === "DELETE" && r.url === "/api/me")).toBe(true);
     expect(await ctx.db.selectFrom("user").select("id").where("email", "=", "goodbye@example.org").executeTakeFirst()).toBeUndefined();
-  });
-});
-
-describe("anonymized voters on the results page (C9)", () => {
-  it("shows Deleted user and never the placeholder address", async () => {
-    await clearPolls(ctx);
-    const admin = await forgeSession(ctx, "admin@example.org");
-    const poll = makePoll();
-    await insertPoll(ctx, poll, { id: admin.userId, name: "admin", email: "admin@example.org" });
-    await recordVote(ctx, poll._id, { emailAddress: "deleted-0f0f@deleted.invalid", userName: "Deleted user", choiceIds: ["c1"], votedAt: new Date() });
-    page = await openPage(ctx, "admin-results.html", {
-      cookie: admin.cookie,
-      url: `http://localhost/admin/poll/results?PID=${poll._id}`,
-      scripts: ["app.js", "adminResults.js"]
-    });
-    await page.settle(100);
-    const list = page.document.getElementById("votedList")!;
-    expect(list.textContent).toBe("Deleted user");
-    expect(list.textContent).not.toContain("deleted.invalid");
   });
 });

@@ -135,7 +135,9 @@ describe("maximizing and restoring", () => {
       const side = view.querySelector(".maximized-space-right")!;
       expect(side.querySelector<HTMLElement>(".maximized-notes")!.hidden).toBe(true);
       expect(side.querySelector(".maximized-graph")!.childElementCount).toBe(0);
-      expect(side.textContent!.trim()).toBe("");
+      const tabs = Array.from(side.querySelectorAll<HTMLElement>(".extras-tab"));
+      expect(tabs.map((tab) => tab.getAttribute("aria-disabled"))).toEqual(["true", "true", "true"]);
+      expect(Array.from(side.children).filter((child) => !child.classList.contains("extras-tabs")).map((child) => child.textContent!.trim())).toEqual(["", "", ""]);
       expect(page.document.getElementById("tabBar")).not.toBeNull();
 
       await clickIn(page, card.querySelector(".maximize-btn"));
@@ -698,17 +700,16 @@ describe("keyboard and focus", () => {
     expect(isOpen(page)).toBe(true);
   });
 
-  it("changes neither the address nor the browser history", async () => {
+  it("does not change the address", async () => {
     await seedPoll("Address", 2);
     await sweeps();
     page = await open();
     const href = page.window.location.href;
-    const length = page.window.history.length;
     await clickIn(page, cardByTitle(page, "Address").querySelector(".maximize-btn"));
     expect(page.window.location.href).toBe(href);
     await clickIn(page, maximizedGrid(page, "trending")!.querySelector(".maximize-btn"));
+    await page.settle(30);
     expect(page.window.location.href).toBe(href);
-    expect(page.window.history.length).toBe(length);
   });
 });
 

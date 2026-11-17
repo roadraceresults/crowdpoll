@@ -159,27 +159,48 @@ $env:ENV_PARTICIPANTS_VIEWPORT_SIZE = "10"
 $env:ENV_LINE_GRAPH_MIN_VOTE_PERCENTAGE = "1"
 $env:ENV_LINE_GRAPH_REFRESH_INTERVAL = "60000"
 
-# --- Start the PostgreSQL Windows service if it is not running (a local database only) ---
-# A database URL whose host is not this machine (a managed database) needs no local service.
+# --- Make sure the local PostgreSQL answers (a local database only) ---
+# A database URL whose host is not this machine (a managed database) needs no local server.
+# A server already answering on the port is used as it is, e.g. the Docker container of the README;
+# otherwise the PostgreSQL Windows service is started.
 $databaseHost = "localhost"
+$databasePort = 5432
 if (-not [string]::IsNullOrWhiteSpace($env:ENV_DATABASE_URL) -and
-    $env:ENV_DATABASE_URL -match '^postgres(?:ql)?://(?:[^@/]*@)?(\[[^\]]+\]|[^:/?]+)') {
+    $env:ENV_DATABASE_URL -match '^postgres(?:ql)?://(?:[^@/]*@)?(\[[^\]]+\]|[^:/?]+)(?::(\d+))?') {
     $databaseHost = $Matches[1]
+    if ($Matches[2]) { $databasePort = [int]$Matches[2] }
 }
 if ($databaseHost -in @("localhost", "127.0.0.1", "[::1]")) {
-    $postgres = Get-Service | Where-Object { $_.Name -like "postgresql*" } | Select-Object -First 1
-    if ($null -eq $postgres) {
-        Write-Host "PostgreSQL service not found. Install it first:  winget install PostgreSQL.PostgreSQL.16" -ForegroundColor Red
-        exit 1
+    # Both loopback addresses are tried: a container may publish its port on one of them only.
+    $answering = $false
+    foreach ($address in @("127.0.0.1", "::1")) {
+        $probe = [System.Net.Sockets.TcpClient]::new([System.Net.IPAddress]::Parse($address).AddressFamily)
+        try {
+            if ($probe.ConnectAsync($address, $databasePort).Wait(2000) -and $probe.Connected) { $answering = $true }
+        } catch {
+        } finally {
+            $probe.Dispose()
+        }
+        if ($answering) { break }
     }
-    if ($postgres.Status -ne "Running") {
-        Write-Host "Starting PostgreSQL service..."
-        Start-Service -Name $postgres.Name
-        $postgres.WaitForStatus("Running", (New-TimeSpan -Seconds 30))
+    if ($answering) {
+        Write-Host "PostgreSQL is answering on port $databasePort."
+    } else {
+        $postgres = Get-Service | Where-Object { $_.Name -like "postgresql*" -and $_.StartType -ne "Disabled" } | Select-Object -First 1
+        if ($null -eq $postgres) {
+            Write-Host "Nothing answers on port $databasePort and there is no PostgreSQL service to start." -ForegroundColor Red
+            Write-Host "Start Docker Desktop and the container (docker start crowdpoll-pg), or install the service:  winget install PostgreSQL.PostgreSQL.16" -ForegroundColor Red
+            exit 1
+        }
+        if ($postgres.Status -ne "Running") {
+            Write-Host "Starting PostgreSQL service..."
+            Start-Service -Name $postgres.Name
+            $postgres.WaitForStatus("Running", (New-TimeSpan -Seconds 30))
+        }
+        Write-Host "PostgreSQL service is running."
     }
-    Write-Host "PostgreSQL service is running."
 } else {
-    Write-Host "ENV_DATABASE_URL points at $databaseHost; not starting the local PostgreSQL service."
+    Write-Host "ENV_DATABASE_URL points at $databaseHost; not starting a local PostgreSQL."
 }
 
 # --- Launch the server ---

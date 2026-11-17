@@ -133,6 +133,32 @@
   --md-sys-typescale-label-small-tracking:0.5px;
 }
 
+/* ---------- Phone layout type scale ---------- */
+@media (max-width: 480px){
+  :root{
+    --md-sys-typescale-headline-small-size:30px;
+    --md-sys-typescale-headline-small-line-height:40px;
+    --md-sys-typescale-title-large-size:25px;
+    --md-sys-typescale-title-large-line-height:35px;
+    --md-sys-typescale-title-medium-size:20px;
+    --md-sys-typescale-title-medium-line-height:30px;
+    --md-sys-typescale-title-small-size:18px;
+    --md-sys-typescale-title-small-line-height:25px;
+    --md-sys-typescale-body-large-size:20px;
+    --md-sys-typescale-body-large-line-height:30px;
+    --md-sys-typescale-body-medium-size:18px;
+    --md-sys-typescale-body-medium-line-height:25px;
+    --md-sys-typescale-body-small-size:15px;
+    --md-sys-typescale-body-small-line-height:20px;
+    --md-sys-typescale-label-large-size:18px;
+    --md-sys-typescale-label-large-line-height:25px;
+    --md-sys-typescale-label-medium-size:15px;
+    --md-sys-typescale-label-medium-line-height:20px;
+    --md-sys-typescale-label-small-size:15px;
+    --md-sys-typescale-label-small-line-height:18px;
+  }
+}
+
 /* ---------- Shape, state, elevation and motion ----------
    https://m3.material.io/styles/shape/corner-radius-scale
    https://m3.material.io/foundations/interaction/states/state-layers

@@ -8,6 +8,7 @@
   <title>CrowdPoll Admin</title>
   <meta name="robots" content="noindex">
   <script src="/colorScheme.js"></script>
+  <script src="/viewportWidth.js"></script>
   <link rel="stylesheet" href="/fonts/fonts.css">
   <link rel="stylesheet" href="/m3-tokens.css">
   <link rel="stylesheet" href="/styles.css">
@@ -28,11 +29,13 @@
   <link rel="stylesheet" href="/admin-search-m3.css">
   <link rel="stylesheet" href="/snackbar-m3.css">
   <link rel="stylesheet" href="/footer-m3.css">
+  <link rel="stylesheet" href="/phone-m3.css">
+  <link rel="stylesheet" href="/phone-admin-m3.css">
 </head>
 <body>
   <!-- 012 T059 (research R11): the row icons, defined once and referenced per row with
        <use>. Font Awesome is named in the requirements only as a visual reference — it is
-       not a dependency of this project, and four glyphs do not justify making it one. -->
+       not a dependency of this project, and three glyphs do not justify making it one. -->
   <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
     <symbol id="icon-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor"
             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -43,11 +46,6 @@
             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/>
       <path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/>
-    </symbol>
-    <symbol id="icon-results" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="3" y="4" width="18" height="16" rx="2"/>
-      <path d="M7 9h7"/><path d="M7 13h10"/><path d="M7 17h4"/>
     </symbol>
     <symbol id="icon-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor"
             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -92,6 +90,13 @@
           </div>
 
           <form class="admin-search" id="adminSearchForm" autocomplete="off" aria-label="Search polls" hidden>
+            <div class="admin-search-actions">
+              <button class="btn-primary admin-search-btn" type="submit">Search</button>
+              <button class="admin-search-clear" type="button" id="adminSearchClear">
+                <span class="admin-search-clear-text">Reset search fields</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="11" fill="currentColor" stroke="none"/><path d="M8.5 8.5l7 7M15.5 8.5l-7 7"/></svg>
+              </button>
+            </div>
             <div class="m3-outlined">
               <input id="search-q" class="admin-search-text" name="q" type="search" placeholder=" ">
               <label for="search-q">Words in the title, subtitle or choices</label>
@@ -173,19 +178,12 @@
                 <label for="search-invitedVoterCount">Count</label>
               </div>
             </div>
-            <div class="admin-field-pair">
-              <div class="m3-outlined">
-                <select id="search-bannedVoterCountOp" name="bannedVoterCountOp"><option value="gte">at least</option><option value="lte">at most</option><option value="eq">exactly</option></select>
-                <label for="search-bannedVoterCountOp">Banned users count</label>
-              </div>
-              <div class="m3-outlined">
-                <input id="search-bannedVoterCount" name="bannedVoterCount" type="number" placeholder=" " min="0">
-                <label for="search-bannedVoterCount">Count</label>
-              </div>
-            </div>
             <div class="admin-search-actions">
-              <button class="admin-search-clear" type="button" id="adminSearchClear">Clear</button>
               <button class="btn-primary admin-search-btn" type="submit">Search</button>
+              <button class="admin-search-clear" type="button">
+                <span class="admin-search-clear-text">Reset search fields</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="11" fill="currentColor" stroke="none"/><path d="M8.5 8.5l7 7M15.5 8.5l-7 7"/></svg>
+              </button>
             </div>
           </form>
 

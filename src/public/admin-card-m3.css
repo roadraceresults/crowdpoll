@@ -283,11 +283,6 @@
   outline:3px solid var(--md-sys-color-secondary);
   outline-offset:2px;
 }
-@media (max-width: 359.98px){
-  .poll-admin-card .wizard-step-circle{ font-size:13px; }
-  .poll-admin-card .is-current .wizard-step-label{ font-size:var(--md-sys-typescale-label-small-size); }
-}
-
 /* ---------- 5. Step panel ----------
    An outlined card. The heading is Title Medium, each question Title Small,
    the notes Body Small, and "What does this mean?" a text button over Body
@@ -487,9 +482,6 @@
 .poll-admin-card .wizard-swatch-automatic .wizard-swatch-fill{ width:24px; height:24px; }
 .poll-admin-card .wizard-swatch-automatic .wizard-swatch-check{ position:static; margin-left:auto; }
 .poll-admin-card .wizard-swatch-outlined .wizard-swatch-fill{ border:1px solid var(--md-sys-color-outline); }
-@media (max-width: 359.98px){
-  .poll-admin-card .wizard-color-popover{ padding:8px; }
-}
 .poll-admin-card :is(.wizard-color-btn, .wizard-swatch):focus-visible{
   outline:3px solid var(--md-sys-color-secondary);
   outline-offset:2px;
@@ -910,10 +902,6 @@
 /* Create New Poll keeps production's --ink fill (on-surface); its fixed light label would vanish on the
    light fill of the dark scheme, so the label takes the surface colour instead. */
 .admin-create-btn{ color:var(--md-sys-color-surface); }
-@media (max-width: 359.98px){
-  .poll-admin-card .wizard-footer :is(.btn-header-ghost, .btn-header-primary){ padding:0 12px; }
-}
-
 /* ---------- 10. An existing poll in the wizard ----------
    What the poll's state does not let change is disabled in M3's 38%, with one
    Body Small line saying why at the top of the step; the line above the footer

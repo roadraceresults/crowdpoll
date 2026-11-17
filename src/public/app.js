@@ -530,16 +530,22 @@
     footer.className = "site-footer";
     const nav = document.createElement("nav");
     nav.setAttribute("aria-label", "Legal");
-    nav.append(link("/privacy", "Privacy Policy"), " · ", link("/terms", "Terms of Service"), " · ", link("/privacy#cookies", "Cookie Use"));
+    const dot = () => {
+      const span = document.createElement("span");
+      span.className = "site-footer-dot";
+      span.textContent = "·";
+      return span;
+    };
+    nav.append(link("/privacy", "Privacy Policy"), " ", dot(), " ", link("/terms", "Terms of Service"), " ", dot(), " ", link("/privacy#cookies", "Cookie Use"));
     const deleteAccount = document.createElement("span");
     deleteAccount.className = "site-footer-delete-account";
     deleteAccount.hidden = true;
-    deleteAccount.append(" · ", link("/profile#delete-account", "Delete Account"));
+    deleteAccount.append(" ", dot(), " ", link("/profile#delete-account", "Delete Account"));
     nav.append(deleteAccount);
     const contact = document.createElement("p");
     contact.append(
       "Privacy: ", link("mailto:privacy@crowdpoll.vote", "privacy@crowdpoll.vote"),
-      " · Other questions: ", link("mailto:support@crowdpoll.vote", "support@crowdpoll.vote")
+      " ", dot(), " Other questions: ", link("mailto:support@crowdpoll.vote", "support@crowdpoll.vote")
     );
     const copyright = document.createElement("p");
     copyright.textContent = "© " + new Date().getFullYear() + " CrowdPoll";

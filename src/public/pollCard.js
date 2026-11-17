@@ -255,6 +255,41 @@ function defaultBarLayout(count, wrap){
   return isSingleColumn() ? singleColumnBarLayout() : measuredBarLayout(count, wrap);
 }
 
+const PHONE_LAYOUT_QUERY = '(max-width: 480px)';
+const PHONE_BAR_HEIGHT = 44;
+const PHONE_BAR_GAP = 8;
+const PHONE_VOTE_ROW_HEIGHT = 64;
+const PHONE_BAR_PAD = 14;
+const PHONE_VOTE_RADIO = 24;
+const PHONE_LABEL_GAP = 12;
+const COMPACT_LIMITS = { lead: 4, allUpTo: 5 };
+const MAXIMIZED_LIMITS = { lead: 10, allUpTo: 12, abovePct: 2, allAbovePct: 0 };
+
+function isPhoneLayout(){
+  return Boolean(window.matchMedia) && window.matchMedia(PHONE_LAYOUT_QUERY).matches;
+}
+
+function phoneBarLayout(){
+  return { scrolling: false, barHeight: PHONE_BAR_HEIGHT, gap: PHONE_BAR_GAP, phone: true };
+}
+
+function phoneVoteLayout(){
+  return { scrolling: false, barHeight: PHONE_VOTE_ROW_HEIGHT, gap: 0, phone: true };
+}
+
+function essentialChoices(sorted, ownIds, limits){
+  const whole = sorted.length <= limits.allUpTo;
+  const floor = whole ? limits.allAbovePct : limits.abovePct;
+  let leaders = whole ? sorted : sorted.slice(0, limits.lead);
+  if (floor !== undefined){
+    const above = leaders.filter((choice) => choice.pct > floor);
+    if (above.length > 0) leaders = above;
+  }
+  const shown = sorted.filter((choice) => leaders.indexOf(choice) !== -1 || ownIds.indexOf(choice.id) !== -1);
+  const hidden = sorted.filter((choice) => shown.indexOf(choice) === -1);
+  return { shown, hiddenCount: hidden.length, hiddenShare: hidden.reduce((sum, choice) => sum + choice.pct, 0) };
+}
+
 function maximizedBarLayout(count, bounds){
   const { minChoices, maxChoices } = bounds;
   if (maxChoices <= minChoices){
@@ -675,9 +710,11 @@ function initScrollArrows(wrap, list, upRow, downRow){
   initDragScroll(list);
 }
 
-function renderPollResults(wrap, list, upRow, downRow, data, layoutFor, paletteOffset, palette){
+function renderPollResults(wrap, list, upRow, downRow, allData, layoutFor, paletteOffset, palette, view){
   if (!wrap || !list || !upRow || !downRow) return;
 
+  const data = view ? view.shown : allData;
+  const lastRow = view ? view.lastRow : null;
   const count = data.length;
 
   // Measured before any DOM changes: the bar area is absolutely
@@ -687,13 +724,15 @@ function renderPollResults(wrap, list, upRow, downRow, data, layoutFor, paletteO
   const layout = layoutFor(count, wrap);
   const { barHeight, gap } = layout;
   const compact = barHeight < RESULTS_COMPACT_THRESHOLD;
+  const phone = Boolean(layout.phone);
 
   const fontSize = scaleFontSize(barHeight);
-  const pad = scalePad(fontSize);
+  const pad = phone ? PHONE_BAR_PAD : scalePad(fontSize);
 
   // Computed once, before the in-place/rebuild fork, so both paths color
   // the bars from the same array.
-  const colors = assignResultColors(data, paletteOffset, palette);
+  const allColors = assignResultColors(allData, paletteOffset, palette);
+  const colors = view ? data.map((item) => allColors[allData.indexOf(item)]) : allColors;
 
   // After layout, truncate a label with an ellipsis ONLY if it (plus
   // its left padding) would occupy more than 90% of the bar's total
@@ -704,9 +743,11 @@ function renderPollResults(wrap, list, upRow, downRow, data, layoutFor, paletteO
     if (compact) return;
     rows.forEach(({ row, label }) => {
       const rowWidth = row.getBoundingClientRect().width;
+      if (phone && !rowWidth) return;
       const naturalLabelWidth = label.scrollWidth;
       const occupiedWidth = pad + naturalLabelWidth;
-      const limit = rowWidth * 0.90;
+      const pctWidth = phone ? row.querySelector(':scope > .result-pct').getBoundingClientRect().width : 0;
+      const limit = phone ? rowWidth - pctWidth - pad - PHONE_LABEL_GAP : rowWidth * 0.90;
 
       if (occupiedWidth > limit){
         const maxWidth = Math.max(0, limit - pad);
@@ -752,8 +793,9 @@ function renderPollResults(wrap, list, upRow, downRow, data, layoutFor, paletteO
     a choice added/removed, or a switch into/out of compact mode all
     still fall through to a full rebuild.
   */
-  const signature = [count, barHeight, gap, compact, fontSize, pad].join('|');
-  if (list.dataset.renderSignature === signature && list.children.length === count){
+  const signature = [count, barHeight, gap, compact, fontSize, pad, phone, lastRow ? lastRow.className : ''].join('|');
+  if (list.dataset.renderSignature === signature && list.children.length === count + (lastRow ? 1 : 0)){
+    if (lastRow) setLastRow(list.lastElementChild.firstElementChild, lastRow);
     const rows = data.map((item, i) => {
       const row = list.children[i];
       const label = row.querySelector('.result-label');
@@ -801,7 +843,7 @@ function renderPollResults(wrap, list, upRow, downRow, data, layoutFor, paletteO
     const color = colors[i];
 
     const row = document.createElement('li');
-    row.className = 'result-row' + (compact ? ' is-compact' : '');
+    row.className = 'result-row' + (compact ? ' is-compact' : '') + (phone ? ' is-phone' : '');
     row.style.height = barHeight + 'px';
     row.title = item.label + ' — ' + item.pct + '%';
 
@@ -812,13 +854,13 @@ function renderPollResults(wrap, list, upRow, downRow, data, layoutFor, paletteO
     const label = document.createElement('span');
     label.className = 'result-label';
     label.textContent = item.label;
-    label.style.fontSize = fontSize + 'px';
+    if (!phone) label.style.fontSize = fontSize + 'px';
     label.style.left = pad + 'px';
 
     const pct = document.createElement('span');
     pct.className = 'result-pct';
     pct.textContent = item.pct + '%';
-    pct.style.fontSize = fontSize + 'px';
+    if (!phone) pct.style.fontSize = fontSize + 'px';
     pct.style.right = pad + 'px';
 
     row.append(fill, label, pct);
@@ -826,6 +868,16 @@ function renderPollResults(wrap, list, upRow, downRow, data, layoutFor, paletteO
 
     return { row, label, pct: item.pct, color };
   });
+
+  if (lastRow){
+    const item = document.createElement('li');
+    item.className = 'more-item';
+    const button = document.createElement('button');
+    button.type = 'button';
+    setLastRow(button, lastRow);
+    item.appendChild(button);
+    list.appendChild(item);
+  }
 
   applyTruncation(rows);
   applyBarColors(rows);
@@ -846,6 +898,13 @@ function renderPollResults(wrap, list, upRow, downRow, data, layoutFor, paletteO
       rows.forEach(({ row, pct }) => setFillWidth(row, pct));
     }, 60);
   });
+}
+
+function setLastRow(button, lastRow){
+  button.className = lastRow.className;
+  button.textContent = lastRow.text;
+  if (lastRow.expanded === undefined) button.removeAttribute('aria-expanded');
+  else button.setAttribute('aria-expanded', String(lastRow.expanded));
 }
 
 /*
@@ -893,18 +952,21 @@ function renderVotingOptions(wrap, list, upRow, downRow, data, layoutFor){
   const { barHeight, gap } = layout;
   const compact = barHeight < RESULTS_COMPACT_THRESHOLD;
 
+  const phone = Boolean(layout.phone);
+
   list.style.rowGap = gap + 'px';
 
   const fontSize = scaleFontSize(barHeight);
-  const pad = scalePad(fontSize);
-  const radioSize = scaleRadioSize(barHeight);
-  const labelLeft = pad + radioSize + VOTE_LABEL_GAP;
+  const pad = phone ? PHONE_BAR_PAD : scalePad(fontSize);
+  const radioSize = phone ? PHONE_VOTE_RADIO : scaleRadioSize(barHeight);
+  const labelLeft = pad + radioSize + (phone ? PHONE_LABEL_GAP : VOTE_LABEL_GAP);
 
   const rows = data.map((item, i) => {
     const row = document.createElement('li');
     row.className = 'vote-row'
       + (item.selected ? ' is-selected' : '')
-      + (compact ? ' is-compact' : '');
+      + (compact ? ' is-compact' : '')
+      + (phone ? ' is-phone' : '');
     row.style.height = barHeight + 'px';
     row.dataset.index = i;
     const labelText = item.label;
@@ -922,7 +984,7 @@ function renderVotingOptions(wrap, list, upRow, downRow, data, layoutFor){
       label = document.createElement('span');
       label.className = 'vote-label';
       label.textContent = labelText;
-      label.style.fontSize = fontSize + 'px';
+      if (!phone) label.style.fontSize = fontSize + 'px';
       label.style.left = labelLeft + 'px';
       row.appendChild(label);
     }
@@ -1031,6 +1093,57 @@ function initPollCard(viewport, opts){
   const palette = expandPalette(RESULTS_PALETTE_ENTRIES.map(e => e.hex), opts.choiceBounds && opts.choiceBounds.maxChoices);
   const paletteOffset = paletteOffsetFor(opts.pid, palette.length);
   let isMaximized = false;
+  let choiceView = 'essential';
+
+  function resultsLayoutFor(count, wrap){
+    return isPhoneLayout() ? phoneBarLayout() : layoutFor(count, wrap);
+  }
+
+  function votingLayoutFor(count, wrap){
+    return isPhoneLayout() ? phoneVoteLayout() : layoutFor(count, wrap);
+  }
+
+  function essential(){
+    return essentialChoices(data, (poll && poll.myChoiceIds) || [], isMaximized ? MAXIMIZED_LIMITS : COMPACT_LIMITS);
+  }
+
+  function hiddenChoiceCount(){
+    return data && isPhoneLayout() && !isMaximized ? essential().hiddenCount : 0;
+  }
+
+  function votedChoices(){
+    const ownIds = (poll && poll.myChoiceIds) || [];
+    if (!data.some((choice) => choice.pct >= 1)) return data;
+    return data.filter((choice) => choice.pct >= 1 || ownIds.indexOf(choice.id) !== -1);
+  }
+
+  function phoneResultsView(){
+    if (!isPhoneLayout()) return null;
+    const { shown, hiddenCount, hiddenShare } = essential();
+    const share = poll.choiceMode === 'Single-Choice Poll' ? ' · ' + hiddenShare + '%' : '';
+    if (!isMaximized){
+      return { shown, lastRow: hiddenCount === 0 ? null : { className: 'more-row', text: 'More choices' + share } };
+    }
+    if (choiceView === 'voted'){
+      const voted = votedChoices();
+      if (voted.length < data.length){
+        return { shown: voted, lastRow: { className: 'show-all-row', text: 'Remaining choices · 0%', expanded: false } };
+      }
+    }
+    if (hiddenCount === 0) return { shown, lastRow: null };
+    if (choiceView !== 'essential'){
+      return { shown: data, lastRow: { className: 'show-all-row', text: 'Show few choices', expanded: true } };
+    }
+    return { shown, lastRow: { className: 'show-all-row', text: 'Show all ' + data.length + ' choices' + share, expanded: false } };
+  }
+
+  function ballot(){
+    return hiddenChoiceCount() > 0 && !cardFlip.classList.contains('is-flipped') ? [] : data;
+  }
+
+  function renderBallot(){
+    renderVotingOptions(votingWrap, votingList, votingUp, votingDown, ballot(), votingLayoutFor);
+  }
 
   function rebuildData(selectedIds){
     data = poll.choices.map((c) => ({
@@ -1062,6 +1175,7 @@ function initPollCard(viewport, opts){
     submitBtn.disabled = (empty && !removal) || Boolean(viewerBlockedReason());
     const label = submitBtn.querySelector('.btn-vote-label');
     if (label) label.textContent = removal ? 'Remove vote' : submitLabel;
+    if (opts.onSelection) opts.onSelection(opts.pid, selectedIds().length);
   }
 
   /** 012 FR-058: a refused vote must say why, on the face the voter is looking at. */
@@ -1298,8 +1412,8 @@ function initPollCard(viewport, opts){
   function render(){
     if (!data) return;
     votingList?.classList.toggle('is-multi', Boolean(poll) && poll.choiceMode !== 'Single-Choice Poll');
-    renderPollResults(resultsWrap, resultsList, resultsUp, resultsDown, data, layoutFor, paletteOffset, palette);
-    renderVotingOptions(votingWrap, votingList, votingUp, votingDown, data, layoutFor);
+    renderPollResults(resultsWrap, resultsList, resultsUp, resultsDown, data, resultsLayoutFor, paletteOffset, palette, phoneResultsView());
+    renderBallot();
     updateSubmitState();
     updateClosedState();
     updateActionButtons();
@@ -1394,18 +1508,50 @@ function initPollCard(viewport, opts){
     if (opts.onBookmark) opts.onBookmark(opts.pid, !(poll && poll.bookmarked), poll);
   });
 
-  function requestMaximize(){
+  function requestMaximize(how){
     if (isMaximized || !opts.onMaximize) return;
     dismissMaximizeHint();
-    opts.onMaximize(opts.pid);
+    if (how) opts.onMaximize(opts.pid, how);
+    else opts.onMaximize(opts.pid);
+  }
+
+  function requestMaximizedNotes(){
+    requestMaximize(isPhoneLayout() ? { open: 'notes' } : null);
   }
 
   if (maximizeHintDismissed) viewport.querySelector('.maximize-hint')?.remove();
 
   viewport.querySelectorAll('.question, .subtitle').forEach((el) => {
-    el.addEventListener('click', requestMaximize);
+    el.addEventListener('click', () => requestMaximize());
   });
-  notesMore?.addEventListener('click', requestMaximize);
+  notesMore?.addEventListener('click', (event) => {
+    event.stopPropagation();
+    requestMaximizedNotes();
+  });
+  notesBox?.addEventListener('click', () => { if (isPhoneLayout()) requestMaximizedNotes(); });
+
+  resultsList?.addEventListener('click', (event) => {
+    if (!isPhoneLayout()) return;
+    const showAllRow = event.target.closest('.show-all-row');
+    if (showAllRow){
+      choiceView = showAllRow.getAttribute('aria-expanded') === 'true' ? 'essential' : 'all';
+      render();
+      resultsList.querySelector('.show-all-row')?.focus();
+      return;
+    }
+    if (event.target.closest('.more-row')) requestMaximize({ choices: 'voted' });
+    else if (event.target.closest('.result-row')) requestMaximize();
+  });
+
+  if (opts.onFace && typeof MutationObserver === 'function'){
+    let flipped = cardFlip.classList.contains('is-flipped');
+    new MutationObserver(() => {
+      const now = cardFlip.classList.contains('is-flipped');
+      if (now === flipped) return;
+      flipped = now;
+      opts.onFace(opts.pid, now ? 'vote' : 'results');
+    }).observe(cardFlip, { attributes: true, attributeFilter: ['class'] });
+  }
 
   viewport.querySelectorAll('.maximize-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -1417,8 +1563,9 @@ function initPollCard(viewport, opts){
     });
   });
 
-  function setMaximized(on){
+  function setMaximized(on, how){
     isMaximized = on;
+    choiceView = on && how && how.choices === 'voted' ? 'voted' : 'essential';
     layoutFor = on ? (count) => maximizedBarLayout(count, opts.choiceBounds) : defaultBarLayout;
     viewport.classList.toggle('maximized-card-viewport', on);
     cardFlip.classList.toggle('maximized-card-flip', on);
@@ -1448,10 +1595,18 @@ function initPollCard(viewport, opts){
       updateBlockedState();
       return;
     }
+    if (hiddenChoiceCount() > 0 && opts.onMaximize){
+      requestMaximize({ face: 'vote' });
+      return;
+    }
+    showVoteFace();
+  });
+
+  function showVoteFace(){
     rebuildData(pendingSelection !== null ? pendingSelection : (poll ? poll.myChoiceIds || [] : []));
     cardFlip.classList.add('is-flipped');
     render();
-  });
+  }
 
   // Left-arrow button — always just flips back without submitting.
   viewport.querySelector('.back-btn')?.addEventListener('click', () => {
@@ -1590,7 +1745,7 @@ function initPollCard(viewport, opts){
       data.forEach((d) => { d.selected = false; });
     }
     item.selected = !item.selected;
-    renderVotingOptions(votingWrap, votingList, votingUp, votingDown, data, layoutFor);
+    renderBallot();
     updateSubmitState();
   });
 
@@ -1615,6 +1770,7 @@ function initPollCard(viewport, opts){
     applyPoll,
     unmount,
     setMaximized,
+    showVoteFace,
     resultColors,
     detail: () => poll,
     get isMaximized(){ return isMaximized; },
@@ -1805,7 +1961,11 @@ window.PollCard = {
     if (instance) pollCardInstances.push(instance);
     return instance;
   },
-  lineColorOn: lineColorOn
+  lineColorOn: lineColorOn,
+  isPhoneLayout: isPhoneLayout,
+  essentialChoices: essentialChoices,
+  COMPACT_LIMITS: COMPACT_LIMITS,
+  MAXIMIZED_LIMITS: MAXIMIZED_LIMITS
 };
 
 let cardResizeTimer;

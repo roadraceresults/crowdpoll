@@ -78,22 +78,6 @@ describe("Admin pages ignore the isAdmin hint (012 FR-053)", () => {
   });
 });
 
-describe("A creator's results page (025)", () => {
-  it("serves the creator's own poll and answers 404 for another user's", async () => {
-    const creator = await forgeWithPermissions();
-    const other = await forgeWithPermissions();
-    const mine = makePoll();
-    const theirs = makePoll();
-    await polls(ctx).insertMany([mine, theirs]);
-    await ctx.db.updateTable("polls").set({ created_by_id: creator.userId }).where("id", "=", mine._id).execute();
-    await ctx.db.updateTable("polls").set({ created_by_id: other.userId }).where("id", "=", theirs._id).execute();
-
-    const own = await request(ctx.app).get(`/admin/poll/results?PID=${mine._id}`).set("Cookie", creator.cookie);
-    expect(own.status).toBe(200);
-    const foreign = await request(ctx.app).get(`/admin/poll/results?PID=${theirs._id}`).set("Cookie", creator.cookie);
-    expect(foreign.status).toBe(404);
-  });
-});
 
 /**
  * 013 FR-042/FR-044 (contracts/page-routes.md): the refusal becomes a page
@@ -104,7 +88,7 @@ describe("A creator's results page (025)", () => {
  */
 describe("Unauthorized access to an admin page (013 FR-042/FR-044)", () => {
   // 014 FR-004: /admin/poll and /admin/poll/update are removed; editing is on the card.
-const ADMIN_PAGES = ["/admin", "/admin/poll/results"];
+const ADMIN_PAGES = ["/admin"];
 
   it("answers every admin page route with the card, at 403", async () => {
     for (const page of ADMIN_PAGES) {
@@ -256,7 +240,6 @@ describe("The site favicon (FR-010)", () => {
       ["/create-account", undefined, 200],
       ["/profile", signedIn.cookie, 200],
       ["/admin", creator.cookie, 200],
-      [`/admin/poll/results?PID=${poll._id}`, creator.cookie, 200],
       ["/admin", undefined, 403],
     ];
     for (const [url, cookie, status] of pages) {

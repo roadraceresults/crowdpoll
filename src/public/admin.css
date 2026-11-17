@@ -1,4 +1,4 @@
-/* Shared chrome for admin.html / admin-poll.html / admin-results.html —
+/* Chrome for admin.html —
    plain form/table styling, not adopted from any reference design file
    (the reference files only cover the voter-facing poll card/grid). */
 
@@ -25,29 +25,6 @@
 .admin-create-btn:disabled{ opacity:0.5; cursor:default; box-shadow:none; }
 
 .admin-back-link{ margin-bottom:10px; }
-
-/* 012: tightened so the fields read as one form rather than a stack of
-   separate blocks. */
-.admin-field{ margin-bottom:10px; }
-.admin-field label{ display:block; font-weight:700; font-size:13px; margin-bottom:4px; }
-.admin-field textarea, .admin-field input, .admin-field select{
-  width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:8px;
-  font-family:inherit; font-size:13.5px; background:var(--paper-raised); color:var(--ink);
-}
-.admin-field textarea{ min-height:44px; resize:vertical; }
-
-.admin-field-row{ display:flex; gap:16px; flex-wrap:wrap; }
-.admin-field-row .admin-field{ flex:1 1 200px; }
-
-.admin-choice-list{ list-style:none; margin:0 0 10px; padding:0; display:flex; flex-direction:column; gap:8px; }
-.admin-choice-list li{ display:flex; align-items:center; gap:8px; }
-
-.admin-participant-list{ list-style:none; margin:0 0 14px; padding:0; }
-.admin-participant-list li{
-  display:flex; align-items:center; justify-content:space-between; gap:10px;
-  padding:6px 0; border-bottom:1px solid var(--line); font-size:13.5px;
-}
-.admin-participant-list button{ font-size:12px; padding:4px 10px; height:auto; }
 
 /* Actions menu (kebab trigger + dropdown). The dropdown is positioned via
    JS-computed `position:fixed` coordinates so it is never clipped by a card's
@@ -191,11 +168,28 @@
   margin: 0 auto;
 }
 
-@media (max-width: 479.98px) {
-  .poll-admin-card,
-  .admin-search {
-    border-radius: 18px;
-  }
+.admin-card-list:has(> .admin-result) {
+  gap: 0;
+  width: min(840px, 100%);
+  margin: 0 auto;
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+}
+
+.admin-result + .admin-result {
+  border-top: 1px solid var(--line);
+}
+
+.admin-result:first-child {
+  border-top-left-radius: 19px;
+  border-top-right-radius: 19px;
+}
+
+.admin-result:last-child {
+  border-bottom-left-radius: 19px;
+  border-bottom-right-radius: 19px;
 }
 
 .card-status-line {
@@ -393,18 +387,5 @@
 .card-readonly-header .card-state { flex: 1 1 auto; }
 .card-readonly-header .card-actions { gap: 0; }
 
-/* The wizard works down to a 320px window and stops shrinking
-   below it (292px = 320px minus the two 14px page gutters). Below the floor the
-   page scrolls sideways instead of cutting the card off. */
-.poll-admin-card { min-width: 292px; }
 .page { overflow-x: auto; }
 
-/* Tighter spacing below 360px, so the wizard is comfortable at 320px. */
-@media (max-width: 359.98px) {
-  .poll-admin-card--new { padding: 12px; }
-  .wizard-footer .btn-header-ghost,
-  .wizard-footer .btn-header-primary { padding: 0 12px; }
-  .wizard-step-btn { grid-template-rows: 18px 32px; }
-  .wizard-step-circle { width: 32px; height: 32px; }
-  .wizard-steps::before { top: 34px; }   /* label row (18px) + half the circle (16px) */
-}

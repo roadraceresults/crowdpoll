@@ -20,6 +20,7 @@ let page: BrowserPage | null = null;
 /** The JSON body of every request the page sent, in order. */
 let bodies: { method: string; url: string; body: Record<string, unknown> | null }[] = [];
 let clipboardText = "";
+let phoneLayout = false;
 
 beforeAll(async () => {
   ctx = await startTestContext({ ENV_ADMINS: ADMIN, ENV_POLL_ADMIN_PAGE_REFRESH_INTERVAL: "60000" });
@@ -39,6 +40,7 @@ beforeEach(async () => {
   page = null;
   bodies = [];
   clipboardText = "";
+  phoneLayout = false;
   await polls(ctx).deleteMany({});
   await voteHistory(ctx).deleteMany({});
 });
@@ -50,6 +52,14 @@ async function open(sessionCookie = cookie): Promise<BrowserPage> {
     url: "http://localhost/admin",
     scripts: ["m3-ripple.js", "app.js", "notesEditor.js", "adminCard.js", "adminList.js"],
     beforeScripts: (window) => {
+      if (phoneLayout) {
+        window.matchMedia = ((query: string) => ({
+          matches: query === "(max-width: 480px)",
+          media: query,
+          addEventListener: () => {},
+          removeEventListener: () => {}
+        })) as unknown as typeof window.matchMedia;
+      }
       Object.defineProperty(window.navigator, "clipboard", {
         configurable: true,
         value: {
@@ -227,6 +237,57 @@ describe("a new poll's wizard", () => {
     expect(sent("/publish")[0]!.body).toMatchObject({ title: "Bake sale", labels: ["Cakes", "Cookies"], pollVisibility: "Public Poll" });
     expect((await polls(ctx).findOne({ _id: pid }))!.pollState).toBe("AWAITING APPROVAL");
     expect(p.document.querySelector(".poll-admin-card--new")).toBeNull();
+  });
+
+  it("has a second Next beside the step heading on the phone layout, which also moves on and is blocked alike", async () => {
+    phoneLayout = true;
+    const p = await open();
+    await createPoll(p);
+    const nexts = () => Array.from(wizardCard(p).querySelectorAll<HTMLButtonElement>(".wizard-next"));
+    expect(nexts()).toHaveLength(2);
+    const top = wizardCard(p).querySelector(".wizard-panel-top")!;
+    expect(Array.from(top.children).map((c) => c.className)).toEqual(["wizard-panel-heading", "m3-filled-btn wizard-next"]);
+    expect(nexts()[1]!.parentElement!.className).toBe("wizard-panel-actions");
+    nexts()[0]!.click();
+    await p.settle();
+    expect(heading(wizardCard(p))).toContain("Step 2");
+    nexts()[0]!.click();
+    await p.settle();
+    type(p, choicesBox(p), "Taco Town\ntaco  town ");
+    expect(nexts().map((b) => b.disabled)).toEqual([true, true]);
+  });
+
+  it("repeats the footer's buttons above the step circles on the phone layout, kept in step with the lower ones", async () => {
+    phoneLayout = true;
+    const p = await open();
+    await createPoll(p);
+    const footers = () => Array.from(wizardCard(p).querySelectorAll<HTMLElement>(".wizard-footer"));
+    const texts = (footer: HTMLElement) => Array.from(footer.querySelectorAll("button")).map((b) => b.textContent);
+    expect(footers().map((f) => f.className)).toEqual(["wizard-footer wizard-footer--top", "wizard-footer"]);
+    expect(footers()[0]!.previousElementSibling!.classList.contains("wizard-summary")).toBe(true);
+    expect(footers()[0]!.nextElementSibling!.classList.contains("wizard-steps")).toBe(true);
+    expect(texts(footers()[0]!)).toEqual(texts(footers()[1]!));
+    await next(p);
+    await next(p);
+    type(p, choicesBox(p), "Taco Town\ntaco  town ");
+    expect(footers().map((f) => f.className)).toEqual(["wizard-footer wizard-footer--top", "wizard-footer"]);
+    for (const footer of footers()) {
+      const save = Array.from(footer.querySelectorAll("button")).find((b) => b.textContent === "Save")!;
+      expect(save.getAttribute("aria-disabled")).toBe("true");
+    }
+  });
+
+  it("has one footer, under the step, on wider screens", async () => {
+    const p = await open();
+    await createPoll(p);
+    expect(wizardCard(p).querySelectorAll(".wizard-footer")).toHaveLength(1);
+  });
+
+  it("has one Next, under the step, on wider screens", async () => {
+    const p = await open();
+    await createPoll(p);
+    expect(wizardCard(p).querySelector(".wizard-panel-top")).toBeNull();
+    expect(wizardCard(p).querySelectorAll(".wizard-next")).toHaveLength(1);
   });
 
   it("blocks Next, Save and Publish while two choices differ only in capitals or spaces", async () => {
@@ -1141,6 +1202,21 @@ describe("the read-only face", () => {
     expect(card.querySelector('[id^="voterCountLimit"], .admin-participant-list')).toBeNull();
   });
 
+  it("lists the vote counts under the dates on the phone layout, with no counts panel on a poll without invitations", async () => {
+    await seed(makePoll({
+      title: "Phone counts", pollState: "OPEN", choiceMode: "Multiple-Choice Poll", launchedAt: undefined,
+      currentVotes: [{ emailAddress: "a@example.com", userName: "A", choiceIds: ["c1", "c2"], votedAt: new Date() }]
+    } as Partial<Poll>));
+    phoneLayout = true;
+    const p = await open();
+    const card = cardWith(p, "Phone counts");
+    const fields = Array.from(card.querySelectorAll(".card-dates-panel .card-field"))
+      .map((f) => [f.querySelector(".card-field-label")!.textContent, f.querySelector(".card-field-value")!.textContent]);
+    expect(fields.map(([label]) => label).filter((label) => label !== "Created By")).toEqual(["Created", "Launched", "Voter Count", "Vote Count"]);
+    expect(fields.slice(-2)).toEqual([["Voter Count", "1"], ["Vote Count", "2"]]);
+    expect(card.querySelector(".card-counts-panel")).toBeNull();
+  });
+
   it("shows Voter Count and, on a multiple-choice poll, the Vote Count of selections (TWEAK02)", async () => {
     await seed(makePoll({
       title: "Multi counts", pollState: "OPEN", choiceMode: "Multiple-Choice Poll",
@@ -1808,6 +1884,44 @@ describe("the line graph switch on the View step", () => {
     (circles(wizardCard(p))[3]!.querySelector("button") as HTMLButtonElement).click();
     await p.settle();
   }
+
+  const manyChoices = (count: number) =>
+    Array.from({ length: count }, (_, i) => ({ id: "c" + (i + 1), label: "Team " + (i + 1), position: i }));
+  const choicesText = (card: HTMLElement) => card.querySelector(".wizard-summary-choices")!.textContent;
+
+  it("names five choices at most on the card at rest and counts the rest", async () => {
+    await seedPoll("Fifteen", { choices: manyChoices(15) });
+    await seedPoll("Six", { choices: manyChoices(6) });
+    await seedPoll("Five", { choices: manyChoices(5) });
+    const p = await open();
+    expect(choicesText(cardWith(p, "Fifteen"))).toBe("Voters choose from Team 1, Team 2, Team 3, Team 4, Team 5... (10 more choices).");
+    expect(choicesText(cardWith(p, "Six"))).toBe("Voters choose from Team 1, Team 2, Team 3, Team 4, Team 5... (1 more choice).");
+    expect(choicesText(cardWith(p, "Five"))).toBe("Voters choose from Team 1, Team 2, Team 3, Team 4, Team 5.");
+  });
+
+  it("shows the title and subtitle alone, as plain text, in the wizard's summary on the phone layout", async () => {
+    await seedPoll("Brief", { choices: manyChoices(3) });
+    phoneLayout = true;
+    const p = await open();
+    const atRest = cardWith(p, "Brief").querySelector(".wizard-summary")!;
+    expect(atRest.querySelectorAll(".wizard-summary-text").length).toBeGreaterThan(0);
+    link(cardWith(p, "Brief"), "Brief").click();
+    await p.settle(50);
+    const summary = wizardCard(p).querySelector(".wizard-summary")!;
+    expect(Array.from(summary.children).map((c) => [c.className, c.textContent])).toEqual([
+      ["question wizard-summary-title", "Brief"],
+      ["subtitle wizard-summary-subtitle", "Sub"]
+    ]);
+    expect(summary.querySelector(".wizard-summary-link, [role='button']")).toBeNull();
+  });
+
+  it("names five choices at most in the wizard's own summary too, and counts the rest", async () => {
+    await seedPoll("Seven", { choices: manyChoices(7) });
+    const p = await open();
+    link(cardWith(p, "Seven"), "Seven").click();
+    await p.settle(50);
+    expect(choicesText(wizardCard(p))).toBe("Voters choose from Team 1, Team 2, Team 3, Team 4, Team 5... (2 more choices).");
+  });
 
   it("an Administrator's View step shows the switch first, unchecked when the graph is off", async () => {
     await seedPoll("Graph off");

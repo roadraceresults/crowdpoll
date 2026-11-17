@@ -110,9 +110,7 @@ describe("Admin poll CRUD (US4)", () => {
     const archived = await request(ctx.app).patch(`/api/admin/polls/${live._id}`).set("Cookie", cookie).send({ pollState: "ARCHIVED" });
     expect(archived.body.pollState).toBe("ARCHIVED");
 
-    for (const path of ["", "/results", "/export.json", "/export.md"]) {
-      expect((await request(ctx.app).get(`/api/admin/polls/${live._id}${path}`).set("Cookie", cookie)).status).toBe(200);
-    }
+    expect((await request(ctx.app).get(`/api/admin/polls/${live._id}`).set("Cookie", cookie)).status).toBe(200);
     const dup = await request(ctx.app).post(`/api/admin/polls/${live._id}/duplicate`).set("Cookie", cookie);
     expect(dup.status).toBe(201);
     const copyOwner = await ctx.db.selectFrom("polls").select("created_by_id").where("id", "=", dup.body.pid).executeTakeFirst();
@@ -136,10 +134,7 @@ describe("Admin poll CRUD (US4)", () => {
       request(ctx.app).delete(`${base}/edit-session`).send({ clientGuid: "g" }),
       request(ctx.app).post(`${base}/publish`).send({ title: "x" }),
       request(ctx.app).post(`${base}/save`).send({ title: "x" }),
-      request(ctx.app).post(`${base}/duplicate`),
-      request(ctx.app).get(`${base}/results`),
-      request(ctx.app).get(`${base}/export.json`),
-      request(ctx.app).get(`${base}/export.md`)
+      request(ctx.app).post(`${base}/duplicate`)
     ];
     for (const attempt of attempts) {
       const res = await attempt.set("Cookie", cookie);
@@ -484,24 +479,14 @@ describe("Admin poll CRUD (US4)", () => {
     expect((await polls(ctx).findOne({ _id: plain.body.pid }))!.votersAddChoices).toBe(false);
   });
 
-  it("copies the notes into a duplicate, and writes them into both exports as stored", async () => {
+  it("copies the notes into a duplicate", async () => {
     const cookie = await adminCookie();
     const poll = makePoll({ title: "Noted", subtitle: "Sub", notes: "**Bring** a *plate*\nand a fork", pollState: "CLOSED" });
-    const plain = makePoll({ title: "Plain", subtitle: "Sub", pollState: "CLOSED" });
-    await polls(ctx).insertMany([poll, plain]);
+    await polls(ctx).insertMany([poll]);
 
     const dup = await request(ctx.app).post(`/api/admin/polls/${poll._id}/duplicate`).set("Cookie", cookie);
     expect(dup.status).toBe(201);
     expect((await polls(ctx).findOne({ _id: dup.body.pid }))!.notes).toBe("**Bring** a *plate*\nand a fork");
-
-    const json = await request(ctx.app).get(`/api/admin/polls/${poll._id}/export.json`).set("Cookie", cookie);
-    expect(Object.keys(json.body).slice(0, 4)).toEqual(["pid", "title", "subtitle", "notes"]);
-    expect(json.body.notes).toBe("**Bring** a *plate*\nand a fork");
-
-    const md = await request(ctx.app).get(`/api/admin/polls/${poll._id}/export.md`).set("Cookie", cookie);
-    expect(md.text.startsWith("# Noted\n\nSub\n\n**Bring** a *plate*\nand a fork\n\n| Choice |")).toBe(true);
-    const bare = await request(ctx.app).get(`/api/admin/polls/${plain._id}/export.md`).set("Cookie", cookie);
-    expect(bare.text.startsWith("# Plain\n\nSub\n\n| Choice |")).toBe(true);
   });
 
   it("copies the custom email message into a duplicate", async () => {

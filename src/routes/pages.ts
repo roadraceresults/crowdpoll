@@ -1,11 +1,11 @@
 /**
  * HTML page routes: /, /login, /create-account, /profile (contract "Pages"),
- * plus /admin and /admin/poll/results (contracts/page-routes.md,
+ * plus /admin (contracts/page-routes.md,
  * 004-realtime-poll-voting). The /profile page is guarded — guests are
  * redirected to log in (FR-014). The /login page is guarded the other way
  * — a logged-in user is redirected home instead of ever seeing the login
- * form (FR-008/FR-009). The /admin* pages are open to administrators and poll
- * creators, and 404 on a poll PID the caller may not manage.
+ * form (FR-008/FR-009). The /admin page is open to administrators and poll
+ * creators.
  */
 import { Router, type NextFunction, type Request, type RequestHandler, type Response } from "express";
 import path from "node:path";
@@ -13,10 +13,10 @@ import { fileURLToPath } from "node:url";
 import type { AppConfig } from "../config.js";
 import type { SessionCache } from "../auth/sessionCache.js";
 import type { Cache } from "../cache/cache.js";
-import { pollExists, type Db } from "../polls/store.js";
+import type { Db } from "../polls/store.js";
 import { projectPoll } from "../polls/versions.js";
 import { previewMessageOf, renderLoginPage } from "../seo/loginPage.js";
-import { canReachAdmin, createRequireAdmin, createRequirePollOwner, type Caller } from "../polls/service.js";
+import { canReachAdmin, createRequireAdmin, type Caller } from "../polls/service.js";
 import { landingUrl, parsePid, resolveSharedLink } from "../polls/sharedLink.js";
 import { findSignInToken, useToken } from "../invitations/tokens.js";
 import { emailKeyOf } from "../auth/emailKey.js";
@@ -60,13 +60,6 @@ export function createPagesRouter({ sessions, config, db, cache }: PageDeps): Ro
       console.log("[admin] Refused an unauthorised visitor");
       page("not-authorized.html", 403)(res.req, res, () => undefined);
     }
-  });
-  const requireOwnResults = createRequirePollOwner({
-    sessions,
-    config,
-    db,
-    pidOf: (req) => (typeof req.query.PID === "string" ? req.query.PID : ""),
-    refuse: (res) => { res.status(404).send("Not found"); }
   });
 
   router.use("/assets", assets.fingerprinted);
@@ -241,21 +234,6 @@ export function createPagesRouter({ sessions, config, db, cache }: PageDeps): Ro
   router.get("/terms", publicPage("terms.html", "/terms"));
 
   router.get("/admin", requireCreator, page("admin.html"));
-
-  router.get(
-    "/admin/poll/results",
-    requireCreator,
-    requireOwnResults,
-    wrap(async (req, res) => {
-      const pid = typeof req.query.PID === "string" ? req.query.PID : undefined;
-      const exists = pid && (await pollExists(db, pid));
-      if (!exists) {
-        res.status(404).send("Not found");
-        return;
-      }
-      page("admin-results.html")(req, res, () => undefined);
-    })
-  );
 
   return router;
 }

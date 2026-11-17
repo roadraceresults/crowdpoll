@@ -200,8 +200,8 @@ describe("notes in the Maximized view", () => {
     expect(cardFetches(p, poll._id)).toBe(1);
     expect(area.hidden).toBe(false);
     expect(area.innerHTML).toBe(renderNotesHtml(long));
-    expect(area.nextElementSibling!.classList.contains("maximized-voters")).toBe(true);
-    expect(area.nextElementSibling!.nextElementSibling!.classList.contains("maximized-graph")).toBe(true);
+    const sections = Array.from(side.children).filter((child) => !child.classList.contains("extras-tabs"));
+    expect(sections.map((section) => section.className)).toEqual(["maximized-notes", "maximized-voters", "maximized-graph"]);
     expect(cardOf(p, "Noted").querySelector(".poll-notes-text")!.innerHTML).toBe(renderNotesPreview(long).html);
   });
 

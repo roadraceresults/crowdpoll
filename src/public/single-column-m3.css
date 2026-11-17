@@ -65,7 +65,8 @@ html[data-header-fit~="no-search"] .search-tab-form{ display:flex; }
 }
 
 @media (max-width: 900px){
-  .card-flip .card-face .question{
+  .card-flip .card-face .question,
+  .line-graph .line-graph-title{
     font-size:calc(clamp(18px, 1.8vw, var(--md-sys-typescale-title-large-size)) * 0.75);
     line-height:1.27;
   }
