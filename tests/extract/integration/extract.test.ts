@@ -9,6 +9,7 @@ const REFERENCE_PAGE = path.resolve("polldata", "testhtml.html");
 const APPROVAL_GRAPH = {
   title: "Approval over time",
   subtitle: "Poll for Demonstration",
+  notes: "",
   poll_creator_email: "devadmin01@crowdpoll.vote",
   vote_count: 1000,
   choice_a: "Approve",

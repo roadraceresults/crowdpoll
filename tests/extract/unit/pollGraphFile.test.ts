@@ -18,6 +18,7 @@ describe("toPollGraphFile", () => {
     expect(file).toEqual({
       title: "Typed title",
       subtitle: "Poll for Demonstration",
+      notes: "",
       poll_creator_email: "devadmin01@crowdpoll.vote",
       vote_count: 1000,
       choice_a: "Approve",
@@ -27,7 +28,7 @@ describe("toPollGraphFile", () => {
         { date: "09/02/26", choice_b: 79 },
       ],
     });
-    expect(Object.keys(file)).toEqual(["title", "subtitle", "poll_creator_email", "vote_count", "choice_a", "choice_b", "data_points"]);
+    expect(Object.keys(file)).toEqual(["title", "subtitle", "notes", "poll_creator_email", "vote_count", "choice_a", "choice_b", "data_points"]);
     expect(Object.keys((file.data_points as object[])[0]!)).toEqual(["date", "choice_a", "choice_b"]);
     expect(typeof file.vote_count).toBe("number");
   });
@@ -41,10 +42,15 @@ describe("toPollGraphFile", () => {
     expect(toPollGraphFile(GRAPH, { title: "T", subtitle: "Demo" }).subtitle).toBe("Demo");
   });
 
+  it("writes the given notes, and an empty string without them", () => {
+    expect(toPollGraphFile(GRAPH, { title: "T", notes: "Source: **CNN**\nUpdated daily." }).notes).toBe("Source: **CNN**\nUpdated daily.");
+    expect(toPollGraphFile(GRAPH, { title: "T" }).notes).toBe("");
+  });
+
   it("writes type and url after vote_count when given", () => {
     const file = toPollGraphFile(GRAPH, { title: "T" }, { type: "politico line graph", url: "https://www.politico.eu/x" });
     expect(Object.keys(file)).toEqual([
-      "title", "subtitle", "poll_creator_email", "vote_count", "type", "url", "choice_a", "choice_b", "data_points",
+      "title", "subtitle", "notes", "poll_creator_email", "vote_count", "type", "url", "choice_a", "choice_b", "data_points",
     ]);
     expect(file.type).toBe("politico line graph");
     expect(file).not.toHaveProperty("graph_type");
@@ -60,7 +66,7 @@ describe("toPollGraphFile", () => {
 
   it("writes oldest_age_in_days after type and url when given", () => {
     const file = toPollGraphFile(GRAPH, { title: "T" }, { type: "cnn line graph", url: "https://www.cnn.com/x", oldestAgeInDays: 365 });
-    expect(Object.keys(file).slice(4, 7)).toEqual(["type", "url", "oldest_age_in_days"]);
+    expect(Object.keys(file).slice(5, 8)).toEqual(["type", "url", "oldest_age_in_days"]);
     expect(file.oldest_age_in_days).toBe(365);
     expect(toPollGraphFile(GRAPH, { title: "T" }, { type: "cnn line graph" })).not.toHaveProperty("oldest_age_in_days");
     expect(toPollGraphFile(GRAPH, { title: "T" })).not.toHaveProperty("oldest_age_in_days");

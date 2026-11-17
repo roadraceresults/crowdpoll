@@ -8,6 +8,7 @@ import { loadConfig, type AppConfig } from "../../src/config.js";
 import { createCache, type Cache } from "../../src/cache/cache.js";
 import { createDb, closeDb, type Db } from "../../src/db/client.js";
 import { CHOICE_LABEL_MAX, createDefaultPoll, SUBTITLE_MAX, TITLE_MAX } from "../../src/polls/service.js";
+import { NOTES_MAX, normalizeNotes } from "../../src/polls/notes.js";
 import { findPollRow, insertPoll, updatePoll, type Choice } from "../../src/polls/store.js";
 import { reconcile } from "../../src/polls/counters.js";
 import { rebuildLineGraphTally } from "../../src/polls/lineGraphTally.js";
@@ -20,6 +21,7 @@ export interface PollData {
   creatorEmail: string;
   title: string;
   subtitle: string;
+  notes: string;
   choices: { key: string; label: string }[];
   voteCount: number;
   oldestAgeInDays: number | null;
@@ -79,6 +81,7 @@ export function parsePollData(json: unknown, bounds: Bounds): PollData {
   const title = requiredText(file, "title");
   if (title.length > TITLE_MAX) throw new InputError(`"title" is longer than ${TITLE_MAX} characters`);
   const subtitle = boundedText(file, "subtitle", SUBTITLE_MAX);
+  const notes = file.notes === undefined ? "" : normalizeNotes(boundedText(file, "notes", NOTES_MAX));
 
   const choices = Object.keys(file)
     .filter((key) => /^choice_[a-z]+$/.test(key))
@@ -137,7 +140,7 @@ export function parsePollData(json: unknown, bounds: Bounds): PollData {
     })
     .sort((a, b) => a.date.getTime() - b.date.getTime());
 
-  return { creatorEmail, title, subtitle, choices: choices.map((c) => ({ key: c.key, label: c.label as string })), voteCount, oldestAgeInDays: oldestAgeInDays ?? null, lineGraph, dataPoints };
+  return { creatorEmail, title, subtitle, notes, choices: choices.map((c) => ({ key: c.key, label: c.label as string })), voteCount, oldestAgeInDays: oldestAgeInDays ?? null, lineGraph, dataPoints };
 }
 
 export function readArguments(argv: string[]): string {
@@ -266,6 +269,7 @@ export async function populatePoll(deps: Deps, data: PollData, options: Options 
     await updatePoll({ db, cache }, pid, {
       title: data.title,
       subtitle: data.subtitle,
+      notes: data.notes,
       keywords: "",
       choiceMode: "Single-Choice Poll",
       voteMutability: "Dynamic-Vote Poll",
@@ -288,7 +292,7 @@ export async function populatePoll(deps: Deps, data: PollData, options: Options 
   } else {
     const poll = createDefaultPoll(now);
     choices = data.choices.map((c, position) => ({ id: randomUUID(), label: c.label, position }));
-    Object.assign(poll, { title: data.title, subtitle: data.subtitle, choices, pollState: "OPEN", startAt: firstDay, createdAt: firstDay, endAt: null, lineGraphEnabled: data.lineGraph });
+    Object.assign(poll, { title: data.title, subtitle: data.subtitle, notes: data.notes, choices, pollState: "OPEN", startAt: firstDay, createdAt: firstDay, endAt: null, lineGraphEnabled: data.lineGraph });
     await insertPoll({ db, cache }, poll, { id: creator.id, name: creator.userName ?? creator.name, email: data.creatorEmail });
     pid = poll._id;
   }

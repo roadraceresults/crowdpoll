@@ -300,11 +300,31 @@ describe("the maximized card in the phone layout", () => {
     expect(view.showAllRow()!.getAttribute("aria-expanded")).toBe("false");
     await view.click(".results-list .show-all-row");
     expect(view.resultRows()).toHaveLength(37);
-    expect(view.showAllRow()!.textContent).toBe("Show few choices");
+    expect(view.showAllRow()!.textContent).toBe("Show fewer choices");
     expect(view.showAllRow()!.getAttribute("aria-expanded")).toBe("true");
     await view.click(".results-list .show-all-row");
     expect(view.resultRows()).toHaveLength(10);
     expect(view.maximizeCalls).toEqual([]);
+  });
+
+  it("keeps focus on the show-all row without scrolling to it when expanding", async () => {
+    const view = await mount(poll(37));
+    view.card.setMaximized(true);
+    const focusOptions: unknown[] = [];
+    const proto = (view.el.ownerDocument.defaultView as unknown as { HTMLElement: typeof HTMLElement }).HTMLElement.prototype;
+    const focus = proto.focus;
+    proto.focus = function (this: HTMLElement, options?: FocusOptions) {
+      if (this.classList.contains("show-all-row")) focusOptions.push(options);
+      return focus.call(this, options);
+    };
+    try {
+      await view.click(".results-list .show-all-row");
+      expect(view.el.ownerDocument.activeElement).toBe(view.showAllRow());
+      await view.click(".results-list .show-all-row");
+    } finally {
+      proto.focus = focus;
+    }
+    expect(focusOptions).toEqual([{ preventScroll: true }, { preventScroll: false }]);
   });
 
   it("leaves out a twelve-choice poll's choices at 0% until asked for all", async () => {
@@ -348,7 +368,7 @@ describe("the maximized card in the phone layout", () => {
     expect(view.showAllRow()!.getAttribute("aria-expanded")).toBe("false");
     await view.click(".results-list .show-all-row");
     expect(view.resultRows()).toHaveLength(37);
-    expect(view.showAllRow()!.textContent).toBe("Show few choices");
+    expect(view.showAllRow()!.textContent).toBe("Show fewer choices");
     await view.click(".results-list .show-all-row");
     expect(view.resultRows()).toHaveLength(11);
     expect(view.showAllRow()!.textContent).toBe("Show all 37 choices · 30%");

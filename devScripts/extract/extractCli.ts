@@ -53,7 +53,7 @@ export async function runExtract(args: string[]): Promise<number> {
     console.error(`Error: ${messageOf(error)}`);
     return 1;
   }
-  const { graphTitle, title, subtitle, inputHtml, outputJson } = config;
+  const { graphTitle, title, subtitle, notes, inputHtml, outputJson } = config;
   if (isSamePath(outputJson, inputHtml)) {
     console.error(`Error: output would overwrite the input file ${inputHtml}`);
     return 1;
@@ -80,5 +80,5 @@ export async function runExtract(args: string[]): Promise<number> {
     console.error(`Error: ${messageOf(error)}`);
     return 1;
   }
-  return (await writeGraph(result, { title: title ?? graphTitle, subtitle }, outputJson)) ? 0 : 1;
+  return (await writeGraph(result, { title: title ?? graphTitle, subtitle, notes }, outputJson)) ? 0 : 1;
 }

@@ -71,7 +71,7 @@ describe("extract-polymarket-yes-no", () => {
     expect(output.stderr).toEqual([]);
     const file = await readOutput();
     expect(Object.keys(file)).toEqual([
-      "title", "subtitle", "poll_creator_email", "vote_count", "type", "url", "oldest_age_in_days",
+      "title", "subtitle", "notes", "poll_creator_email", "vote_count", "type", "url", "oldest_age_in_days",
       "choice_a", "choice_b", "choice_c", "choice_d", "data_points",
     ]);
     expect(file).toMatchObject({

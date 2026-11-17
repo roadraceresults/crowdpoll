@@ -7,6 +7,7 @@ const VOTE_COUNT = 1000;
 export interface Heading {
   title: string;
   subtitle?: string;
+  notes?: string;
 }
 
 export interface ExtractAllFields {
@@ -23,6 +24,7 @@ export function toPollGraphFile(graph: GraphFile, heading: Heading, extra?: Extr
   const file: Record<string, unknown> = {
     title: heading.title,
     subtitle: heading.subtitle ?? SUBTITLE,
+    notes: heading.notes ?? "",
     poll_creator_email: POLL_CREATOR_EMAIL,
     vote_count: VOTE_COUNT,
   };

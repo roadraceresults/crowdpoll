@@ -1068,7 +1068,7 @@ until it is turned, so the hidden back never makes the card taller.
 
 **The maximized view.** It is one column: the card, then the extras. The results side uses the
 maximized limits and the same 30 px bars, not `maximizedBarLayout`; its last row is
-`button.show-all-row`, "Show all 37 choices · 30%", then "Show few choices". The card's `choiceView` is
+`button.show-all-row`, "Show all 37 choices · 30%", then "Show fewer choices". The card's `choiceView` is
 `essential` (that list), `all`, or `voted`: `setMaximized(true, { choices: 'voted' })`, which `tabs.js` passes on when
 the view is opened from the "More choices" row, shows every choice at 1% or more and the row "Remaining choices · 0%". The face turned away is taken out
 of the layout (`position:absolute`), so the card is as tall as the side showing; the turn keeps its

@@ -6,12 +6,13 @@ export interface GraphConfig {
   graphTitle: string;
   title?: string;
   subtitle?: string;
+  notes?: string;
   inputHtml: string;
   outputJson: string;
 }
 
 const KEYS = ["graph_title", "input_html", "output_json"];
-export const OUTPUT_KEYS = ["type", "title", "subtitle"];
+export const OUTPUT_KEYS = ["type", "title", "subtitle", "notes"];
 
 function isMapping(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -65,6 +66,7 @@ export function parseGraphConfig(text: string, configPath: string): GraphConfig 
     graphTitle: record.graph_title!,
     title: record.title,
     subtitle: record.subtitle,
+    notes: record.notes,
     inputHtml: path.resolve(folder, record.input_html!),
     outputJson: path.resolve(folder, record.output_json!),
   };

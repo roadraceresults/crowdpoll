@@ -9,6 +9,7 @@ import { captureConsole, createWorkDir, removeWorkDir } from "./helpers.js";
 const MACRON_GRAPH = {
   title: MACRON_TITLE_TYPED,
   subtitle: "Poll for Demonstration",
+  notes: "",
   poll_creator_email: "devadmin01@crowdpoll.vote",
   vote_count: 1000,
   choice_a: "Approve",

@@ -186,7 +186,7 @@ describe("extract-all: yes/no polls", () => {
 });
 
 describe("extract-all: poll shape", () => {
-  const FIXED = { subtitle: "Poll for Demonstration", poll_creator_email: "devadmin01@crowdpoll.vote", vote_count: 1000 };
+  const FIXED = { subtitle: "Poll for Demonstration", notes: "", poll_creator_email: "devadmin01@crowdpoll.vote", vote_count: 1000 };
 
   function textOf(value: unknown): string {
     return JSON.stringify(value, null, 2) + "\n";
@@ -226,6 +226,13 @@ describe("extract-all: poll shape", () => {
         ],
       }),
     );
+  });
+
+  it("writes the config's notes after subtitle, line breaks kept", async () => {
+    expect(await runExtractAll([await writeConfig(cnnConfig("out.json", ["notes: |", "  Source: **CNN**.", "  Updated daily."]))])).toBe(0);
+    const file = JSON.parse(await readOutput()) as Record<string, unknown>;
+    expect(file.notes).toBe("Source: **CNN**.\nUpdated daily.\n");
+    expect(Object.keys(file).slice(0, 3)).toEqual(["title", "subtitle", "notes"]);
   });
 
   it("writes the config url after type", async () => {

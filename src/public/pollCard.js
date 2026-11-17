@@ -1114,7 +1114,7 @@ function initPollCard(viewport, opts){
     }
     if (hiddenCount === 0) return { shown, lastRow: null };
     if (choiceView !== 'essential'){
-      return { shown: data, lastRow: { className: 'show-all-row', text: 'Show few choices', expanded: true } };
+      return { shown: data, lastRow: { className: 'show-all-row', text: 'Show fewer choices', expanded: true } };
     }
     return { shown, lastRow: { className: 'show-all-row', text: 'Show all ' + data.length + ' choices' + share, expanded: false } };
   }
@@ -1516,9 +1516,11 @@ function initPollCard(viewport, opts){
     if (!isPhoneLayout()) return;
     const showAllRow = event.target.closest('.show-all-row');
     if (showAllRow){
-      choiceView = showAllRow.getAttribute('aria-expanded') === 'true' ? 'essential' : 'all';
+      const expanding = showAllRow.getAttribute('aria-expanded') !== 'true';
+      choiceView = expanding ? 'all' : 'essential';
       render();
-      resultsList.querySelector('.show-all-row')?.focus();
+      // Expanding pushes the row below the new choices: keep focus on it, but leave the view where the reader is.
+      resultsList.querySelector('.show-all-row')?.focus({ preventScroll: expanding });
       return;
     }
     if (event.target.closest('.more-row')) requestMaximize({ choices: 'voted' });

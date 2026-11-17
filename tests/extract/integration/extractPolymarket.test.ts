@@ -12,6 +12,7 @@ const NETFLIX_HAR = path.resolve("polldata", "netflix_show.har");
 const AI_RACE_GRAPH = {
   title: "AI race",
   subtitle: "Poll for Demonstration",
+  notes: "",
   poll_creator_email: "devadmin01@crowdpoll.vote",
   vote_count: 1000,
   choice_a: "Alpha",

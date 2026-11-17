@@ -42,6 +42,7 @@ extension and does not exist, the same path with `.json` added is used.
 | `poll_creator_email` | an existing account's email; the poll is created in its name |
 | `title` | the poll title, at most 50 characters |
 | `subtitle` | the poll's subtitle, shown under the title and on the maximized view's line graph, at most 30 characters; `""` for none |
+| `notes` | optional; the poll's notes, as the editor stores them (at most 6,000 characters); absent or blank: none. A rerun sets the poll's notes to this value, so an absent `notes` clears them |
 | `choice_a`, `choice_b`, … | the choice labels, ordered by key (`choice_a` … `choice_z`, `choice_aa`, …) |
 | `vote_count` | the average number of votes per data point, a whole number of at least 1 |
 | `oldest_age_in_days` | optional; a whole number ≥ 0; only the data points no older than this many days, counted back from the latest point, which falls on today, are replayed; absent: every point |

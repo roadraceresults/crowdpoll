@@ -158,7 +158,7 @@ delivery network.
   selected and **Submit vote** stay fixed at the bottom of the screen, above the cookie notice.
 - **A maximized poll on a phone** — the poll fills the column. Of twelve choices or fewer, those with votes are shown (all of them when none has); a
   longer poll shows those of its ten leading choices that have more than 2% (all ten when none has) and any choice you voted for, with **Show all 37 choices · 30%**
-  under them (then **Show few choices**). Opened from the card's **More choices** row, it shows every choice
+  under them (then **Show fewer choices**). Opened from the card's **More choices** row, it shows every choice
   with 1% or more instead, then **Remaining choices · 0%** for the rest. Under the card a tab bar reads **Read More** (the poll's
   notes), **Polling History** (the vote history graph) and **Who Voted**. One of them shows at a time:
   the leftmost the poll has to begin with, and a tab the poll lacks is greyed out. The list of voters
@@ -446,11 +446,12 @@ npm run populate-all-polls polldata                   # or every .json file in a
 
 The keys are `graph_title` (the chart's title on the page), `input_html` and `output_json`; `input_history` (needed by
 `extract-polymarket`; `extract-politico` names it but does not read it) and `url` (needed by `extract-politico`); and,
-optionally, `type` (`cnn line graph`, `polymarket line graph`, `politico line graph` or `polymarket yes no`), `title`
-and `subtitle`. Paths are relative to the YAML file. Each kind-specific command accepts only its own keys. A command
+optionally, `type` (`cnn line graph`, `polymarket line graph`, `politico line graph` or `polymarket yes no`), `title`,
+`subtitle` and `notes` (the poll's notes, in the editor's `**bold**`/`*italic*`/`++underline++` marks; a YAML block
+`notes: |` keeps line breaks). Paths are relative to the YAML file. Each kind-specific command accepts only its own keys. A command
 prints what it read and `Wrote <file>`, or one `Error:` line and exits with 1 without writing; an output that would
 overwrite an input is refused. The written file takes its title from `title` (else `graph_title`) and its subtitle
-from `subtitle` (else `Poll for Demonstration`), with the creator `devadmin01@crowdpoll.vote` and 1,000 votes; `extract-all` and `extract-polymarket-yes-no` also
+from `subtitle` (else `Poll for Demonstration`) and its `notes` from `notes` (else `""`), with the creator `devadmin01@crowdpoll.vote` and 1,000 votes; `extract-all` and `extract-polymarket-yes-no` also
 write the page `type`, its `url` when given, and `oldest_age_in_days: 365`, so `populate-poll` replays only the last
 year of data points (edit the value in the `.json` file to change it). The commands use `cheerio` and `yaml`, development dependencies only.
 

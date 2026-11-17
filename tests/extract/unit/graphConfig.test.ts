@@ -172,16 +172,21 @@ describe("parseSettings output keys", () => {
   const KEYS = ["graph_title", "input_html", "output_json", ...OUTPUT_KEYS];
   const REQUIRED = "graph_title: T\ninput_html: page.html\noutput_json: out.json\n";
 
-  it("accepts a config without type, title and subtitle", () => {
+  it("accepts a config without type, title, subtitle and notes", () => {
     expect(parseSettings(REQUIRED, KEYS, OUTPUT_KEYS)).toEqual({ graph_title: "T", input_html: "page.html", output_json: "out.json" });
   });
 
-  it("reads type, title and subtitle when given", () => {
-    const text = `${REQUIRED}type: cnn line graph\ntitle: Who wins?\nsubtitle: Demo\n`;
-    expect(parseSettings(text, KEYS, OUTPUT_KEYS)).toMatchObject({ type: "cnn line graph", title: "Who wins?", subtitle: "Demo" });
+  it("reads type, title, subtitle and notes when given", () => {
+    const text = `${REQUIRED}type: cnn line graph\ntitle: Who wins?\nsubtitle: Demo\nnotes: |\n  Source: CNN.\n  Updated daily.\n`;
+    expect(parseSettings(text, KEYS, OUTPUT_KEYS)).toMatchObject({
+      type: "cnn line graph",
+      title: "Who wins?",
+      subtitle: "Demo",
+      notes: "Source: CNN.\nUpdated daily.\n",
+    });
   });
 
-  it("rejects an empty type, title or subtitle", () => {
+  it("rejects an empty type, title, subtitle or notes", () => {
     for (const key of OUTPUT_KEYS) {
       expect(() => parseSettings(`${REQUIRED}${key}: ""\n`, KEYS, OUTPUT_KEYS)).toThrow(`"${key}" must be a non-empty string`);
     }

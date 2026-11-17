@@ -17,6 +17,7 @@ interface PoliticoConfig {
   graphTitle: string;
   title?: string;
   subtitle?: string;
+  notes?: string;
   inputHtml: string;
   inputHistory: string;
   outputJson: string;
@@ -31,6 +32,7 @@ function parsePoliticoConfig(text: string, configPath: string): PoliticoConfig {
     graphTitle: record.graph_title!,
     title: record.title,
     subtitle: record.subtitle,
+    notes: record.notes,
     inputHtml: path.resolve(folder, record.input_html!),
     inputHistory: path.resolve(folder, record.input_history!),
     outputJson: path.resolve(folder, record.output_json!),
@@ -73,7 +75,7 @@ export async function runExtractPolitico(args: string[]): Promise<number> {
     console.error(`Error: ${messageOf(error)}`);
     return 1;
   }
-  const { graphTitle, title, subtitle, inputHtml, inputHistory, outputJson } = config;
+  const { graphTitle, title, subtitle, notes, inputHtml, inputHistory, outputJson } = config;
   if (isSamePath(outputJson, inputHtml)) {
     console.error(`Error: output would overwrite the input file ${inputHtml}`);
     return 1;
@@ -105,5 +107,5 @@ export async function runExtractPolitico(args: string[]): Promise<number> {
     console.error(`Error: ${messageOf(error)}`);
     return 1;
   }
-  return (await writeGraph(result, { title: title ?? graphTitle, subtitle }, outputJson)) ? 0 : 1;
+  return (await writeGraph(result, { title: title ?? graphTitle, subtitle, notes }, outputJson)) ? 0 : 1;
 }

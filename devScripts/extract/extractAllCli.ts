@@ -50,7 +50,7 @@ function parseExtractAllConfig(text: string, configPath: string): ExtractAllConf
     urlHost: record.url === undefined ? undefined : hostOfUrl(record.url),
     type: record.type,
     graphTitle: record.graph_title!,
-    heading: { title: record.title ?? record.graph_title!, subtitle: record.subtitle },
+    heading: { title: record.title ?? record.graph_title!, subtitle: record.subtitle, notes: record.notes },
     inputHtml: path.resolve(folder, record.input_html!),
     inputHistory: record.input_history === undefined ? undefined : path.resolve(folder, record.input_history),
     outputJson: path.resolve(folder, record.output_json!),

@@ -55,6 +55,19 @@ describe("parsePollData", () => {
     expect(() => parsePollData(without, bounds)).toThrow(/"subtitle" is missing/);
   });
 
+  it("reads notes when given, and an empty string without them", () => {
+    expect(parsePollData({ ...fixture, notes: "Source: **CNN**\nUpdated daily." }, bounds).notes).toBe("Source: **CNN**\nUpdated daily.");
+    expect(parsePollData(fixture, bounds).notes).toBe("");
+    expect(parsePollData({ ...fixture, notes: "" }, bounds).notes).toBe("");
+    expect(parsePollData({ ...fixture, notes: "  \n " }, bounds).notes).toBe("");
+  });
+
+  it("refuses notes that are not text or are too long", () => {
+    expect(() => parsePollData({ ...fixture, notes: 5 }, bounds)).toThrow(/"notes" must be text/);
+    expect(() => parsePollData({ ...fixture, notes: "x".repeat(6001) }, bounds)).toThrow(/"notes" is longer than 6000 characters/);
+    expect(parsePollData({ ...fixture, notes: "x".repeat(6000) }, bounds).notes).toHaveLength(6000);
+  });
+
   it("accepts a 40-character subtitle unchanged", () => {
     const value = "x".repeat(40);
     expect(parsePollData({ ...fixture, subtitle: value }, bounds).subtitle).toBe(value);
@@ -230,6 +243,7 @@ describe("populatePoll — create", () => {
       voter_count_limit: null,
       keywords: "",
       subtitle: "Fixture subtitle",
+      notes: "",
       end_at: null,
       created_by_id: "creator-1",
       created_by_name: "Creator One"
@@ -323,6 +337,13 @@ describe("populatePoll — create", () => {
     const graphed = await populatePoll({ db: ctx.db, cache: ctx.cache, config: ctx.config }, data, runOptions(now, []));
     expect(await lineGraphOf(graphed.pollId)).toBe(true);
   });
+
+  it("writes the file's notes to a new poll", async () => {
+    const data = parsePollData({ ...fixture, title: "Fixture With Notes", notes: "Source: **CNN**" }, ctx.config);
+    const summary = await populatePoll({ db: ctx.db, cache: ctx.cache, config: ctx.config }, data, runOptions(new Date(2026, 9, 26, 12), []));
+    const row = await ctx.db.selectFrom("polls").select("notes").where("id", "=", summary.pollId).executeTakeFirstOrThrow();
+    expect(row.notes).toBe("Source: **CNN**");
+  });
 });
 
 describe("populatePoll — rerun", () => {
@@ -352,7 +373,7 @@ describe("populatePoll — rerun", () => {
     const lines: string[] = [];
     const second = await populatePoll(
       deps(),
-      parsePollData({ ...fixture, choice_b: "Against", subtitle: "Updated subtitle" }, ctx.config),
+      parsePollData({ ...fixture, choice_b: "Against", subtitle: "Updated subtitle", notes: "Updated notes" }, ctx.config),
       runOptions(secondNow, lines, 7)
     );
     expect(second.pollId).toBe(first.pollId);
@@ -363,6 +384,7 @@ describe("populatePoll — rerun", () => {
     const polls = await ctx.db.selectFrom("polls").selectAll().execute();
     expect(polls).toHaveLength(1);
     expect(polls[0]!.subtitle).toBe("Updated subtitle");
+    expect(polls[0]!.notes).toBe("Updated notes");
     expect(new Date(polls[0]!.created_at)).toEqual(new Date(2026, 9, 22));
     expect(new Date(polls[0]!.start_at as Date)).toEqual(new Date(2026, 9, 23));
     expect(new Date(polls[0]!.launched_at as Date)).toEqual(new Date(2026, 9, 23));
