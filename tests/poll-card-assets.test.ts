@@ -656,15 +656,44 @@ describe("pollCard.css title wrapping (032 FIX05)", () => {
   });
 });
 
-describe("pollCard.js down arrow row label", () => {
-  it("writes \"more choices\" left of the centred chevron on both faces' down rows, hidden on a compact row", async () => {
-    const js = await request(ctx.app).get("/pollCard.js");
-    expect(js.status).toBe(200);
-    const down = '<button class="arrow-row arrow-row-down" type="button" aria-label="Scroll down">\n              <span class="arrow-row-label">more choices</span>\n              <svg';
-    expect(js.text.split(down).length - 1).toBe(2);
-    const css = await request(ctx.app).get("/pollCard.css");
-    expect(css.text).toContain(".arrow-row.is-compact .arrow-row-label{ display:none; }");
-    // Out of the flow, so the chevron alone is centred.
-    expect(css.text).toMatch(/\.arrow-row-label\{\s*position:absolute;\s*top:50%;\s*right:calc\(50% \+ 11px \+ 16px\);/);
+describe("the card without a scrolling list", () => {
+  it("holds no arrow rows, drag scrolling or scrolling layout", async () => {
+    const js = (await request(ctx.app).get("/pollCard.js")).text;
+    for (const gone of ["arrow-row", "is-dragging", "computeBarLayout", "initScrollArrows", "initDragScroll", "attachArrowBehavior", "updateArrowRows", "scrolling:"]) {
+      expect(js).not.toContain(gone);
+    }
+    const css = (await request(ctx.app).get("/pollCard.css")).text;
+    expect(css).not.toContain("arrow-row");
+    expect(css).not.toContain("is-dragging");
+    expect(css).not.toContain("overflow-y:auto");
+    for (const list of [".results-list", ".voting-list"]) {
+      expect(css).toMatch(new RegExp("\\n  \\" + list + "\\{[^}]*overflow:hidden;"));
+    }
+    const m3 = (await request(ctx.app).get("/pollCard-m3.css")).text;
+    expect(m3).not.toContain("arrow-row");
+    expect(m3).not.toContain("is-dragging");
+    expect((await request(ctx.app).get("/single-column-m3.css")).text).not.toContain("arrow-row");
+  });
+
+  it("styles the wide more-choices and show-all rows in one block that cannot match the phone layout", async () => {
+    const m3 = (await request(ctx.app).get("/pollCard-m3.css")).text;
+    const blocks = m3.split("@media not all and (max-width: 640px){");
+    expect(blocks).toHaveLength(2);
+    const block = blocks[1]!.slice(0, blocks[1]!.indexOf("\n}\n"));
+    expect(m3.replace(block, "")).not.toMatch(/more-row|show-all-row|more-item/);
+    for (const part of [
+      ".card-face .more-row,\n  .card-face .show-all-row{",
+      "border:1px solid var(--md-sys-color-outline-variant);",
+      "color:var(--md-sys-color-primary);",
+      "cursor:pointer;",
+      ".card-face .more-row:hover::before,",
+      ".card-face .more-row:focus-visible::before,",
+      ".card-face .more-row:active::before,",
+      "outline:3px solid var(--md-sys-color-secondary);",
+      ".card-face .results-list > .more-item{ flex:0 0 auto; }"
+    ]) {
+      expect(block).toContain(part);
+    }
+    expect(block).not.toContain("font-size");
   });
 });

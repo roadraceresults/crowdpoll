@@ -300,7 +300,7 @@ describe("the maximized card in the phone layout", () => {
     expect(view.showAllRow()!.getAttribute("aria-expanded")).toBe("false");
     await view.click(".results-list .show-all-row");
     expect(view.resultRows()).toHaveLength(37);
-    expect(view.showAllRow()!.textContent).toBe("Show few choices");
+    expect(view.showAllRow()!.textContent).toBe("Show fewer choices");
     expect(view.showAllRow()!.getAttribute("aria-expanded")).toBe("true");
     await view.click(".results-list .show-all-row");
     expect(view.resultRows()).toHaveLength(10);
@@ -348,7 +348,7 @@ describe("the maximized card in the phone layout", () => {
     expect(view.showAllRow()!.getAttribute("aria-expanded")).toBe("false");
     await view.click(".results-list .show-all-row");
     expect(view.resultRows()).toHaveLength(37);
-    expect(view.showAllRow()!.textContent).toBe("Show few choices");
+    expect(view.showAllRow()!.textContent).toBe("Show fewer choices");
     await view.click(".results-list .show-all-row");
     expect(view.resultRows()).toHaveLength(11);
     expect(view.showAllRow()!.textContent).toBe("Show all 37 choices · 30%");
@@ -404,10 +404,10 @@ describe("the maximized card in the phone layout", () => {
     expect(view.resultRows()[0]!.style.height).toBe("30px");
   });
 
-  it("is as today outside the phone layout: every bar, no row", async () => {
+  it("shows the same ten bars and show-all row outside the phone layout", async () => {
     const view = await mount(poll(37), { phoneLayout: false });
     view.card.setMaximized(true);
-    expect(view.resultRows()).toHaveLength(37);
-    expect(view.showAllRow()).toBeNull();
+    expect(view.resultRows()).toHaveLength(10);
+    expect(view.showAllRow()!.textContent).toBe("Show all 37 choices · 30%");
   });
 });

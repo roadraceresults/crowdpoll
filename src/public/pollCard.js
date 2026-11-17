@@ -1,7 +1,7 @@
 /*
   POLL CARD — multi-instance component script.
   Adapted from designDocs/pollUserInterface/poll-card.js (research.md
-  R7): all layout, sizing, color, scroll, and flip mechanics are kept
+  R7): all layout, sizing, color, and flip mechanics are kept
   verbatim from the reference component; only its demo data layer
   (seeded random sample polls, DOMContentLoaded auto-init of static
   markup) is replaced with live data — cards are mounted
@@ -133,7 +133,8 @@ function semanticColorFor(label){
   the gap between bars are calculated from the space actually
   available, capped at RESULTS_MAX_BAR_HEIGHT and never below
   RESULTS_MIN_BAR_HEIGHT. When even the floor size can't fit every
-  choice, the list scrolls instead — see computeBarLayout.
+  choice, the card shows the ones that fit and a "More choices" row
+  instead — see fittingChoices.
 */
 
 const RESULTS_MAX_BAR_HEIGHT = 50; // cap so 2–3 bars don't grow absurdly tall
@@ -213,28 +214,8 @@ function computeMaxBarsAtFloor(availableHeight){
   return Math.floor((availableHeight + RESULTS_GAP_MIN) / (RESULTS_MIN_BAR_HEIGHT + RESULTS_GAP_MIN));
 }
 
-// Decides whether `count` choices fit in availableHeight at all, and
-// returns the bar height/gap to use either way:
-//   - Fits (count <= the floor-size capacity): normal two-phase fit
-//     via computeBarMetrics, which may size bars larger than the floor.
-//   - Doesn't fit even at the floor: bar height and gap are held at
-//     their floor values and the caller should enable scrolling. Two
-//     of the available floor-sized "slots" get reserved for the
-//     up/down arrow rows, so the list's visible capacity while
-//     scrolling is (maxBarsAtFloor - 2) — enforced purely by CSS flex
-//     layout (the arrow rows take real, fixed-height space) rather
-//     than computed here.
-function computeBarLayout(count, availableHeight){
-  const maxBarsAtFloor = computeMaxBarsAtFloor(availableHeight);
-  if (count <= maxBarsAtFloor){
-    const { barHeight, gap } = computeBarMetrics(count, availableHeight);
-    return { scrolling: false, barHeight, gap };
-  }
-  return { scrolling: true, barHeight: RESULTS_MIN_BAR_HEIGHT, gap: RESULTS_GAP_MIN };
-}
-
 function measuredBarLayout(count, wrap){
-  return computeBarLayout(count, wrap.clientHeight);
+  return computeBarMetrics(count, wrap.clientHeight);
 }
 
 const PHONE_LAYOUT_QUERY = '(max-width: 640px)';
@@ -252,11 +233,11 @@ function isPhoneLayout(){
 }
 
 function phoneBarLayout(){
-  return { scrolling: false, barHeight: PHONE_BAR_HEIGHT, gap: PHONE_BAR_GAP, phone: true };
+  return { barHeight: PHONE_BAR_HEIGHT, gap: PHONE_BAR_GAP, phone: true };
 }
 
 function phoneVoteLayout(){
-  return { scrolling: false, barHeight: PHONE_VOTE_ROW_HEIGHT, gap: 0, phone: true };
+  return { barHeight: PHONE_VOTE_ROW_HEIGHT, gap: 0, phone: true };
 }
 
 function essentialChoices(sorted, ownIds, limits){
@@ -272,15 +253,24 @@ function essentialChoices(sorted, ownIds, limits){
   return { shown, hiddenCount: hidden.length, hiddenShare: hidden.reduce((sum, choice) => sum + choice.pct, 0) };
 }
 
+function fittingChoices(sorted, ownIds, places){
+  const isOwn = (choice) => ownIds.indexOf(choice.id) !== -1;
+  const own = sorted.filter(isOwn).slice(0, places);
+  const leaders = sorted.filter((choice) => !isOwn(choice)).slice(0, places - own.length);
+  const shown = sorted.filter((choice) => own.indexOf(choice) !== -1 || leaders.indexOf(choice) !== -1);
+  const hidden = sorted.filter((choice) => shown.indexOf(choice) === -1);
+  return { shown, hiddenCount: hidden.length, hiddenShare: hidden.reduce((sum, choice) => sum + choice.pct, 0) };
+}
+
 function maximizedBarLayout(count, bounds){
   const { minChoices, maxChoices } = bounds;
   if (maxChoices <= minChoices){
-    return { scrolling: false, barHeight: RESULTS_MAX_BAR_HEIGHT, gap: RESULTS_GAP_FIXED };
+    return { barHeight: RESULTS_MAX_BAR_HEIGHT, gap: RESULTS_GAP_FIXED };
   }
   const n = Math.min(Math.max(count, minChoices), maxChoices);
   const share = (n - minChoices) / (maxChoices - minChoices);
   const barHeight = RESULTS_MAX_BAR_HEIGHT - share * (RESULTS_MAX_BAR_HEIGHT - RESULTS_MIN_BAR_HEIGHT);
-  return { scrolling: false, barHeight, gap: RESULTS_GAP_FIXED };
+  return { barHeight, gap: RESULTS_GAP_FIXED };
 }
 
 /*
@@ -522,178 +512,8 @@ function syncInkOnFill(row, inkOnFill){
   overlay.replaceChildren(...copies);
 }
 
-/*
-  SCROLL / ARROW ROWS
-  Up/down arrow rows are real flex rows (see .arrow-row in the CSS),
-  not floating overlays — when scrolling is engaged they take up an
-  actual, fixed-height row above and below the bar list, which is what
-  reserves the two capacity "slots" referenced in computeBarLayout.
-  Click handlers and the scroll listener (for fading the icons based
-  on position) are wired up once; render calls just update state.
-*/
-
-function updateArrowRows(wrap, list, upRow, downRow, layout){
-  if (!wrap || !list || !upRow || !downRow) return;
-
-  // The inner (absolutely-positioned) container is the actual flex
-  // column now — the gap between arrow rows and the list goes there.
-  const inner = wrap.querySelector('.bar-scroll-inner');
-  if (inner) inner.style.rowGap = layout.gap + 'px';
-
-  if (!layout.scrolling){
-    upRow.classList.remove('is-active', 'is-visible');
-    downRow.classList.remove('is-active', 'is-visible');
-    upRow.style.height = '';
-    downRow.style.height = '';
-    return;
-  }
-
-  upRow.classList.add('is-active');
-  downRow.classList.add('is-active');
-  upRow.style.height = layout.barHeight + 'px';
-  downRow.style.height = layout.barHeight + 'px';
-
-  // Mirror the bars' compact corner radius so the outlined arrow rows
-  // stay exactly bar-shaped at floor sizes too.
-  const compact = layout.barHeight < RESULTS_COMPACT_THRESHOLD;
-  upRow.classList.toggle('is-compact', compact);
-  downRow.classList.toggle('is-compact', compact);
-
-  const atTop = list.scrollTop <= 1;
-  const atBottom = list.scrollTop + list.clientHeight >= list.scrollHeight - 1;
-  upRow.classList.toggle('is-visible', !atTop);
-  downRow.classList.toggle('is-visible', !atBottom);
-}
-
-// Arrow behavior: a quick click steps by ~80% of a screenful (smooth),
-// while pressing and HOLDING starts continuous scrolling after a short
-// delay, at a steady speed, until released (or the end is reached).
-// The delay is what separates the two gestures: release before it and
-// the normal click fires; hold past it and the click is swallowed so
-// releasing doesn't also trigger a page-jump.
-const ARROW_HOLD_DELAY_MS = 300;
-const ARROW_HOLD_SPEED_PX_PER_SEC = 240;
-
-function attachArrowBehavior(btn, list, direction){
-  let holdTimer = null;
-  let rafId = null;
-  let lastTs = null;
-  let didHoldScroll = false;
-
-  function stopContinuous(){
-    if (holdTimer){ clearTimeout(holdTimer); holdTimer = null; }
-    if (rafId){ cancelAnimationFrame(rafId); rafId = null; }
-    lastTs = null;
-  }
-
-  function startContinuous(){
-    didHoldScroll = true;
-    const step = (ts) => {
-      if (lastTs !== null){
-        const before = list.scrollTop;
-        list.scrollTop = before + direction * ARROW_HOLD_SPEED_PX_PER_SEC * ((ts - lastTs) / 1000);
-        if (list.scrollTop === before){ stopContinuous(); return; } // hit the end
-      }
-      lastTs = ts;
-      rafId = requestAnimationFrame(step);
-    };
-    rafId = requestAnimationFrame(step);
-  }
-
-  btn.addEventListener('pointerdown', (e) => {
-    if (e.pointerType === 'mouse' && e.button !== 0) return;
-    didHoldScroll = false;
-    btn.setPointerCapture(e.pointerId);
-    holdTimer = setTimeout(startContinuous, ARROW_HOLD_DELAY_MS);
-  });
-  btn.addEventListener('pointerup', stopContinuous);
-  btn.addEventListener('pointercancel', stopContinuous);
-  btn.addEventListener('lostpointercapture', stopContinuous);
-
-  btn.addEventListener('click', () => {
-    if (didHoldScroll){ didHoldScroll = false; return; } // hold already scrolled
-    list.scrollBy({ top: direction * list.clientHeight * 0.8, behavior: 'smooth' });
-  });
-}
-
-// Drag-to-scroll: grab anywhere on the list contents with the mouse
-// and drag up/down to scroll (1:1 with the pointer). Mouse only —
-// touch devices already scroll the overflow area natively, and
-// intercepting touch here would fight that. A small movement
-// threshold separates a drag from a click, and once a drag has
-// happened the click that fires on release is swallowed (capture
-// phase, so it's stopped before the voting list's row-toggle handler
-// sees it) — otherwise every drag on the Vote face would also toggle
-// whichever choice the pointer happened to be over.
-const DRAG_THRESHOLD_PX = 4;
-
-function initDragScroll(list){
-  let pointerId = null;
-  let startY = 0;
-  let startScrollTop = 0;
-  let dragging = false;
-  let suppressClick = false;
-
-  list.addEventListener('pointerdown', (e) => {
-    if (e.pointerType !== 'mouse' || e.button !== 0) return;
-    pointerId = e.pointerId;
-    startY = e.clientY;
-    startScrollTop = list.scrollTop;
-    dragging = false;
-  });
-
-  list.addEventListener('pointermove', (e) => {
-    if (pointerId === null || e.pointerId !== pointerId) return;
-    const delta = startY - e.clientY;
-    if (!dragging && Math.abs(delta) > DRAG_THRESHOLD_PX){
-      dragging = true;
-      list.setPointerCapture(pointerId);
-      list.classList.add('is-dragging');
-    }
-    if (dragging){
-      list.scrollTop = startScrollTop + delta;
-      e.preventDefault();
-    }
-  });
-
-  const endDrag = () => {
-    if (dragging) suppressClick = true;
-    pointerId = null;
-    dragging = false;
-    list.classList.remove('is-dragging');
-  };
-  list.addEventListener('pointerup', endDrag);
-  list.addEventListener('pointercancel', endDrag);
-
-  list.addEventListener('click', (e) => {
-    if (suppressClick){
-      suppressClick = false;
-      e.preventDefault();
-      e.stopPropagation();
-    }
-  }, true);
-}
-
-function initScrollArrows(wrap, list, upRow, downRow){
-  if (!wrap || !list || !upRow || !downRow) return;
-
-  // Scrolling only changes which arrow icon is faded in — whether the
-  // rows are active/sized at all is decided at render time.
-  list.addEventListener('scroll', () => {
-    if (!upRow.classList.contains('is-active')) return;
-    const atTop = list.scrollTop <= 1;
-    const atBottom = list.scrollTop + list.clientHeight >= list.scrollHeight - 1;
-    upRow.classList.toggle('is-visible', !atTop);
-    downRow.classList.toggle('is-visible', !atBottom);
-  });
-
-  attachArrowBehavior(downRow, list, 1);
-  attachArrowBehavior(upRow, list, -1);
-  initDragScroll(list);
-}
-
-function renderPollResults(wrap, list, upRow, downRow, allData, layoutFor, paletteOffset, palette, view){
-  if (!wrap || !list || !upRow || !downRow) return;
+function renderPollResults(wrap, list, allData, layoutFor, paletteOffset, palette, view){
+  if (!wrap || !list) return;
 
   const data = view ? view.shown : allData;
   const lastRow = view ? view.lastRow : null;
@@ -703,7 +523,7 @@ function renderPollResults(wrap, list, upRow, downRow, allData, layoutFor, palet
   // positioned (see .bar-scroll-inner in the CSS), so the wrap's size
   // is content-independent by construction. Measuring first is what
   // lets the in-place path below skip the clear-and-rebuild entirely.
-  const layout = layoutFor(count, wrap);
+  const layout = layoutFor(count + (lastRow ? 1 : 0), wrap);
   const { barHeight, gap } = layout;
   const compact = barHeight < RESULTS_COMPACT_THRESHOLD;
   const phone = Boolean(layout.phone);
@@ -805,20 +625,10 @@ function renderPollResults(wrap, list, upRow, downRow, allData, layoutFor, palet
     applyTruncation(rows);
     applyBarColors(rows);
     rows.forEach(({ row, pct }) => setFillWidth(row, pct));
-    updateArrowRows(wrap, list, upRow, downRow, layout);
     return;
   }
 
-  const previousScrollTop = list.scrollTop;
-
-  // Reset to an empty, arrows-inactive state.
   list.innerHTML = '';
-  list.style.rowGap = '';
-  upRow.classList.remove('is-active', 'is-visible');
-  downRow.classList.remove('is-active', 'is-visible');
-  upRow.style.height = '';
-  downRow.style.height = '';
-
   list.style.rowGap = gap + 'px';
 
   const rows = data.map((item, i) => {
@@ -853,10 +663,14 @@ function renderPollResults(wrap, list, upRow, downRow, allData, layoutFor, palet
 
   if (lastRow){
     const item = document.createElement('li');
-    item.className = 'more-item';
+    item.className = 'more-item' + (compact ? ' is-compact' : '');
     const button = document.createElement('button');
     button.type = 'button';
     setLastRow(button, lastRow);
+    if (!phone){
+      item.style.height = barHeight + 'px';
+      button.style.fontSize = fontSize + 'px';
+    }
     item.appendChild(button);
     list.appendChild(item);
   }
@@ -865,11 +679,6 @@ function renderPollResults(wrap, list, upRow, downRow, allData, layoutFor, palet
   applyBarColors(rows);
 
   list.dataset.renderSignature = signature;
-
-  // Restore scroll position (this path rebuilt the list from scratch)
-  // and refresh the arrow rows to match.
-  list.scrollTop = Math.max(0, Math.min(previousScrollTop, list.scrollHeight - list.clientHeight));
-  updateArrowRows(wrap, list, upRow, downRow, layout);
 
   // Animate fill widths in. Deferring past a paint is load-bearing:
   // the fills are born at the stylesheet's width:0%, and setting the
@@ -891,7 +700,7 @@ function setLastRow(button, lastRow){
 
 /*
   VOTE-MODE — horizontal bar list
-  Same sizing/layout technique as Results-mode (same computeBarLayout,
+  Same sizing/layout technique as Results-mode (same bar layout,
   same font/pad scaling, same order — highest % first, from the same
   shared dataset), but the visual meaning of each bar is different:
   there's no proportional fill and no per-position palette color, just
@@ -913,22 +722,12 @@ function scaleRadioSize(barHeight){
   return Math.max(VOTE_RADIO_MIN, Math.min(VOTE_RADIO_MAX, barHeight - 2, barHeight * 0.55));
 }
 
-function renderVotingOptions(wrap, list, upRow, downRow, data, layoutFor){
-  if (!wrap || !list || !upRow || !downRow) return;
+function renderVotingOptions(wrap, list, data, layoutFor){
+  if (!wrap || !list) return;
 
   const count = data.length;
 
-  const previousScrollTop = list.scrollTop;
-
-  // Reset to an empty, arrows-inactive state before measuring — see
-  // the matching comment in renderPollResults.
   list.innerHTML = '';
-  list.style.rowGap = '';
-  upRow.classList.remove('is-active', 'is-visible');
-  downRow.classList.remove('is-active', 'is-visible');
-  upRow.style.height = '';
-  downRow.style.height = '';
-  void wrap.offsetHeight; // flush the reset before reading clientHeight
 
   const layout = layoutFor(count, wrap);
   const { barHeight, gap } = layout;
@@ -996,17 +795,12 @@ function renderVotingOptions(wrap, list, upRow, downRow, data, layoutFor){
       }
     });
   }
-
-  // Restore scroll position (re-render rebuilds the list from scratch)
-  // and refresh the arrow rows to match.
-  list.scrollTop = Math.max(0, Math.min(previousScrollTop, list.scrollHeight - list.clientHeight));
-  updateArrowRows(wrap, list, upRow, downRow, layout);
 }
 
 /*
   CARD INSTANCES
-  initPollCard wires one .card-viewport: flip buttons, both faces'
-  scroll arrows, vote-row toggling, and the card's own cached dataset.
+  initPollCard wires one .card-viewport: flip buttons, vote-row
+  toggling, and the card's own cached dataset.
   All lookups are class-based and scoped to the viewport, so the same
   markup can repeat any number of times per page (see
   contracts/poll-card-component.md in the feature spec for the markup
@@ -1026,13 +820,9 @@ function initPollCard(viewport, opts){
   // ---- Face elements ----
   const resultsWrap = viewport.querySelector('.results-scroll-wrap');
   const resultsList = viewport.querySelector('.results-list');
-  const resultsUp = resultsWrap?.querySelector('.arrow-row-up');
-  const resultsDown = resultsWrap?.querySelector('.arrow-row-down');
 
   const votingWrap = viewport.querySelector('.voting-scroll-wrap');
   const votingList = viewport.querySelector('.voting-list');
-  const votingUp = votingWrap?.querySelector('.arrow-row-up');
-  const votingDown = votingWrap?.querySelector('.arrow-row-down');
 
   const submitBtn = viewport.querySelector('.submit-vote-btn');
   const addChoiceBtn = viewport.querySelector('.add-choice-btn');
@@ -1056,9 +846,6 @@ function initPollCard(viewport, opts){
   const notesBox = viewport.querySelector('.card-front .poll-notes');
   const notesText = notesBox?.querySelector('.poll-notes-text');
   const notesMore = notesBox?.querySelector('.poll-notes-more');
-
-  initScrollArrows(resultsWrap, resultsList, resultsUp, resultsDown);
-  initScrollArrows(votingWrap, votingList, votingUp, votingDown);
 
   // ---- This card's dataset ----
   // `poll` is the latest PollDetail from GET /api/polls/:pid; `data` is
@@ -1089,8 +876,13 @@ function initPollCard(viewport, opts){
     return essentialChoices(data, (poll && poll.myChoiceIds) || [], isMaximized ? MAXIMIZED_LIMITS : COMPACT_LIMITS);
   }
 
-  function hiddenChoiceCount(){
-    return data && isPhoneLayout() && !isMaximized ? essential().hiddenCount : 0;
+  function capacity(wrap){
+    return wrap.clientHeight === 0 ? Infinity : computeMaxBarsAtFloor(wrap.clientHeight);
+  }
+
+  function ballotOpensMaximized(){
+    if (!data || isMaximized) return false;
+    return isPhoneLayout() ? essential().hiddenCount > 0 : data.length > capacity(votingWrap);
   }
 
   function votedChoices(){
@@ -1099,9 +891,14 @@ function initPollCard(viewport, opts){
     return data.filter((choice) => choice.pct >= 1 || ownIds.indexOf(choice.id) !== -1);
   }
 
-  function phoneResultsView(){
-    if (!isPhoneLayout()) return null;
-    const { shown, hiddenCount, hiddenShare } = essential();
+  function fitting(){
+    const places = capacity(resultsWrap);
+    if (data.length <= places) return { shown: data, hiddenCount: 0, hiddenShare: 0 };
+    return fittingChoices(data, (poll && poll.myChoiceIds) || [], Math.max(0, places - 1));
+  }
+
+  function resultsView(){
+    const { shown, hiddenCount, hiddenShare } = isMaximized || isPhoneLayout() ? essential() : fitting();
     const share = poll.choiceMode === 'Single-Choice Poll' ? ' · ' + hiddenShare + '%' : '';
     if (!isMaximized){
       return { shown, lastRow: hiddenCount === 0 ? null : { className: 'more-row', text: 'More choices' + share } };
@@ -1114,17 +911,17 @@ function initPollCard(viewport, opts){
     }
     if (hiddenCount === 0) return { shown, lastRow: null };
     if (choiceView !== 'essential'){
-      return { shown: data, lastRow: { className: 'show-all-row', text: 'Show few choices', expanded: true } };
+      return { shown: data, lastRow: { className: 'show-all-row', text: 'Show fewer choices', expanded: true } };
     }
     return { shown, lastRow: { className: 'show-all-row', text: 'Show all ' + data.length + ' choices' + share, expanded: false } };
   }
 
   function ballot(){
-    return hiddenChoiceCount() > 0 && !cardFlip.classList.contains('is-flipped') ? [] : data;
+    return ballotOpensMaximized() && !cardFlip.classList.contains('is-flipped') ? [] : data;
   }
 
   function renderBallot(){
-    renderVotingOptions(votingWrap, votingList, votingUp, votingDown, ballot(), votingLayoutFor);
+    renderVotingOptions(votingWrap, votingList, ballot(), votingLayoutFor);
   }
 
   function rebuildData(selectedIds){
@@ -1394,7 +1191,11 @@ function initPollCard(viewport, opts){
   function render(){
     if (!data) return;
     votingList?.classList.toggle('is-multi', Boolean(poll) && poll.choiceMode !== 'Single-Choice Poll');
-    renderPollResults(resultsWrap, resultsList, resultsUp, resultsDown, data, resultsLayoutFor, paletteOffset, palette, phoneResultsView());
+    if (!isPhoneLayout() && ballotOpensMaximized() && cardFlip.classList.contains('is-flipped')){
+      pendingSelection = selectedIds();
+      cardFlip.classList.remove('is-flipped');
+    }
+    renderPollResults(resultsWrap, resultsList, data, resultsLayoutFor, paletteOffset, palette, resultsView());
     renderBallot();
     updateSubmitState();
     updateClosedState();
@@ -1498,7 +1299,7 @@ function initPollCard(viewport, opts){
   }
 
   function requestMaximizedNotes(){
-    requestMaximize(isPhoneLayout() ? { open: 'notes' } : null);
+    requestMaximize({ open: 'notes' });
   }
 
   if (maximizeHintDismissed) viewport.querySelector('.maximize-hint')?.remove();
@@ -1513,7 +1314,6 @@ function initPollCard(viewport, opts){
   notesBox?.addEventListener('click', () => { if (isPhoneLayout()) requestMaximizedNotes(); });
 
   resultsList?.addEventListener('click', (event) => {
-    if (!isPhoneLayout()) return;
     const showAllRow = event.target.closest('.show-all-row');
     if (showAllRow){
       choiceView = showAllRow.getAttribute('aria-expanded') === 'true' ? 'essential' : 'all';
@@ -1522,7 +1322,7 @@ function initPollCard(viewport, opts){
       return;
     }
     if (event.target.closest('.more-row')) requestMaximize({ choices: 'voted' });
-    else if (event.target.closest('.result-row')) requestMaximize();
+    else if (isPhoneLayout() && event.target.closest('.result-row')) requestMaximize();
   });
 
   if (opts.onFace && typeof MutationObserver === 'function'){
@@ -1558,7 +1358,7 @@ function initPollCard(viewport, opts){
       maximizeBtn.querySelector('.maximize-icon').toggleAttribute('hidden', on);
       maximizeBtn.querySelector('.minimize-icon').toggleAttribute('hidden', !on);
     });
-    if (hiddenChoiceCount() > 0 && cardFlip.classList.contains('is-flipped')){
+    if (ballotOpensMaximized() && cardFlip.classList.contains('is-flipped')){
       pendingSelection = selectedIds();
       cardFlip.classList.remove('is-flipped');
     }
@@ -1581,7 +1381,7 @@ function initPollCard(viewport, opts){
       updateBlockedState();
       return;
     }
-    if (hiddenChoiceCount() > 0 && opts.onMaximize){
+    if (ballotOpensMaximized() && opts.onMaximize){
       requestMaximize({ face: 'vote' });
       return;
     }
@@ -1821,14 +1621,7 @@ const POLL_CARD_TEMPLATE = `
 
           <div class="bar-scroll-wrap results-scroll-wrap">
             <div class="bar-scroll-inner">
-            <button class="arrow-row arrow-row-up" type="button" aria-label="Scroll up">
-              <svg viewBox="0 0 256 128" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M184.49 167.51a12 12 0 0 1 0 17l-48 48a12 12 0 0 1-17 0l-48-48a12 12 0 0 1 17-17L128 207l39.51-39.52a12 12 0 0 1 16.98.03m-96-79L128 49l39.51 39.52a12 12 0 0 0 17-17l-48-48a12 12 0 0 0-17 0l-48 48a12 12 0 0 0 17 17Z"/></svg>
-            </button>
             <ul class="results-list"></ul>
-            <button class="arrow-row arrow-row-down" type="button" aria-label="Scroll down">
-              <span class="arrow-row-label">more choices</span>
-              <svg viewBox="0 128 256 128" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M184.49 167.51a12 12 0 0 1 0 17l-48 48a12 12 0 0 1-17 0l-48-48a12 12 0 0 1 17-17L128 207l39.51-39.52a12 12 0 0 1 16.98.03m-96-79L128 49l39.51 39.52a12 12 0 0 0 17-17l-48-48a12 12 0 0 0-17 0l-48 48a12 12 0 0 0 17 17Z"/></svg>
-            </button>
             </div>
           </div>
 
@@ -1886,14 +1679,7 @@ const POLL_CARD_TEMPLATE = `
 
           <div class="bar-scroll-wrap voting-scroll-wrap">
             <div class="bar-scroll-inner">
-            <button class="arrow-row arrow-row-up" type="button" aria-label="Scroll up">
-              <svg viewBox="0 0 256 128" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M184.49 167.51a12 12 0 0 1 0 17l-48 48a12 12 0 0 1-17 0l-48-48a12 12 0 0 1 17-17L128 207l39.51-39.52a12 12 0 0 1 16.98.03m-96-79L128 49l39.51 39.52a12 12 0 0 0 17-17l-48-48a12 12 0 0 0-17 0l-48 48a12 12 0 0 0 17 17Z"/></svg>
-            </button>
             <ul class="voting-list"></ul>
-            <button class="arrow-row arrow-row-down" type="button" aria-label="Scroll down">
-              <span class="arrow-row-label">more choices</span>
-              <svg viewBox="0 128 256 128" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M184.49 167.51a12 12 0 0 1 0 17l-48 48a12 12 0 0 1-17 0l-48-48a12 12 0 0 1 17-17L128 207l39.51-39.52a12 12 0 0 1 16.98.03m-96-79L128 49l39.51 39.52a12 12 0 0 0 17-17l-48-48a12 12 0 0 0-17 0l-48 48a12 12 0 0 0 17 17Z"/></svg>
-            </button>
             </div>
           </div>
 
@@ -1935,7 +1721,7 @@ const POLL_CARD_TEMPLATE = `
 
 window.M3Ripple?.add(
   '.card-face .btn-vote, .card-face .icon-btn, .card-face .bookmark-btn, .card-face .maximize-btn, ' +
-  '.card-face .live-link, .card-face .arrow-row, .card-face .vote-row, .maximized-card-close, .card-face .add-choice-btn, ' +
+  '.card-face .live-link, .card-face .vote-row, .maximized-card-close, .card-face .add-choice-btn, ' +
   '.card-face .poll-notes-more'
 );
 
@@ -1951,6 +1737,7 @@ window.PollCard = {
   lineColorOn: lineColorOn,
   isPhoneLayout: isPhoneLayout,
   essentialChoices: essentialChoices,
+  fittingChoices: fittingChoices,
   COMPACT_LIMITS: COMPACT_LIMITS,
   MAXIMIZED_LIMITS: MAXIMIZED_LIMITS
 };

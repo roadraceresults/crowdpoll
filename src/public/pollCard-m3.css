@@ -130,14 +130,6 @@
 .card-face .live-x{ order:2; width:18px; height:18px; }
 .card-face .live-x svg{ width:18px; height:18px; }
 
-.card-face .arrow-row{ color:var(--md-sys-color-on-surface-variant); }
-.card-face .arrow-row-label{
-  font-family:var(--md-sys-typescale-font);
-  font-weight:var(--md-sys-typescale-body-small-weight);
-  font-size:var(--md-sys-typescale-body-small-size);
-  letter-spacing:var(--md-sys-typescale-body-small-tracking);
-}
-
 .card-face .vote-radio{
   z-index:2;
   border:2px solid var(--md-sys-color-on-surface-variant);
@@ -209,7 +201,6 @@
 .card-face .bookmark-btn,
 .card-face .maximize-btn,
 .card-face .live-link,
-.card-face .arrow-row,
 .card-face .vote-row{
   position:relative;
   overflow:hidden;
@@ -219,7 +210,6 @@
 .card-face .bookmark-btn::before,
 .card-face .maximize-btn::before,
 .card-face .live-link::before,
-.card-face .arrow-row::before,
 .card-face .vote-row::before{
   content:'';
   position:absolute;
@@ -237,22 +227,19 @@
 .card-face .bookmark-btn:hover::before,
 .card-face .maximize-btn:hover::before,
 .card-face .live-link:hover::before,
-.card-face .arrow-row:hover::before,
 .card-face .vote-row:hover::before{ opacity:var(--md-sys-state-hover-state-layer-opacity); }
 
 .card-face .btn-vote:focus-visible::before,
 .card-face .icon-btn:focus-visible::before,
 .card-face .bookmark-btn:focus-visible::before,
 .card-face .maximize-btn:focus-visible::before,
-.card-face .live-link:focus-visible::before,
-.card-face .arrow-row:focus-visible::before{ opacity:var(--md-sys-state-focus-state-layer-opacity); }
+.card-face .live-link:focus-visible::before{ opacity:var(--md-sys-state-focus-state-layer-opacity); }
 
 .card-face .btn-vote:active::before,
 .card-face .icon-btn:active::before,
 .card-face .bookmark-btn:active::before,
 .card-face .maximize-btn:active::before,
 .card-face .live-link:active::before,
-.card-face .arrow-row:active::before,
 .card-face .vote-row:active::before{ opacity:var(--md-sys-state-pressed-state-layer-opacity); }
 
 .card-face .btn-vote:disabled::before,
@@ -262,10 +249,55 @@
 .card-face .icon-btn:focus-visible,
 .card-face .bookmark-btn:focus-visible,
 .card-face .maximize-btn:focus-visible,
-.card-face .live-link:focus-visible,
-.card-face .arrow-row:focus-visible{
+.card-face .live-link:focus-visible{
   outline:3px solid var(--md-sys-color-secondary);
   outline-offset:2px;
+}
+
+@media not all and (max-width: 640px){
+  .card-face .results-list > .more-item{ flex:0 0 auto; }
+  .card-face .more-row,
+  .card-face .show-all-row{
+    position:relative;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width:100%;
+    height:100%;
+    padding:0;
+    border:1px solid var(--md-sys-color-outline-variant);
+    border-radius:8px;
+    overflow:hidden;
+    background:transparent;
+    color:var(--md-sys-color-primary);
+    font-family:var(--md-sys-typescale-font);
+    font-weight:var(--md-sys-typescale-label-large-weight);
+    letter-spacing:var(--md-sys-typescale-label-large-tracking);
+    cursor:pointer;
+  }
+  .card-face .more-item.is-compact > .more-row,
+  .card-face .more-item.is-compact > .show-all-row{ border-radius:2px; }
+  .card-face .more-row::before,
+  .card-face .show-all-row::before{
+    content:'';
+    position:absolute;
+    inset:0;
+    background:currentColor;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity 0.15s ease;
+  }
+  .card-face .more-row:hover::before,
+  .card-face .show-all-row:hover::before{ opacity:var(--md-sys-state-hover-state-layer-opacity); }
+  .card-face .more-row:focus-visible::before,
+  .card-face .show-all-row:focus-visible::before{ opacity:var(--md-sys-state-focus-state-layer-opacity); }
+  .card-face .more-row:active::before,
+  .card-face .show-all-row:active::before{ opacity:var(--md-sys-state-pressed-state-layer-opacity); }
+  .card-face .more-row:focus-visible,
+  .card-face .show-all-row:focus-visible{
+    outline:3px solid var(--md-sys-color-secondary);
+    outline-offset:-3px;
+  }
 }
 
 .card-flip{ min-height:calc(500px + 2 * var(--md-sys-typescale-body-medium-line-height) + 16px); }

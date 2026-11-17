@@ -151,8 +151,7 @@ body.card-demo-page .page-decor{
 
      .bar-scroll-wrap is a placeholder that flexes to fill whatever
      space is left in the card face; .bar-scroll-inner (position:
-     absolute, inset:0) holds the actual 3-row column — up-arrow row,
-     scrollable bar list, down-arrow row — and matches the
+     absolute, inset:0) holds the bar list and matches the
      placeholder's size exactly.
 
      This split is load-bearing, not decorative. The card's height
@@ -162,21 +161,14 @@ body.card-demo-page .page-decor{
      overflow:hidden or min-height:0 (those only enable clipping and
      shrinking once a definite constraint exists; they don't remove
      the intrinsic contribution). So with the bars in-flow, injecting
-     more rows than fit inflated min-content and grew the whole card,
-     and scrollHeight never exceeded clientHeight — the list stretched
-     instead of scrolling. Absolutely-positioned content is out of
-     flow and contributes ZERO to intrinsic sizing, so the card's
+     more rows than fit inflated min-content and grew the whole card.
+     Absolutely-positioned content is out of flow and contributes
+     ZERO to intrinsic sizing, so the card's
      height is determined only by the question, actions, and the
      420px minimum — never by bar count — while in-flow siblings like
      .question-wrap can still legitimately grow the card when their
      text wraps at narrow widths. The bars then get exactly the
-     leftover space, and genuinely scroll when they exceed it.
-
-     The arrow rows are hidden (display:none) and take up no space
-     when everything fits; once scrolling is needed they're shown with
-     an explicit height equal to the (now floor-sized) bars, so they
-     occupy real rows in the layout rather than floating over the
-     bars — see computeBarLayout() in poll-card.js. */
+     leftover space. */
   .bar-scroll-wrap{
     position:relative;
     flex:1 1 auto;
@@ -202,14 +194,9 @@ body.card-demo-page .page-decor{
     list-style:none;
     margin:0;
     padding:0;
-    overflow-x:hidden;
-    overflow-y:auto;
-    scrollbar-width:none;
-    -ms-overflow-style:none;
-    user-select:none; /* mouse drag scrolls the list; don't also select label text */
+    overflow:hidden;
+    user-select:none;
   }
-  .results-list::-webkit-scrollbar{ display:none; }
-  .results-list.is-dragging{ cursor:grabbing; }
 
   .result-row{
     position:relative;
@@ -285,66 +272,6 @@ body.card-demo-page .page-decor{
     border-radius:2px;
   }
 
-  /* Scroll-affordance arrow rows — real flex rows (not floating
-     overlays), so they take up actual space in the layout. Hidden
-     (display:none, .is-active not set) and reserving zero space when
-     everything fits; shown with an explicit height (set in JS, equal
-     to the current floor-sized bar height) once scrolling is needed
-     — see computeBarLayout() in poll-card.js. Within that, the icon
-     itself fades per .is-visible based on scroll position: the down
-     arrow while not at the bottom, the up arrow once scrolled away
-     from the top — the row's space stays reserved either way.
-
-     Each row is shaped exactly like a bar — same width, height, and
-     corner radius (including the compact 2px radius, mirrored via
-     .is-compact set in JS) — but drawn as an outline: the border
-     takes the color that face's bars use as their background (the
-     track on the Results face, the unselected-choice color on the
-     Vote face) and the interior is transparent, so the white card
-     face shows through as the fill. */
-  .arrow-row{
-    display:none;
-    flex:0 0 auto;
-    width:100%;
-    align-items:center;
-    justify-content:center;
-    padding:0;
-    border:1px solid transparent;
-    border-radius:8px;
-    background:none;
-    color:var(--ink);
-    cursor:pointer;
-    opacity:0;
-    pointer-events:none;
-    transition:opacity 0.15s ease;
-  }
-  .card-front .arrow-row{ border-color:var(--track); }
-  .card-back .arrow-row{ border-color:var(--choice-unselected); }
-  .arrow-row.is-compact{ border-radius:2px; }
-  .arrow-row.is-active{
-    display:flex;
-  }
-  .arrow-row.is-visible{
-    opacity:1;
-    pointer-events:auto;
-  }
-  .arrow-row svg{ width:22px; height:11px; }
-  /* The down row says what it reveals: "more choices" to the left of the
-     chevron, which stays centred (the label is taken out of the flow and
-     ends 16px left of the 22px chevron). A compact row is too short for text. */
-  .arrow-row-down{ position:relative; }
-  .arrow-row-label{
-    position:absolute;
-    top:50%;
-    right:calc(50% + 11px + 16px);
-    transform:translateY(-50%);
-    font-size:12px;
-    font-style:italic;
-    line-height:1;
-    white-space:nowrap;
-  }
-  .arrow-row.is-compact .arrow-row-label{ display:none; }
-
   .question-wrap{ margin-bottom:8px; }
 
   .question{
@@ -385,14 +312,9 @@ body.card-demo-page .page-decor{
     list-style:none;
     margin:0;
     padding:0;
-    overflow-x:hidden;
-    overflow-y:auto;
-    scrollbar-width:none;
-    -ms-overflow-style:none;
-    user-select:none; /* mouse drag scrolls the list; don't also select label text */
+    overflow:hidden;
+    user-select:none;
   }
-  .voting-list::-webkit-scrollbar{ display:none; }
-  .voting-list.is-dragging{ cursor:grabbing; }
 
   .maximized-card-flip .bar-scroll-wrap{ flex:0 0 auto; }
   .maximized-card-flip .bar-scroll-inner{ position:static; overflow:visible; }

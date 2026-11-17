@@ -5,6 +5,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261117-131915-WIDE-MORE-CHOICES/plan.md` (research R1–R12, `data-model.md` — derived values and the wide
+card's states, nothing stored; the contract `contracts/ui.md` W1–W10 and the quickstart live alongside it).
+The requirements report is `requirements/20261117-131915-wide-more-choices/requirements-report.md`: 8 findings, all
+resolved; where it speaks of the row's chevron, the plan's R9 is right (there is none).
+Decisions that are easy to get wrong:
+- **A wide card never scrolls**: one that holds fewer bars than the poll has shows `fittingChoices` (own choices
+  first, then leaders, `capacity − 1` places) and a "More choices" row sized as one more bar (R1–R3).
+- **Each side decides for itself**: the notes are on the front only, so the ballot may fit when the bars do not;
+  Vote opens the maximized view only when the ballot does not fit (`ballotOpensMaximized`), and a flipped card whose
+  ballot stops fitting returns to its results side with the selection kept (R5).
+- **A wrap with no height fits everything**, and the grid re-renders its cards when it returns (R4).
+- **The maximized view's rules are the phone's at every width**: `MAXIMIZED_LIMITS`, "Show all N choices" and
+  "Show fewer choices"; only the card's rule differs by width (R6).
+- **"Show more" asks for the notes at every width**: `revealNotes` measures `.extras-tabs` in the phone layout and
+  `.maximized-notes` above it (R8).
+- **The wide rows' styles are in `pollCard-m3.css` under `not all and (max-width: 640px)`**; `phone-card-m3.css`
+  is not edited (R9).
+
+The plan before it:
 `specs/20261117-050854-FIXED-WIDTH-640/plan.md` (research R1–R10, `data-model.md` — three viewport states, two
 layouts, nothing stored; the contracts `contracts/viewport.md` V1–V5, `contracts/breakpoints.md` B1–B6 and the
 quickstart, which is the device checklist, live alongside it).
@@ -37,11 +56,11 @@ Decisions that are easy to get wrong:
   bar is 64 px (R11). Sizes are layout pixels, the same at the 480 and the 640 px layout width.
 - **Scripts ask `PollCard.isPhoneLayout()`** (`matchMedia("(max-width: 640px)")`), not a CSS marker (R4).
 - **`essentialChoices`**: four leaders (all if ≤ 5) on the card, ten (all if ≤ 12) maximized, of which only those above 2%
-  (above 0% if ≤ 12) when any is (TWEAK05, on trial), own choices added after the leaders; the combined share shows on single-choice polls only; the voting side always lists every choice (R5).
+  (above 0% if ≤ 12) when any is (TWEAK05, on trial), own choices added after the leaders; the combined share shows on single-choice polls only; the voting side always lists every choice (R5). The maximized limits now apply at every width; above 640 px the card uses `fittingChoices`.
 - **Rows are marked `is-phone` and sized by the sheet**: `phoneBarLayout()` gives 30 px bars 8 px apart and 52 px
   voting rows; the script writes no font size on a phone row, `phone-card-m3.css` sets it from `label-large`. The
   maximized view uses the same sizes in the phone layout, not `maximizedBarLayout` (R6).
-- **Vote with hidden choices opens the maximized view on its voting side** (`onMaximize(pid, { face: "vote" })`, then
+- **Vote with hidden choices opens the maximized view on its voting side** (above 640 px: when the ballot does not fit; `onMaximize(pid, { face: "vote" })`, then
   `showVoteFace()`); such a card builds no ballot on its back until it is turned (R6, R7). The Submit bar (`#voteBar`)
   only clicks the card's own `.back-btn` and `.submit-vote-btn` and copies Submit's label and disabled state; it
   leaves Add Choice in the card, hides the card's own Back and Submit and the Back-to-top button, and sits at

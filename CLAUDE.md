@@ -6,6 +6,25 @@ The full description, every earlier feature's decisions and the settings table a
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261117-131915-WIDE-MORE-CHOICES/plan.md` (research R1–R12, `data-model.md` — derived values and the wide
+card's states, nothing stored; the contract `contracts/ui.md` W1–W10 and the quickstart live alongside it).
+The requirements report is `requirements/20261117-131915-wide-more-choices/requirements-report.md`: 8 findings, all
+resolved; where it speaks of the row's chevron, the plan's R9 is right (there is none).
+Decisions that are easy to get wrong:
+- **A wide card never scrolls**: one that holds fewer bars than the poll has shows `fittingChoices` (own choices
+  first, then leaders, `capacity − 1` places) and a "More choices" row sized as one more bar (R1–R3).
+- **Each side decides for itself**: the notes are on the front only, so the ballot may fit when the bars do not;
+  Vote opens the maximized view only when the ballot does not fit (`ballotOpensMaximized`), and a flipped card whose
+  ballot stops fitting returns to its results side with the selection kept (R5).
+- **A wrap with no height fits everything**, and the grid re-renders its cards when it returns (R4).
+- **The maximized view's rules are the phone's at every width**: `MAXIMIZED_LIMITS`, "Show all N choices" and
+  "Show fewer choices"; only the card's rule differs by width (R6).
+- **"Show more" asks for the notes at every width**: `revealNotes` measures `.extras-tabs` in the phone layout and
+  `.maximized-notes` above it (R8).
+- **The wide rows' styles are in `pollCard-m3.css` under `not all and (max-width: 640px)`**; `phone-card-m3.css`
+  is not edited (R9).
+
+The plan before it:
 `specs/20261117-050854-FIXED-WIDTH-640/plan.md` (research R1–R10, `data-model.md` — three viewport states, two
 layouts, nothing stored; the contracts `contracts/viewport.md` V1–V5, `contracts/breakpoints.md` B1–B6 and the
 quickstart, which is the device checklist, live alongside it).
@@ -37,9 +56,9 @@ Decisions that are easy to get wrong:
   (R2, R3).
 - **Scripts ask `PollCard.isPhoneLayout()`** (`matchMedia("(max-width: 640px)")`), not a CSS marker (R4).
 - **`essentialChoices`**: four leaders (all if ≤ 5) on the card, ten (all if ≤ 12) maximized, of which only those above 2%
-  (above 0% if ≤ 12) when any is (TWEAK05, on trial), own choices added after the leaders; the combined share shows on single-choice polls only; the voting side always lists every choice (R5).
-- **Vote with hidden choices opens the maximized view on its voting side**; the Submit bar only clicks the card's own
-  buttons (R7, R9).
+  (above 0% if ≤ 12) when any is (TWEAK05, on trial), own choices added after the leaders; the combined share shows on single-choice polls only; the voting side always lists every choice (R5). The maximized limits now apply at every width; above 640 px the card uses `fittingChoices`.
+- **Vote with hidden choices opens the maximized view on its voting side** (above 640 px: when the ballot does not
+  fit); the Submit bar only clicks the card's own buttons (R7, R9).
 - **Back**: a view opened from a card pushes `{maximizedPid}` at the same address, at every width; every other way of
   closing calls `history.back()`; a link landing pushes nothing (R10).
 - **Poll Results is gone** with its three API routes and `exportPoll*`; `computeResults` stays (R13).

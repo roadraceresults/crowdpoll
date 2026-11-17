@@ -364,7 +364,7 @@
       if (how.fromCard) setMaximizedStep(pid, stepHeld);
       else if (stepHeld && !how.viaHistory) dropMaximizedStep();
       extraShown = how.open || null;
-      notesAsked = how.open === "notes" && window.PollCard.isPhoneLayout();
+      notesAsked = how.open === "notes";
       returnScrollY = window.scrollY;
       maximizedPid = pid;
       gridEl.hidden = true;
@@ -392,8 +392,8 @@
       const card = mounted.get(maximizedPid);
       if (!notesAsked || !card) return;
       const chrome = window.FixedChrome ? window.FixedChrome.height() : 0;
-      const tabsTop = maximizedEl.querySelector(".extras-tabs").getBoundingClientRect().top;
-      if (tabsTop <= chrome + (window.innerHeight - chrome) / 2) return;
+      const extras = maximizedEl.querySelector(window.PollCard.isPhoneLayout() ? ".extras-tabs" : ".maximized-notes");
+      if (extras.getBoundingClientRect().top <= chrome + (window.innerHeight - chrome) / 2) return;
       const actionsTop = card.element.querySelector(".card-front .actions").getBoundingClientRect().top;
       window.scrollTo(0, window.scrollY + actionsTop - chrome - 16);
     }
@@ -524,7 +524,7 @@
       }
       retainedDetail = null;
       pinnedPid = null;
-      if (window.PollCard.isPhoneLayout()) mounted.forEach((held) => held.render());
+      mounted.forEach((held) => held.render());
       syncVoteBar();
       if (!options.viaHistory && !options.keepStep) dropMaximizedStep();
       if (options.quiet) return;

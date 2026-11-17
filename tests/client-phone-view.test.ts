@@ -226,10 +226,10 @@ describe("the extras tab bar of the maximized view", () => {
     expect(shownExtra(page)).toBe("notes");
   });
 
-  const placedAt = (opened: BrowserPage, tabsTop: number, actionsTop: number) => {
+  const placedAt = (opened: BrowserPage, extrasTop: number, actionsTop: number, extras = "extras-tabs") => {
     const scrolls: number[] = [];
     opened.window.HTMLElement.prototype.getBoundingClientRect = function (this: HTMLElement) {
-      const top = this.classList.contains("extras-tabs") ? tabsTop : this.classList.contains("actions") ? actionsTop : 0;
+      const top = this.classList.contains(extras) ? extrasTop : this.classList.contains("actions") ? actionsTop : 0;
       return { top, bottom: top, left: 0, right: 0, width: 0, height: 0, x: 0, y: top, toJSON: () => ({}) };
     };
     opened.window.scrollTo = ((_x: number, y: number) => scrolls.push(y)) as typeof opened.window.scrollTo;
@@ -258,6 +258,36 @@ describe("the extras tab bar of the maximized view", () => {
     page = await openShared(true, cookie);
     const scrolls = placedAt(page, 900, 700);
     await clickIn(page, cardByTitle(page, "Long plain").querySelector(".maximize-btn"));
+    await page.settle(50);
+    expect(scrolls).toEqual([]);
+  });
+
+  it("above the phone layout, scrolls a card opened from Show more until its action row is under the header, by where the notes are", async () => {
+    await seedPrivate("Wide noted", "Read me first.");
+    page = await openShared(false, cookie);
+    const scrolls = placedAt(page, 900, 700, "maximized-notes");
+    await clickIn(page, cardByTitle(page, "Wide noted").querySelector(".card-front .poll-notes-more"));
+    await page.settle(50);
+    expect(isOpen(page)).toBe(true);
+    expect(maximizedGrid(page, "shared-with-you")!.querySelector<HTMLElement>(".maximized-notes")!.hidden).toBe(false);
+    expect(scrolls.length).toBeGreaterThan(0);
+    for (const y of scrolls) expect(y).toBe(684);
+  });
+
+  it("above the phone layout, does not scroll when the notes start in the upper half of the screen", async () => {
+    await seedPrivate("Wide beside", "Read me first.");
+    page = await openShared(false, cookie);
+    const scrolls = placedAt(page, 300, 200, "maximized-notes");
+    await clickIn(page, cardByTitle(page, "Wide beside").querySelector(".card-front .poll-notes-more"));
+    await page.settle(50);
+    expect(scrolls).toEqual([]);
+  });
+
+  it("above the phone layout, does not go by where the extras tab bar is", async () => {
+    await seedPrivate("Wide tabs", "Read me first.");
+    page = await openShared(false, cookie);
+    const scrolls = placedAt(page, 900, 700);
+    await clickIn(page, cardByTitle(page, "Wide tabs").querySelector(".card-front .poll-notes-more"));
     await page.settle(50);
     expect(scrolls).toEqual([]);
   });

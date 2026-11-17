@@ -81,10 +81,22 @@ delivery network.
   Watching and comes back if access returns. Voting never watches a poll.
 - **Notes** — a poll may have notes under its title: the card shows their first two lines, with
   **Show more ⌄** when there is more. **Show more ⌄** opens the poll maximized, with the whole notes
-  above its line graph.
+  above its line graph; where the notes sit under the card, the page opens at them, with the card's
+  **Vote** button just above.
+- **Long polls** — nothing scrolls inside a card. A card shows as many choices as it has room for.
+  When a poll has more, the card shows its leading choices and any choice you voted for, then a row
+  such as **More choices · 18%**; the percentage is the share those choices hold together, and is
+  shown on single-choice polls only. The row opens the poll maximized. **Vote** on a poll whose
+  ballot does not fit in the card opens the poll maximized on its voting side, which lists every
+  choice.
 - **Maximize** — click a card's title or subtitle, **Show more ⌄**, or the maximize icon at the right
-  of its title (on either side of the card), to show that poll on its own, in the tab you are on, with every
-  choice visible at once and no scrolling inside the card. The card works exactly as it does in
+  of its title (on either side of the card), to show that poll on its own, in the tab you are on, with
+  no scrolling inside the card. Of twelve choices or fewer, those with votes are shown (all of them
+  when none has); a longer poll shows those of its ten leading choices that have more than 2% (all
+  ten when none has) and any choice you voted for, with **Show all 37 choices · 30%** under them
+  (then **Show fewer choices**). Opened from a card's **More choices** row, it shows every choice
+  with 1% or more instead, then **Remaining choices · 0%** for the rest. The voting side always
+  lists every choice. The card works exactly as it does in
   the grid. Close it with the same icon, now a minimize icon, the **Escape** key, or a click on the
   tab you are on; the tab comes back as you
   left it. Your browser's or phone's Back button closes it too, and leaves you on the same page; only a
@@ -156,10 +168,8 @@ delivery network.
   **Vote** turns the card over where it is. On a longer poll, **Vote** opens the poll maximized on its
   voting side: the full ballot scrolls with the page, and **Back**, the number of choices you have
   selected and **Submit vote** stay fixed at the bottom of the screen, above the cookie notice.
-- **A maximized poll on a phone** — the poll fills the column. Of twelve choices or fewer, those with votes are shown (all of them when none has); a
-  longer poll shows those of its ten leading choices that have more than 2% (all ten when none has) and any choice you voted for, with **Show all 37 choices · 30%**
-  under them (then **Show few choices**). Opened from the card's **More choices** row, it shows every choice
-  with 1% or more instead, then **Remaining choices · 0%** for the rest. Under the card a tab bar reads **Read More** (the poll's
+- **A maximized poll on a phone** — the poll fills the column and shows its choices by the same rule as
+  on a wide screen (see **Maximize** above). Under the card a tab bar reads **Read More** (the poll's
   notes), **Polling History** (the vote history graph) and **Who Voted**. One of them shows at a time:
   the leftmost the poll has to begin with, and a tab the poll lacks is greyed out. The list of voters
   and the graph are loaded when you first show their tab. Your phone's Back button closes a
