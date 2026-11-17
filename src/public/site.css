@@ -223,17 +223,13 @@
   }
 }
 
-@media (max-width:639.98px){
-  .site-header{ gap:12px; }
-  .header-actions{ gap:8px; }
+@media (max-width:640px){
   .btn-header-ghost, .btn-header-primary{
     height:36px;
     padding:0 12px;
     font-size:12.5px;
   }
   .avatar-icon{ width:28px; height:28px; }
-  .brand-logo{ height:32px; }
-  .brand-wordmark{ height:32px; }
   .brand{ gap:5px; }
   .header-nav-link{ font-size:13px; padding:0 16px; }
 }

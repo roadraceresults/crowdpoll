@@ -264,14 +264,6 @@
   flex-wrap: wrap;
 }
 
-@media (max-width: 639.98px) {
-  
-  .poll-admin-card,
-  .admin-search {
-    padding: 14px;
-  }
-}
-
 /* 017: the structured search above the poll list. */
 .admin-search{ margin-bottom:18px; }
 .admin-search-notice{

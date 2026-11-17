@@ -154,7 +154,7 @@ describe('the "/" shortcut', () => {
 describe("the field while the header search box is hidden at a wide width", () => {
   const outsidePhoneBlock = () => {
     const css = readFileSync(path.resolve("src/public/single-column-m3.css"), "utf8");
-    return css.slice(0, css.indexOf("@media (max-width: 639.98px)"));
+    return css.slice(0, css.indexOf("@media (max-width: 640px)"));
   };
 
   function withSheet(page: Home) {

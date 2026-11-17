@@ -269,6 +269,7 @@
     let votersShown = null;
     let pinnedPid = null;
     let extraShown = null;
+    let notesAsked = false;
     const opts = Object.assign(
       {
         isSignedIn: isSignedIn,
@@ -363,6 +364,7 @@
       if (how.fromCard) setMaximizedStep(pid, stepHeld);
       else if (stepHeld && !how.viaHistory) dropMaximizedStep();
       extraShown = how.open || null;
+      notesAsked = how.open === "notes" && window.PollCard.isPhoneLayout();
       returnScrollY = window.scrollY;
       maximizedPid = pid;
       gridEl.hidden = true;
@@ -382,6 +384,18 @@
       syncVoters(pid, detail);
       syncVoteBar();
       shownMaximizeButton(card.element).focus();
+      revealNotes();
+    }
+
+    /* Opened from the notes line of a long card: the page is scrolled until the card's action row is the first thing under the fixed header, so the notes show beneath it. */
+    function revealNotes() {
+      const card = mounted.get(maximizedPid);
+      if (!notesAsked || !card) return;
+      const chrome = window.FixedChrome ? window.FixedChrome.height() : 0;
+      const tabsTop = maximizedEl.querySelector(".extras-tabs").getBoundingClientRect().top;
+      if (tabsTop <= chrome + (window.innerHeight - chrome) / 2) return;
+      const actionsTop = card.element.querySelector(".card-front .actions").getBoundingClientRect().top;
+      window.scrollTo(0, window.scrollY + actionsTop - chrome - 16);
     }
 
     /* In the phone layout the extras share a tab bar, one shown at a time, and the Who voted report and the graph are asked for when theirs is first shown. */
@@ -417,6 +431,7 @@
       const detail = card && card.detail();
       if (!detail || maximizedEl.querySelector('.extras-tab[data-extra="' + extra + '"]').getAttribute("aria-disabled") === "true") return;
       extraShown = extra;
+      notesAsked = false;
       syncExtras(maximizedPid, detail);
       syncLineGraph(maximizedPid, card, detail);
       syncVoters(maximizedPid, detail);
@@ -458,6 +473,7 @@
           if (notesShown !== asked || !html) return;
           area.innerHTML = html;
           area.hidden = false;
+          revealNotes();
         })
         .catch(() => {});
     }
@@ -491,6 +507,7 @@
       clearVoters();
       const pid = maximizedPid;
       const card = mounted.get(pid);
+      notesAsked = false;
       const leftTheTab = Boolean(options.left || retainedDetail);
       const position = lastOrder.filter((held) => mounted.has(held)).indexOf(pid);
       maximizedPid = null;

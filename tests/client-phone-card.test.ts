@@ -1,6 +1,6 @@
 /**
  * The poll card in the phone layout (contracts/poll-card.md C2 to C4), on a card mounted by hand:
- * `matchMedia("(max-width: 480px)")` is stubbed, and no server is involved.
+ * `matchMedia("(max-width: 640px)")` is stubbed, and no server is involved.
  */
 import { afterEach, describe, expect, it } from "vitest";
 import { openStubbedHome, type StubbedHome } from "./helpers/single-column-page.js";
@@ -119,12 +119,12 @@ describe("the compact card in the phone layout", () => {
     expect(view.moreRow()!.textContent).toBe("More choices · 102%");
   });
 
-  it("draws 44px bars 8px apart, with the label and percentage in the label-large size", async () => {
+  it("draws 30px bars 8px apart, with the label and percentage in the label-large size", async () => {
     const view = await mount(poll(12));
     const list = view.el.querySelector<HTMLElement>(".results-list")!;
     expect(list.style.rowGap).toBe("8px");
     for (const row of view.resultRows()) {
-      expect(row.style.height).toBe("44px");
+      expect(row.style.height).toBe("30px");
       expect(row.classList.contains("is-phone")).toBe(true);
       expect(row.querySelector<HTMLElement>(".result-label")!.style.fontSize).toBe("");
       expect(row.querySelector<HTMLElement>(".result-pct")!.style.fontSize).toBe("");
@@ -196,13 +196,13 @@ describe("the compact card in the phone layout", () => {
 });
 
 describe("voting in the phone layout", () => {
-  it("flips a card that shows every choice, with 64px rows on its back", async () => {
+  it("flips a card that shows every choice, with 52px rows on its back", async () => {
     const view = await mount(poll(4));
     await view.click(".vote-btn");
     expect(view.isFlipped()).toBe(true);
     expect(view.maximizeCalls).toEqual([]);
     expect(view.voteRows()).toHaveLength(4);
-    for (const row of view.voteRows()) expect(row.style.height).toBe("64px");
+    for (const row of view.voteRows()) expect(row.style.height).toBe("52px");
     expect(view.el.querySelector<HTMLElement>(".voting-list")!.style.rowGap).toBe("0px");
     expect(view.faces).toEqual(["vote"]);
   });
@@ -227,6 +227,40 @@ describe("voting in the phone layout", () => {
     expect(view.isFlipped()).toBe(true);
     expect(view.voteRows()).toHaveLength(12);
     expect(view.faces).toEqual(["vote"]);
+  });
+
+  it("returns to the results side, with no ballot behind it, when the view closes on its voting side", async () => {
+    const view = await mount(poll(12));
+    view.card.setMaximized(true);
+    view.card.showVoteFace();
+    await home!.settle();
+    view.card.setMaximized(false);
+    await home!.settle();
+    expect(view.isFlipped()).toBe(false);
+    expect(view.voteRows()).toHaveLength(0);
+    expect(view.resultRows()).toHaveLength(4);
+    expect(view.faces).toEqual(["vote", "results"]);
+  });
+
+  it("keeps the selection made before the view closed on its voting side", async () => {
+    const view = await mount(poll(12, { choiceMode: "Multiple-Choice Poll" }));
+    view.card.setMaximized(true);
+    view.card.showVoteFace();
+    await view.click(".voting-list > .vote-row:nth-child(3)");
+    view.card.setMaximized(false);
+    view.card.setMaximized(true);
+    view.card.showVoteFace();
+    await home!.settle();
+    expect(view.el.querySelectorAll(".voting-list > .vote-row.is-selected")).toHaveLength(1);
+  });
+
+  it("leaves no ballot behind when Back is pressed on a card that came to hide choices", async () => {
+    const view = await mount(poll(4));
+    await view.click(".vote-btn");
+    view.card.applyPoll(poll(12));
+    await view.click(".back-btn");
+    expect(view.isFlipped()).toBe(false);
+    expect(view.voteRows()).toHaveLength(0);
   });
 
   it("reports the number selected, and the face when Back is pressed", async () => {
@@ -363,11 +397,11 @@ describe("the maximized card in the phone layout", () => {
     expect(view.resultRows()).toHaveLength(10);
   });
 
-  it("draws 44px bars 8px apart", async () => {
+  it("draws 30px bars 8px apart", async () => {
     const view = await mount(poll(37));
     view.card.setMaximized(true);
     expect(view.el.querySelector<HTMLElement>(".results-list")!.style.rowGap).toBe("8px");
-    expect(view.resultRows()[0]!.style.height).toBe("44px");
+    expect(view.resultRows()[0]!.style.height).toBe("30px");
   });
 
   it("is as today outside the phone layout: every bar, no row", async () => {

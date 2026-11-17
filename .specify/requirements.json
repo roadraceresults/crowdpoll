@@ -1,5 +1,5 @@
 {
-    "requirements_directory": "requirements/20261113-140600-phone-layout-redesign",
+    "requirements_directory": "requirements/20261117-050854-fixed-width-640",
     "last_written": {
         "requirements/20261019-153514-production-email/requirements.md": "e0bd2b0bf28c2fbd6699c99cdf364c1398d3b7aed8eb456198295f78d108ee08",
         "requirements/20261019-153514-production-email/requirements-report.md": "4f75f5e263fa092fc0fcedc4a7cdaa32128382e287f2ac0394e4957e8d8bd413",
@@ -94,6 +94,8 @@
         "requirements/20261113-085157-fixed-viewport-width/requirements.md": "dbdd4d84aef01bcb3234ff90f9add9e54b5253a4ec135194d624166c321bedd6",
         "requirements/20261113-085157-fixed-viewport-width/requirements-report.md": "4d4e6bcc3393ca8cf696c3bbb7d28e9a8f36aef4dba6720a4231aaed4abba886",
         "requirements/20261113-140600-phone-layout-redesign/requirements.md": "e144b5a851093b2fd6370329a1be8fc80d80848b592ab8c9c55bc898fdb8846f",
-        "requirements/20261113-140600-phone-layout-redesign/requirements-report.md": "57a7ab28e7bb71dc9e1942f53c464a81d09a8ab0532d8fbd88b8676029190b15"
+        "requirements/20261113-140600-phone-layout-redesign/requirements-report.md": "57a7ab28e7bb71dc9e1942f53c464a81d09a8ab0532d8fbd88b8676029190b15",
+        "requirements/20261117-050854-fixed-width-640/requirements.md": "70d1a39bf57ce1f8b1e96807734b44a550ac5203a887b15d35e55b24d074d1f4",
+        "requirements/20261117-050854-fixed-width-640/requirements-report.md": "14976b2c5d70243b44944269fdcfebb6ed8cbf315a2735d61557aa49fc3b37c8"
     }
 }

@@ -226,6 +226,42 @@ describe("the extras tab bar of the maximized view", () => {
     expect(shownExtra(page)).toBe("notes");
   });
 
+  const placedAt = (opened: BrowserPage, tabsTop: number, actionsTop: number) => {
+    const scrolls: number[] = [];
+    opened.window.HTMLElement.prototype.getBoundingClientRect = function (this: HTMLElement) {
+      const top = this.classList.contains("extras-tabs") ? tabsTop : this.classList.contains("actions") ? actionsTop : 0;
+      return { top, bottom: top, left: 0, right: 0, width: 0, height: 0, x: 0, y: top, toJSON: () => ({}) };
+    };
+    opened.window.scrollTo = ((_x: number, y: number) => scrolls.push(y)) as typeof opened.window.scrollTo;
+    return scrolls;
+  };
+
+  it("scrolls a long card opened from its notes line until its action row is under the header", async () => {
+    await seedPrivate("Long noted", "Read me first.");
+    page = await openShared(true, cookie);
+    const scrolls = placedAt(page, 900, 700);
+    await clickIn(page, cardByTitle(page, "Long noted").querySelector(".card-front .poll-notes-text"));
+    expect(scrolls[0]).toBe(684);
+  });
+
+  it("does not scroll a card whose extras already start in the upper half of the screen", async () => {
+    await seedPrivate("Short noted", "Read me first.");
+    page = await openShared(true, cookie);
+    const scrolls = placedAt(page, 300, 200);
+    await clickIn(page, cardByTitle(page, "Short noted").querySelector(".card-front .poll-notes-text"));
+    await page.settle(50);
+    expect(scrolls).toEqual([]);
+  });
+
+  it("does not scroll a long card opened by its Maximize button", async () => {
+    await seedPrivate("Long plain", "Read me first.");
+    page = await openShared(true, cookie);
+    const scrolls = placedAt(page, 900, 700);
+    await clickIn(page, cardByTitle(page, "Long plain").querySelector(".maximize-btn"));
+    await page.settle(50);
+    expect(scrolls).toEqual([]);
+  });
+
   it("asks for the voters at once outside the phone layout, as before", async () => {
     await seedPrivate("Wide extras", "Notes.");
     page = await openShared(false, cookie);

@@ -27,8 +27,7 @@
 .search-tab-form input::-webkit-search-cancel-button{ -webkit-appearance:none; appearance:none; }
 html[data-header-fit~="no-search"] .search-tab-form{ display:flex; }
 
-@media (max-width: 639.98px){
-  :root{ --single-column:1; }
+@media (max-width: 640px){
   :root{ --card-gap:16px; }
   .card-grid{ gap:var(--card-gap); }
 
@@ -76,7 +75,7 @@ html[data-header-fit~="no-search"] .search-tab-form{ display:flex; }
   :root{ --tab-label-scale:0.9; }
   :root{ --tab-fade:32px; }
   :root{ --tab-edge:20px; }
-  @media (max-width: 639.98px){ :root{ --tab-edge:max(14px, calc((100% - 420px) / 2)); } }
+  @media (max-width: 640px){ :root{ --tab-edge:max(14px, calc((100% - 420px) / 2)); } }
   :root{ --tab-hover-opacity:0.08; --tab-press-opacity:0.2; }
   :root{ --refresh-gap:0px; }
   .tab-bar-wrap{ flex-wrap:nowrap; gap:2px; }

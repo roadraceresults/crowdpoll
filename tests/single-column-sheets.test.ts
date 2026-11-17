@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 const publicDir = path.resolve("src/public");
 const read = (name: string) => readFileSync(path.join(publicDir, name), "utf8");
-const PHONE_BLOCK = "@media (max-width: 639.98px){";
+const PHONE_BLOCK = "@media (max-width: 640px){";
 const TABLET_BLOCK = "@media (max-width: 900px){";
 
 const home = read("single-column-m3.css");
@@ -66,10 +66,10 @@ describe("the single-column sheets", () => {
     expect(flat(split(header).outside).trim()).toBe(".avatar-menu-create-poll{ display:none; } .header-search-tab-btn{ display:none; }");
   });
 
-  it("set the marker the poll card reads, only in the home sheet and only in the phone block", () => {
-    expect(flat(split(home).inside)).toContain(":root{ --single-column:1; }");
-    expect(home.match(/--single-column/g)).toHaveLength(1);
+  it("set no marker for the poll card, which asks the phone query itself", () => {
+    expect(home).not.toContain("--single-column");
     expect(header).not.toContain("--single-column");
+    expect(read("pollCard.js")).not.toMatch(/isSingleColumn|singleColumnBarLayout|SINGLE_COLUMN_|--single-column/);
   });
 
   it("carry no token section, dark twin, literal font size or comment", () => {
@@ -171,11 +171,11 @@ describe("the Refresh row", () => {
 
   it("sets the buttons' edge to the card column's: the container's padding, or the centred 420 px card below 640 px", () => {
     expect(wide).toContain(":root{ --tab-edge:20px; }");
-    expect(wide).toContain("@media (max-width: 639.98px){ :root{ --tab-edge:max(14px, calc((100% - 420px) / 2)); } }");
+    expect(wide).toContain("@media (max-width: 640px){ :root{ --tab-edge:max(14px, calc((100% - 420px) / 2)); } }");
     expect(read("pollCard.css")).toMatch(/\.card-viewport\{[^}]*max-width:420px;[^}]*margin:0 auto;/);
     const container = read("tabs.css");
     expect(container).toMatch(/\.container\{[^}]*padding:32px 20px 60px;/);
-    expect(container).toMatch(/@media \(max-width:639\.98px\)\{\s*\.container\{ padding:20px 14px 40px; \}/);
+    expect(container).toMatch(/@media \(max-width:640px\)\{\s*\.container\{ padding:20px 14px 40px; \}/);
   });
 
   it("keeps the room on Live Results, where the menu button still sits in the row", () => {
@@ -206,10 +206,9 @@ describe("the Refresh row", () => {
 describe("the compact header", () => {
   const inside = flat(split(header).inside);
 
-  it("sizes the banner and the login buttons, adds 3 px above the banner and tightens the space under it", () => {
+  it("sizes the login buttons, leaving the banner and the header's spacing to the phone layer", () => {
     expect(inside).toContain(".btn-header-ghost, .btn-header-primary{ height:24px; }");
-    expect(inside).toContain(".site-header{ margin-bottom:8px; padding-top:3px; }");
-    expect(inside).toContain(".brand-logo, .brand-wordmark{ height:24px; }");
+    expect(inside).not.toMatch(/\.site-header\{|\.brand-logo/);
   });
 
   it("sizes the login buttons like a card's Vote button on a phone, 21 px and three quarters of its text", () => {

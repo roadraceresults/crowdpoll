@@ -2,7 +2,7 @@
   "use strict";
 
   const LADDER = ["no-name", "no-search"];
-  const PHONE_QUERY = "(max-width: 639.98px)";
+  const PHONE_QUERY = "(max-width: 640px)";
   const ATTRIBUTE = "data-header-fit";
 
   const header = document.getElementById("site-header");

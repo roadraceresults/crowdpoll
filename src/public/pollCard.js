@@ -237,28 +237,10 @@ function measuredBarLayout(count, wrap){
   return computeBarLayout(count, wrap.clientHeight);
 }
 
-// Single-column layout: every bar from 2 to 50 is a fixed height and the card
-// grows to fit, so nothing scrolls. The stylesheet marks the layout with the
-// --single-column custom property.
-const SINGLE_COLUMN_BAR_HEIGHT = 30;
-const SINGLE_COLUMN_GAP = 6;
-
-function singleColumnBarLayout(){
-  return { scrolling: false, barHeight: SINGLE_COLUMN_BAR_HEIGHT, gap: SINGLE_COLUMN_GAP };
-}
-
-function isSingleColumn(){
-  return getComputedStyle(document.documentElement).getPropertyValue('--single-column').trim() === '1';
-}
-
-function defaultBarLayout(count, wrap){
-  return isSingleColumn() ? singleColumnBarLayout() : measuredBarLayout(count, wrap);
-}
-
-const PHONE_LAYOUT_QUERY = '(max-width: 480px)';
-const PHONE_BAR_HEIGHT = 44;
+const PHONE_LAYOUT_QUERY = '(max-width: 640px)';
+const PHONE_BAR_HEIGHT = 30;
 const PHONE_BAR_GAP = 8;
-const PHONE_VOTE_ROW_HEIGHT = 64;
+const PHONE_VOTE_ROW_HEIGHT = 52;
 const PHONE_BAR_PAD = 14;
 const PHONE_VOTE_RADIO = 24;
 const PHONE_LABEL_GAP = 12;
@@ -1089,7 +1071,7 @@ function initPollCard(viewport, opts){
      poll reopens (W5). null means "nothing pending — use the recorded vote". */
   let pendingSelection = null;
   let submitLabel = 'Submit vote';
-  let layoutFor = defaultBarLayout;
+  let layoutFor = measuredBarLayout;
   const palette = expandPalette(RESULTS_PALETTE_ENTRIES.map(e => e.hex), opts.choiceBounds && opts.choiceBounds.maxChoices);
   const paletteOffset = paletteOffsetFor(opts.pid, palette.length);
   let isMaximized = false;
@@ -1566,7 +1548,7 @@ function initPollCard(viewport, opts){
   function setMaximized(on, how){
     isMaximized = on;
     choiceView = on && how && how.choices === 'voted' ? 'voted' : 'essential';
-    layoutFor = on ? (count) => maximizedBarLayout(count, opts.choiceBounds) : defaultBarLayout;
+    layoutFor = on ? (count) => maximizedBarLayout(count, opts.choiceBounds) : measuredBarLayout;
     viewport.classList.toggle('maximized-card-viewport', on);
     cardFlip.classList.toggle('maximized-card-flip', on);
     const name = on ? 'Minimize Poll Card' : 'Maximize Poll Card';
@@ -1576,6 +1558,10 @@ function initPollCard(viewport, opts){
       maximizeBtn.querySelector('.maximize-icon').toggleAttribute('hidden', on);
       maximizeBtn.querySelector('.minimize-icon').toggleAttribute('hidden', !on);
     });
+    if (hiddenChoiceCount() > 0 && cardFlip.classList.contains('is-flipped')){
+      pendingSelection = selectedIds();
+      cardFlip.classList.remove('is-flipped');
+    }
     render();
   }
 
@@ -1611,6 +1597,7 @@ function initPollCard(viewport, opts){
   // Left-arrow button — always just flips back without submitting.
   viewport.querySelector('.back-btn')?.addEventListener('click', () => {
     cardFlip.classList.remove('is-flipped');
+    renderBallot();
   });
 
   // Submit posts the current selection through the vote client; the response

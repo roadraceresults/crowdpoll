@@ -1,4 +1,4 @@
-@media (max-width: 480px){
+@media (max-width: 640px){
   .card-grid{ grid-template-columns:minmax(0, 1fr); gap:16px; }
   .card-flip{ min-height:0; }
   .card-face .question-wrap{ margin-bottom:6px; }
@@ -91,7 +91,7 @@
     justify-content:center;
     gap:8px;
     width:100%;
-    min-height:64px;
+    min-height:52px;
     padding:0 16px;
     border:0;
     background:transparent;

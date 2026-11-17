@@ -1,4 +1,4 @@
-@media (max-width: 480px){
+@media (max-width: 640px){
   .admin-toolbar{ gap:16px; min-height:64px; margin-bottom:0; }
   .admin-toolbar .admin-create-btn{
     position:relative;

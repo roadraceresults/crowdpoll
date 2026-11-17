@@ -24,7 +24,6 @@ describe("the back-arrow sheet", () => {
       "z-index:40;",
       "pointer-events:none;"
     ]) expect(bar).toContain(decl);
-    expect(flat(sheet)).toContain("@media (max-width: 639.98px){ .back-arrow-bar{ padding-inline:14px; } }");
   });
 
   it("draws the arrow as a 40px filled tonal icon button that takes clicks through the bar", () => {

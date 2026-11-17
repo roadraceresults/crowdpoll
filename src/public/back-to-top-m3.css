@@ -19,10 +19,6 @@
   transition:opacity 0.2s ease, transform 0.2s ease;
 }
 
-@media (max-width: 639.98px){
-  .back-to-top-fab{ left:14px; }
-}
-
 .back-to-top-fab svg{ width:24px; height:24px; }
 
 .back-to-top-fab.is-visible{

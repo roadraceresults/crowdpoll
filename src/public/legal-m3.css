@@ -7,11 +7,11 @@
   line-height:1.6;
 }
 
-@media (min-width: 640px){
+@media (min-width: 640.02px){
   .legal-doc{ box-sizing:border-box; padding-inline-start:max(0px, calc(56px - (100% - 72ch) / 2)); }
 }
 
-@media (max-width: 639.98px){
+@media (max-width: 640px){
   .back-arrow-bar{ position:static; max-width:none; margin:0 0 12px; padding-inline:0; }
 }
 

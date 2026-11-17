@@ -10,10 +10,6 @@
   pointer-events:none;
 }
 
-@media (max-width: 639.98px){
-  .back-arrow-bar{ padding-inline:14px; }
-}
-
 .back-arrow{
   position:relative;
   overflow:hidden;

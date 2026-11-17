@@ -13,14 +13,9 @@
 #site-header{ top:0; z-index:41; }
 .tab-bar-wrap{ top:var(--fixed-chrome-height-header,0px); }
 
-@media (max-width: 639.98px){
-  #site-header,
-  .tab-bar-wrap{ padding-inline:14px; }
-}
-
 .container{ padding-top:calc(32px + var(--fixed-chrome-height,0px)); }
 
-@media (max-width: 639.98px){
+@media (max-width: 640px){
   .container{ padding-top:calc(20px + var(--fixed-chrome-height,0px)); }
 }
 

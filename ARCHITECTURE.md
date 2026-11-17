@@ -921,9 +921,9 @@ flowchart TB
   address the page loaded with and able to return, Cancel and Escape remove the dialog and go back; otherwise,
   and always when the Profile page's own footer link opened it (`hashchange`), they close it in place with
   focus on the name field. The admin page's arrow stays `<a href="/">`; `adminList.js`'s navigation guard
-  runs the discard check as for any link and then `SiteBack.leave("/")`. From 640 px up the legal arrow sits
+  runs the discard check as for any link and then `SiteBack.leave("/")`. Above 640 px the legal arrow sits
   in a fixed `.back-arrow-bar` built like `#site-header`, so it lines up with the logo, and `legal-m3.css`
-  widens the text's start padding so the arrow never covers it; below 640 px the bar is static in the page
+  widens the text's start padding so the arrow never covers it; at 640 px and below the bar is static in the page
   flow above the title and the text takes the full width. Its look, in `back-arrow-m3.css`, is shared with
   the admin page's arrow.
 
@@ -965,16 +965,19 @@ cards whether or not the tab holds one.
 Every page declares `<meta name="viewport" content="width=device-width, initial-scale=1">`, and
 that static line never changes. `viewportWidth.js`, loaded without `defer` on the line after
 `colorScheme.js` in all 12 pages so that it runs before the first stylesheet and the first paint,
-rewrites the declaration to `width=480` on a device held narrower than 480 px. The browser then
-lays the page out 480 px wide and scales it to the screen, so every phone in portrait shows the
-same layout at a different size. A device held 480 px wide or wider, a browser that runs no
-scripts and every desktop browser (which ignores the declaration) keep the page as written.
+rewrites the declaration to `width=480` on a device held narrower than 480 px, and to `width=640`
+on a device held from 481 to 639 px wide (a small tablet, a folding phone, a small phone in
+landscape). The browser then lays the page out 480 or 640 px wide and scales it to the screen, so
+every such device shows the same layout at a different size. A device held exactly 480 px wide, or
+640 px wide or wider, a browser that runs no scripts and every desktop browser (which ignores the
+declaration) keep the page as written.
 
 ```mermaid
 flowchart LR
-  Load["script load, resize,<br/>pageshow, orientation change"] --> Held{"held width < 480?"}
-  Held -- yes --> Fixed["content = width=480<br/>root: text-size-adjust 100%"]
-  Held -- no --> Device["content = the page's own<br/>root: no text-size-adjust"]
+  Load["script load, resize,<br/>pageshow, orientation change"] --> Held{"held width?"}
+  Held -- "under 480" --> Fixed["content = width=480<br/>root: text-size-adjust 100%"]
+  Held -- "481 to 639" --> Wide["content = width=640<br/>root: text-size-adjust 100%"]
+  Held -- "480, or 640 and over" --> Device["content = the page's own<br/>root: no text-size-adjust"]
 ```
 
 - **Held width** is the screen's shorter side in portrait and its longer side in landscape. The
@@ -985,47 +988,54 @@ flowchart LR
 - **Decided again** on `resize` (a turn, a folding phone), `pageshow` (a page restored from the
   back/forward cache) and the orientation `change`; the script writes only when the decision
   changes, so the `resize` its own write causes ends there.
-- **`width=480` stands alone**: no `initial-scale`, so the browser fits the layout to the
-  screen, and nothing that limits zoom.
-- **`text-size-adjust: 100%`** is set on the root element while the fixed width applies, because
+- **`width=480` or `width=640` stands alone**: no `initial-scale`, so the browser fits the layout
+  to the screen, and nothing that limits zoom. On iOS only, `maximum-scale` is added, computed from
+  the width in force (held width ÷ 480 or ÷ 640), so that Safari does not zoom in on a focused field.
+- **`text-size-adjust: 100%`** is set on the root element while either fixed width applies, because
   mobile browsers otherwise enlarge blocks of text on a page wider than the screen, each by its
   own factor.
 
-Because the layout width on a phone in portrait is 480 px, such a phone gets the phone layout
-under `max-width: 480px` (below), which is designed for exactly that width. There are no rules
-for narrower widths: the page is at least 480 px wide. Text and controls appear at
-`held width ÷ 480` of their designed size (20 px text at 15 px on a 360 px phone). The rule is a
-trial, begun at 640 px and then tried at 480 px: its checklist and outcome are in the feature's
-quickstart, and nothing else in the sheets or scripts was changed for it.
+Both fixed widths get the phone layout under `max-width: 640px` (below), which is designed at
+480 px and fills the 640 px frame with the same rules. There are no rules for narrower widths: the
+page is at least 480 px wide. Text and controls appear at `held width ÷ 480` (or `÷ 640`) of their
+designed size (20 px text at 15 px on a 360 px phone). The rule is a trial, begun at 640 px, then
+tried at 480 px, and now using both: its checklist and outcome are in each feature's quickstart.
 
 ### The phone layout
 
-The phone layout is every rule under `@media (max-width: 480px)`. Because of the viewport rule that
-is every phone in portrait, always at a layout width of 480 px; it is also a desktop window 480 px
-wide or narrower. All sizes below are layout pixels at the 480 px layout width. From 481 to 639 px
-the older phone rules under `max-width: 639.98px` apply unchanged, and nothing changes at 640 px
-and wider. The older rules for widths under 480, 360 and 320 px are deleted.
+The phone layout is every rule under `@media (max-width: 640px)`, the site's one phone boundary;
+the wide side is written `not all and (max-width: 640px)` or `(min-width: 640.02px)`. Because of
+the viewport rule that is every phone in portrait, at a layout width of 480 px, and every device
+held from 481 to 639 px, at a layout width of 640 px; it is also a desktop window 640 px wide or
+narrower. All sizes below are layout pixels and do not depend on the frame's width; the content
+column is the frame less its 16 px gutters (448 px at 480, 608 px at 640). Nothing changes above
+640 px. The older rules for widths under 480, 360 and 320 px are deleted, and so is the separate
+layout that 481 to 639 px once had.
 
 | Where | Pages | Holds |
 |---|---|---|
 | `m3-tokens.css`, one block under the query | all 12 | the type scale × 1.25, rounded to a whole pixel; `label-small` held at 15 px, so no text is smaller |
-| `phone-m3.css` | all 12 | the page frame (a 480 px minimum width, 16 px gutters, the 64 px header, the 64 px tab bar and the 64 px row under it, footer, cookie notice, Back-to-top), the shared card frame (the full 448 px column, padding 20 px, radius 20 px), the card-shell and legal pages |
+| `phone-m3.css` | all 12 | the page frame (a 480 px minimum width, 16 px gutters, the 64 px header, the 64 px tab bar and the 64 px row under it, footer, cookie notice, Back-to-top), the shared card frame (the full column, padding 20 px, radius 20 px), the card-shell and legal pages |
 | `phone-card-m3.css` | `index.html` | the compact poll card, the maximized view, the extras tab bar, the Submit bar |
 | `phone-admin-m3.css` | `admin.html` | the admin toolbar, view tabs, search form, admin card and wizard |
 
 - **Last-loaded layers.** The three sheets are the last entries of `LAYER_ORDER`, so they win over
-  the `639.98px` rules, which also match at 480 px and are not edited. Each sheet is one media
+  the older phone rules under the same query in the other sheets. Those older rules stay where the
+  phone layout still depends on them (hiding the header's navigation and search, the one-column
+  grid, cards that grow); only declarations a phone layer overrides with the same selector were
+  removed. Each sheet is one media
   block and follows the layer rules: tokens only, no literal font size, no dark twin.
 - **Sizes come from the tokens.** Every layer takes its sizes from the type scale, so the token
   block resizes the site. The phone sheets replace the older rules that multiply a token by 0.75
   or carry a literal size with the plain token; no phone rule multiplies a token down.
 - **Touch targets are 64 px.** A control keeps a 48 px visible shape and gets a 64 × 64 px target
   from a transparent `::after` with `inset:-8px`; neighbouring controls sit at least 16 px apart.
-  A row that is itself the control (a vote row, a menu item, a tab, an extras tab, the "more
-  choices" row) is 64 px tall instead.
-- **Scripts ask `PollCard.isPhoneLayout()`**, which is `matchMedia("(max-width: 480px)").matches`,
-  the same query string as the sheets. `tabs.js` uses the same function. The `--single-column`
-  marker and `isSingleColumn()` stay for 481 to 639 px.
+  A row that is itself the control (a tab, an extras tab) is 64 px tall instead; a vote row and the
+  "more choices" row are 52 px tall, and an item of the avatar menu or of the tab menu is at least
+  36 px tall (45 and 48 px with its padding and its line or icon).
+- **Scripts ask `PollCard.isPhoneLayout()`**, which is `matchMedia("(max-width: 640px)").matches`,
+  the same query string as the sheets. `tabs.js` uses the same function, and `adminCard.js` and
+  `headerFit.js` ask the same query. The `--single-column` marker and `isSingleColumn()` are gone.
 
 **The compact card.** In the phone layout a card does not scroll and has no fixed height.
 `essentialChoices(sorted, ownIds, limits)` in `pollCard.js`, a pure function, picks the bars from the
@@ -1037,22 +1047,27 @@ share-sorted list and returns `{ shown, hiddenCount, hiddenShare }`:
 | The maximized view | `{ lead: 10, allUpTo: 12, abovePct: 2, allAbovePct: 0 }` | when there are twelve or fewer, the choices whose `pct` is above 0, or all when none is; else those of the ten leaders whose `pct` is above 2, or all ten when none is |
 
 The viewer's own choices that are not among the leaders are added after them, in share order. The
-bars are 44 px tall and 8 px apart (`phoneBarLayout`). Each row carries the class `is-phone` and the
+bars are 30 px tall and 8 px apart (`phoneBarLayout`). Each
+row carries the class `is-phone` and the
 script writes no font size on it: `phone-card-m3.css` sets the size from the `label-large` token.
 When choices are hidden, the list ends with one row, `button.more-row`: "More choices · 18%" on a
 single-choice poll, where the share is the hidden choices' combined share, and "More choices" on a
 multiple-choice poll. The title is cut at three lines, the subtitle and the notes at one. A tap on
 the title, the subtitle, a bar or the "more choices" row opens the maximized view; a tap on the
-notes line opens it with Notes open.
+notes line opens it with Notes open. When the card is so long that the extras tab bar would start
+below the middle of the screen, the page is then scrolled (`revealNotes` in `tabs.js`) until the
+card's action row, with Vote, is the first thing under the fixed header, so the notes show beneath
+it; this is done again when the notes arrive.
 
-**Vote.** The voting side always lists every choice, in 64 px rows. When the card shows every
+**Vote.** The voting side always lists every choice, in 52 px rows (a 44 px bar inside each). When
+the card shows every
 choice, Vote turns it over in place. When choices are hidden, Vote calls
 `onMaximize(pid, { face: "vote" })`, and `maximize` in `tabs.js` moves the card and then calls its
 `showVoteFace()`, so the view opens on its voting side. Such a card builds no ballot on its back
 until it is turned, so the hidden back never makes the card taller.
 
 **The maximized view.** It is one column: the card, then the extras. The results side uses the
-maximized limits and the same 44 px bars, not `maximizedBarLayout`; its last row is
+maximized limits and the same 30 px bars, not `maximizedBarLayout`; its last row is
 `button.show-all-row`, "Show all 37 choices · 30%", then "Show few choices". The card's `choiceView` is
 `essential` (that list), `all`, or `voted`: `setMaximized(true, { choices: 'voted' })`, which `tabs.js` passes on when
 the view is opened from the "More choices" row, shows every choice at 1% or more and the row "Remaining choices · 0%". The face turned away is taken out
@@ -1064,7 +1079,7 @@ three `button.extras-tab` (Read More, Polling History, Who Voted) for `.maximize
 has; Read More when the notes line opened the view), marks a tab the poll lacks
 `aria-disabled="true"` and writes the choice to `data-shown` on the column, and the phone sheet
 hides the two sections not named there. `tabs.js` asks for the voters report and mounts the graph
-when their tab is first shown (`extraDeferred`); above 480 px the bar is hidden and all three
+when their tab is first shown (`extraDeferred`); above 640 px the bar is hidden and all three
 sections show and load at once, as before.
 
 **The Submit bar.** `#voteBar` in `index.html` sits outside the cards and holds Back, a count

@@ -142,8 +142,9 @@ delivery network.
 - **Fixed header** — the header, and the tab row beneath it on the home page, stay in place while
   you scroll; the page's content moves underneath them, never over or under.
 - **On a phone** — the site is laid out 480 px wide and scaled to fit your screen, so it looks the same on
-  every phone, only a little larger or smaller, and you can pinch to zoom as usual. With the phone turned
-  sideways, and on a tablet, it uses the screen’s own width. Text is larger than on a wide screen, and
+  every phone, only a little larger or smaller, and you can pinch to zoom as usual. A small tablet, a folding
+  phone and a small phone turned sideways get the same layout 640 px wide, scaled the same way. A larger
+  phone turned sideways, and a tablet, use the screen’s own width. Text is larger than on a wide screen, and
   every button, link and row is large enough to tap with a thumb.
 - **Poll cards on a phone** — each card is short, one to a row, and nothing scrolls inside it. A poll with
   five choices or fewer shows them all. A longer poll shows its four leading choices, then any choice you
