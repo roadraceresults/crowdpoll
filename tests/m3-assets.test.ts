@@ -351,8 +351,8 @@ describe("Material 3 page assets", () => {
   it("pulses every grid card's Maximize button on a touch phone until the first maximize on the page", () => {
     const css = read("pollCard-m3.css").replace(/\s+/g, " ");
     const selector = ":root:not(.maximize-hint-dismissed) .card-flip:not(.maximized-card-flip) .card-face .maximize-btn";
-    expect(css).toContain(`@media (max-width: 639.98px) and (hover: none){ ${selector}{ color:var(--md-sys-color-primary); animation:maximize-pulse 1.8s ease-out infinite; } }`);
-    expect(css).toContain(`@media (max-width: 639.98px) and (hover: none) and (prefers-reduced-motion: reduce){ ${selector}{ animation:none; box-shadow:`);
+    expect(css).toContain(`@media (max-width: 640px) and (hover: none){ ${selector}{ color:var(--md-sys-color-primary); animation:maximize-pulse 1.8s ease-out infinite; } }`);
+    expect(css).toContain(`@media (max-width: 640px) and (hover: none) and (prefers-reduced-motion: reduce){ ${selector}{ animation:none; box-shadow:`);
   });
 
   it("draws Title Large semi-bold, at a weight every page loads", () => {

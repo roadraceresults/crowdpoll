@@ -54,7 +54,7 @@ async function open(sessionCookie = cookie): Promise<BrowserPage> {
     beforeScripts: (window) => {
       if (phoneLayout) {
         window.matchMedia = ((query: string) => ({
-          matches: query === "(max-width: 480px)",
+          matches: query === "(max-width: 640px)",
           media: query,
           addEventListener: () => {},
           removeEventListener: () => {}

@@ -3,10 +3,8 @@ import path from "node:path";
 import { JSDOM, VirtualConsole } from "jsdom";
 
 const publicDir = path.resolve("src/public");
-const PHONE_QUERY = "(max-width: 639.98px)";
+const PHONE_QUERY = "(max-width: 640px)";
 const TABLET_QUERY = "(max-width: 900px)";
-const PHONE_LAYOUT_QUERY = "(max-width: 480px)";
-const isPhoneQuery = (query: string) => query === PHONE_QUERY || query === TABLET_QUERY;
 
 export interface StubbedUser {
   userName: string;
@@ -25,7 +23,7 @@ export interface StubbedHomeOptions {
   user?: StubbedUser | null;
   signinMethod?: string;
   phone?: boolean;
-  /** Whether the 480px phone layout's own query matches; the wider phone and tablet queries follow `phone`. */
+  /** Makes the phone query match on its own, without the tablet query that `phone` also sets. */
   phoneLayout?: boolean;
   reducedMotion?: boolean;
   tabBarLayout?: TabBarLayout;
@@ -91,13 +89,13 @@ export async function openStubbedHome(options: StubbedHomeOptions): Promise<Stub
 
   window.matchMedia = ((query: string) => ({
     get matches() {
-      if (query === PHONE_LAYOUT_QUERY) return state.phoneLayout;
-      return isPhoneQuery(query) ? state.phone : options.reducedMotion === true && query.includes("prefers-reduced-motion");
+      if (query === PHONE_QUERY) return state.phone || state.phoneLayout;
+      return query === TABLET_QUERY ? state.phone : options.reducedMotion === true && query.includes("prefers-reduced-motion");
     },
     media: query,
     addEventListener: (_type: string, listener: () => void) => {
-      if (isPhoneQuery(query)) phoneListeners.push(listener);
-      if (query === PHONE_LAYOUT_QUERY) phoneLayoutListeners.push(listener);
+      if (query === PHONE_QUERY || query === TABLET_QUERY) phoneListeners.push(listener);
+      if (query === PHONE_QUERY) phoneLayoutListeners.push(listener);
     },
     removeEventListener: () => {}
   })) as unknown as typeof window.matchMedia;

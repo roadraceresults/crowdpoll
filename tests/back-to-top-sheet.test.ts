@@ -9,7 +9,6 @@ describe("the back-to-top sheet", () => {
   it("fixes the button at the bottom left of the container, above the cookie banner", () => {
     expect(sheet).toContain("position:fixed;");
     expect(sheet).toContain("left:max(20px, calc((100% - var(--max-width,1280px)) / 2 + 20px));");
-    expect(flat(sheet)).toContain("@media (max-width: 639.98px){ .back-to-top-fab{ left:14px; } }");
     expect(sheet).not.toContain("margin-inline:auto;");
     expect(sheet).not.toContain("right:");
     expect(sheet).toContain("bottom:calc(20px + var(--cookie-banner-offset,0px));");

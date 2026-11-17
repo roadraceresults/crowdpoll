@@ -4,13 +4,13 @@ import { makePoll, polls } from "./poll-fixtures.js";
 import { openPage, type BrowserPage, ON_TRENDING } from "./browser.js";
 import type { Poll } from "../../src/polls/store.js";
 
-export const PHONE_LAYOUT_QUERY = "(max-width: 480px)";
+export const PHONE_LAYOUT_QUERY = "(max-width: 640px)";
 
 type ScrollWindow = BrowserPage["window"] & { scrollCalls: number[] };
 
 export interface HomeOptions {
   cookie?: string;
-  /** Whether `matchMedia("(max-width: 480px)")` matches. */
+  /** Whether `matchMedia("(max-width: 640px)")` matches. */
   phoneLayout: boolean;
   url?: string;
   scripts?: string[];

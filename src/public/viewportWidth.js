@@ -1,7 +1,8 @@
 (function () {
   "use strict";
 
-  const FIXED_WIDTH = 480;
+  const PHONE_WIDTH = 480;
+  const WIDE_PHONE_WIDTH = 640;
   const TEXT_SIZE_PROPERTIES = ["text-size-adjust", "-webkit-text-size-adjust"];
 
   const meta = document.querySelector('meta[name="viewport"]');
@@ -19,18 +20,25 @@
     return side(screen.width, screen.height);
   }
 
+  function fixedWidth() {
+    const held = heldWidth();
+    if (held < PHONE_WIDTH) return PHONE_WIDTH;
+    if (held > PHONE_WIDTH && held < WIDE_PHONE_WIDTH) return WIDE_PHONE_WIDTH;
+    return 0;
+  }
+
   // iOS Safari zooms in on a focused field whose text is drawn smaller than 16 px, and the fitted page is drawn
   // smaller than its CSS sizes. A maximum scale equal to the fitted scale leaves that zoom nowhere to go; pinching
   // ignores the limit in Safari. Other browsers would hold pinching to it, so they are not given one.
-  function fixedContent() {
-    const width = "width=" + FIXED_WIDTH;
+  function fixedContent(fixed) {
+    const width = "width=" + fixed;
     if (!isIos) return width;
-    return width + ", maximum-scale=" + Math.ceil(heldWidth() / FIXED_WIDTH * 10000) / 10000;
+    return width + ", maximum-scale=" + Math.ceil(heldWidth() / fixed * 10000) / 10000;
   }
 
   function apply() {
-    const fixed = heldWidth() < FIXED_WIDTH;
-    const wanted = fixed ? fixedContent() : deviceContent;
+    const fixed = fixedWidth();
+    const wanted = fixed ? fixedContent(fixed) : deviceContent;
     if (meta.content === wanted) return;
     meta.content = wanted;
     for (const property of TEXT_SIZE_PROPERTIES) {

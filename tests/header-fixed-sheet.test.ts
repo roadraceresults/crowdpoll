@@ -16,7 +16,6 @@ describe("the header-fixed sheet", () => {
     expect(sheet).toContain("max-width:var(--max-width);");
     expect(sheet).toContain("margin:0 auto;");
     expect(sheet).toContain("padding-inline:20px;");
-    expect(flat(sheet)).toContain("@media (max-width: 639.98px){ #site-header, .tab-bar-wrap{ padding-inline:14px; } }");
   });
 
   it("gives the header and the Tab Bar the same opaque background", () => {
@@ -25,7 +24,7 @@ describe("the header-fixed sheet", () => {
 
   it("reserves space for the fixed chrome in .container's top padding, at both breakpoints", () => {
     expect(sheet).toContain(".container{ padding-top:calc(32px + var(--fixed-chrome-height,0px)); }");
-    expect(flat(sheet)).toContain("@media (max-width: 639.98px){ .container{ padding-top:calc(20px + var(--fixed-chrome-height,0px)); } }");
+    expect(flat(sheet)).toContain("@media (max-width: 640px){ .container{ padding-top:calc(20px + var(--fixed-chrome-height,0px)); } }");
   });
 
   it("pins a background behind the Hamburger and Refresh row from 900 px down, so cards scroll under it", () => {

@@ -1,12 +1,9 @@
 .avatar-menu-create-poll{ display:none; }
 .header-search-tab-btn{ display:none; }
 
-@media (max-width: 639.98px){
+@media (max-width: 640px){
   .btn-header-ghost,
   .btn-header-primary{ height:24px; }
-  .site-header{ margin-bottom:8px; padding-top:3px; }
-  .brand-logo,
-  .brand-wordmark{ height:24px; }
   .header-nav,
   #header-username,
   .header-search{ display:none; }
@@ -28,8 +25,5 @@
     height:21px;
     font-size:calc(var(--md-sys-typescale-label-large-size) * 0.75);
   }
-  .avatar-menu-create-poll-reason{
-    font-size:var(--md-sys-typescale-label-medium-size);
-    font-weight:400;
-  }
+  .avatar-menu-create-poll-reason{ font-weight:400; }
 }

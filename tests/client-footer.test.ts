@@ -71,7 +71,6 @@ describe("the footer's look (C1, TWEAKS07)", () => {
     expect(css).toContain("color:var(--md-sys-color-on-primary);");
     expect(css).toContain("width:min(calc(100% - 40px), calc(var(--max-width, 1280px) - 40px));");
     expect(css).toContain("margin:0 auto calc(16px + var(--cookie-banner-offset, 0px));");
-    expect(css).toContain("@media (max-width: 639.98px){ .site-footer{ width:calc(100% - 28px); } }");
   });
 });
 

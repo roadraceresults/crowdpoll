@@ -5,6 +5,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261117-050854-FIXED-WIDTH-640/plan.md` (research R1–R10, `data-model.md` — three viewport states, two
+layouts, nothing stored; the contracts `contracts/viewport.md` V1–V5, `contracts/breakpoints.md` B1–B6 and the
+quickstart, which is the device checklist, live alongside it).
+The requirements report is `requirements/20261117-050854-fixed-width-640/requirements-report.md`: 10 findings, all
+resolved; where it says the older 481–639 px sheets are deleted, the plan's R6 is right.
+Decisions that are easy to get wrong:
+- **Two fixed widths**: held under 480 → `width=480`; held 481–639 → `width=640`; exactly 480, or 640 and wider → the
+  device's own width (R1).
+- **One boundary, 640 px inclusive**: every phone query is `max-width: 640px`, the wide side `640.02px` or
+  `not all and (max-width: 640px)`; `phone-sheets.test.ts` refuses `639.98px`, `max-width: 480px` and
+  `min-width: 640px` in any sheet or script; the phone layers' declarations did not change (R3, B2).
+- **The older blocks are re-labelled, not deleted**: the phone layout depends on part of them; only declarations a
+  phone layer overrides with the same selector are pruned (the table is in research R6), and `--single-column` with
+  `isSingleColumn()` is gone (R6, B4).
+
+The plan before it:
 `specs/20261113-140600-PHONE-LAYOUT-REDESIGN/plan.md` (research R1–R15, `data-model.md` — `essentialChoices`, the
 card's view state and the history key, nothing stored; the contracts `contracts/phone-layout.md` P1–P6,
 `contracts/poll-card.md` C1–C5 and H1–H6, `contracts/removed-results.md` X1–X4 and the quickstart, which is the device
@@ -12,19 +28,17 @@ checklist, live alongside it).
 The requirements report is `requirements/20261113-140600-phone-layout-redesign/requirements-report.md`: 14 findings,
 all resolved; its design section predates three of them, so `requirements.md` and the spec are right where they differ.
 Decisions that are easy to get wrong:
-- **The phone layout is `@media (max-width: 480px)` only**: three last-loaded layers (`phone-m3.css`,
-  `phone-card-m3.css`, `phone-admin-m3.css`) override the old `639.98px` phone rules, which stay for 481–639 px; the
-  480, 360 and 320 px blocks are deleted, with the wizard's 292 px floor; nothing changes at 481 px and wider except
-  Back (R1, R12). `.page` is at least 480 px wide.
+- **The phone layout is `@media (max-width: 640px)`** (480 px when written; see above): three last-loaded layers
+  (`phone-m3.css`, `phone-card-m3.css`, `phone-admin-m3.css`) override the older phone rules; the 480, 360 and
+  320 px blocks are deleted, with the wizard's 292 px floor (R1, R12). `.page` is at least 480 px wide.
 - **Sizes come from the tokens**: typescale × 1.25 in `m3-tokens.css` under the same query, `label-small` held at
   15 px; no phone rule multiplies a token down; 64 px targets are a transparent `::after` halo (`inset:-8px`) on 48 px
   controls or 64 px rows (R2, R3). The home tab bar's tabs are 64 px rows (56 px was planned), and the row under the
-  bar is 64 px (R11). Sizes are layout pixels at the 480 px layout width.
-- **Scripts ask `PollCard.isPhoneLayout()`** (`matchMedia("(max-width: 480px)")`), not a CSS marker; `--single-column`
-  stays for 481–639 px (R4).
+  bar is 64 px (R11). Sizes are layout pixels, the same at the 480 and the 640 px layout width.
+- **Scripts ask `PollCard.isPhoneLayout()`** (`matchMedia("(max-width: 640px)")`), not a CSS marker (R4).
 - **`essentialChoices`**: four leaders (all if ≤ 5) on the card, ten (all if ≤ 12) maximized, of which only those above 2%
   (above 0% if ≤ 12) when any is (TWEAK05, on trial), own choices added after the leaders; the combined share shows on single-choice polls only; the voting side always lists every choice (R5).
-- **Rows are marked `is-phone` and sized by the sheet**: `phoneBarLayout()` gives 44 px bars 8 px apart and 64 px
+- **Rows are marked `is-phone` and sized by the sheet**: `phoneBarLayout()` gives 30 px bars 8 px apart and 52 px
   voting rows; the script writes no font size on a phone row, `phone-card-m3.css` sets it from `label-large`. The
   maximized view uses the same sizes in the phone layout, not `maximizedBarLayout` (R6).
 - **Vote with hidden choices opens the maximized view on its voting side** (`onMaximize(pid, { face: "vote" })`, then

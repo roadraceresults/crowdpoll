@@ -444,13 +444,13 @@
   .card-flip:not(.maximized-card-flip) .card-face:hover .maximize-hint{ animation:none; }
 }
 
-@media (max-width: 639.98px) and (hover: none){
+@media (max-width: 640px) and (hover: none){
   :root:not(.maximize-hint-dismissed) .card-flip:not(.maximized-card-flip) .card-face .maximize-btn{
     color:var(--md-sys-color-primary);
     animation:maximize-pulse 1.8s ease-out infinite;
   }
 }
-@media (max-width: 639.98px) and (hover: none) and (prefers-reduced-motion: reduce){
+@media (max-width: 640px) and (hover: none) and (prefers-reduced-motion: reduce){
   :root:not(.maximize-hint-dismissed) .card-flip:not(.maximized-card-flip) .card-face .maximize-btn{
     animation:none;
     box-shadow:0 0 0 4px color-mix(in srgb, var(--md-sys-color-primary) 30%, transparent);

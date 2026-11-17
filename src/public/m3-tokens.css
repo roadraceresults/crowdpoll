@@ -134,7 +134,7 @@
 }
 
 /* ---------- Phone layout type scale ---------- */
-@media (max-width: 480px){
+@media (max-width: 640px){
   :root{
     --md-sys-typescale-headline-small-size:30px;
     --md-sys-typescale-headline-small-line-height:40px;

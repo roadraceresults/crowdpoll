@@ -48,9 +48,8 @@ describe("the search panel shares the poll cards' geometry", () => {
     }
   });
 
-  it("gives both selectors the narrow-screen padding", () => {
-    const padding = compact(mediaBlock(css, "(max-width: 639.98px)"));
-    expect(padding).toMatch(/\.poll-admin-card,\s*\.admin-search\s*\{[^}]*padding: 14px/);
+  it("leaves the narrow-screen padding to the phone layer", () => {
+    expect(css).not.toContain("@media (max-width: 640px)");
   });
 
   it("keeps the panel hidden outside the Search view", () => {

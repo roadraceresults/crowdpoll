@@ -145,7 +145,7 @@ describe("the Material 3 tab bar", () => {
   it("applies the phone layout: no stray comment end swallows the 640px rule", () => {
     expect(tabsCss.split("*/").length).toBe(tabsCss.split("/*").length);
     const uncommented = tabsCss.replace(/\/\*[\s\S]*?\*\//g, "");
-    expect(uncommented).toMatch(/@media \(max-width:639\.98px\)\{\s*\.container\{ padding:20px 14px 40px; \}\s*\.card-grid\{ grid-template-columns:1fr; \}/);
+    expect(uncommented).toMatch(/@media \(max-width:640px\)\{\s*\.container\{ padding:20px 14px 40px; \}\s*\.card-grid\{ grid-template-columns:1fr; \}/);
   });
 
   it("styles the notice and the empty-tab line separately, and centres the line on every tab", () => {

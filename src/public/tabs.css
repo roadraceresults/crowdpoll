@@ -226,7 +226,7 @@
      avatar-icon, brand-*, header-nav-link, header-search) moved to site.css
      alongside the selectors they adjust (research.md R3). */
 
-  @media (max-width:639.98px){
+  @media (max-width:640px){
     .container{ padding:20px 14px 40px; }
     .card-grid{ grid-template-columns:1fr; }
   }

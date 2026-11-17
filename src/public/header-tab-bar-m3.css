@@ -200,7 +200,7 @@
   background:var(--md-sys-color-primary);
   color:var(--md-sys-color-on-primary);
 }
-@media (max-width:639.98px){
+@media (max-width:640px){
   .btn-header-ghost,
   .btn-header-primary{
     height:40px;
@@ -226,7 +226,7 @@
   opacity:1;
   color:color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
 }
-@media (max-width:639.98px){
+@media (max-width:640px){
   .header-nav-link{ padding:0 12px; margin:0 4px; font-size:var(--md-sys-typescale-label-large-size); }
 }
 

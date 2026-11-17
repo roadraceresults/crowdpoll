@@ -365,7 +365,7 @@
 
   // The phone layout's own query (phone-admin-m3.css); pollCard.js, which has the same test, is not on this page.
   function isPhoneLayout() {
-    return typeof window.matchMedia === "function" && window.matchMedia("(max-width: 480px)").matches;
+    return typeof window.matchMedia === "function" && window.matchMedia("(max-width: 640px)").matches;
   }
 
   function readOnlyField(labelText, value, extraClass) {

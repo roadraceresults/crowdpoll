@@ -1,5 +1,5 @@
 /**
- * The phone layout's sheets (contracts/phone-layout.md): one `@media (max-width: 480px)` block each,
+ * The phone layout's sheets (contracts/phone-layout.md): one `@media (max-width: 640px)` block each,
  * sized from the tokens, coloured from the tokens, and the phone type scale beside the tokens.
  */
 import { readFileSync, readdirSync } from "node:fs";
@@ -8,7 +8,7 @@ import { describe, expect, it } from "vitest";
 
 const publicDir = path.resolve("src/public");
 const read = (name: string) => readFileSync(path.join(publicDir, name), "utf8");
-const PHONE_QUERY = "(max-width: 480px)";
+const PHONE_QUERY = "(max-width: 640px)";
 const PHONE_SHEETS = ["phone-m3.css", "phone-card-m3.css", "phone-admin-m3.css"];
 
 const PHONE_SCALE: Record<string, [number, number]> = {
@@ -126,8 +126,8 @@ describe("touch targets in the phone layout (contract P3)", () => {
   };
   /** A control that is itself at least 64px tall across its container. */
   const ROWS: Record<string, string[]> = {
-    "phone-m3.css": ["#tabBar .tab", ".card-shell-body label.checkbox", ".card-shell-body .settings-group label", ".avatar-menu button", ".tab-menu-item"],
-    "phone-card-m3.css": [".card-face .more-row", ".card-face .show-all-row", ".extras-tab"]
+    "phone-m3.css": ["#tabBar .tab", ".card-shell-body label.checkbox", ".card-shell-body .settings-group label"],
+    "phone-card-m3.css": [".extras-tab"]
   };
 
   for (const [sheet, selectors] of Object.entries(HALOED)) {
@@ -148,12 +148,28 @@ describe("touch targets in the phone layout (contract P3)", () => {
     }
   }
 
+  for (const selector of [".avatar-menu a", ".avatar-menu button", ".tab-menu-item"]) {
+    it(`phone-m3.css: ${selector} is a row of at least 36px`, () => {
+      const declarations = declarationsOf(read("phone-m3.css"), selector);
+      expect(declarations).toContain("min-height:36px");
+      expect(declarations).not.toContain("min-height:64px");
+    });
+  }
+
+  for (const selector of [".card-face .more-row", ".card-face .show-all-row"]) {
+    it(`phone-card-m3.css: ${selector} is a 52px row whose outline is drawn 8px inside it`, () => {
+      const css = read("phone-card-m3.css");
+      expect(declarationsOf(css, selector)).toContain("min-height:52px");
+      expect(declarationsOf(css, selector + "::before")).toContain("inset:8px0");
+    });
+  }
+
   it("makes a card-shell text field 64px tall", () => {
     expect(read("phone-m3.css")).toMatch(/\.card-shell-body input:is\(\[type="text"\], \[type="email"\]\)[^{]*\{[^}]*min-height:64px/);
   });
 
-  it("draws vote rows 64px tall from the script", () => {
-    expect(read("pollCard.js")).toContain("const PHONE_VOTE_ROW_HEIGHT = 64;");
+  it("draws vote rows 52px tall from the script", () => {
+    expect(read("pollCard.js")).toContain("const PHONE_VOTE_ROW_HEIGHT = 52;");
   });
 
   it("gives the admin sheet halos and 64px rows", () => {
@@ -442,15 +458,27 @@ describe("the extras tab bar and the Submit bar", () => {
 describe("the footer in the phone layout", () => {
   const css = read("phone-m3.css");
 
-  it("keeps its links in the text, on lines 1.6 times the small text's line height", () => {
-    expect(declarationsOf(css, ".site-footer")).toContain("line-height:calc(var(--md-sys-typescale-body-small-line-height)*1.6)");
+  it("sets its text 4px larger than the small text", () => {
+    expect(declarationsOf(css, ".site-footer")).toContain("font-size:calc(var(--md-sys-typescale-body-small-size)+4px)");
+  });
+
+  it("keeps its links in the text, on lines 1.5 times the small text's line height", () => {
+    expect(declarationsOf(css, ".site-footer")).toContain("line-height:calc(var(--md-sys-typescale-body-small-line-height)*1.5)");
     expect(declarationsOf(css, ".site-footer a")).toBe("padding-block:6px;");
   });
 
-  it("draws the separator dots at twice the small text's size without making the line taller", () => {
+  it("draws the separator dots at three times the small text's size without making the line taller", () => {
     const dot = declarationsOf(css, ".site-footer-dot");
-    expect(dot).toContain("font-size:calc(var(--md-sys-typescale-body-small-size)*2)");
+    expect(dot).toContain("font-size:calc(var(--md-sys-typescale-body-small-size)*3)");
     expect(dot).toContain("line-height:0");
+  });
+});
+
+describe("the phone boundary", () => {
+  it("is 640px in every sheet and script, with no older boundary left", () => {
+    for (const name of readdirSync(publicDir).filter((file) => /\.(css|js)$/.test(file))) {
+      expect(read(name), name).not.toMatch(/639\.98px|max-width:\s*480px|min-width:\s*640px/);
+    }
   });
 });
 

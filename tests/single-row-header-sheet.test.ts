@@ -3,7 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const sheet = readFileSync(path.resolve("src/public/header-single-row-m3.css"), "utf8");
-const WIDE_BLOCK = "@media not all and (max-width: 639.98px){";
+const WIDE_BLOCK = "@media not all and (max-width: 640px){";
 
 const flat = (css: string) => css.replace(/\s+/g, " ");
 
@@ -46,7 +46,7 @@ describe("the single-row header sheet", () => {
     expect(inside).toContain(".header-nav{ margin-left:auto; }");
   });
 
-  it("gives the search box back its place on the row between 640 and 767 px", () => {
+  it("gives the search box back its place on the row between 641 and 767 px", () => {
     expect(inside).toMatch(/@media \(max-width: 767\.98px\)\{ \.site-header > \.header-search\{[^}]*order:0;[^}]*flex:1 1 auto;[^}]*margin-top:0;/);
   });
 

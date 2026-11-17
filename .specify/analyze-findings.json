@@ -240,6 +240,11 @@
         "specs/20261113-140600-PHONE-LAYOUT-REDESIGN/tasks.md": "0481a47ab83a227640a8900344ef43a0cf48bc31d1ad0c551cf9293e7e89213f",
         "specs/20261113-140600-PHONE-LAYOUT-REDESIGN/quickstart.md": "ac7edc121c618a278487c4fdee4baab4df6fa4e817ad025cffbe4e8e30b0c901",
         "specs/20261113-140600-PHONE-LAYOUT-REDESIGN/research.md": "0ba200ac5be8554963856ffd420a267bb4582288c5fcc7d12e6b74ceea9f7b35",
-        "requirements/20261113-140600-phone-layout-redesign/requirements.md": "2bd554d06a6a6fed6eda1511d7399b6651537e2dbc0e65a6ae130581e9112ed8"
+        "requirements/20261113-140600-phone-layout-redesign/requirements.md": "2bd554d06a6a6fed6eda1511d7399b6651537e2dbc0e65a6ae130581e9112ed8",
+        "specs/20261117-050854-FIXED-WIDTH-640/analyze-findings.md": "6c05e907c3673e47bd0dfe43b9f28f9f3209298cba611e7b45cfacf6a011a998",
+        "specs/20261117-050854-FIXED-WIDTH-640/tasks.md": "f9f7c8e1e09c25d1f38560c8f100e0b26876c6c6bf73fc175be99e2dae221d77",
+        "specs/20261117-050854-FIXED-WIDTH-640/plan.md": "212accbb805bfe11c1f89ac256855b89331af8d1833b30a5c67afb3dad7cc96e",
+        "specs/20261117-050854-FIXED-WIDTH-640/spec.md": "6de87ed16cbd1b3388e6f10b119dd14130f9fdcf2226b37fee1857a0609e67dc",
+        "requirements/20261117-050854-fixed-width-640/requirements.md": "70d1a39bf57ce1f8b1e96807734b44a550ac5203a887b15d35e55b24d074d1f4"
     }
 }

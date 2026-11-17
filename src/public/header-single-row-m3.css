@@ -1,4 +1,4 @@
-@media not all and (max-width: 639.98px){
+@media not all and (max-width: 640px){
   .site-header{
     --header-search-min-width:200px;
     flex-wrap:nowrap;
