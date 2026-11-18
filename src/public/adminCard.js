@@ -1160,6 +1160,12 @@
         input.checked = wizard.who === option.key;
         input.addEventListener("change", () => {
           if (!input.checked) return;
+          // An open editor's text is kept before the redraw; one over its limit keeps the choice as it was.
+          if (!commitNotes()) {
+            const previous = group.querySelector('input[value="' + wizard.who + '"]');
+            if (previous) previous.checked = true;
+            return;
+          }
           wizard.who = option.key;
           syncWizardDirty();
           renderWizard();
@@ -1219,6 +1225,13 @@
       input.checked = wizard.showVoters;
       input.setAttribute("aria-describedby", support.id);
       input.addEventListener("change", () => {
+        // As for the radios: an open editor's text is kept, and one over its limit refuses the change.
+        const editing = Object.keys(richEditors).length > 0;
+        if (!commitNotes()) {
+          input.checked = wizard.showVoters;
+          return;
+        }
+        if (editing) input.focus();
         wizard.showVoters = input.checked;
         howChanged();
       });
@@ -1451,7 +1464,7 @@
 
       function openEditor() {
         field.counter.textContent = "";
-        richEditors[key] = window.NotesEditor.open(host, {
+        const editor = richEditors[key] = window.NotesEditor.open(host, {
           html: wizard[htmlKey],
           max,
           label,
@@ -1465,7 +1478,8 @@
             wizard[htmlKey] = html;
           },
           onClose: () => {
-            delete richEditors[key];
+            // Only its own registration: an editor reopened on this field since is another one.
+            if (richEditors[key] === editor) delete richEditors[key];
             if (!wizard || !host.isConnected) return;
             syncWizardDirty();
             refreshWizardChrome();

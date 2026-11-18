@@ -1,5 +1,5 @@
 {
-    "requirements_directory": "requirements/20261117-154627-sms-invitation-research",
+    "requirements_directory": "requirements/20261118-074312-keep-notes-edits",
     "last_written": {
         "requirements/20261019-153514-production-email/requirements.md": "e0bd2b0bf28c2fbd6699c99cdf364c1398d3b7aed8eb456198295f78d108ee08",
         "requirements/20261019-153514-production-email/requirements-report.md": "4f75f5e263fa092fc0fcedc4a7cdaa32128382e287f2ac0394e4957e8d8bd413",
@@ -100,6 +100,8 @@
         "requirements/20261117-154627-sms-invitation-research/requirements.md": "040d2ffb93c8930d833959e01cf0ec4a1d942e8d314db7d9a3ae804be34d4736",
         "requirements/20261117-154627-sms-invitation-research/requirements-report.md": "d04fff13d05088100d162c3dbf604f20d072d5e76ed85d7d19ccd223ea7c58ab",
         "requirements/20261117-131915-wide-more-choices/requirements.md": "88fb00f6bbbc1563db02d410d2104c45de07fe8646590caeafc59019c1d35c89",
-        "requirements/20261117-131915-wide-more-choices/requirements-report.md": "5443a5346f0e4a0ce7f4b01902d385562abc02580b9182c1b315c6469a03979b"
+        "requirements/20261117-131915-wide-more-choices/requirements-report.md": "5443a5346f0e4a0ce7f4b01902d385562abc02580b9182c1b315c6469a03979b",
+        "requirements/20261118-074312-keep-notes-edits/requirements.md": "00fa7a35280069361db92ca125f64b8b080f493a88988e4785a54b2ea9f53401",
+        "requirements/20261118-074312-keep-notes-edits/requirements-report.md": "9f69d7d8fee6f50cdc322e0028324f99718ca12aeb01455127d30266371c284a"
     }
 }
