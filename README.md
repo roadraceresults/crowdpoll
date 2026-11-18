@@ -96,7 +96,7 @@ delivery network.
   when none has); a longer poll shows those of its ten leading choices that have more than 2% (all
   ten when none has) and any choice you voted for, with **Show all 37 choices · 30%** under them
   (then **Show fewer choices**). Opened from a card's **More choices** row, it shows every choice
-  with 1% or more instead, then **Remaining choices · 0%** for the rest. The voting side always
+  with 1% or more instead, then **Show all 37 choices · 0%** for the rest. The voting side always
   lists every choice. The card works exactly as it does in
   the grid. Close it with the same icon, now a minimize icon, the **Escape** key, or a click on the
   tab you are on; the tab comes back as you
@@ -272,7 +272,8 @@ delivery network.
   choice a voter added while it was open; only the choices you removed are deleted. A duplicate keeps
   the switch as it was, and its choices, but not who added them.
 - **Editing a poll** — select the part of the summary you want to change and the wizard opens
-  at that step. Only what the poll's state allows can change: everything until the poll has
+  at that step, under the editing banner and its step circles (the summary itself is not repeated
+  in the editor, at any width). Only what the poll's state allows can change: everything until the poll has
   votes. Once it has votes, the title, subtitle, notes, choices, dates and bar colors stay editable,
   a private poll can switch between *Anyone you send the link to* and *Only people you
   invite* (both ways), a single-choice poll can become

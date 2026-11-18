@@ -879,12 +879,15 @@
   color:var(--md-sys-color-on-secondary-container);
 }
 /* The Settings Summary's Copy poll link (TWEAK03, TWEAK04): a 20px Label Medium
-   pill inside the Who line's 22px line box, riding the sharing sentence's own line. */
+   pill on a line of its own under the sharing sentence, at the right, outlined like
+   the Open, Close and Archive buttons. */
 .poll-admin-card .wizard-summary-copy-link{
+  display:block;
+  width:fit-content;
   height:20px;
+  border:1px solid var(--md-sys-color-outline);
   padding:0 8px;
-  margin-left:6px;
-  vertical-align:middle;
+  margin:4px 0 0 auto;
   font-size:var(--md-sys-typescale-label-medium-size);
   font-weight:var(--md-sys-typescale-label-medium-weight);
   line-height:var(--md-sys-typescale-label-medium-line-height);

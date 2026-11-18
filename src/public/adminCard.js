@@ -2310,7 +2310,8 @@
       const focusedStep = document.activeElement && document.activeElement.closest &&
         document.activeElement.closest(".poll-admin-card") === card;
       const listed = !existing && showsInvitees();
-      card.replaceChildren(status, buildSummary(), ...(isPhoneLayout() ? [buildTopFooter()] : []), buildCircles(), buildStepPanel(),
+      // Editing an existing poll shows no summary: the banner sits over the step circles, at every width.
+      card.replaceChildren(status, ...(existing ? [] : [buildSummary()]), ...(isPhoneLayout() ? [buildTopFooter()] : []), buildCircles(), buildStepPanel(),
         ...(existing && reviewNeeded() ? [reviewNote()] : []), buildFooter(), ...(listed ? [inviteesPanel()] : []));
       if (listed && invitees.data === null) loadInvitees();
       if (focusedStep) {

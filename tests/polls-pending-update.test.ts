@@ -34,7 +34,7 @@ describe("mergeChoices (R3)", () => {
     expect(deletedIds).toEqual([]);
   });
 
-  it("appends an addition with a minted id and the next position", () => {
+  it("places an addition at its line, with a minted id", () => {
     const { choices, deletedIds } = mergeChoices(stored(), ["Tea", "Coffee", "Milk"], BOUNDS);
     expect(deletedIds).toEqual([]);
     expect(choices.slice(0, 2).map((c) => c.id)).toEqual(["a", "b"]);
@@ -49,7 +49,15 @@ describe("mergeChoices (R3)", () => {
     expect(deletedIds).toEqual(["b"]);
     const added = choices.find((c) => c.label === "Cocoa")!;
     expect(["a", "b"]).not.toContain(added.id);
-    expect(added.position).toBe(2);
+    expect(added.position).toBe(1);
+  });
+
+  it("takes the textbox order as the new positions, survivors keeping their ids", () => {
+    const { choices, deletedIds } = mergeChoices(stored(), ["Milk", "Coffee", "Tea"], BOUNDS);
+    expect(deletedIds).toEqual([]);
+    expect(choices.map((c) => [c.label, c.position])).toEqual([["Milk", 0], ["Coffee", 1], ["Tea", 2]]);
+    expect(choices[1]!.id).toBe("b");
+    expect(choices[2]!.id).toBe("a");
   });
 
   it("keeps a stored label over 35 characters by its text, and refuses it once changed", () => {

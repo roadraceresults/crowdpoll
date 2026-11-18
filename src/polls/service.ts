@@ -1089,10 +1089,11 @@ export function replaceChoices(
 /**
  * The ever-voted counterpart of `replaceChoices`: the textbox lines change the
  * stored list *by id*. A line whose trimmed text equals a stored label is that
- * choice — it keeps its id, label and position, so its votes and tallies stay
- * attached. A new line is an addition with a minted id placed after every stored
- * position; a stored label with no line is a deletion, so a rename is a deletion
- * plus an addition. Validation mirrors `replaceChoices`.
+ * choice — it keeps its id and label, so its votes and tallies stay attached. A new
+ * line is an addition with a minted id; a stored label with no line is a deletion, so
+ * a rename is a deletion plus an addition. Every choice takes its line's place as its
+ * position, so a reordered textbox is the new order (votes are keyed by id, never by
+ * position). Validation mirrors `replaceChoices`.
  */
 export function mergeChoices(
   poll: Pick<Poll, "choices">,
@@ -1121,14 +1122,13 @@ export function mergeChoices(
 
   const byLabel = new Map(poll.choices.map((c) => [c.label.trim(), c]));
   const survivorIds = new Set<string>();
-  let nextPosition = Math.max(-1, ...poll.choices.map((c) => c.position)) + 1;
-  const choices: Choice[] = paired.map(({ label, color }) => {
+  const choices: Choice[] = paired.map(({ label, color }, position) => {
     const stored = byLabel.get(label);
     if (stored) {
       survivorIds.add(stored.id);
-      return { id: stored.id, label: stored.label, position: stored.position, ...(color ? { color } : {}), ...addedByOf(stored) };
+      return { id: stored.id, label: stored.label, position, ...(color ? { color } : {}), ...addedByOf(stored) };
     }
-    return { id: randomUUID(), label, position: nextPosition++, ...(color ? { color } : {}) };
+    return { id: randomUUID(), label, position, ...(color ? { color } : {}) };
   });
   const deletedIds = poll.choices.filter((c) => !survivorIds.has(c.id)).map((c) => c.id);
   return { choices, deletedIds };

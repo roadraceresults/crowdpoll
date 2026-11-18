@@ -364,7 +364,7 @@ describe("the maximized card in the phone layout", () => {
     view.card.setMaximized(true, { choices: "voted" });
     expect(view.resultRows()).toHaveLength(16);
     expect(view.resultLabels()[15]).toBe("Choice 27");
-    expect(view.showAllRow()!.textContent).toBe("Remaining choices · 0%");
+    expect(view.showAllRow()!.textContent).toBe("Show all 37 choices · 0%");
     expect(view.showAllRow()!.getAttribute("aria-expanded")).toBe("false");
     await view.click(".results-list .show-all-row");
     expect(view.resultRows()).toHaveLength(37);

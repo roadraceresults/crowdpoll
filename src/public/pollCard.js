@@ -903,10 +903,13 @@ function initPollCard(viewport, opts){
     if (!isMaximized){
       return { shown, lastRow: hiddenCount === 0 ? null : { className: 'more-row', text: 'More choices' + share } };
     }
+    // Opened from More choices: the same "Show all" row, with the share of the choices left out.
     if (choiceView === 'voted'){
       const voted = votedChoices();
       if (voted.length < data.length){
-        return { shown: voted, lastRow: { className: 'show-all-row', text: 'Remaining choices · 0%', expanded: false } };
+        const rest = data.filter((choice) => voted.indexOf(choice) === -1).reduce((sum, choice) => sum + choice.pct, 0);
+        const restShare = poll.choiceMode === 'Single-Choice Poll' ? ' · ' + rest + '%' : '';
+        return { shown: voted, lastRow: { className: 'show-all-row', text: 'Show all ' + data.length + ' choices' + restShare, expanded: false } };
       }
     }
     if (hiddenCount === 0) return { shown, lastRow: null };

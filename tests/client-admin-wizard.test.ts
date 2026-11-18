@@ -1866,7 +1866,6 @@ describe("the line graph switch on the View step", () => {
     Array.from(wizardCard(p).querySelectorAll<HTMLElement>(".m3-switch-row")).find((row) =>
       (row.textContent ?? "").includes(LINE_GRAPH_LABEL)) ?? null;
   const lineGraphInput = (p: BrowserPage) => lineGraphSwitch(p)!.querySelector<HTMLInputElement>("input")!;
-  const summaryColors = (p: BrowserPage) => wizardCard(p).querySelector(".wizard-summary-colors")?.textContent ?? "";
 
   async function seedPoll(title: string, overrides: Partial<Poll> = {}, owner?: string, votes = false) {
     const poll = makePoll({ title, subtitle: "Sub", pollState: "OPEN", choices: CHOICES, ...overrides });
@@ -1899,29 +1898,22 @@ describe("the line graph switch on the View step", () => {
     expect(choicesText(cardWith(p, "Five"))).toBe("Voters choose from Team 1, Team 2, Team 3, Team 4, Team 5.");
   });
 
-  it("shows the title and subtitle alone, as plain text, in the wizard's summary on the phone layout", async () => {
-    await seedPoll("Brief", { choices: manyChoices(3) });
-    phoneLayout = true;
-    const p = await open();
-    const atRest = cardWith(p, "Brief").querySelector(".wizard-summary")!;
-    expect(atRest.querySelectorAll(".wizard-summary-text").length).toBeGreaterThan(0);
-    link(cardWith(p, "Brief"), "Brief").click();
-    await p.settle(50);
-    const summary = wizardCard(p).querySelector(".wizard-summary")!;
-    expect(Array.from(summary.children).map((c) => [c.className, c.textContent])).toEqual([
-      ["question wizard-summary-title", "Brief"],
-      ["subtitle wizard-summary-subtitle", "Sub"]
-    ]);
-    expect(summary.querySelector(".wizard-summary-link, [role='button']")).toBeNull();
-  });
-
-  it("names five choices at most in the wizard's own summary too, and counts the rest", async () => {
-    await seedPoll("Seven", { choices: manyChoices(7) });
-    const p = await open();
-    link(cardWith(p, "Seven"), "Seven").click();
-    await p.settle(50);
-    expect(choicesText(wizardCard(p))).toBe("Voters choose from Team 1, Team 2, Team 3, Team 4, Team 5... (2 more choices).");
-  });
+  for (const phone of [false, true]) {
+    it(`shows no summary in an existing poll's wizard: the banner sits over the step circles (${phone ? "phone" : "wide"})`, async () => {
+      await seedPoll("Brief", { choices: manyChoices(3) });
+      phoneLayout = phone;
+      const p = await open();
+      const atRest = cardWith(p, "Brief").querySelector(".wizard-summary")!;
+      expect(atRest.querySelectorAll(".wizard-summary-text").length).toBeGreaterThan(0);
+      link(cardWith(p, "Brief"), "Brief").click();
+      await p.settle(50);
+      const card = wizardCard(p);
+      expect(card.querySelector(".wizard-summary")).toBeNull();
+      expect(card.querySelector(".card-status-line")).not.toBeNull();
+      expect(circles(card).length).toBe(6);
+      if (!phone) expect(card.firstElementChild!.nextElementSibling!.classList.contains("wizard-steps")).toBe(true);
+    });
+  }
 
   it("an Administrator's View step shows the switch first, unchecked when the graph is off", async () => {
     await seedPoll("Graph off");
@@ -2014,14 +2006,12 @@ describe("the line graph switch on the View step", () => {
 
   it("the Settings Summary's View line says the graph is shown when it is on, for a creator", async () => {
     await seedPoll("Shown", { lineGraphEnabled: true }, creatorId);
-    const shown = await open(creatorCookie);
-    await openViewStep(shown, "Shown");
-    expect(summaryColors(shown)).toContain("The line graph is shown.");
-
     await seedPoll("Hidden", { lineGraphEnabled: false }, creatorId);
-    const hidden = await open(creatorCookie);
-    await openViewStep(hidden, "Hidden");
-    expect(summaryColors(hidden)).not.toMatch(/graph/i);
+    const p = await open(creatorCookie);
+    // The editor shows no summary, so the read-only card's says it.
+    const colorsOf = (title: string) => cardWith(p, title).querySelector(".wizard-summary-colors")?.textContent ?? "";
+    expect(colorsOf("Shown")).toContain("The line graph is shown.");
+    expect(colorsOf("Hidden")).not.toMatch(/graph/i);
   });
 });
 
@@ -2508,11 +2498,10 @@ describe("link preview message in Step 1", () => {
     for (const title of ["Invited", "Open to all"]) {
       expect(cardWith(p, title).querySelector(".wizard-summary-copy-link"), title).toBeNull();
     }
-    // The editor's summary of the same poll has no button.
+    // The editor of the same poll shows no summary, so no button either.
     link(linked, "Anyone you send the link to").click();
     await p.settle(50);
-    expect(wizardCard(p).querySelector(".wizard-summary-who")!.textContent)
-      .toBe("Your poll is a Private Poll. Votes are anonymous. Anyone you send the link to can vote.");
+    expect(wizardCard(p).querySelector(".wizard-summary")).toBeNull();
     expect(wizardCard(p).querySelector(".wizard-summary-copy-link")).toBeNull();
   });
 

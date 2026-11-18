@@ -216,14 +216,19 @@ describe("Material 3 page assets", () => {
     expect(css).toContain(".poll-admin-card .m3-radio:checked::before{ transform:scale(1); }");
   });
 
-  it("draws the Settings Summary's Copy poll link as a 20px Label Medium pill (TWEAK04)", () => {
+  it("draws the Settings Summary's Copy poll link as a 20px Label Medium pill, right-aligned under the sharing sentence (TWEAK04)", () => {
     const css = read("admin-card-m3.css");
     const rule = /\.poll-admin-card \.wizard-summary-copy-link\{([^}]*)\}/.exec(css);
     expect(rule).not.toBeNull();
     const body = rule![1];
     expect(body).toContain("height:20px;");
     expect(body).toContain("padding:0 8px;");
-    expect(body).toContain("vertical-align:middle;");
+    // A line of its own, at the right.
+    expect(body).toContain("display:block;");
+    expect(body).toContain("width:fit-content;");
+    expect(body).toContain("margin:4px 0 0 auto;");
+    // Outlined like the state buttons (Open, Close, Archive).
+    expect(body).toContain("border:1px solid var(--md-sys-color-outline);");
     for (const property of ["size", "weight", "line-height", "tracking"]) {
       expect(body, property).toContain(`var(--md-sys-typescale-label-medium-${property})`);
     }

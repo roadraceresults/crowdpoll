@@ -622,7 +622,7 @@ share order, never more than the places — and a last row, `button.more-row` ("
 share on single-choice polls only), sized as one more bar. The row opens the view with
 `onMaximize(pid, { choices: "voted" })`; a click on a bar opens nothing. `resultsView()` chooses the
 bars: `fittingChoices` for a wide card, `essentialChoices` for a phone card and, at every width, for the
-maximized view (`MAXIMIZED_LIMITS`, "Show all N choices", "Show fewer choices", "Remaining choices · 0%";
+maximized view (`MAXIMIZED_LIMITS`, "Show all N choices", "Show fewer choices";
 the table is under "The compact card" below). The last row counts as a bar when the bars are sized, and
 above 640 px its item takes the bars' height and its text their label size; its look there is one
 `@media not all and (max-width: 640px)` block in `pollCard-m3.css`.
@@ -1099,7 +1099,7 @@ until it is turned, so the hidden back never makes the card taller.
 maximized limits and the same 30 px bars, not `maximizedBarLayout`; its last row is
 `button.show-all-row`, "Show all 37 choices · 30%", then "Show fewer choices". The card's `choiceView` is
 `essential` (that list), `all`, or `voted`: `setMaximized(true, { choices: 'voted' })`, which `tabs.js` passes on when
-the view is opened from the "More choices" row, shows every choice at 1% or more and the row "Remaining choices · 0%". The face turned away is taken out
+the view is opened from the "More choices" row, shows every choice at 1% or more and the row "Show all N choices · p%", p the share of the rest. The face turned away is taken out
 of the layout (`position:absolute`), so the card is as tall as the side showing; the turn keeps its
 rotation. The `#maximizedCardGrid` template starts its right column with `div.extras-tabs`, a tab bar of
 three `button.extras-tab` (Read More, Polling History, Who Voted) for `.maximized-notes`,
@@ -1288,8 +1288,9 @@ drops it. `save` and `publish` take a `colors` list beside `labels`, of the same
 entries are a palette hex code, a colour the poll already stores, or `null`; the server pairs each
 colour with its label before it drops empty labels, and a request with labels and no colours
 replaces the choices with none coloured. Choices on a voted poll change by id through
-`mergeChoices` — exact trimmed-label match: a survivor keeps its id, label and position, an
-addition gets a minted id, and a rename is a deletion plus an addition — and the merged list
+`mergeChoices` — exact trimmed-label match: a survivor keeps its id and label, an addition gets
+a minted id, a rename is a deletion plus an addition, and every choice's position is its line in
+the textbox, so a reorder sticks (votes are keyed by id, never by position) — and the merged list
 waits for review as part of the pending update (the card confirms a deletion that holds votes,
 with the counts snapshot the edit-session grant carried). Colours apply without review:
 `publish` in `UPDATE` mode accepts `colors`, and when colours are the only thing that changed
