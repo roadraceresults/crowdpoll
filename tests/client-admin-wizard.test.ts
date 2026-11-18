@@ -2457,7 +2457,7 @@ describe("link preview message in Step 1", () => {
     await done(p);
     let line = summaryLine(p)!;
     expect(line.textContent).toBe(SENTENCE + ".");
-    expect(line.previousElementSibling!.classList.contains("wizard-summary-who")).toBe(true);
+    expect(line.parentElement!.classList.contains("wizard-summary-who")).toBe(true);
     expect(line.querySelector(".wizard-summary-link")).toBeNull();
 
     await next(p);
@@ -2505,7 +2505,56 @@ describe("link preview message in Step 1", () => {
     expect(wizardCard(p).querySelector(".wizard-summary-copy-link")).toBeNull();
   });
 
-  it("shows the summary line on the read-only card of a poll with a message, never beside the email line", async () => {
+  it("copies the link from the link icon and the menu item first thing in the tap, and says so", async () => {
+    await seed(makePoll({ title: "Linked", pollVisibility: "Private Poll", pollSharingMode: "Anyone With The Link", pollState: "OPEN" }));
+    const p = await open();
+    const card = cardWith(p, "Linked");
+    // iOS refuses the write once focus has moved or the menu has closed, so record both at the write.
+    const atWrite: { focused: string | null; menuOpen: boolean }[] = [];
+    const clipboard = p.window.navigator.clipboard as unknown as { writeText(text: string): Promise<void> };
+    clipboard.writeText = async (text: string) => {
+      atWrite.push({
+        focused: (p.document.activeElement as HTMLElement | null)?.getAttribute("aria-label") ?? null,
+        menuOpen: !card.querySelector<HTMLElement>(".actions-menu")!.hidden
+      });
+      clipboardText = text;
+    };
+    const copyIcon = card.querySelector<HTMLButtonElement>('.card-actions button[aria-label="Copy link to poll: Linked"]')!;
+    copyIcon.focus();
+    copyIcon.click();
+    await p.settle();
+    expect(clipboardText).toMatch(/^http:\/\/localhost\/\?PID=/);
+    expect(p.document.querySelector(".m3-snackbar")!.textContent).toBe("Link copied");
+
+    clipboardText = "";
+    p.document.querySelector(".m3-snackbar")!.textContent = "";
+    card.querySelector<HTMLButtonElement>(".actions-menu-trigger")!.click();
+    await p.settle();
+    const item = card.querySelector<HTMLButtonElement>('.actions-menu [role="menuitem"][aria-label="Copy link to poll: Linked"]')!;
+    expect(card.querySelector<HTMLElement>(".actions-menu")!.hidden).toBe(false);
+    item.focus();
+    item.click();
+    await p.settle();
+    expect(clipboardText).toMatch(/^http:\/\/localhost\/\?PID=/);
+    expect(p.document.querySelector(".m3-snackbar")!.textContent).toBe("Link copied");
+    expect(card.querySelector<HTMLElement>(".actions-menu")!.hidden).toBe(true);
+    expect(atWrite).toEqual([
+      { focused: "Copy link to poll: Linked", menuOpen: false },
+      { focused: "Copy link to poll: Linked", menuOpen: true }
+    ]);
+  });
+
+  it("says so when the link icon's copy is refused", async () => {
+    await seed(makePoll({ title: "Linked", pollVisibility: "Private Poll", pollSharingMode: "Anyone With The Link", pollState: "OPEN" }));
+    const p = await open();
+    const clipboard = p.window.navigator.clipboard as unknown as { writeText(text: string): Promise<void> };
+    clipboard.writeText = async () => { throw new Error("NotAllowedError"); };
+    cardWith(p, "Linked").querySelector<HTMLButtonElement>('.card-actions button[aria-label="Copy link to poll: Linked"]')!.click();
+    await p.settle();
+    expect(p.document.querySelector(".m3-snackbar")!.textContent).toBe("Could not copy the link");
+  });
+
+  it("ends the read-only card's sharing paragraph with the message sentence, before Copy poll link, never beside the email line", async () => {
     await seed(
       makePoll({ title: "With message", pollVisibility: "Private Poll", pollSharingMode: "Anyone With The Link", pollState: "OPEN", linkPreviewMessage: "Hi", invitationMessage: "Hi" }),
       makePoll({ title: "Without message", pollVisibility: "Private Poll", pollSharingMode: "Anyone With The Link", pollState: "OPEN", invitationMessage: "Hi" })
@@ -2514,7 +2563,11 @@ describe("link preview message in Step 1", () => {
     const withCard = cardWith(p, "With message");
     const line = withCard.querySelector(".wizard-summary-link-preview-message")!;
     expect(line.textContent).toBe(SENTENCE + ".");
-    expect(line.previousElementSibling!.classList.contains("wizard-summary-who")).toBe(true);
+    const who = line.parentElement!;
+    expect(who.classList.contains("wizard-summary-who")).toBe(true);
+    expect(who.textContent!.replace("Copy poll link", "").trim())
+      .toBe("Your poll is a Private Poll. Votes are anonymous. Anyone you send the link to can vote. " + SENTENCE + ".");
+    expect(line.nextElementSibling!.classList.contains("wizard-summary-copy-link")).toBe(true);
     expect(withCard.querySelector(".wizard-summary-invitation-message")).toBeNull();
     expect(cardWith(p, "Without message").querySelector(".wizard-summary-link-preview-message")).toBeNull();
     expect(cardWith(p, "Without message").querySelector(".wizard-summary-invitation-message")).toBeNull();

@@ -185,6 +185,13 @@
   padding-top:8px;
   border-top:1px solid var(--md-sys-color-outline-variant);
 }
+/* The same rule under the Public/Private paragraph (with its Custom Email Message line, on an invite-only poll). */
+.poll-admin-card .wizard-summary-who + .wizard-summary-text:not(.wizard-summary-invitation-message),
+.poll-admin-card .wizard-summary-invitation-message + .wizard-summary-text{
+  margin-top:8px;
+  padding-top:8px;
+  border-top:1px solid var(--md-sys-color-outline-variant);
+}
 .poll-admin-card .wizard-summary-notes{
   display:-webkit-box;
   -webkit-box-orient:vertical;

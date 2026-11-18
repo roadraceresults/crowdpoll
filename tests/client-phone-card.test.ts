@@ -307,11 +307,78 @@ describe("the maximized card in the phone layout", () => {
     expect(view.maximizeCalls).toEqual([]);
   });
 
-  it("keeps focus on the show-all row without scrolling to it when expanding", async () => {
+  it("opens the ballot at the card's top on Vote, and goes back to the maximized card's top when the flip button turns it back", async () => {
+    const view = await mount(poll(37));
+    const win = view.el.ownerDocument.defaultView as unknown as Window;
+    const scrolls: number[] = [];
+    win.scrollTo = ((_x: number, y: number) => { scrolls.push(y); }) as typeof win.scrollTo;
+    view.el.getBoundingClientRect = () => ({ top: -900 } as DOMRect);
+    const top = win.scrollY - 900 - 16;
+    // Vote: the ballot starts at the card's top, in the grid and maximized alike.
+    view.card.showVoteFace();
+    expect(scrolls).toEqual([top]);
+    await view.click(".card-back .back-btn");
+    expect(scrolls).toEqual([top]);
+    view.card.setMaximized(true);
+    view.card.showVoteFace();
+    expect(scrolls).toEqual([top, top]);
+    await view.click(".card-back .back-btn");
+    expect(view.el.querySelector(".card-flip")!.classList.contains("is-flipped")).toBe(false);
+    expect(scrolls).toEqual([top, top, top]);
+  });
+
+  it("goes back to the card's top once a vote is recorded", async () => {
+    const view = await mount(poll(37));
+    const win = view.el.ownerDocument.defaultView as unknown as Window & { VoteClient: unknown };
+    win.VoteClient = {
+      canVote: () => true,
+      QUEUED_NOTICE: "Queued",
+      submit: async () => ({ ok: true, outcome: { status: "recorded", nextRefreshMs: 0 } })
+    };
+    view.card.setMaximized(true);
+    view.card.showVoteFace();
+    const scrolls: number[] = [];
+    win.scrollTo = ((_x: number, y: number) => { scrolls.push(y); }) as typeof win.scrollTo;
+    // Scrolled down the long ballot, the card's top is far above the window.
+    view.el.getBoundingClientRect = () => ({ top: -900 } as DOMRect);
+    await view.click(".voting-list > .vote-row:last-child");
+    await view.click(".card-back .submit-vote-btn");
+    expect(view.isFlipped()).toBe(false);
+    expect(scrolls).toEqual([win.scrollY - 900 - 16]);
+  });
+
+  it("marks the title row while the Watch button shows, so the title leaves room for two icons", async () => {
+    const view = await mount(poll(4));
+    const row = view.el.querySelector<HTMLElement>(".card-front .question-row")!;
+    const watch = row.querySelector<HTMLElement>(".bookmark-btn")!;
+    expect(watch.hidden).toBe(false);
+    expect(row.classList.contains("has-bookmark")).toBe(true);
+    view.card.applyPoll(poll(4, { mayWatch: false } as Partial<Detail>));
+    expect(watch.hidden).toBe(true);
+    expect(row.classList.contains("has-bookmark")).toBe(false);
+  });
+
+  it("does not scroll on Vote when the card's top is already in view", async () => {
+    const view = await mount(poll(5));
+    const win = view.el.ownerDocument.defaultView as unknown as Window;
+    const scrolls: number[] = [];
+    win.scrollTo = ((_x: number, y: number) => { scrolls.push(y); }) as typeof win.scrollTo;
+    view.el.getBoundingClientRect = () => ({ top: 120 } as DOMRect);
+    view.card.showVoteFace();
+    expect(view.el.querySelector(".card-flip")!.classList.contains("is-flipped")).toBe(true);
+    expect(scrolls).toEqual([]);
+  });
+
+  it("keeps focus on the show-all row without scrolling to it, and goes back to the card's top on Show fewer choices", async () => {
     const view = await mount(poll(37));
     view.card.setMaximized(true);
+    const win = view.el.ownerDocument.defaultView as unknown as Window & { HTMLElement: typeof HTMLElement };
+    const scrolls: number[] = [];
+    win.scrollTo = ((_x: number, y: number) => { scrolls.push(y); }) as typeof win.scrollTo;
+    const cardTop = { top: 0 };
+    view.el.getBoundingClientRect = () => ({ top: cardTop.top } as DOMRect);
     const focusOptions: unknown[] = [];
-    const proto = (view.el.ownerDocument.defaultView as unknown as { HTMLElement: typeof HTMLElement }).HTMLElement.prototype;
+    const proto = win.HTMLElement.prototype;
     const focus = proto.focus;
     proto.focus = function (this: HTMLElement, options?: FocusOptions) {
       if (this.classList.contains("show-all-row")) focusOptions.push(options);
@@ -320,11 +387,15 @@ describe("the maximized card in the phone layout", () => {
     try {
       await view.click(".results-list .show-all-row");
       expect(view.el.ownerDocument.activeElement).toBe(view.showAllRow());
+      expect(scrolls).toEqual([]);
+      // Scrolled down the long list, the card's top is far above the window.
+      cardTop.top = -900;
       await view.click(".results-list .show-all-row");
     } finally {
       proto.focus = focus;
     }
-    expect(focusOptions).toEqual([{ preventScroll: true }, { preventScroll: false }]);
+    expect(focusOptions).toEqual([{ preventScroll: true }, { preventScroll: true }]);
+    expect(scrolls).toEqual([win.scrollY - 900 - 16]);
   });
 
   it("leaves out a twelve-choice poll's choices at 0% until asked for all", async () => {

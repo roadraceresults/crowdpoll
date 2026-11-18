@@ -106,6 +106,11 @@ body.card-demo-page .page-decor{
   transform:rotateY(180deg);
 }
 
+/* The face turned away never takes a tap: backface-visibility only hides it, and some WebKit
+   releases (seen on iOS 17.0) still sent taps on the voting face to the results face over it. */
+.card-flip.is-flipped .card-front,
+.card-flip:not(.is-flipped) .card-back{ pointer-events:none; }
+
 /* ---------- Card face (shared look for front & back) ---------- */
 
   .card-face{
@@ -123,13 +128,17 @@ body.card-demo-page .page-decor{
     -webkit-backface-visibility:hidden;
   }
 
+  /* translateZ(1px) lifts each face off the flip plane, so the face shown is always nearer
+     the viewer than the face turned away: WebKit hit-tests coplanar 3D faces unreliably, and
+     sent taps on a grid card's voting side to the card behind them (iOS 17). */
   .card-front{
     z-index:2;
+    transform:translateZ(1px);
   }
 
   .card-back{
     z-index:1;
-    transform:rotateY(180deg);
+    transform:rotateY(180deg) translateZ(1px);
   }
 
   /* ---------- Results-mode: horizontal bar list ----------

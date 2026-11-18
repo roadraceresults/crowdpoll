@@ -1116,8 +1116,8 @@ sections show and load at once, as before.
 side and `isPhoneLayout()`; the card reports turns and selection changes through its `onFace` and
 `onSelection` options. The bar's buttons only click the card's own `.back-btn` and
 `.submit-vote-btn`, and the bar copies the Submit button's label and disabled state, so every vote
-rule stays in `pollCard.js`. While the bar shows, the card's own Back and Submit and the Back-to-top
-button are hidden; Add Choice stays in the card. The bar is fixed at
+rule stays in `pollCard.js`. While the bar shows, the Back-to-top button is hidden; the card keeps
+its own footer (flip on the left, Submit on the right, Add Choice between them when offered). The bar is fixed at
 `bottom: var(--cookie-banner-offset, 0px)`, above the cookie notice.
 
 **The history step.** This part applies at every width.

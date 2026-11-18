@@ -958,8 +958,15 @@
       }
       // The two private wordings belong to the sharing mode, which a voted Private
       // poll may still switch, so they stay tappable when the visibility is frozen.
+      const hasLinkMessage = s.hasLinkPreviewMessage !== undefined ? s.hasLinkPreviewMessage : hasVisibleText(s.linkPreviewMessageHtml);
       if (who === "link") {
         who1.append(part("Anyone you send the link to", 1, "pollSharingMode"), " can vote.");
+        // The link preview message belongs to the link, so its sentence ends the sharing paragraph.
+        if (hasLinkMessage) {
+          const linkMessage = el("span", "wizard-summary-link-preview-message");
+          linkMessage.append(linkPreviewMessagePart(s, part), ".");
+          who1.append(" ", linkMessage);
+        }
         if (part === readOnlyPart) who1.append(" ", copyLinkButton());
       } else if (who === "invite") {
         who1.append(part("Only people you invite", 1, "pollSharingMode"), " by email can vote.");
@@ -971,12 +978,6 @@
         const messageLine = line();
         messageLine.classList.add("wizard-summary-invitation-message");
         messageLine.append(invitationMessagePart(s, part), ".");
-      }
-      const hasLinkMessage = s.hasLinkPreviewMessage !== undefined ? s.hasLinkPreviewMessage : hasVisibleText(s.linkPreviewMessageHtml);
-      if (who === "link" && hasLinkMessage) {
-        const linkMessageLine = line();
-        linkMessageLine.classList.add("wizard-summary-link-preview-message");
-        linkMessageLine.append(linkPreviewMessagePart(s, part), ".");
       }
       if (who === "public" && s.answered.has(2) && s.keywords.length) {
         const keywordsLine = line();
@@ -1091,7 +1092,7 @@
       else if (fresh) {
         // Keep the lines in order: insert before the line that follows it in a fresh build.
         const next = fresh.nextElementSibling;
-        const nextClass = next && [...next.classList].find((c) => /^wizard-summary-(who|invitation-message|link-preview-message|keywords|choices|colors|how|when)$/.test(c));
+        const nextClass = next && [...next.classList].find((c) => /^wizard-summary-(who|invitation-message|keywords|choices|colors|how|when)$/.test(c));
         summary.insertBefore(fresh, (nextClass && summary.querySelector("." + nextClass)) || null);
       }
     }
@@ -1234,15 +1235,20 @@
       const btn = el("button", "m3-tonal-btn wizard-summary-copy-link", "Copy poll link");
       btn.type = "button";
       btn.setAttribute("aria-label", "Copy the link to your poll");
-      btn.addEventListener("click", async () => {
-        try {
-          await navigator.clipboard.writeText(pollLink());
-          snackbar("Link copied");
-        } catch {
-          snackbar("Could not copy the link");
-        }
-      });
+      btn.addEventListener("click", copyPollLink);
       return btn;
+    }
+
+    // Every Copy control (the Summary button, the link icon and the menu item) copies here,
+    // first thing in the tap: iOS refuses a clipboard write once focus has moved or the
+    // menu has closed, and the icon and menu item, which did both first, copied nothing.
+    async function copyPollLink() {
+      try {
+        await navigator.clipboard.writeText(pollLink());
+        snackbar("Link copied");
+      } catch {
+        snackbar("Could not copy the link");
+      }
     }
 
     // ── Step 2: Title & Tags ──
@@ -2506,7 +2512,7 @@
       menu.hidden = true;
       menu.append(
         menuItem("Duplicate Poll", "Duplicate poll: " + current.title, () => deps.onDuplicate(current)),
-        menuItem("Copy Poll Link", "Copy link to poll: " + current.title, () => deps.onCopyLink(current))
+        menuItem("Copy Poll Link", "Copy link to poll: " + current.title, () => { copyPollLink(); deps.onCopyLink(current); })
       );
       if (current.canRescreen) {
         menu.append(menuItem("Re-attempt Screening", "Re-attempt screening for poll: " + current.title,
@@ -2555,7 +2561,7 @@
       const icons = el("div", "card-actions");
       icons.append(
         iconButton("icon-copy", "Duplicate poll: " + current.title, true, () => deps.onDuplicate(current)),
-        iconButton("icon-link", "Copy link to poll: " + current.title, true, () => deps.onCopyLink(current)),
+        iconButton("icon-link", "Copy link to poll: " + current.title, true, () => { copyPollLink(); deps.onCopyLink(current); }),
         iconButton("icon-trash", "Delete poll: " + current.title, current.canDelete, () => deps.onDelete(current))
       );
       const menu = buildActionsMenu();

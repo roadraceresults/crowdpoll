@@ -38,7 +38,7 @@
   .card-face .question-row .maximize-btn{ right:-8px; }
   .card-face .question-row .bookmark-btn{ right:56px; }
   .card-face .question-row .question::before{ width:48px; height:36px; }
-  .card-face .question-row:has(.bookmark-btn:not([hidden])) .question::before{ width:112px; }
+  .card-face .question-row.has-bookmark .question::before{ width:112px; }
   .card-face .bookmark-btn svg,
   .card-face .maximize-btn svg,
   .card-flip:not(.maximized-card-flip) .card-face .bookmark-btn svg,
@@ -278,9 +278,14 @@
     cursor:pointer;
   }
   .vote-bar .icon-btn svg{ width:28px; height:28px; }
+  .vote-bar .vote-bar-back{
+    background:var(--md-sys-color-primary);
+    color:var(--md-sys-color-on-primary);
+  }
   .vote-bar-count{
     flex:1 1 auto;
     min-width:0;
+    text-align:right;
     font-weight:var(--md-sys-typescale-body-large-weight);
     font-size:var(--md-sys-typescale-body-large-size);
     line-height:var(--md-sys-typescale-body-large-line-height);
@@ -312,8 +317,6 @@
   .vote-bar .vote-bar-submit[hidden]{ display:none; }
   .vote-bar .icon-btn:focus-visible,
   .vote-bar .vote-bar-submit:focus-visible{ outline:3px solid var(--md-sys-color-secondary); outline-offset:2px; }
-  :root.vote-bar-shown .maximized-card-flip .card-back .back-btn,
-  :root.vote-bar-shown .maximized-card-flip .card-back .submit-vote-btn,
   :root.vote-bar-shown .back-to-top-fab{ display:none; }
   :root.vote-bar-shown .maximized-card-flip .card-back .actions{ min-height:0; }
   :root.vote-bar-shown .container{ padding-bottom:136px; }

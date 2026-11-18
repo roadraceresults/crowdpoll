@@ -490,3 +490,79 @@ describe("the thresholds under 480px", () => {
     expect(read("admin.css")).not.toContain("292px");
   });
 });
+
+describe("the maximized card's height", () => {
+  it("is the face shown at every width, not the right column's or the taller face's", () => {
+    const css = read("pollCard-m3.css");
+    expect(css).toContain(".maximized-card-viewport{ align-self:flex-start; }");
+    expect(css).toContain(".maximized-card-flip:not(.is-flipped) .card-back,\n" +
+      ".maximized-card-flip.is-flipped .card-front{ position:absolute; inset:0 0 auto 0; height:auto; }");
+    // Outside any media query, so it holds above the phone width too.
+    const before = css.slice(0, css.indexOf(".maximized-card-viewport{ align-self:flex-start; }")).replace(/\/\*[\s\S]*?\*\//g, "");
+    expect(before.split("{").length - before.split("}").length).toBe(0);
+  });
+});
+
+describe("the card shell's close link", () => {
+  // Its tap halo is absolutely positioned; on a card whose X sits in the title row (Profile), an
+  // unpositioned link let the halo size itself against the card, so a tap on any field went Home.
+  it("keeps its halo around the link wherever the link sits", () => {
+    const phone = read("phone-m3.css");
+    expect(phone).toContain(".card-shell-face .card-shell-close::after{ content:''; position:absolute; inset:-8px; }");
+    expect(phone).toContain(".card-shell-title-row .card-shell-close{ position:relative; }");
+    expect(read("card-shell-m3.css")).toContain(".card-shell-top-row .card-shell-close{ position:absolute;");
+  });
+});
+
+describe("scripts older iPhones can parse", () => {
+  // Safari supports regex lookbehind only from 16.4; on iOS 16.3 one in a script is a
+  // SyntaxError that stops the whole file, so a lookbehind in pollCard.js left every tab empty.
+  it("uses no regex lookbehind in a browser script", () => {
+    for (const name of readdirSync(publicDir).filter((file) => file.endsWith(".js"))) {
+      expect(read(name), name).not.toMatch(/\(\?<[=!]/);
+    }
+  });
+});
+
+describe("the two faces of a card", () => {
+  it("lifts each face off the flip plane, so the face shown is nearer the viewer", () => {
+    const css = read("pollCard.css");
+    expect(css).toMatch(/\.card-front\{\s*z-index:2;\s*transform:translateZ\(1px\);\s*\}/);
+    expect(css).toMatch(/\.card-back\{\s*z-index:1;\s*transform:rotateY\(180deg\) translateZ\(1px\);\s*\}/);
+  });
+
+  it("lets only the face shown take taps", () => {
+    expect(read("pollCard.css")).toContain(".card-flip.is-flipped .card-front,\n.card-flip:not(.is-flipped) .card-back{ pointer-events:none; }");
+  });
+});
+
+describe("the flip-back button and the Submit bar", () => {
+  const flipBack = '<rect x="5" y="1.5" width="14" height="12" rx="2"/>';
+
+  it("draws Back to results as a page with an arrow up and back, on the card and on the Submit bar", () => {
+    expect(read("pollCard.js")).toContain(flipBack);
+    expect(read("index.html")).toContain(flipBack);
+    expect(read("pollCard.js")).not.toContain('<path d="M11 18l-6-6 6-6"/>');
+  });
+
+  it("fills it like an enabled Submit vote, a size up on the card", () => {
+    const card = /\.card-face \.back-btn\{([^}]*)\}/.exec(read("pollCard-m3.css"))![1]!;
+    expect(card).toContain("background:var(--md-sys-color-primary);");
+    expect(card).toContain("color:var(--md-sys-color-on-primary);");
+    expect(card).toContain("width:40px;");
+    expect(read("pollCard-m3.css")).toContain(".card-face .back-btn svg{ width:26px; height:26px; }");
+    const bar = /\.vote-bar \.vote-bar-back\{([^}]*)\}/.exec(read("phone-card-m3.css"))![1]!;
+    expect(bar).toContain("background:var(--md-sys-color-primary);");
+    expect(bar).toContain("color:var(--md-sys-color-on-primary);");
+  });
+
+  it("puts the count against Submit, and keeps the card's own flip button and Submit while the bar shows", () => {
+    const css = read("phone-card-m3.css");
+    expect(/\.vote-bar-count\{([^}]*)\}/.exec(css)![1]).toContain("text-align:right;");
+    expect(css).toContain(":root.vote-bar-shown .back-to-top-fab{ display:none; }");
+    // The card's footer keeps flip on the left and Submit on the right, as at every other width.
+    expect(css).not.toContain(".card-back .back-btn");
+    expect(css).not.toContain(".card-back .submit-vote-btn");
+    expect(/\.card-back \.actions\{([^}]*)\}/.exec(read("pollCard.css"))![1]).toContain("justify-content:space-between;");
+  });
+});

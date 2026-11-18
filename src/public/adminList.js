@@ -111,9 +111,9 @@
     else reportOnCard(poll, "Could not duplicate this poll.");
   }
 
-  function actCopyLink(poll) {
+  // The card copies the link itself (adminCard.js copyPollLink); this only closes the menu.
+  function actCopyLink() {
     selectItem();
-    navigator.clipboard.writeText(location.origin + "/?PID=" + encodeURIComponent(poll.pid));
   }
 
   async function actRescreen(poll) {

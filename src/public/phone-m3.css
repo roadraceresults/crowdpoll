@@ -119,6 +119,7 @@
   .card-shell-badge svg{ width:24px; height:24px; }
   .card-shell-face .card-shell-close{ width:48px; height:48px; overflow:visible; }
   .card-shell-face .card-shell-close svg{ width:28px; height:28px; }
+  .card-shell-title-row .card-shell-close{ position:relative; }
   .card-shell-body,
   .card-shell-body label,
   .card-shell-body p{

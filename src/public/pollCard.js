@@ -102,9 +102,9 @@ function dismissMaximizeHint(){
 const SEMANTIC_AFFIRMATIVE_COLOR = '#006120';
 const SEMANTIC_NEGATIVE_COLOR = '#F91010';
 
-const AFFIRMATIVE_WORDS = /(?<![a-z])(?:yes|true|correct|agree|yay|approve|approved|approval|support|favor|favour|accept|yeah|yep|aye)(?![a-z])/i;
-const NEGATIVE_WORDS = /(?<![a-z])(?:no|false|incorrect|disagree|nay|disapprove|disapproved|disapproval|oppose|against|reject|nah)(?![a-z])/i;
-const NEUTRAL_WORDS = /(?<![a-z])(?:neither|neutral|undecided|unsure|no +opinion|no +preference|don['’]t +know|do +not +know)(?![a-z])/i;
+const AFFIRMATIVE_WORDS = /(?:^|[^a-z])(?:yes|true|correct|agree|yay|approve|approved|approval|support|favor|favour|accept|yeah|yep|aye)(?![a-z])/i;
+const NEGATIVE_WORDS = /(?:^|[^a-z])(?:no|false|incorrect|disagree|nay|disapprove|disapproved|disapproval|oppose|against|reject|nah)(?![a-z])/i;
+const NEUTRAL_WORDS = /(?:^|[^a-z])(?:neither|neutral|undecided|unsure|no +opinion|no +preference|don['’]t +know|do +not +know)(?![a-z])/i;
 const AFFIRMATIVE_EXACT = ['y', 'yup'];
 const NEGATIVE_EXACT = ['n', 'nope'];
 
@@ -226,6 +226,7 @@ const PHONE_BAR_PAD = 14;
 const PHONE_VOTE_RADIO = 24;
 const PHONE_LABEL_GAP = 12;
 const COMPACT_LIMITS = { lead: 4, allUpTo: 5 };
+const CARD_TOP_GAP = 16;
 const MAXIMIZED_LIMITS = { lead: 10, allUpTo: 12, abovePct: 2, allAbovePct: 0 };
 
 function isPhoneLayout(){
@@ -1174,7 +1175,15 @@ function initPollCard(viewport, opts){
     if (submitBtn) submitBtn.hidden = true;
     if (liveLink && !removeMode) liveLink.hidden = true;
     if (bookmarkBtn) bookmarkBtn.hidden = true;
+    syncTitleIcons();
     if (cardFlip.classList.contains('is-flipped')) cardFlip.classList.remove('is-flipped');
+  }
+
+  /* The title wraps around one icon or two: .has-bookmark tells the stylesheet the Watch
+     button shows, where :has() would — Chromium before 105 (Opera 83) has no :has(). */
+  function syncTitleIcons(){
+    const row = bookmarkBtn && bookmarkBtn.closest('.question-row');
+    if (row) row.classList.toggle('has-bookmark', !bookmarkBtn.hidden);
   }
 
   /* Private polls whose creator lets voters add choices: offered to whom a vote is open,
@@ -1250,6 +1259,7 @@ function initPollCard(viewport, opts){
   function updateActionButtons(){
     if (voteBtn && opts.showVote === false) voteBtn.hidden = true;
     if (bookmarkBtn && opts.showBookmark === false) bookmarkBtn.hidden = true;
+    syncTitleIcons();
     if (liveLink){
       if (opts.showLive === false) liveLink.hidden = true;
       else {
@@ -1271,6 +1281,7 @@ function initPollCard(viewport, opts){
       bookmarkBtn.setAttribute('aria-label', bookmarked ? 'Watching' : 'Watch');
       bookmarkBtn.title = bookmarked ? 'Stop watching this poll' : 'Watch this poll';
       bookmarkBtn.setAttribute('aria-pressed', bookmarked ? 'true' : 'false');
+      syncTitleIcons();
     }
   }
 
@@ -1319,14 +1330,22 @@ function initPollCard(viewport, opts){
   });
   notesBox?.addEventListener('click', () => { if (isPhoneLayout()) requestMaximizedNotes(); });
 
+  function scrollToCardTop(){
+    const chrome = window.FixedChrome ? window.FixedChrome.height() : 0;
+    const top = viewport.getBoundingClientRect().top - chrome - CARD_TOP_GAP;
+    if (top < 0) window.scrollTo(0, window.scrollY + top);
+  }
+
   resultsList?.addEventListener('click', (event) => {
     const showAllRow = event.target.closest('.show-all-row');
     if (showAllRow){
       const expanding = showAllRow.getAttribute('aria-expanded') !== 'true';
       choiceView = expanding ? 'all' : 'essential';
       render();
-      // Expanding pushes the row below the new choices: keep focus on it, but leave the view where the reader is.
-      resultsList.querySelector('.show-all-row')?.focus({ preventScroll: expanding });
+      // Focus stays on the row without moving the view: expanding leaves the reader where they are; collapsing
+      // shortens the page under them, so the view goes back to the card's top, under the fixed header.
+      resultsList.querySelector('.show-all-row')?.focus({ preventScroll: true });
+      if (!expanding) scrollToCardTop();
       return;
     }
     if (event.target.closest('.more-row')) requestMaximize({ choices: 'voted' });
@@ -1396,16 +1415,20 @@ function initPollCard(viewport, opts){
     showVoteFace();
   });
 
+  // The ballot always starts at the card's top: Vote sits at the bottom of the results, which can be far below it.
   function showVoteFace(){
     rebuildData(pendingSelection !== null ? pendingSelection : (poll ? poll.myChoiceIds || [] : []));
     cardFlip.classList.add('is-flipped');
     render();
+    scrollToCardTop();
   }
 
   // Left-arrow button — always just flips back without submitting.
+  // Flipping back from a long maximized ballot shortens the page under the reader: back to the card's top.
   viewport.querySelector('.back-btn')?.addEventListener('click', () => {
     cardFlip.classList.remove('is-flipped');
     renderBallot();
+    if (isMaximized) scrollToCardTop();
   });
 
   // Submit posts the current selection through the vote client; the response
@@ -1427,6 +1450,8 @@ function initPollCard(viewport, opts){
       if (opts.onVoted) opts.onVoted(opts.pid, result.outcome);
       holdVoteButton(result.outcome.nextRefreshMs || 0);
       showVoteNotice(result.outcome.status === 'queued' ? window.VoteClient.QUEUED_NOTICE : (ids.length === 0 ? 'Your vote was removed.' : ''));
+      // The results side is shorter than a long ballot: start it at the card's top.
+      scrollToCardTop();
       return;
     }
     // 012 W3/W4: the poll entered EDITING; nothing was recorded, the selection
@@ -1703,10 +1728,11 @@ const POLL_CARD_TEMPLATE = `
           <p class="poll-vote-error" hidden></p>
 
           <div class="actions">
+            <!-- Flips back to the front: a page with an arrow up and back to it, filled like Submit,
+                 so it is never mistaken for the page's Back arrow. -->
             <button class="icon-btn back-btn" type="button" aria-label="Back to results without voting">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M19 12H5"/>
-                <path d="M11 18l-6-6 6-6"/>
+                <rect x="5" y="1.5" width="14" height="12" rx="2"/><path d="M8.5 5.5h7M8.5 8.5h7M8.5 11.5h4"/><path d="M17 13.5v2.5a4 4 0 0 1-4 4H7"/><path d="M9.5 17.5 7 20l2.5 2.5"/>
               </svg>
             </button>
             <button class="add-choice-btn" type="button" hidden>Add Choice</button>

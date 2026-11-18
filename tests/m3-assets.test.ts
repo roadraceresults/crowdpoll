@@ -216,6 +216,18 @@ describe("Material 3 page assets", () => {
     expect(css).toContain(".poll-admin-card .m3-radio:checked::before{ transform:scale(1); }");
   });
 
+  it("rules the Settings Summary under the Public/Private paragraph as it is ruled above it", () => {
+    const css = read("admin-card-m3.css");
+    const selector = ".poll-admin-card .wizard-summary-who + .wizard-summary-text:not(.wizard-summary-invitation-message),\n" +
+      ".poll-admin-card .wizard-summary-invitation-message + .wizard-summary-text{";
+    const start = css.indexOf(selector);
+    expect(start).toBeGreaterThan(-1);
+    const body = css.slice(start + selector.length, css.indexOf("}", start));
+    for (const declaration of ["margin-top:8px;", "padding-top:8px;", "border-top:1px solid var(--md-sys-color-outline-variant);"]) {
+      expect(body).toContain(declaration);
+    }
+  });
+
   it("draws the Settings Summary's Copy poll link as a 20px Label Medium pill, right-aligned under the sharing sentence (TWEAK04)", () => {
     const css = read("admin-card-m3.css");
     const rule = /\.poll-admin-card \.wizard-summary-copy-link\{([^}]*)\}/.exec(css);
@@ -371,8 +383,11 @@ describe("Material 3 page assets", () => {
     expect(css).toContain(".card-face .question-row .bookmark-btn, .card-face .question-row .maximize-btn{ position:absolute; top:0;");
     expect(css).toContain(".card-face .question-row .maximize-btn{ right:0; }");
     expect(css).toContain(".card-face .question-row .bookmark-btn{ right:calc(var(--title-icon-size) - 4px); }");
-    expect(css).toContain(".card-face .question-row .question::before{ content:''; float:right; width:calc(var(--title-icon-size) + 2px); height:1lh; }");
-    expect(css).toContain(".card-face .question-row:has(.bookmark-btn:not([hidden])) .question::before{ width:calc(2 * var(--title-icon-size) + 4px); }");
+    // 1lh (Chromium 109) follows a fallback of one title line, and the two-icon width keys on a class
+    // the card sets, not :has() (Chromium 105): Opera 83 (Chromium 97) ran titles under the icons.
+    expect(css).toContain(".card-face .question-row .question::before{ content:''; float:right; width:calc(var(--title-icon-size) + 2px); height:1.27em;");
+    expect(css).toContain("height:1lh; }");
+    expect(css).toContain(".card-face .question-row.has-bookmark .question::before{ width:calc(2 * var(--title-icon-size) + 4px); }");
   });
 
   it("keeps the poll-card title hover off the card-shell pages", () => {

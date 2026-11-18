@@ -196,12 +196,12 @@ describe("pollCard.js choice colours", () => {
 
   it("matches whole words only, with no g flag on either rule", async () => {
     const res = await request(ctx.app).get("/pollCard.js");
-    // The letters-only lookaround boundary keeps "correct" inside "Incorrect"
+    // The letters-only boundary (start or a non-letter before, no letter after) keeps "correct" inside "Incorrect"
     // from matching, while still matching "Agree2"/"yes_please"/"No1" (FR-004,
-    // amended 2026-08-19 -- see research.md R3). The g flag would retain
+    // amended 2026-08-19 -- see research.md R3; no lookbehind, which iOS before 16.4 cannot parse). The g flag would retain
     // lastIndex across .test() calls and make results order-dependent.
-    expect(res.text).toContain("/(?<![a-z])(?:yes|true|correct|agree|yay|approve|approved|approval|support|favor|favour|accept|yeah|yep|aye)(?![a-z])/i");
-    expect(res.text).toContain("/(?<![a-z])(?:no|false|incorrect|disagree|nay|disapprove|disapproved|disapproval|oppose|against|reject|nah)(?![a-z])/i");
+    expect(res.text).toContain("/(?:^|[^a-z])(?:yes|true|correct|agree|yay|approve|approved|approval|support|favor|favour|accept|yeah|yep|aye)(?![a-z])/i");
+    expect(res.text).toContain("/(?:^|[^a-z])(?:no|false|incorrect|disagree|nay|disapprove|disapproved|disapproval|oppose|against|reject|nah)(?![a-z])/i");
   });
 
   it("expands the base list to one palette colour per allowed choice, never repeating a neighbour (FR-008, FIX03)", async () => {
@@ -270,7 +270,7 @@ describe("pollCard.js choice colours", () => {
 
   it("leaves neutral middle answers to the palette, even beside a yes or no word (US3)", async () => {
     const res = await request(ctx.app).get("/pollCard.js");
-    expect(res.text).toContain("/(?<![a-z])(?:neither|neutral|undecided|unsure|no +opinion|no +preference|don['’]t +know|do +not +know)(?![a-z])/i");
+    expect(res.text).toContain("/(?:^|[^a-z])(?:neither|neutral|undecided|unsure|no +opinion|no +preference|don['’]t +know|do +not +know)(?![a-z])/i");
     const colorFor = await servedSemanticColorFor();
     const neutral = [
       "Neither agree nor disagree", "Neither approve nor disapprove", "No opinion", "No  opinion", "No preference",

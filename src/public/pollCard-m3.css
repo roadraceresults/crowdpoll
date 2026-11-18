@@ -73,6 +73,14 @@
 .card-face .bookmark-btn,
 .card-face .maximize-btn{ margin:-6px -6px 0 0; }
 .card-face .icon-btn svg{ width:20px; height:20px; }
+/* The flip-back button: filled like an enabled Submit vote, a size up so its page and arrow read. */
+.card-face .back-btn{
+  width:40px;
+  height:40px;
+  background:var(--md-sys-color-primary);
+  color:var(--md-sys-color-on-primary);
+}
+.card-face .back-btn svg{ width:26px; height:26px; }
 .card-face .bookmark-btn:hover,
 .card-face .bookmark-btn:focus-visible{ color:var(--md-sys-color-on-surface-variant); }
 .card-face .bookmark-btn[aria-pressed="true"]{ color:var(--md-sys-color-primary); }
@@ -98,9 +106,10 @@
   content:'';
   float:right;
   width:calc(var(--title-icon-size) + 2px);
+  height:1.27em;   /* one line of the title, for browsers before 1lh (Chromium 109) */
   height:1lh;
 }
-.card-face .question-row:has(.bookmark-btn:not([hidden])) .question::before{ width:calc(2 * var(--title-icon-size) + 4px); }
+.card-face .question-row.has-bookmark .question::before{ width:calc(2 * var(--title-icon-size) + 4px); }
 
 .card-face .live-link{
   position:relative;
@@ -356,6 +365,12 @@
 /* ---------- 3. Maximized view ---------- */
 
 .maximized-card-flip{ min-height:0; }
+/* The maximized card is as tall as the face shown, at every width: it does not stretch to the right
+   column, and the face turned away (a long ballot behind short results, or the reverse) is taken out
+   of the flow, as the phone layout already does, so the Vote row sits right under the bars. */
+.maximized-card-viewport{ align-self:flex-start; }
+.maximized-card-flip:not(.is-flipped) .card-back,
+.maximized-card-flip.is-flipped .card-front{ position:absolute; inset:0 0 auto 0; height:auto; }
 .maximized-card-flip .card-face .question{
   font-size:var(--md-sys-typescale-title-large-size);
   line-height:var(--md-sys-typescale-title-large-line-height);
