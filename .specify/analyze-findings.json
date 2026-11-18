@@ -245,6 +245,10 @@
         "specs/20261117-050854-FIXED-WIDTH-640/tasks.md": "f9f7c8e1e09c25d1f38560c8f100e0b26876c6c6bf73fc175be99e2dae221d77",
         "specs/20261117-050854-FIXED-WIDTH-640/plan.md": "212accbb805bfe11c1f89ac256855b89331af8d1833b30a5c67afb3dad7cc96e",
         "specs/20261117-050854-FIXED-WIDTH-640/spec.md": "6de87ed16cbd1b3388e6f10b119dd14130f9fdcf2226b37fee1857a0609e67dc",
-        "requirements/20261117-050854-fixed-width-640/requirements.md": "70d1a39bf57ce1f8b1e96807734b44a550ac5203a887b15d35e55b24d074d1f4"
+        "requirements/20261117-050854-fixed-width-640/requirements.md": "70d1a39bf57ce1f8b1e96807734b44a550ac5203a887b15d35e55b24d074d1f4",
+        "specs/20261117-131915-WIDE-MORE-CHOICES/analyze-findings.md": "063333a68835729398ba81cc359cbe75f974fd11c0c84f40e9004d27d90b08be",
+        "specs/20261117-131915-WIDE-MORE-CHOICES/tasks.md": "6908d7a85b7dd5c1d85b40529575de33ee48a8df707180e0a96fc881612225ed",
+        "specs/20261117-131915-WIDE-MORE-CHOICES/spec.md": "081bb9f4a55bab103f76d8a5d0bc68db7013f99f7f2aea74728f138ab4181ab3",
+        "requirements/20261117-131915-wide-more-choices/requirements.md": "88fb00f6bbbc1563db02d410d2104c45de07fe8646590caeafc59019c1d35c89"
     }
 }

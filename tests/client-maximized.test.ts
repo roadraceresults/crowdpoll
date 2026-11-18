@@ -239,6 +239,20 @@ describe("maximizing and restoring", () => {
     expect(scrollCalls(page).at(-1)).toBe(64);
   });
 
+  it("draws the other cards again when the view closes, by the room they have by then", async () => {
+    await seedPoll("Opened", 3, { createdAt: new Date(Date.now() - 20_000) });
+    await seedPoll("Delta", 12, { createdAt: new Date(Date.now() - 10_000) });
+    await sweeps();
+    page = await open();
+    const other = cardByTitle(page, "Delta");
+    expect(other.querySelectorAll(".results-list > .result-row").length).toBe(12);
+    await clickIn(page, cardByTitle(page, "Opened").querySelector(".maximize-btn"));
+    Object.defineProperty(other.querySelector(".results-scroll-wrap")!, "clientHeight", { configurable: true, get: () => 259 });
+    await clickIn(page, maximizedGrid(page, "trending")!.querySelector(".maximize-btn"));
+    expect(other.querySelectorAll(".results-list > .result-row").length).toBe(9);
+    expect(other.querySelector(".results-list .more-row")).not.toBeNull();
+  });
+
   it("lets a guest maximize a card, while Vote inside it still asks them to log in", async () => {
     await seedThree();
     page = await open();
@@ -256,10 +270,9 @@ describe("every choice at once", () => {
 
   for (const [choices, expected] of [
     [2, 50],
-    [7, 50 - (5 / 48) * 25],
-    [50, 25]
+    [7, 50 - (5 / 48) * 25]
   ] as const) {
-    it(`shows all ${choices} choices on both faces at ${expected.toFixed(2)} px with a 2 px gap and no scrolling`, async () => {
+    it(`shows all ${choices} choices on both faces at ${expected.toFixed(2)} px with a 2 px gap`, async () => {
       await seedPoll("Many", choices);
       await sweeps();
       page = await open();
@@ -273,9 +286,28 @@ describe("every choice at once", () => {
       for (const height of [...heights(results), ...heights(votes)]) expect(height).toBeCloseTo(expected, 2);
       expect((card.querySelector(".results-list") as HTMLElement).style.rowGap).toBe("2px");
       expect((card.querySelector(".voting-list") as HTMLElement).style.rowGap).toBe("2px");
-      expect(card.querySelectorAll(".arrow-row.is-active").length).toBe(0);
     });
   }
+
+  it("shows the ten leaders of 50 choices and a show-all row sized as an eleventh bar, and all 50 on the voting side at 25 px", async () => {
+    await seedPoll("Many", 50);
+    await sweeps();
+    page = await open();
+    const card = cardByTitle(page, "Many");
+    await clickIn(page, card.querySelector(".maximize-btn"));
+
+    const results = card.querySelectorAll(".results-list > .result-row");
+    const votes = card.querySelectorAll(".voting-list > .vote-row");
+    expect(results.length).toBe(10);
+    expect(votes.length).toBe(50);
+    const row = card.querySelector<HTMLElement>(".results-list .show-all-row")!;
+    expect(row.textContent).toBe("Show all 50 choices · 0%");
+    for (const height of [...heights(results), parseFloat(row.parentElement!.style.height)]) expect(height).toBeCloseTo(50 - (9 / 48) * 25, 2);
+    for (const height of heights(votes)) expect(height).toBeCloseTo(25, 2);
+
+    await clickIn(page, row);
+    expect(card.querySelectorAll(".results-list > .result-row").length).toBe(50);
+  });
 
   it("writes a 50 px bar's label, percentage and voting label at 13 px", async () => {
     await seedPoll("Big text", 2);

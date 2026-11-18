@@ -610,14 +610,43 @@ icon and close the view. Nothing is copied or fetched: the card stays in the gri
 map, so refreshes, votes and bookmarks keep reaching it, and its face and unsubmitted selection go
 with it. The card's `setMaximized(true)` adds `maximized-card-viewport` / `maximized-card-flip`
 beside its own classes and swaps its bar layout: instead of fitting bars to the space it has
-(`computeBarLayout`, which scrolls when they do not fit), it sizes them by choice count alone — 50 px
+(`measuredBarLayout`), it sizes them by row count alone — 50 px
 at `ENV_MIN_CHOICES` falling linearly to 25 px at `ENV_MAX_CHOICES`, 2 px apart — and five CSS
 overrides put the bars back in flow so the card grows and the page scrolls.
+
+Nothing scrolls inside a card. Above 640 px a card in a grid holds `capacity(wrap)` bars: the number of
+25 px bars, 1 px apart, its bar area's height allows (`computeMaxBarsAtFloor`), or every bar when the area
+has no height because its grid is hidden. A poll with more choices than that shows
+`fittingChoices(sorted, ownIds, capacity − 1)` — the viewer's own choices first, then the leaders, in
+share order, never more than the places — and a last row, `button.more-row` ("More choices · 18%", the
+share on single-choice polls only), sized as one more bar. The row opens the view with
+`onMaximize(pid, { choices: "voted" })`; a click on a bar opens nothing. `resultsView()` chooses the
+bars: `fittingChoices` for a wide card, `essentialChoices` for a phone card and, at every width, for the
+maximized view (`MAXIMIZED_LIMITS`, "Show all N choices", "Show fewer choices", "Remaining choices · 0%";
+the table is under "The compact card" below). The last row counts as a bar when the bars are sized, and
+above 640 px its item takes the bars' height and its text their label size; its look there is one
+`@media not all and (max-width: 640px)` block in `pollCard-m3.css`.
+
+Each side is judged by its own bar area, since the notes take room on the front only.
+`ballotOpensMaximized()` is true above 640 px when the poll has more choices than the voting side's
+capacity (in the phone layout, when the card hides choices): Vote then calls
+`onMaximize(pid, { face: "vote" })`, and no ballot is built behind the card. A card found on its voting
+side with a ballot that no longer fits (a choice added, the window resized) returns to its results side
+with the selection kept for the maximized view. `restore()` draws every mounted card again, since the
+cards refreshed while the grid was hidden were drawn without a height; each tab's `activate()` draws its
+grid after its panel is shown, and the window's `resize` handler covers the rest.
+
+"Show more" calls `onMaximize(pid, { open: "notes" })` at every width. `revealNotes` in `tabs.js` then
+scrolls the page until the card's action row, with Vote, is 16 px under the fixed header, when the notes
+would otherwise start below the middle of the window: it measures `.extras-tabs` in the phone layout and
+`.maximized-notes` above it, when the view opens and again when the notes' text arrives. Where the notes
+sit beside the card nothing moves.
 
 ```mermaid
 stateDiagram-v2
   [*] --> Grid
-  Grid --> Maximized: title, subtitle, Show more or maximize button
+  Grid --> Maximized: title, subtitle, Show more (at the notes), More choices or maximize button
+  Grid --> Maximized: Vote, when the ballot does not fit (on its voting side)
   Maximized --> Grid: minimize button, Escape, the active tab, the browser's Back (scroll and focus restored)
   Maximized --> Grid: another tab, a search, a login change (quiet: neither restored)
   Maximized --> Grid: the poll leaves the tab's list (any tab but Trending and Newest)

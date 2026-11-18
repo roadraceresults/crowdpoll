@@ -36,7 +36,6 @@ html[data-header-fit~="no-search"] .search-tab-form{ display:flex; }
   .card-flip:not(.maximized-card-flip) .bar-scroll-inner{ position:static; overflow:visible; }
   .card-flip:not(.maximized-card-flip) .results-list,
   .card-flip:not(.maximized-card-flip) .voting-list{ flex:0 0 auto; overflow:visible; }
-  .card-flip:not(.maximized-card-flip) .arrow-row{ display:none; }
 
   .card-flip:not(.maximized-card-flip) .card-face .subtitle{
     font-size:calc(var(--md-sys-typescale-body-medium-size) * 0.75);
