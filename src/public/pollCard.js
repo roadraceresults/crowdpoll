@@ -1218,11 +1218,14 @@ function initPollCard(viewport, opts){
     // line; the other reasons take a line of their own. Your Polls says nothing: every
     // poll in it was created by the viewer.
     const reasons = opts.tab === 'your-polls' || !Array.isArray(poll.listedBecause) ? [] : poll.listedBecause;
+    // A private poll says so on the same line, on every tab, after "You voted".
     const votedEl = viewport.querySelector('.poll-voted');
     if (votedEl){
-      const voted = reasons.indexOf('voted') !== -1;
-      votedEl.textContent = voted ? 'You voted' : '';
-      votedEl.hidden = !voted;
+      const marks = [];
+      if (reasons.indexOf('voted') !== -1) marks.push('You voted');
+      if (poll.pollVisibility === 'Private Poll') marks.push('Private');
+      votedEl.textContent = marks.join(' · ');
+      showVotedLine();
     }
     // Anonymous Votes applies to private polls only; the server then hides who chose what from the creator.
     const anonymousEl = viewport.querySelector('.poll-anonymous');
@@ -1718,6 +1721,13 @@ function initPollCard(viewport, opts){
     if (!voteNoticeFront) return;
     voteNoticeFront.textContent = text;
     voteNoticeFront.hidden = !text;
+    showVotedLine();
+  }
+
+  // The vote notice takes the voted line's place while it shows.
+  function showVotedLine(){
+    const votedEl = viewport.querySelector('.poll-voted');
+    if (votedEl) votedEl.hidden = !votedEl.textContent || !!(voteNoticeFront && !voteNoticeFront.hidden);
   }
 
   // Clicking anywhere on a row toggles that choice's selection. A

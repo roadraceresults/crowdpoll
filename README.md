@@ -23,7 +23,8 @@ delivery network.
   ten from Trending, each poll once, at its first place. Open polls appear for two months after
   they opened, closed polls for a week after they closed, and polls waiting to open always; drafts,
   rejected and archived polls never do. Each card says why it is listed ("You were invited",
-  "Your poll", "You voted", "You are watching", "Trending"). The list is rebuilt when something
+  "Your poll", "You voted", "You are watching", "Trending"). Every card of a private poll, on any
+  tab, also says "Private", after "You voted" on the same line. The list is rebuilt when something
   you did changes it, and at least every two hours; voting on or watching a card on Home does not
   move it until you next open Home. Guests do not see the tab, and the avatar menu's first item,
   **Home**, opens it from any page.

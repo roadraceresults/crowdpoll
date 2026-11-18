@@ -1666,6 +1666,28 @@ describe("why a poll is listed in a personal tab (FIX020)", () => {
     await page.settle(100);
     expect(page.cardTitles("watching")).toEqual(["Marked one"]);
   });
+
+  it("a private poll says Private on the voted line, after You voted", async () => {
+    const me = "why-private@example.com";
+    const { cookie } = await forgeSession(ctx, me);
+    const invited = { pollVisibility: "Private Poll", pollSharingMode: "Invitation Only", invitedVoterList: [me] } as const;
+    const voted = makePoll({ title: "Private voted", ...invited, currentVotes: [{ emailAddress: me, userName: "", choiceIds: ["c1"], votedAt: new Date() }] });
+    const unvoted = makePoll({ title: "Private unvoted", ...invited });
+    await polls(ctx).insertMany([voted, unvoted]);
+    await addBookmark(ctx, me, voted._id, 200);
+    await addBookmark(ctx, me, unvoted._id, 200);
+    page = await openPage(ctx, "index.html", { cookie, url: ON_TRENDING });
+    await page.settle(1250);
+    await page.click('.tab[data-tab="watching"]');
+    const votedOf = (title: string) =>
+      Array.from(page!.document.querySelectorAll('.tab-panel[data-panel="watching"] .card-front'))
+        .find((el) => el.querySelector(".question")!.textContent === title)!
+        .querySelector(".poll-voted") as HTMLElement;
+    expect(votedOf("Private voted").textContent).toBe("You voted · Private");
+    expect(votedOf("Private voted").hidden).toBe(false);
+    expect(votedOf("Private unvoted").textContent).toBe("Private");
+    expect(votedOf("Private unvoted").hidden).toBe(false);
+  });
 });
 
 describe("the header's Create Poll link and the vote grant (025)", () => {
