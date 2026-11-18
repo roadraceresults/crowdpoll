@@ -14,6 +14,7 @@ devScripts/*
 !devScripts/publish-assets.ts
 !devScripts/build-assets.ts
 !devScripts/file-manifest.ts
+!devScripts/tapDebug.js
 !devScripts/favicon-ico.ts
 !devScripts/capture-admin-card.ts
 !devScripts/render-invitation-email.ts
