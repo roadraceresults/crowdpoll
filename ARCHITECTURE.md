@@ -1803,6 +1803,89 @@ scanline with `node:zlib`, so the script still needs no image library). The emai
 `npm run deploy` serves it; a mail proxy's cached copy may lag.
 It is rerun, and the files committed together, whenever the drawing changes.
 
+## Client code transformation
+
+`npm run build` does not release the client files as they are written. `devScripts/build-assets.ts` calls
+`buildAssets` in `devScripts/assetTransform.ts`, which copies `src/public` to `dist/public`, transforms the site's
+own scripts, style sheets and pages in that copy, and only then fingerprints the files, so the plain copy
+(`dist/public/<name>`) and the fingerprinted copy (`dist/public/assets/<hash>/<name>`) are the same transformed
+bytes and the hash is of what a browser receives. `src/public/`, `npm run dev` and `npm test` are untouched, and
+no file under `src/` knows the transformation exists.
+
+```mermaid
+flowchart TD
+  Src["src/public"] --> Switch{"ENV_OBFUSCATE_ASSETS"}
+  Switch -- "any other value" --> Stop["message, exit code 1,<br/>nothing written"]
+  Switch -- "off" --> Copy["copy as written"]
+  Switch -- "on or unset" --> Tools["load the build tools<br/>(a missing one stops the build)"]
+  Tools --> Transform["top-level .js: shorten, then strings into an encoded table<br/>top-level .css: shorten<br/>top-level .html: remove comments and spacing<br/>everything else: copy"]
+  Transform --> Own["checks on the transformed files:<br/>none equals its source, compressed total not larger"]
+  Own --> Print["fingerprint from the bytes in dist/public"]
+  Copy --> Print
+  Print --> Both["checks on every build:<br/>each script compiles, each page reference is in the manifest"]
+  Both -- "a check fails" --> Remove["dist/public removed, exit code 1"]
+  Both --> Out["dist/public/&lt;name&gt; and dist/public/assets/&lt;hash&gt;/&lt;name&gt;,<br/>asset-manifest.json"]
+  Transform -. "--source-maps" .-> Maps["dist-maps/&lt;name&gt;.js.map<br/>(git-ignored, never published)"]
+```
+
+**What is transformed.** Only the top-level `.js`, `.css` and `.html` files of `src/public`: 36 scripts, 35 sheets
+and 12 pages. Images, icons, and everything under `vendor/`, `oauth/` and `fonts/` are copied byte for byte.
+
+**The tools and their settings.** Four development dependencies at exact versions; none is installed for the
+running site by this feature, and the running site never loads one.
+
+| Tool | Version | Does |
+|---|---|---|
+| `esbuild` | 0.28.2 | Shortens scripts (`minify`, `target: "es2020"`, no legal comments) and sheets (`minify`). Used through `transform`, with no bundling, so top-level names are kept |
+| `javascript-obfuscator` | 5.10.1 | Moves each script's strings into one base64-encoded table with a decoder (`stringArray`, `stringArrayThreshold: 1`, `stringArrayEncoding: ["base64"]`, `simplify`, `compact`, `identifierNamesGenerator: "mangled"`, `target: "browser-no-eval"`, `seed: 1`, `identifiersPrefix` per script). Every other transformation is written out as off |
+| `html-minifier-terser` | 7.2.0 | Removes comments and collapses spacing in pages (`collapseWhitespace`, `conservativeCollapse`, `removeComments`, `keepClosingSlash`); attribute quotes and optional tags are kept |
+| `@jridgewell/remapping` | 2.3.5 | Joins the two script stages' source maps, only when maps are asked for |
+
+**Names.** The scripts are classic scripts sharing one global scope, so no top-level, global or property name is
+renamed (`renameGlobals` and `renameProperties` are off). The decoder adds two global functions to each script;
+they are named after the script (`_pollCard_a`, `_pollCard_b`) by `decoderPrefix`, because a name shared by two
+scripts would make the later one answer the earlier one's lookups with its own strings. Two scripts whose names
+would give the same prefix (`a-b.js` and `a_b.js`) stop the build.
+
+**The language level** is pinned at ES2020, which is what the source uses; a test fails when a script starts to
+use newer syntax, so the level is raised on purpose. No built script creates code from text.
+
+**The checks that stop a build.** Each prints its cause, removes `dist/public` and ends the build with exit code
+1, so `npm run publish-assets` never runs and nothing is released:
+
+1. a file in scope cannot be transformed, or equals its source afterwards (an empty file is excused);
+2. the gzip total of the files in scope is larger after than before;
+3. a built script does not compile;
+4. a page refers to a top-level asset that is not in the manifest.
+
+The last two also run on a readable build. The build prints
+`[build] compressed size: 278434 → 260096 bytes (-6.6%)` (the figures of 2026-11-18).
+
+**The switch.** `ENV_OBFUSCATE_ASSETS` is read by the build only: unset or `on` transforms, `off` copies the files
+as written, any other value stops the build before anything is written. It is not part of `loadConfig`. With it
+off no build tool is loaded. To release readable files, set it to `off` in the web component's settings in
+`infra/app.tf` and run `npm run deploy`; remove the line and deploy again to restore.
+
+**What it does and does not do.** The transformation deters casual reading and copying: comments are gone, inner
+names are single letters, and no message text is visible in place. It does not prevent reading. A browser must
+be able to run the code, so anyone can run it too, and public tools put a string table back in seconds. Nothing
+private belongs in a client file, and every access rule stays on the server.
+
+**Lighter scripts.** `LIGHTER_SCRIPTS` in `devScripts/assetTransform.ts` names scripts that are shortened only,
+for when the size or the speed limit requires it. It is empty. `app.js` is the one large script the string table
+makes larger, since it holds the logo's path data, and is the first candidate if the total approaches the limit.
+
+**Tracing a production error.** Check out the released commit and run `npm run build -- --source-maps`. The
+build is repeatable, so the scripts are the released ones byte for byte, and `dist-maps/<name>.js.map` maps each
+back to `src/public/<name>`. Open the script in the browser's developer tools and attach the local map
+("Add source map"). The maps are git-ignored, are never written under `dist/public`, and a build without the flag
+removes them.
+
+**Tests.** `tests/build-assets.test.ts` builds a fixture folder and `src/public` into temporary folders and
+checks the rules above. `npm run test:built` builds, then runs the `tests/client-*.test.ts` suites against
+`dist/public` (`tests/helpers/browser.ts` takes its folder from `TEST_PUBLIC_DIR`); it is run by hand before a
+release, and the release build runs no tests.
+
 ## Testing
 
 Every suite runs on an embedded PostgreSQL started once per test run, with a fresh database

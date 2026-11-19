@@ -6,6 +6,26 @@ The full description, every earlier feature's decisions and the settings table a
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261118-160304-CLIENT-CODE-OBFUSCATION/plan.md` (research R1–R15, `data-model.md` — build inputs, mode and
+checks, nothing stored; the contract `contracts/build.md` B1–B16 and the quickstart live alongside it).
+The requirements report is `requirements/20261118-160304-client-code-obfuscation/requirements-report.md`: 14 findings,
+all resolved; where it speaks of the obfuscator's "light" setting, the plan's R2 is right (no wrapper, rotation or
+shuffling: the fuller setting fails the size limit).
+Decisions that are easy to get wrong:
+- **Build-time only**: `devScripts/build-assets.ts` transforms the copy in `dist/public`, then fingerprints those
+  bytes; `src/public/`, `npm run dev` and `npm test` are untouched, and nothing under `src/` reads the switch (R8, R9).
+- **No top-level, global or property name is renamed**: the scripts share one global scope (R3).
+- **`ENV_OBFUSCATE_ASSETS`** is `on`, `off` or unset (on); any other value stops the build; it is not in `loadConfig` (R9).
+- **The build stops and removes `dist/public`** when a file in scope is unchanged, the gzip total grew, a script does
+  not compile or a page reference is missing (R8).
+- **ES2020 is pinned** for the scripts, and no built script creates code from text (R4, R5).
+- **Source maps** only with `npm run build -- --source-maps`, in the git-ignored `dist-maps/` (R11);
+  `npm run test:built` runs the client suites on `dist/public` (R12).
+- **Each script's decoder has its own names** (`decoderPrefix`: `_pollCard_a`, `_pollCard_b`): the scripts share one
+  global scope, and with one name for all a later script answers an earlier one's lookups; two scripts whose names
+  give the same prefix stop the build.
+
+The plan before it:
 `specs/20261117-131915-WIDE-MORE-CHOICES/plan.md` (research R1–R12, `data-model.md` — derived values and the wide
 card's states, nothing stored; the contract `contracts/ui.md` W1–W10 and the quickstart live alongside it).
 The requirements report is `requirements/20261117-131915-wide-more-choices/requirements-report.md`: 8 findings, all
@@ -179,6 +199,8 @@ npx vitest run -t "name of the test"   # tests matching a name
 - A path that stops using an `avatars/` object queues its key in the same transaction (`queueAvatarRemoval`); only the
   removal sweep deletes it.
 - A new dev script needs a `!devScripts/<file>` line in `.gitignore`.
+- A new top-level client file is transformed by the build; a client script must not depend on its own internal names or
+  source text at run time, and a new build package is an exact-version `devDependency`.
 - `m3-assets.test.ts` pins each page's stylesheets (`LAYER_ORDER`); M3 layers hold only M3 tokens, no literal font sizes.
 - A back arrow or Cancel that leaves a page goes through `window.SiteBack` (`backArrow.js`), never its own
   `history.back()`; a new home tab joins `TAB_NAMES` in `tabs.js`, and tab changes use `replaceState`, never `pushState`.

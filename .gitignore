@@ -1,5 +1,6 @@
 node_modules/
 dist/
+dist-maps/
 build/
 *.log
 .env
@@ -13,6 +14,7 @@ devScripts/*
 !devScripts/reconcile.ts
 !devScripts/publish-assets.ts
 !devScripts/build-assets.ts
+!devScripts/assetTransform.ts
 !devScripts/file-manifest.ts
 !devScripts/tapDebug.js
 !devScripts/favicon-ico.ts
@@ -67,6 +69,7 @@ devScripts/extract/*
 .claude/settings.local.json
 *.min.js
 !src/public/vendor/*.min.js
+!tests/fixtures/build-assets/vendor/*.min.js
 *.bundle.js
 dump.rdb
 *BACKUP.*

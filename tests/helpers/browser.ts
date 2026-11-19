@@ -4,7 +4,7 @@ import { JSDOM, VirtualConsole } from "jsdom";
 import request from "supertest";
 import type { TestContext } from "./setup.js";
 
-const publicDir = path.resolve("src/public");
+const publicDir = path.resolve(process.env.TEST_PUBLIC_DIR ?? "src/public");
 
 export interface BrowserPage {
   window: JSDOM["window"];

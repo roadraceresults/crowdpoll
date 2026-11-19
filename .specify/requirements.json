@@ -1,6 +1,8 @@
 {
-    "requirements_directory": "requirements/20261117-154627-sms-invitation-research",
+    "requirements_directory": "requirements/20261118-160304-client-code-obfuscation",
     "last_written": {
+        "requirements/20261118-160304-client-code-obfuscation/requirements.md": "daea5fe788c9bd9f71d12d20a8c23d8c44c866618f508aa57ce15ea620f3d793",
+        "requirements/20261118-160304-client-code-obfuscation/requirements-report.md": "c13a0db2c6b91f5516c6df4e748479adad69e555d2086799c5f653fe4c8f94ce",
         "requirements/20261019-153514-production-email/requirements.md": "e0bd2b0bf28c2fbd6699c99cdf364c1398d3b7aed8eb456198295f78d108ee08",
         "requirements/20261019-153514-production-email/requirements-report.md": "4f75f5e263fa092fc0fcedc4a7cdaa32128382e287f2ac0394e4957e8d8bd413",
         "requirements/20261021-143942-prelaunch-signup-allowlist/requirements.md": "3954c7258bc2641e1a6d3b4d4c24f4b9f1cb0f8531c13e234ea439525585c9a4",
