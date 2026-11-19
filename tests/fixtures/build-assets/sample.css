@@ -1,0 +1,32 @@
+/* This sheet comment must not survive the build. It describes the two rules and the two
+   breakpoints below, which stand in for the phone and the wide layouts of the site. */
+
+.sample-card {
+  display: block;
+  margin: 0 auto;
+  padding: 16px 24px;
+  border-radius: 12px;
+  background-color: #ffffff;
+}
+
+#sample-id {
+  color: #1a1a1a;
+  font-weight: 500;
+}
+
+@media (max-width: 640px) {
+  .sample-card {
+    padding: 8px 12px;
+    border-radius: 0;
+  }
+}
+
+@media not all and (max-width: 640px) {
+  .sample-card {
+    max-width: 420px;
+  }
+
+  #sample-id {
+    font-weight: 400;
+  }
+}

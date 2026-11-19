@@ -5,6 +5,46 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261118-160304-CLIENT-CODE-OBFUSCATION/plan.md` (research R1–R15, `data-model.md` — build inputs, mode and
+checks, nothing stored; the contract `contracts/build.md` B1–B16 and the quickstart live alongside it).
+The requirements report is `requirements/20261118-160304-client-code-obfuscation/requirements-report.md`: 14 findings,
+all resolved; where it speaks of the obfuscator's "light" setting, the plan's R2 is right (no wrapper, rotation or
+shuffling: the fuller setting fails the size limit).
+What was built:
+- **The build transforms a copy**: `devScripts/build-assets.ts` calls `buildAssets` (`devScripts/assetTransform.ts`),
+  which copies `src/public` to `dist/public`, transforms the top-level `.js`, `.css` and `.html` files there, then
+  fingerprints those bytes, so both copies of a file are the transformed one (B7). `src/public/`, `npm run dev` and
+  `npm test` are untouched, and nothing under `src/` reads the switch (B15, B16).
+- **Tools** (exact-version `devDependencies`): `esbuild` 0.28.2 (scripts: `minify`, `target: "es2020"`; sheets:
+  `minify`), `javascript-obfuscator` 5.10.1 (a base64 string table: `stringArray`, `stringArrayThreshold: 1`,
+  `stringArrayEncoding: ["base64"]`, `simplify`, `compact`, `identifierNamesGenerator: "mangled"`,
+  `target: "browser-no-eval"`, `seed: 1`; wrappers, rotation, shuffling, index shift and every other transformation
+  written out as off), `html-minifier-terser` 7.2.0 (`collapseWhitespace`, `conservativeCollapse`, `removeComments`,
+  `keepClosingSlash`), `@jridgewell/remapping` 2.3.5 (source maps only). They are loaded with `import()` only when
+  the switch is on; a missing one stops the build with
+  `ENV_OBFUSCATE_ASSETS is on but <package> is not installed; run npm ci --include=dev`.
+- **No top-level, global or property name is renamed** (the scripts share one global scope). The decoder's two
+  global functions are named after their script by `decoderPrefix` (`_pollCard_a`, `_pollCard_b`): with one name
+  for all, a later script answered an earlier one's lookups with its own strings. Two scripts whose names give the
+  same prefix stop the build.
+- **`ENV_OBFUSCATE_ASSETS`**: `on`, `off` or unset (on), no trimming or case folding; any other value stops the
+  build with `ENV_OBFUSCATE_ASSETS must be "on" or "off" (got "<value>")` before anything is written; not in
+  `loadConfig`; unset in `infra/app.tf` (B1–B3).
+- **Four checks stop the build and remove `dist/public`** (B9): a file in scope unchanged (`checkTransformed`, empty
+  excused) or not transformable, the gzip-9 total larger (`checkCompressedSize`), a script that does not compile
+  (`checkCompiles`, `node:vm`), a page reference missing from the manifest. The last two run on a readable build too.
+- **Measured 2026-11-18**: `[build] compressed size: 278434 → 260096 bytes (-6.6%)` over 36 scripts, 35 sheets and
+  12 pages; the per-script decoder names cost 4,680 of those bytes. `LIGHTER_SCRIPTS` (shortened only) is empty;
+  `app.js` is the first candidate (B14).
+- **It deters, it does not prevent**: public tools undo the string table; nothing private belongs in a client file.
+- **Source maps** only with `npm run build -- --source-maps`, in the git-ignored `dist-maps/`, with the built bytes
+  unchanged; a build without the flag removes the folder (B13).
+- **Tests**: `tests/build-assets.test.ts` (fixture in `tests/fixtures/build-assets/`, and `src/public` built once
+  through `siteBuild()`); `npm run test:built` (`vitest.built.config.ts`, `TEST_PUBLIC_DIR=dist/public`) runs the
+  `client-*` suites on the built files. `client-viewport-width.test.ts` allows the two decoder names and compares the
+  viewport declaration without regard to spacing after commas, which the page minifier removes.
+
+The plan before it:
 `specs/20261117-131915-WIDE-MORE-CHOICES/plan.md` (research R1–R12, `data-model.md` — derived values and the wide
 card's states, nothing stored; the contract `contracts/ui.md` W1–W10 and the quickstart live alongside it).
 The requirements report is `requirements/20261117-131915-wide-more-choices/requirements-report.md`: 8 findings, all
@@ -1346,7 +1386,9 @@ Commands:
 
 ```
 npm run dev     # tsx watch src/server.ts (needs ENV_* env; use devScripts/launch-dev.ps1)
-npm run build   # tsc + devScripts/build-assets.ts (dist/public with fingerprinted copies under assets/)
+npm run build   # tsc + devScripts/build-assets.ts (dist/public: own scripts, sheets and pages transformed, fingerprinted copies under assets/)
+npm run build -- --source-maps   # the same build, plus private source maps in dist-maps/
+npm run test:built   # build, then the client-* suites against dist/public (by hand, before a release)
 npx tsc --noEmit    # type-check only (there is no linter)
 npm start       # node dist/server.js
 npm test        # vitest run — all suites under ./tests on an embedded PostgreSQL; no local services needed

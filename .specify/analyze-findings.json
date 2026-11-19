@@ -249,6 +249,12 @@
         "specs/20261117-131915-WIDE-MORE-CHOICES/analyze-findings.md": "063333a68835729398ba81cc359cbe75f974fd11c0c84f40e9004d27d90b08be",
         "specs/20261117-131915-WIDE-MORE-CHOICES/tasks.md": "6908d7a85b7dd5c1d85b40529575de33ee48a8df707180e0a96fc881612225ed",
         "specs/20261117-131915-WIDE-MORE-CHOICES/spec.md": "081bb9f4a55bab103f76d8a5d0bc68db7013f99f7f2aea74728f138ab4181ab3",
-        "requirements/20261117-131915-wide-more-choices/requirements.md": "88fb00f6bbbc1563db02d410d2104c45de07fe8646590caeafc59019c1d35c89"
+        "requirements/20261117-131915-wide-more-choices/requirements.md": "88fb00f6bbbc1563db02d410d2104c45de07fe8646590caeafc59019c1d35c89",
+        "specs/20261118-160304-CLIENT-CODE-OBFUSCATION/analyze-findings.md": "6522df7031a49a973669a51d67756f399355269e5f4f641a328cb2caf6a603f1",
+        "specs/20261118-160304-CLIENT-CODE-OBFUSCATION/tasks.md": "f0c6ffed5ebc69d377c12a21f9d894d89c30f3a6546dcc2fbd8eb23845f986cf",
+        "specs/20261118-160304-CLIENT-CODE-OBFUSCATION/spec.md": "df14241548adc0d0f2598ddc72089b9d9587eb0856bf436cf076ea56c4a3f42e",
+        "requirements/20261118-160304-client-code-obfuscation/requirements.md": "daea5fe788c9bd9f71d12d20a8c23d8c44c866618f508aa57ce15ea620f3d793",
+        "specs/20261118-160304-CLIENT-CODE-OBFUSCATION/contracts/build.md": "adc903fc349f4ee18a289244f03cc9214da800e64012fdcab2073ec2fb204230",
+        "specs/20261118-160304-CLIENT-CODE-OBFUSCATION/research.md": "130000e35e08b9da57ebe864c2f521c47a0792abcb1be6b8a44adeaf8cce5fd5"
     }
 }

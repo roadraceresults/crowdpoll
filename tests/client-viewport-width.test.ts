@@ -58,7 +58,8 @@ async function openHeld(held: HeldScreen, before?: (window: PageWindow) => void)
 }
 
 const viewportMeta = (page: BrowserPage) => page.document.querySelector('meta[name="viewport"]') as HTMLMetaElement;
-const content = (page: BrowserPage) => viewportMeta(page).getAttribute("content");
+const content = (page: BrowserPage) => viewportMeta(page).getAttribute("content")?.replace(/,\s*/g, ", ") ?? null;
+const BUILT_STRING_TABLE_NAME = /^_viewportWidth_[a-z]$/;
 
 function textSizeAdjust(page: BrowserPage): string[] {
   const style = page.document.documentElement.style;
@@ -105,7 +106,8 @@ describe("viewportWidth.js on a screen held narrower than 480 px", () => {
     expect(page.window.localStorage.length).toBe(0);
     expect(page.window.sessionStorage.length).toBe(0);
     expect(page.document.cookie).toBe("");
-    expect(Object.getOwnPropertyNames(page.window).filter((name) => !globalsBefore.includes(name))).toEqual([]);
+    const added = Object.getOwnPropertyNames(page.window).filter((name) => !globalsBefore.includes(name));
+    expect(added.filter((name) => !BUILT_STRING_TABLE_NAME.test(name))).toEqual([]);
     page.close();
   });
 

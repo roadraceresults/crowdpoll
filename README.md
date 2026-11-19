@@ -393,7 +393,8 @@ npm install
 
 ```
 npm run dev          # tsx watch src/server.ts — or ./devScripts/launch-dev.ps1, which sets the ENV_* variables
-npm run build        # compiles to dist/ and writes fingerprinted copies of the static assets
+npm run build        # compiles to dist/, transforms the site's own scripts, style sheets and pages (hard to read, not secret), and writes fingerprinted copies of the static assets
+npm run test:built   # builds, then runs the browser-side tests against the built files (by hand, before a release)
 npm start            # node dist/server.js
 npm run reconcile    # recomputes every poll's vote counters from the stored votes
 npm run publish-assets   # uploads the fingerprinted assets to the Spaces bucket (after build; needs ENV_SPACES_*)
@@ -666,6 +667,15 @@ token. The build runs `npm ci --include=dev && npm run build && npm run publish-
 then `npm start`; `NODE_ENV=production` is set at build and run time, and the custom build command prunes
 devDependencies itself at the end. `tsx` is a dependency, so `npm run reconcile` still works from the console.
 
+**Readable client files.** The build shortens the site's own scripts, style sheets and pages and moves the scripts'
+text into an encoded table, so the released code is hard to read; it is a deterrent, not a secret, since a browser
+must be able to run it. The build stops, releasing nothing, when a file comes out unchanged or broken or the
+compressed total grows. To release the files as written (for example to rule the transformation out while chasing
+a fault), add `ENV_OBFUSCATE_ASSETS = "off"` to the web component's settings in `infra/app.tf` and run
+`npm run deploy`; remove the line and deploy again to restore. To trace an error from the live site, check out the
+released commit, run `npm run build -- --source-maps`, and attach `dist-maps/<script>.js.map` to the script in the
+browser's developer tools.
+
 **A second plan that is not clean.** App Platform returns secret settings encrypted. If a `plan` right after an apply
 keeps showing changes limited to the secret settings, that is a gap in the provider, not a change: it is recorded here,
 and any other difference is a real one. Recorded outcome: not yet checked against the live app.
@@ -801,6 +811,7 @@ provider settings only with `oauth` or `both`, and administrator addresses are m
 | `ENV_PAGE_LOADS_PER_MINUTE` | `120` | Page loads per session (or address) per minute before a notice |
 | `ENV_DEVICE_EVENTS_ENABLED` | `false` | `true` records a device fingerprint at each login and vote, once the current Terms are accepted; any other value but `false` stops the app. To turn it on in production, confirm every account is a test user and tell them what is recorded, then set it in `infra/app.tf`, apply and deploy |
 | `ENV_DEVICE_EVENTS_KEY` | unset | The key fingerprints are hashed with, at least 32 characters, required when collection is on (`device_events_key` in `infra/secrets.auto.tfvars`, which Terraform requires even while collection is off). Never logged or published |
+| `ENV_OBFUSCATE_ASSETS` | unset | Read by `npm run build` only, never by the running app: unset or `on` → the site's own scripts, style sheets and pages are released transformed (hard to read); `off` → they are released as written; any other value stops the build. Left unset in `infra/app.tf` |
 | `ENV_FCAPTCHA_ENABLED` | unset | `1` turns on the human check before login (the self-hosted FCaptcha service); anything else leaves it off. When on, the three below are required |
 | `ENV_FCAPTCHA_URL` | unset | Where the web service reaches FCaptcha, server to server (`${fcaptcha.PRIVATE_URL}` in `infra/app.tf`) |
 | `ENV_FCAPTCHA_SITE_KEY` | unset | The site key the widget is drawn with (public; one of the FCaptcha service's `ENV_FCAPTCHA_SITE_KEYS`) |
