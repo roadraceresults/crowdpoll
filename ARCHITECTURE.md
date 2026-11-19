@@ -1878,7 +1878,7 @@ makes larger, since it holds the logo's path data, and is the first candidate if
 **Tracing a production error.** Check out the released commit and run `npm run build -- --source-maps`. The
 build is repeatable, so the scripts are the released ones byte for byte, and `dist-maps/<name>.js.map` maps each
 back to `src/public/<name>`. Open the script in the browser's developer tools and attach the local map
-("Add source map"). The maps are git-ignored, are never written under `dist/public`, and a build without the flag
+("Add source map"). Each map holds its script's source text, so no other file is needed. The maps are git-ignored, are never written under `dist/public`, and a build without the flag
 removes them.
 
 **Tests.** `tests/build-assets.test.ts` builds a fixture folder and `src/public` into temporary folders and

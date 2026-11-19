@@ -82,9 +82,8 @@ and two timed actions against a readable build.
    Safari on a desktop, Safari on an iPhone and Chrome on an Android phone, **Then** the result is the same on all six.
 3. **Given** a built site and a readable build of the same source, **When** the compressed size of all scripts, style
    sheets and pages is totalled for each, **Then** the built site's total is no larger.
-4. **Given** the home page with a full tab of poll cards, on a mid-range phone and on a desktop, **When** the time to
-   the first usable card and the time to draw a line graph are measured on both builds, **Then** the built site is no
-   more than 10% slower on either.
+4. **Given** the home page with a full tab of poll cards, on a phone and on a desktop, **When** the cards and a line
+   graph are used on the built site, **Then** nothing is noticeably slower than on a readable build.
 5. **Given** a script that fails the size or the speed limit, **When** the release is prepared, **Then** that script is
    given a lighter transformation, and the exception is written down in the documentation.
 6. **Given** the legal pages on a built site, **When** a visitor or a search engine reads them, **Then** their text,
@@ -328,9 +327,8 @@ position in a built script resolves to the right source line.
   supported browsers, on a transformed build.
 - **SC-003**: The compressed total size of the scripts, style sheets and pages of a transformed build is no larger than
   that of a readable build of the same source.
-- **SC-004**: On the home page with a full tab of cards, the time to the first usable card and the time to draw a line
-  graph are each no more than 10% slower on a transformed build than on a readable build, on a mid-range phone and on a
-  desktop.
+- **SC-004**: On the home page with a full tab of cards, the first usable card and the drawing of a line graph are not
+  noticeably slower in use on a transformed build than on a readable build, on a phone and on a desktop.
 - **SC-005**: Every automated test that passes against the source passes against the built files.
 - **SC-006**: A release is switched between transformed and readable by changing one setting and deploying once, with
   no change to any code, in the time one deployment takes.

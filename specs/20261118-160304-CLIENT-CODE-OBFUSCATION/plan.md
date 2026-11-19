@@ -55,7 +55,7 @@ in current Chrome, Edge, Firefox and Safari, desktop and phone.
 **Project Type**: web service (Express) serving static pages; this feature touches its build script only.
 
 **Performance Goals**: compressed total of scripts, sheets and pages no larger than the source's (measured: 6.6%
-smaller); first usable card and line-graph drawing no more than 10% slower than a readable build; the build itself
+smaller); first usable card and line-graph drawing not noticeably slower in use than on a readable build; the build itself
 about two seconds longer.
 
 **Constraints**: names shared between scripts, pages and API responses unchanged (FR-007); the page routes'

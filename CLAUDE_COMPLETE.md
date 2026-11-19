@@ -1386,6 +1386,7 @@ Commands:
 
 ```
 npm run dev     # tsx watch src/server.ts (needs ENV_* env; use devScripts/launch-dev.ps1)
+./devScripts/launch-dev.ps1 -Built   # same ENV_*, then npm run build and npm start: serves dist/public (transformed)
 npm run build   # tsc + devScripts/build-assets.ts (dist/public: own scripts, sheets and pages transformed, fingerprinted copies under assets/)
 npm run build -- --source-maps   # the same build, plus private source maps in dist-maps/
 npm run test:built   # build, then the client-* suites against dist/public (by hand, before a release)

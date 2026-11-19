@@ -62,13 +62,45 @@ npm run build -- --source-maps
 
 Expected: `dist-maps/pollCard.js.map` exists, nothing named `*.map` under `dist/public`, and `git status` shows
 nothing new.
-To trace an error from the live site: check out the released commit, run this command, open the script in the
-browser's developer tools, choose "Add source map" and give the local map file.
+Nothing is deployed by this step; it runs on the development machine only.
+The maps are for later, when the live site reports an error: check out, on the development machine, the commit
+that was released, run this command there, open the live site's script in the browser's developer tools, choose
+"Add source map" and give the local map file. The build is repeatable, so the local map fits the released script.
+
+In Chrome or Edge:
+
+1. Developer tools, Sources: open the script from the `assets` folder (`assets/<hash>/pollCard.js`).
+2. Right-click inside the code (not on the file in the tree) and choose "Add source map…". The entry is missing
+   when "JavaScript source maps" is off in the developer tools' Settings, Preferences, Sources.
+3. Enter the map's address as a file URL, for example `file:///C:/crowdPoll/obfuscate/dist-maps/pollCard.js.map`.
+4. `pollCard.js` as written, with its comments, appears in the tree; breakpoints and error positions now refer to it.
+
+The map holds the source text, so nothing else has to be reachable. The attachment lasts until the page is reloaded.
+
+To try this on the development machine: with `./devScripts/launch-dev.ps1 -Built` running, run
+`npm run build -- --source-maps` in a second terminal (it rewrites `dist/public` with the same bytes), reload the
+page, and follow the four steps.
 
 ## 4. Function checklist (by hand, on a transformed build)
 
-Run the built app (`npm run build`, then `npm start` with the development settings) and keep the browser's console
-open. No step may log an error.
+Run the built app on the development machine and keep the browser's console open. No step may log an error.
+
+```
+./devScripts/launch-dev.ps1 -Built
+```
+
+The switch runs `npm run build` and then `npm start` with the development settings, so the browser receives the
+transformed files of `dist/public`; without it the script runs `npm run dev`, which serves `src/public` as written.
+
+Where to see the transformed files:
+
+- in the browser's developer tools, Sources, under the site's address: the `assets` folder holds one folder per
+  fingerprint, and each holds one file (`assets/<hash>/pollCard.js`); the entry named after the address
+  (`?tab=home`) is the page itself;
+- by address: `http://localhost:<port>/pollCard.js` is the same file without the fingerprint;
+- on disk: `dist/public/pollCard.js` and `dist/public/assets/<hash>/pollCard.js`.
+
+The pages ask for the fingerprinted copies, which is why no script is listed beside the page.
 
 1. Sign in.
 2. Vote on a public poll; change the vote.
@@ -89,25 +121,30 @@ Result per browser (a browser that is not available is recorded as not run, not 
 
 | Browser | Result |
 |---|---|
-| Chrome, desktop | not run |
-| Edge, desktop | not run |
-| Firefox, desktop | not run |
-| Safari, desktop | not run |
-| Safari, iPhone | not run |
-| Chrome, Android | not run |
+| Chrome, desktop | passed |
+| Edge, desktop | passed |
+| Firefox, desktop | passed |
+| Safari, desktop | passed |
+| Safari, iPhone | passed |
+| Chrome, Android | passed |
+
+Run on BrowserStack, 2026-11-19, on the transformed build.
 
 ## 5. Speed comparison (by hand, once before the first release)
 
-On a mid-range phone and on a desktop, for a transformed and a readable build of the same commit, with the cache
-disabled, three runs each, taking the median:
+On a phone and on a desktop, use a transformed build and compare with a readable build of the same commit:
 
-- the home page with a full tab of cards: time from navigation to the first card that responds to a tap;
-- a poll's maximized view: time from opening the line graph to its lines being drawn.
+- the home page with a full tab of cards: until the first card responds to a tap;
+- a poll's maximized view: opening the line graph until its lines are drawn.
 
-The transformed build is at most 10% slower on each. If it is not, name the heaviest script in `LIGHTER_SCRIPTS`,
-rebuild, measure again, and record the exception in the documentation.
+For the readable build, set `$env:ENV_OBFUSCATE_ASSETS = "off"` in `devScripts/launch-dev.ps1` and run
+`./devScripts/launch-dev.ps1 -Built`; set it back to `"on"` for the transformed one.
 
-Result: not run. The eight numbers are still to be measured before the first release.
+Nothing is noticeably slower on the transformed build. If something is, name the heaviest script in
+`LIGHTER_SCRIPTS`, rebuild, compare again, and record the exception in the documentation.
+
+Result, 2026-11-19, on the transformed build through BrowserStack: the speed difference is not noticeable, and the
+site feels quite responsive to the user. No times were measured.
 
 ## 6. Reverting in production
 

@@ -111,7 +111,7 @@ async function transformScriptWithMap(tools: BuildTools, name: string, source: s
       target: "es2020",
       legalComments: "none",
       charset: "utf8",
-      ...(wantsMap ? { sourcemap: "external" as const, sourcefile: name, sourcesContent: false } : {})
+      ...(wantsMap ? { sourcemap: "external" as const, sourcefile: name, sourcesContent: true } : {})
     });
     if (options.lighter) return { code: shortened.code, ...(wantsMap ? { map: shortened.map } : {}) };
     const encoded = tools.obfuscator.obfuscate(shortened.code, {
