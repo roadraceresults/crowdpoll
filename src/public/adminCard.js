@@ -850,11 +850,6 @@
       bar._hideTimer = setTimeout(() => bar.classList.remove("is-shown"), 3000);
     }
 
-    function pollLink() {
-      const origin = deps.origin ? deps.origin() : location.origin;
-      return origin + "/?PID=" + encodeURIComponent(current.pid);
-    }
-
     // ── Settings Summary ──
     // A part is tappable only once its step has been answered (Next pressed on it).
     // A tappable part is inline text with a button's role: a real <button> is an
@@ -1242,13 +1237,8 @@
     // Every Copy control (the Summary button, the link icon and the menu item) copies here,
     // first thing in the tap: iOS refuses a clipboard write once focus has moved or the
     // menu has closed, and the icon and menu item, which did both first, copied nothing.
-    async function copyPollLink() {
-      try {
-        await navigator.clipboard.writeText(pollLink());
-        snackbar("Link copied");
-      } catch {
-        snackbar("Could not copy the link");
-      }
+    function copyPollLink() {
+      return window.SharePoll.copy(current.pid);
     }
 
     // ── Step 2: Title & Tags ──

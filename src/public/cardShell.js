@@ -200,6 +200,30 @@
     return value && POLL_ID.test(value) ? value : null;
   }
 
+  var TAB_NAMES = ["home", "your-polls", "shared-with-you", "your-votes", "trending", "newest", "watching", "live", "search"];
+
+  /** The tab a shared link named beside its poll, or null when absent or not a tab name. */
+  function sharedTab() {
+    var value = new URLSearchParams(location.search).get("tab");
+    return sharedPid() && TAB_NAMES.indexOf(value) !== -1 ? value : null;
+  }
+
+  /** "PID=<id>", with "&tab=<tab>" when the link named one; "" without a poll. */
+  function sharedLinkQuery() {
+    var pid = sharedPid();
+    if (!pid) return "";
+    var tab = sharedTab();
+    return "PID=" + pid + (tab ? "&tab=" + tab : "");
+  }
+
+  /** The poll id and tab a shared link carried, added to a request body. */
+  function withSharedLink(body) {
+    var pid = sharedPid();
+    if (!pid) return body;
+    var tab = sharedTab();
+    return Object.assign(tab ? { pid: pid, tab: tab } : { pid: pid }, body);
+  }
+
   /** The line above a login form that explains why the visitor is here; nothing about the poll. */
   function addSharedPollLine(card) {
     if (!sharedPid()) return;
@@ -311,8 +335,8 @@
   function addFootLine(card, lead, href, text) {
     var line = document.createElement("p");
     line.className = "card-shell-foot";
-    var pid = sharedPid();
-    line.append(document.createTextNode(lead + " "), docLink(pid ? href + "?PID=" + pid : href, text));
+    var query = sharedLinkQuery();
+    line.append(document.createTextNode(lead + " "), docLink(query ? href + "?" + query : href, text));
     card.face.appendChild(line);
     return line;
   }
@@ -329,6 +353,9 @@
   window.CardShell = {
     mount: mount,
     sharedPid: sharedPid,
+    sharedTab: sharedTab,
+    sharedLinkQuery: sharedLinkQuery,
+    withSharedLink: withSharedLink,
     addSharedPollLine: addSharedPollLine,
     addOauthSharing: addOauthSharing,
     addProviderSharing: addProviderSharing,

@@ -52,6 +52,17 @@ describe("the login card with a shared poll link", () => {
     expect(await sentBody(page, "#login-form", "/api/auth/request-login-link")).toMatchObject({ email: "reader@example.com", pid });
   });
 
+  it("sends the tab beside the pid, and drops one that is not a tab name", async () => {
+    const pid = randomUUID();
+    page = await login(`?PID=${pid}&tab=your-votes`);
+    await page.settle(100);
+    expect(await sentBody(page, "#login-form", "/api/auth/request-login-link")).toMatchObject({ pid, tab: "your-votes" });
+    page.close();
+    page = await login(`?PID=${pid}&tab=Your-Votes`);
+    await page.settle(100);
+    expect(await sentBody(page, "#login-form", "/api/auth/request-login-link")).not.toHaveProperty("tab");
+  });
+
   it("ignores an id that is not a poll id", async () => {
     page = await login("?PID=//evil.example");
     await page.settle(100);
@@ -78,7 +89,7 @@ describe("the login card with a shared poll link", () => {
     const oauth = await startTestContext({ ENV_SIGNIN_METHOD: "oauth", ENV_OAUTH_GOOGLE_CLIENT_ID: "google-client", ENV_OAUTH_GOOGLE_CLIENT_SECRET: "google-secret" });
     try {
       const pid = randomUUID();
-      page = await openPage(oauth, "login.html", { url: `http://localhost/login?PID=${pid}`, scripts: ["app.js", "cardShell.js", "loginCard.js"] });
+      page = await openPage(oauth, "login.html", { url: `http://localhost/login?PID=${pid}&tab=newest`, scripts: ["app.js", "cardShell.js", "loginCard.js"] });
       await page.settle(100);
       const sent: string[] = [];
       const original = page.window.fetch;
@@ -88,7 +99,7 @@ describe("the login card with a shared poll link", () => {
       }) as typeof page.window.fetch;
       page.document.querySelector<HTMLButtonElement>(".oauth-providers button")!.click();
       await page.settle(100);
-      expect(sent.map((body) => JSON.parse(body).callbackURL)).toEqual([`/?PID=${pid}&signedIn=1`]);
+      expect(sent.map((body) => JSON.parse(body).callbackURL)).toEqual([`/?PID=${pid}&tab=newest&signedIn=1`]);
     } finally {
       page?.close();
       page = null;
@@ -104,6 +115,21 @@ describe("the create-account card with a shared poll link", () => {
     await page.settle(100);
     expect(page.document.querySelector(".shared-poll-line")!.textContent).toBe(LINE);
     expect(await sentBody(page, "#create-form", "/api/auth/create-account")).toMatchObject({ email: "reader@example.com", pid });
+  });
+
+  it("sends the tab beside the pid", async () => {
+    const pid = randomUUID();
+    page = await createAccount(`?PID=${pid}&tab=shared-with-you`);
+    await page.settle(100);
+    expect(await sentBody(page, "#create-form", "/api/auth/create-account")).toMatchObject({ pid, tab: "shared-with-you" });
+  });
+
+  it("keeps the tab on the foot link to the login page", async () => {
+    const pid = randomUUID();
+    page = await createAccount(`?PID=${pid}&tab=watching`);
+    await page.settle(100);
+    const foot = page.document.querySelector<HTMLAnchorElement>(".card-shell-foot a")!;
+    expect(foot.getAttribute("href")).toBe(`/login?PID=${pid}&tab=watching`);
   });
 
   it("is unchanged without a pid", async () => {

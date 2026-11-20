@@ -95,10 +95,10 @@ describe("GET /?PID= for a logged-in visitor", () => {
     expect(await ctx.db.selectFrom("user_polls").selectAll().where("poll_id", "=", poll._id).where("relation", "=", "linked").execute()).toEqual([]);
   });
 
-  it("lands on Trending for a published public poll and records nothing", async () => {
+  it("lands on Home for a published public poll and records nothing", async () => {
     const poll = await seed({});
     const res = await open(poll._id);
-    expect(res.headers.location).toBe(`/?open=${poll._id}&tab=trending`);
+    expect(res.headers.location).toBe(`/?open=${poll._id}&tab=home`);
     expect(await viewRows(poll._id)).toEqual([]);
   });
 

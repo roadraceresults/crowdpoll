@@ -5,6 +5,52 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261119-182343-DEEP-LINKS/plan.md` (research R1–R10, `data-model.md` — tab names, the link request, `chooseTab`
+and the address states, nothing stored; the contracts `contracts/links.md` L1–L12, `contracts/share.md` S1–S9 and the
+quickstart live alongside it).
+The requirements report is `requirements/20261119-182343-deep-links/requirements-report.md`: 15 findings, all resolved.
+What was built:
+- **The server chooses the tab** (R2): `GET /?PID=<pid>[&tab=<tab>][&q=<terms>]` in `pages.ts` reads `parseTab` and the
+  trimmed terms and calls `resolveSharedLink(…, { tab, hasTerms })`; `decideSharedLink` reads the caller's `voted` and
+  `bookmarked` `user_polls` rows for the poll in one select and sets `landing.tab = chooseTab(facts, request)`, a pure
+  function: the asked tab when it fits (Your Polls for the creator; Shared With You for `private && !created`; Your
+  Votes for a voter; Watching for a watcher; Home, Trending, Newest for a published public poll; Search with terms;
+  Live never), else Your Polls → Shared With You → Your Votes → Watching → Home. A public poll with no tab now lands on
+  Home, not Trending. Refused and unpublished answers are unchanged. `landingUrl` writes `q` after `tab` when the tab is
+  Search. Logged as `[link] Poll link opened: <tab or notice> (asked <tab or none>)`.
+- **`LANDING_TABS`** in `sharedLink.ts` equals `TAB_NAMES` in `tabs.js` (`shared-link-tab.test.ts` reads the file);
+  `CardShell` keeps its own copy for the login pages, which do not load `tabs.js`.
+- **The address while maximized** (R1, R3): `addressWithPoll(pid)` / `addressWithoutPoll()` in `tabs.js` set or delete
+  `PID` and keep every other parameter and the hash. A card's maximize pushes `{maximizedPid}` at
+  `/?tab=<tab>&PID=<pid>`; a landing or a history return replaces; `restore`, `dropMaximizedStep`'s
+  `addressAfterDrop`, the not-found history branch and `showTabInAddress` remove `PID`. `/poll/<pid>`
+  (`body[data-poll-page]`) keeps its own address.
+- **Search words** (R3): `Tabs.showSearchTerms(terms)` replaces the address with `tab=search` and `q` (deleted when
+  empty); `searchTab.js` calls it after a submit and on Clear. A second search inside the request floor is refused,
+  as before.
+- **The kept card** (R4): a retained card (a Trending/Newest drop, or a landing on a poll the list lacks) closed in
+  place goes first in the grid with focus on its maximize button and becomes the grid's `keptPid`; `render` neither
+  unmounts nor moves it and offsets the others by one. `releaseKept()` runs before each render of a server answer
+  (`trending.js`, `newest.js`, `searchTab.js`, the personal tabs' answer handler) and the next render drops it unless
+  the list holds it. A tab change while the card is shown closes with `left: true` and removes it; a Watch, a Remove
+  or a return to the tab keeps it. Maximizing it again makes it retained again.
+- **Share** (R8): `sharePoll.js` (`window.SharePoll`: `link`, `copy`, `share`, `snackbar`) offers `/?PID=<pid>` only, by
+  `navigator.share` (an `AbortError` says nothing, any other error copies) or the clipboard, with "Link copied" /
+  "Could not copy the link" in the `.m3-snackbar`. `pollCard.js` has a `.share-btn` before Watch on the front and
+  before Maximize on the back, shown for `WAITING TO OPEN`, `OPEN` and `CLOSED` only, named "Share poll: <title>",
+  with `.has-share` on the question row for the title's reserve; the click stops at the button. The admin "Copy poll
+  link" calls `SharePoll.copy`. Loaded before `pollCard.js` and `adminCard.js`, and in the test page loaders.
+- **Through login** (R6): `tab` rides beside `PID` (`sharedLinkQuery(pid, tab)` on the server; `CardShell.sharedTab`,
+  `sharedLinkQuery` and `withSharedLink` in the browser): the guest redirect, signed-in `/login` and `/create-account`,
+  the request bodies (`tab` beside `pid`), the magic-link metadata and emailed verify link, its redirects, the
+  not-launched and invalid-link addresses, `/confirm-signin`, the create-account invitation and the provider
+  `callbackURL`. Invitation links carry none. `postman/openapi.json` documents `tab` (and `q` on `GET /`).
+- **Tests**: `shared-link-tab.test.ts` (names, `chooseTab` table, redirects, nothing written, login), `client-share-button`,
+  `client-search-address`, and new cases in `client-maximized-history`, `client-landing`, `client-maximized`,
+  `client-tab-address`, `client-home`, `client-login-pid`, `signin-pid` and `client-admin-wizard`. The cached answer to
+  a search is kept across tests, so each search test uses its own words.
+
+The plan before it:
 `specs/20261118-160304-CLIENT-CODE-OBFUSCATION/plan.md` (research R1–R15, `data-model.md` — build inputs, mode and
 checks, nothing stored; the contract `contracts/build.md` B1–B16 and the quickstart live alongside it).
 The requirements report is `requirements/20261118-160304-client-code-obfuscation/requirements-report.md`: 14 findings,

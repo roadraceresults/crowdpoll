@@ -1,5 +1,5 @@
 {
-    "requirements_directory": "requirements/20261118-160304-client-code-obfuscation",
+    "requirements_directory": "requirements/20261119-182343-deep-links",
     "last_written": {
         "requirements/20261118-160304-client-code-obfuscation/requirements.md": "daea5fe788c9bd9f71d12d20a8c23d8c44c866618f508aa57ce15ea620f3d793",
         "requirements/20261118-160304-client-code-obfuscation/requirements-report.md": "c13a0db2c6b91f5516c6df4e748479adad69e555d2086799c5f653fe4c8f94ce",
@@ -102,6 +102,8 @@
         "requirements/20261117-154627-sms-invitation-research/requirements.md": "040d2ffb93c8930d833959e01cf0ec4a1d942e8d314db7d9a3ae804be34d4736",
         "requirements/20261117-154627-sms-invitation-research/requirements-report.md": "d04fff13d05088100d162c3dbf604f20d072d5e76ed85d7d19ccd223ea7c58ab",
         "requirements/20261117-131915-wide-more-choices/requirements.md": "88fb00f6bbbc1563db02d410d2104c45de07fe8646590caeafc59019c1d35c89",
-        "requirements/20261117-131915-wide-more-choices/requirements-report.md": "5443a5346f0e4a0ce7f4b01902d385562abc02580b9182c1b315c6469a03979b"
+        "requirements/20261117-131915-wide-more-choices/requirements-report.md": "5443a5346f0e4a0ce7f4b01902d385562abc02580b9182c1b315c6469a03979b",
+        "requirements/20261119-182343-deep-links/requirements.md": "24083079550bdb43d95defa662454839458ce2fc0daeadebecba4f2ca2f45544",
+        "requirements/20261119-182343-deep-links/requirements-report.md": "729deeafcd2d5909b0f8d4ea4f4cd617df61aeb70be47f5936556db686d6459d"
     }
 }

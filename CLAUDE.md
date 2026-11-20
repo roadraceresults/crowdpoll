@@ -6,6 +6,25 @@ The full description, every earlier feature's decisions and the settings table a
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261119-182343-DEEP-LINKS/plan.md` (research R1–R10, `data-model.md` — tab names, the link request, `chooseTab`
+and the address states, nothing stored; the contracts `contracts/links.md` L1–L12, `contracts/share.md` S1–S9 and the
+quickstart live alongside it).
+The requirements report is `requirements/20261119-182343-deep-links/requirements-report.md`: 15 findings, all resolved.
+Decisions that are easy to get wrong:
+- **The server chooses the tab** when `GET /?PID=` is opened (`chooseTab` in `sharedLink.ts`): the address's `tab` is a hint
+  kept only when it fits the visitor, else Your Polls → Shared With You → Your Votes → Watching → Home; the browser never
+  re-decides on Minimize (R2).
+- **A maximized poll's address is `/?tab=<tab>&PID=<pid>`**: a card's maximize pushes that address, a landing replaces it,
+  every close and tab change removes `PID`; `/poll/<pid>` keeps its own address (R1, R3).
+- **Opening a link writes nothing new** (no automatic Watch); a linked poll's card, closed, stays first in the grid until the
+  tab's next server answer, whether or not the list holds it (`linkedPid`, `keptPid`, `releaseKept`); a Watch, a Remove or
+  returning to the tab keeps it; a card maximized from the grid returns to its place (R4, TWEAK01).
+- **Shared With You is kept only for a visitor who did not create the poll**: that list never shows one's own polls (R2).
+- **`tab` rides beside `PID` through every login path**, validated by `parseTab`; invitation links carry none (R6).
+- **Share** (`sharePoll.js`) offers `/?PID=<pid>` only, by `navigator.share` or the clipboard, on published states
+  (`WAITING TO OPEN`, `OPEN`, `CLOSED`); the admin "Copy poll link" uses the same `SharePoll.link` (R8).
+
+The plan before it:
 `specs/20261118-160304-CLIENT-CODE-OBFUSCATION/plan.md` (research R1–R15, `data-model.md` — build inputs, mode and
 checks, nothing stored; the contract `contracts/build.md` B1–B16 and the quickstart live alongside it).
 The requirements report is `requirements/20261118-160304-client-code-obfuscation/requirements-report.md`: 14 findings,

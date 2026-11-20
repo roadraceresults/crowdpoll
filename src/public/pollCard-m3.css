@@ -61,6 +61,7 @@
 
 .card-face .icon-btn,
 .card-face .bookmark-btn,
+.card-face .share-btn,
 .card-face .maximize-btn{
   width:32px;
   height:32px;
@@ -71,7 +72,11 @@
   color:var(--md-sys-color-on-surface-variant);
 }
 .card-face .bookmark-btn,
+.card-face .share-btn,
 .card-face .maximize-btn{ margin:-6px -6px 0 0; }
+.card-face .share-btn{ display:flex; align-items:center; justify-content:center; cursor:pointer; }
+.card-face .share-btn[hidden]{ display:none; }
+.card-face .share-btn svg{ width:22px; height:22px; display:block; }
 .card-face .icon-btn svg{ width:20px; height:20px; }
 /* The flip-back button: filled like an enabled Submit vote, a size up so its page and arrow read. */
 .card-face .back-btn{
@@ -94,6 +99,7 @@
   position:relative;
 }
 .card-face .question-row .bookmark-btn,
+.card-face .question-row .share-btn,
 .card-face .question-row .maximize-btn{
   position:absolute;
   top:0;
@@ -101,7 +107,9 @@
   height:var(--title-icon-size);
 }
 .card-face .question-row .maximize-btn{ right:0; }
-.card-face .question-row .bookmark-btn{ right:calc(var(--title-icon-size) - 4px); }
+.card-face .question-row .bookmark-btn,
+.card-face .question-row .share-btn{ right:calc(var(--title-icon-size) - 4px); }
+.card-face .question-row.has-bookmark .share-btn{ right:calc(2 * var(--title-icon-size) - 8px); }
 .card-face .question-row .question::before{
   content:'';
   float:right;
@@ -109,7 +117,9 @@
   height:1.27em;   /* one line of the title, for browsers before 1lh (Chromium 109) */
   height:1lh;
 }
-.card-face .question-row.has-bookmark .question::before{ width:calc(2 * var(--title-icon-size) + 4px); }
+.card-face .question-row.has-bookmark .question::before,
+.card-face .question-row.has-share .question::before{ width:calc(2 * var(--title-icon-size) + 4px); }
+.card-face .question-row.has-bookmark.has-share .question::before{ width:calc(3 * var(--title-icon-size) - 4px); }
 
 .card-face .live-link{
   position:relative;
@@ -208,6 +218,7 @@
 .card-face .btn-vote,
 .card-face .icon-btn,
 .card-face .bookmark-btn,
+.card-face .share-btn,
 .card-face .maximize-btn,
 .card-face .live-link,
 .card-face .vote-row{
@@ -217,6 +228,7 @@
 .card-face .btn-vote::before,
 .card-face .icon-btn::before,
 .card-face .bookmark-btn::before,
+.card-face .share-btn::before,
 .card-face .maximize-btn::before,
 .card-face .live-link::before,
 .card-face .vote-row::before{
@@ -234,6 +246,7 @@
 .card-face .btn-vote:hover::before,
 .card-face .icon-btn:hover::before,
 .card-face .bookmark-btn:hover::before,
+.card-face .share-btn:hover::before,
 .card-face .maximize-btn:hover::before,
 .card-face .live-link:hover::before,
 .card-face .vote-row:hover::before{ opacity:var(--md-sys-state-hover-state-layer-opacity); }
@@ -241,12 +254,14 @@
 .card-face .btn-vote:focus-visible::before,
 .card-face .icon-btn:focus-visible::before,
 .card-face .bookmark-btn:focus-visible::before,
+.card-face .share-btn:focus-visible::before,
 .card-face .maximize-btn:focus-visible::before,
 .card-face .live-link:focus-visible::before{ opacity:var(--md-sys-state-focus-state-layer-opacity); }
 
 .card-face .btn-vote:active::before,
 .card-face .icon-btn:active::before,
 .card-face .bookmark-btn:active::before,
+.card-face .share-btn:active::before,
 .card-face .maximize-btn:active::before,
 .card-face .live-link:active::before,
 .card-face .vote-row:active::before{ opacity:var(--md-sys-state-pressed-state-layer-opacity); }
@@ -257,6 +272,7 @@
 .card-face .btn-vote:focus-visible,
 .card-face .icon-btn:focus-visible,
 .card-face .bookmark-btn:focus-visible,
+.card-face .share-btn:focus-visible,
 .card-face .maximize-btn:focus-visible,
 .card-face .live-link:focus-visible{
   outline:3px solid var(--md-sys-color-secondary);

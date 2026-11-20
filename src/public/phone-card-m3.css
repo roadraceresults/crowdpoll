@@ -26,8 +26,10 @@
   .card-face .question-row,
   .card-flip:not(.maximized-card-flip) .card-face .question-row{ --title-icon-size:48px; }
   .card-face .question-row .bookmark-btn,
+  .card-face .question-row .share-btn,
   .card-face .question-row .maximize-btn,
   .card-flip:not(.maximized-card-flip) .card-face .bookmark-btn,
+  .card-flip:not(.maximized-card-flip) .card-face .share-btn,
   .card-flip:not(.maximized-card-flip) .card-face .maximize-btn{
     top:-8px;
     width:48px;
@@ -36,12 +38,18 @@
     overflow:visible;
   }
   .card-face .question-row .maximize-btn{ right:-8px; }
-  .card-face .question-row .bookmark-btn{ right:56px; }
+  .card-face .question-row .bookmark-btn,
+  .card-face .question-row .share-btn{ right:56px; }
+  .card-face .question-row.has-bookmark .share-btn{ right:120px; }
   .card-face .question-row .question::before{ width:48px; height:36px; }
-  .card-face .question-row.has-bookmark .question::before{ width:112px; }
+  .card-face .question-row.has-bookmark .question::before,
+  .card-face .question-row.has-share .question::before{ width:112px; }
+  .card-face .question-row.has-bookmark.has-share .question::before{ width:176px; }
   .card-face .bookmark-btn svg,
+  .card-face .share-btn svg,
   .card-face .maximize-btn svg,
   .card-flip:not(.maximized-card-flip) .card-face .bookmark-btn svg,
+  .card-flip:not(.maximized-card-flip) .card-face .share-btn svg,
   .card-flip:not(.maximized-card-flip) .card-face .maximize-btn svg{ width:28px; height:28px; }
 
   .card-flip:not(.maximized-card-flip) .card-face .poll-notes:not([hidden]){
@@ -154,6 +162,7 @@
   .card-face .live-link::after,
   .card-face .icon-btn::after,
   .card-face .question-row .bookmark-btn::after,
+  .card-face .question-row .share-btn::after,
   .card-face .question-row .maximize-btn::after,
   .card-face .add-choice-btn::after,
   .card-face .poll-notes-more::after,

@@ -148,12 +148,12 @@ describe("maximizing and restoring", () => {
     });
   }
 
-  it("puts the Maximize icon last in the title row, right after the Watch eye", async () => {
+  it("puts the Maximize icon last in the title row, after the Share icon and the Watch eye", async () => {
     await seedThree();
     page = await open();
     const row = cardByTitle(page, "Alpha").querySelector(".question-row")!;
     const buttons = Array.from(row.children).map((el) => el.className);
-    expect(buttons).toEqual(["question", "bookmark-btn", "maximize-btn", "maximize-hint"]);
+    expect(buttons).toEqual(["question", "share-btn", "bookmark-btn", "maximize-btn", "maximize-hint"]);
     const icon = row.querySelector(".maximize-btn")!;
     expect(icon.tagName).toBe("BUTTON");
     expect(icon.getAttribute("aria-label")).toBe("Maximize Poll Card");
@@ -448,7 +448,7 @@ describe("the maximized card stays in step", () => {
     expect(page.document.activeElement).toBe(panel(page, "live").querySelector(".tab-empty"));
   });
 
-  it("stays open when a Trending recompute drops the poll, keeps voting, and removes it on close", async () => {
+  it("stays open when a Trending recompute drops the poll, keeps voting, and keeps it first on close until the next refresh", async () => {
     await seedPoll("Oldest", 2, { createdAt: new Date(Date.now() - 40_000) });
     await seedPoll("Third", 2, { createdAt: new Date(Date.now() - 30_000) });
     await seedPoll("Second", 2, { createdAt: new Date(Date.now() - 20_000) });
@@ -477,8 +477,13 @@ describe("the maximized card stays in step", () => {
 
     await clickIn(page, maximizedGrid(page, "trending")!.querySelector(".maximize-btn"));
     await page.settle(10);
+    expect(page.cardTitles("trending")[0]).toBe("Third");
+    expect(page.document.activeElement).toBe(card.querySelector(".card-front .maximize-btn"));
+
+    await page.settle(1250);
+    await page.click("#refreshBtn");
+    await page.settle(50);
     expect(page.cardTitles("trending")).not.toContain("Third");
-    expect(page.document.activeElement).toBe(cardGrid(page, "trending").querySelector(".maximize-btn"));
   });
 
   it("closes when another tab is clicked or a search is submitted", async () => {
@@ -732,13 +737,13 @@ describe("keyboard and focus", () => {
     expect(isOpen(page)).toBe(true);
   });
 
-  it("does not change the address", async () => {
-    await seedPoll("Address", 2);
+  it("names the poll in the address while it is maximized, and only then", async () => {
+    const poll = await seedPoll("Address", 2);
     await sweeps();
     page = await open();
     const href = page.window.location.href;
     await clickIn(page, cardByTitle(page, "Address").querySelector(".maximize-btn"));
-    expect(page.window.location.href).toBe(href);
+    expect(page.window.location.href).toBe(`${href}&PID=${poll._id}`);
     await clickIn(page, maximizedGrid(page, "trending")!.querySelector(".maximize-btn"));
     await page.settle(30);
     expect(page.window.location.href).toBe(href);

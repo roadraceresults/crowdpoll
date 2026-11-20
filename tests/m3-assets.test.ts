@@ -51,7 +51,7 @@ interface PageAssets {
 const PAGES: Record<string, PageAssets> = {
   "index.html": {
     sheets: ["tabs.css", "pollCard.css", "site.css"],
-    scripts: ["app.js", "headerFit.js", "fixedChrome.js", "addChoiceDialog.js", "pollCard.js", "deviceEvidence.js", "voteClient.js", "deltaClient.js", "lineGraph.js", "whoVoted.js", "tabs.js", "trending.js", "newest.js", "searchTab.js", "liveResults.js", "tabBarScroll.js", "tabBarScrollArrows.js", "backToTopFab.js"],
+    scripts: ["app.js", "headerFit.js", "fixedChrome.js", "addChoiceDialog.js", "sharePoll.js", "pollCard.js", "deviceEvidence.js", "voteClient.js", "deltaClient.js", "lineGraph.js", "whoVoted.js", "tabs.js", "trending.js", "newest.js", "searchTab.js", "liveResults.js", "tabBarScroll.js", "tabBarScrollArrows.js", "backToTopFab.js"],
     layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "back-arrow-m3.css", "tabs-modal-m3.css", "add-choice-m3.css", "live-idle-prompt-m3.css", "empty-tab-line-m3.css", "pollCard-m3.css", "single-column-m3.css", "tab-bar-scroll-arrows-m3.css", "snackbar-m3.css", "footer-m3.css", "line-graph-m3.css", "who-voted-m3.css", "phone-m3.css", "phone-card-m3.css"]
   },
   "profile.html": {
@@ -106,7 +106,7 @@ const PAGES: Record<string, PageAssets> = {
   },
   "admin.html": {
     sheets: ["styles.css", "tabs.css", "pollCard.css", "admin.css", "site.css"],
-    scripts: ["app.js", "headerFit.js", "fixedChrome.js", "backArrow.js", "notesEditor.js", "deviceEvidence.js", "adminCard.js", "adminList.js", "backToTopFab.js"],
+    scripts: ["app.js", "headerFit.js", "fixedChrome.js", "backArrow.js", "notesEditor.js", "deviceEvidence.js", "sharePoll.js", "adminCard.js", "adminList.js", "backToTopFab.js"],
     layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "back-arrow-m3.css", "tabs-modal-m3.css", "discard-dialog-m3.css", "admin-card-m3.css", "admin-search-m3.css", "snackbar-m3.css", "footer-m3.css", "phone-m3.css", "phone-admin-m3.css"]
   }
 };
@@ -377,17 +377,19 @@ describe("Material 3 page assets", () => {
     expect(read("pollCard-m3.css")).toContain("font-weight:var(--md-sys-typescale-title-large-weight);");
   });
 
-  it("wraps the card title around the Watch and Maximize icons, shortening only its first line", () => {
+  it("wraps the card title around the Share, Watch and Maximize icons, shortening only its first line", () => {
     const css = read("pollCard-m3.css").replace(/\s+/g, " ");
     expect(css).toContain(".card-face .question-row{ --title-icon-size:32px; display:block; position:relative; }");
-    expect(css).toContain(".card-face .question-row .bookmark-btn, .card-face .question-row .maximize-btn{ position:absolute; top:0;");
+    expect(css).toContain(".card-face .question-row .bookmark-btn, .card-face .question-row .share-btn, .card-face .question-row .maximize-btn{ position:absolute; top:0;");
     expect(css).toContain(".card-face .question-row .maximize-btn{ right:0; }");
-    expect(css).toContain(".card-face .question-row .bookmark-btn{ right:calc(var(--title-icon-size) - 4px); }");
+    expect(css).toContain(".card-face .question-row .bookmark-btn, .card-face .question-row .share-btn{ right:calc(var(--title-icon-size) - 4px); }");
+    expect(css).toContain(".card-face .question-row.has-bookmark .share-btn{ right:calc(2 * var(--title-icon-size) - 8px); }");
     // 1lh (Chromium 109) follows a fallback of one title line, and the two-icon width keys on a class
     // the card sets, not :has() (Chromium 105): Opera 83 (Chromium 97) ran titles under the icons.
     expect(css).toContain(".card-face .question-row .question::before{ content:''; float:right; width:calc(var(--title-icon-size) + 2px); height:1.27em;");
     expect(css).toContain("height:1lh; }");
-    expect(css).toContain(".card-face .question-row.has-bookmark .question::before{ width:calc(2 * var(--title-icon-size) + 4px); }");
+    expect(css).toContain(".card-face .question-row.has-bookmark .question::before, .card-face .question-row.has-share .question::before{ width:calc(2 * var(--title-icon-size) + 4px); }");
+    expect(css).toContain(".card-face .question-row.has-bookmark.has-share .question::before{ width:calc(3 * var(--title-icon-size) - 4px); }");
   });
 
   it("keeps the poll-card title hover off the card-shell pages", () => {

@@ -58,7 +58,8 @@
     var terms = info.hasAccount ? null : window.CardShell.termsBox(card.body, function () { sync(); });
 
     var action = card.addAction(info.hasAccount ? "Log In" : "Create Account", function (status) {
-      var body = { token: token };
+      var tab = window.CardShell.sharedTab();
+      var body = tab ? { token: token, tab: tab } : { token: token };
       if (terms) {
         body.acceptedTerms = terms.checked;
         body.termsVersion = info.termsVersion;
@@ -162,8 +163,7 @@
     var action;
     action = card.addAction("Create Account", function (status) {
       return termsVersion.then(function (version) {
-        var body = { email: input.value, acceptedTerms: terms.checked, termsVersion: version, homepage: homepage.value };
-        if (window.CardShell.sharedPid()) body.pid = window.CardShell.sharedPid();
+        var body = window.CardShell.withSharedLink({ email: input.value, acceptedTerms: terms.checked, termsVersion: version, homepage: homepage.value });
         return fetch("/api/auth/create-account", {
           method: "POST",
           headers: Object.assign({ "Content-Type": "application/json" }, checkHeaders()),

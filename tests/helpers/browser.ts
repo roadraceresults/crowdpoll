@@ -96,7 +96,7 @@ export async function openPage(
   }
 
   if (options.beforeScripts) options.beforeScripts(window);
-  const scripts = options.scripts ?? ["app.js", "pollCard.js", "voteClient.js", "deltaClient.js", "tabs.js", "trending.js", "newest.js", "searchTab.js", "liveResults.js"];
+  const scripts = options.scripts ?? ["app.js", "sharePoll.js", "pollCard.js", "voteClient.js", "deltaClient.js", "tabs.js", "trending.js", "newest.js", "searchTab.js", "liveResults.js"];
   for (const name of scripts) {
     window.eval(readFileSync(path.join(publicDir, name), "utf8"));
   }

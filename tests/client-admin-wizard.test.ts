@@ -50,7 +50,7 @@ async function open(sessionCookie = cookie): Promise<BrowserPage> {
   const p = await openPage(ctx, "admin.html", {
     cookie: sessionCookie,
     url: "http://localhost/admin",
-    scripts: ["m3-ripple.js", "app.js", "notesEditor.js", "adminCard.js", "adminList.js"],
+    scripts: ["m3-ripple.js", "app.js", "notesEditor.js", "sharePoll.js", "adminCard.js", "adminList.js"],
     beforeScripts: (window) => {
       if (phoneLayout) {
         window.matchMedia = ((query: string) => ({
@@ -2492,6 +2492,8 @@ describe("link preview message in Step 1", () => {
     button.click();
     await p.settle();
     expect(clipboardText).toMatch(/^http:\/\/localhost\/\?PID=/);
+    const shareLink = (p.window as unknown as { SharePoll: { link(pid: string): string } }).SharePoll.link;
+    expect(clipboardText).toBe(shareLink(new URL(clipboardText).searchParams.get("PID")!));
     expect(p.document.querySelector(".m3-snackbar")!.textContent).toBe("Link copied");
     expect(sent("/edit-session")).toHaveLength(0);
     expect(linked.querySelector(".card-readonly")).not.toBeNull();

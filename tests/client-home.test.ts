@@ -1778,7 +1778,7 @@ describe("where a poll link landed, in a browser", () => {
   const arrive = (search: string, cookie?: string) => openPage(ctx, "index.html", { cookie, url: `http://localhost/${search}` });
   const activeTab = (p: BrowserPage) => p.document.querySelector("#tabBar .tab.is-active")!.getAttribute("data-tab");
 
-  it("opens Shared With You at the poll the server chose, maximized, and tidies the address", async () => {
+  it("opens Shared With You at the poll the server chose, maximized, and names it in the address", async () => {
     const poll = await sharedPoll();
     const { cookie } = await forgeSession(ctx, "landing-reader@example.com");
     await upsertRelation(ctx.db, "landing-reader@example.com", poll._id, "linked");
@@ -1787,7 +1787,7 @@ describe("where a poll link landed, in a browser", () => {
     expect(activeTab(page)).toBe("shared-with-you");
     expect(page.cardTitles("shared-with-you")).toEqual(["Shared with me"]);
     expect(page.document.querySelector('.tab-panel[data-panel="shared-with-you"] .maximized-card-grid')!.hasAttribute("hidden")).toBe(false);
-    expect(page.window.location.search).toBe("?tab=shared-with-you");
+    expect(page.window.location.search).toBe(`?tab=shared-with-you&PID=${poll._id}`);
   });
 
   it("says the poll is not available and lands a logged-in visitor on Home", async () => {

@@ -31,6 +31,7 @@ const sweeps = async () => {
 };
 
 const history = (p: BrowserPage) => p.window.history;
+const addressPid = (p: BrowserPage) => new URL(p.window.location.href).searchParams.get("PID");
 const stepPid = (p: BrowserPage) => (history(p).state as { maximizedPid?: string } | null)?.maximizedPid;
 
 async function back(p: BrowserPage) {
@@ -47,7 +48,7 @@ for (const phoneLayout of [true, false]) {
   describe(`Back and the maximized view, ${phoneLayout ? "in" : "outside"} the phone layout`, () => {
     const open = async (cookie?: string, url?: string) => openHome(ctx, { phoneLayout, cookie, url });
 
-    it("H1: maximizing a card adds one step and leaves the address alone", async () => {
+    it("H1: maximizing a card adds one step whose address names the poll beside the tab", async () => {
       const poll = await seedPoll(ctx, "Stepped", 3);
       await sweeps();
       page = await open();
@@ -57,7 +58,22 @@ for (const phoneLayout of [true, false]) {
       expect(isOpen(page)).toBe(true);
       expect(history(page).length).toBe(length + 1);
       expect(stepPid(page)).toBe(poll._id);
-      expect(page.window.location.href).toBe(href);
+      expect(page.window.location.href).toBe(`${href}&PID=${poll._id}`);
+      expect(new URL(page.window.location.href).searchParams.get("tab")).toBe("trending");
+    });
+
+    it("H1: maximizing a second poll while one is shown replaces the step and its address", async () => {
+      const first = await seedPoll(ctx, "First", 3);
+      const second = await seedPoll(ctx, "Second", 3);
+      await sweeps();
+      page = await open();
+      const length = history(page).length;
+      await clickIn(page, cardByTitle(page, "First").querySelector(".maximize-btn"));
+      expect(addressPid(page)).toBe(first._id);
+      await clickIn(page, cardByTitle(page, "Second").querySelector(".maximize-btn"));
+      expect(history(page).length).toBe(length + 1);
+      expect(stepPid(page)).toBe(second._id);
+      expect(addressPid(page)).toBe(second._id);
     });
 
     it("H2: the browser's Back closes the view and returns the list to where it was", async () => {
@@ -94,6 +110,7 @@ for (const phoneLayout of [true, false]) {
         expect(isOpen(page)).toBe(false);
         expect(cardGrid(page, "trending").hidden).toBe(false);
         expect(stepPid(page)).toBeUndefined();
+        expect(addressPid(page)).toBeNull();
 
         await back(page);
         expect(isOpen(page)).toBe(false);
@@ -112,11 +129,12 @@ for (const phoneLayout of [true, false]) {
       await page.settle(30);
       expect(isOpen(page)).toBe(false);
       expect(stepPid(page)).toBeUndefined();
-      expect(page.window.location.search).toContain("tab=newest");
+      expect(page.window.location.search).toBe("?tab=newest");
 
       await back(page);
       expect(isOpen(page)).toBe(false);
       expect(stepPid(page)).toBeUndefined();
+      expect(page.window.location.search).toBe("?tab=newest");
       expect(page.document.querySelector(".tab.is-active")!.getAttribute("data-tab")).toBe("newest");
     });
 
@@ -129,11 +147,13 @@ for (const phoneLayout of [true, false]) {
       expect(isOpen(page)).toBe(true);
       expect(history(page).length).toBe(1);
       expect(stepPid(page)).toBeUndefined();
+      expect(page.window.location.search).toBe(`?tab=trending&PID=${poll._id}`);
 
       await clickIn(page, page.document.querySelector("#maximizedBack .maximized-back"));
       expect(isOpen(page)).toBe(false);
       expect(cardGrid(page, "trending").hidden).toBe(false);
       expect(history(page).length).toBe(1);
+      expect(page.window.location.search).toBe("?tab=trending");
     });
 
     it("clears a view's step that a reload left with no view", async () => {

@@ -16,15 +16,16 @@
     return p;
   }
 
-  function loginHref(pid) {
-    return pid ? "/login?PID=" + encodeURIComponent(pid) : "/login";
+  function loginHref() {
+    var query = window.CardShell.sharedLinkQuery();
+    return query ? "/login?" + query : "/login";
   }
 
-  function showInvalid(card, pid) {
+  function showInvalid(card) {
     card.body.replaceChildren();
     paragraph(card.body, "This login link is invalid or has expired.");
     var link = el("a", "card-shell-link");
-    link.href = loginHref(pid);
+    link.href = loginHref();
     link.textContent = "Request a new login link";
     card.body.appendChild(link);
   }
@@ -34,7 +35,6 @@
     var params = new URLSearchParams(location.search);
     var token = params.get("token") || "";
     var stay = params.get("stay") === "1";
-    var pid = window.CardShell.sharedPid();
 
     var card = window.CardShell.mount(main, { title: "Log in on this device?", closeHref: "/" });
     paragraph(card.body, "Checking your login link…");
@@ -56,14 +56,14 @@
         );
 
         var notNow = el("a", "card-shell-link");
-        notNow.href = loginHref(pid);
+        notNow.href = loginHref();
         notNow.textContent = "Not now";
 
         card.addAction("Log in", function (status) {
           return fetch("/api/auth/confirm-signin", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(pid ? { token: token, stay: stay, pid: pid } : { token: token, stay: stay })
+            body: JSON.stringify(window.CardShell.withSharedLink({ token: token, stay: stay }))
           })
             .then(function (res) {
               return res.json().then(function (body) { return { res: res, body: body }; });
@@ -84,7 +84,7 @@
         card.face.appendChild(notNow);
       })
       .catch(function () {
-        showInvalid(card, pid);
+        showInvalid(card);
       });
   }
 
