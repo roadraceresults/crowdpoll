@@ -1238,6 +1238,12 @@
           group.appendChild(divider);
         }
         group.appendChild(m3RadioRow("who", option.key, option.label, option.support, wizard.who === option.key, () => {
+          // An open editor's text is kept before the redraw; one over its limit keeps the choice as it was.
+          if (!commitNotes()) {
+            const previous = group.querySelector('input[value="' + wizard.who + '"]');
+            if (previous) previous.checked = true;
+            return;
+          }
           wizard.who = option.key;
           syncWizardDirty();
           renderWizard();
@@ -1291,7 +1297,16 @@
         checked: wizard.showVoters,
         title: WHO_TITLE,
         help: whoHelp(),
-        onChange: (checked) => { wizard.showVoters = checked; }
+        onChange: (checked, input) => {
+          // As for the radios: an open editor's text is kept, and one over its limit refuses the change.
+          const editing = Object.keys(richEditors).length > 0;
+          if (!commitNotes()) {
+            input.checked = wizard.showVoters;
+            return false;
+          }
+          if (editing) input.focus();
+          wizard.showVoters = checked;
+        }
       });
     }
 
@@ -1313,7 +1328,8 @@
       input.checked = checked === true;
       input.setAttribute("aria-describedby", supportId);
       input.addEventListener("change", () => {
-        onChange(input.checked);
+        // An onChange that returns false refuses the change and has put the switch back.
+        if (onChange(input.checked, input) === false) return;
         howChanged();
       });
       row.append(text, input);
@@ -1561,7 +1577,7 @@
 
       function openEditor() {
         field.counter.textContent = "";
-        richEditors[key] = window.NotesEditor.open(host, {
+        const editor = richEditors[key] = window.NotesEditor.open(host, {
           html: wizard[htmlKey],
           max,
           label,
@@ -1575,7 +1591,8 @@
             wizard[htmlKey] = html;
           },
           onClose: () => {
-            delete richEditors[key];
+            // Only its own registration: an editor reopened on this field since is another one.
+            if (richEditors[key] === editor) delete richEditors[key];
             if (!wizard || !host.isConnected) return;
             syncWizardDirty();
             refreshWizardChrome();

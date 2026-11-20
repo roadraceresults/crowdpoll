@@ -2272,6 +2272,39 @@ describe("custom email message in Step 1", () => {
     expect(messageField(p)!.querySelector(".notes-editor")).not.toBeNull();
   });
 
+  it("keeps an open editor's changes when another Who option or the voters switch is chosen", async () => {
+    const { p } = await openInvitePoll("Before");
+    await editMessage(p, "kept by a radio");
+    await pick(p, "who", "link");
+    expect(messageField(p)).toBeNull();
+    await pick(p, "who", "invite");
+    expect(previewHtml(p)).toBe("kept by a radio");
+
+    await editMessage(p, "kept by the switch");
+    const voters = wizardCard(p).querySelector<HTMLInputElement>('.m3-switch-row input[role="switch"]')!;
+    voters.checked = true;
+    voters.dispatchEvent(new p.window.Event("change", { bubbles: true }));
+    await p.settle();
+    expect(previewHtml(p)).toBe("kept by the switch");
+    expect(wizardCard(p).querySelector<HTMLInputElement>('.m3-switch-row input[role="switch"]')!.checked).toBe(true);
+    footerButton(wizardCard(p), "Save").click();
+    await p.settle(100);
+    expect(sent("/save")[0]!.body!.invitationMessage).toBe("kept by the switch");
+  });
+
+  it("keeps the Who option and the voters switch as they were while an open editor is over its limit", async () => {
+    const { p } = await openInvitePoll("");
+    await editMessage(p, "x".repeat(1001));
+    await pick(p, "who", "link");
+    expect(wizardCard(p).querySelector<HTMLInputElement>('input[name^="who-"][value="invite"]')!.checked).toBe(true);
+    const voters = wizardCard(p).querySelector<HTMLInputElement>('.m3-switch-row input[role="switch"]')!;
+    voters.checked = true;
+    voters.dispatchEvent(new p.window.Event("change", { bubbles: true }));
+    await p.settle();
+    expect(voters.checked).toBe(false);
+    expect(messageField(p)!.querySelector(".notes-editor-text")!.textContent).toHaveLength(1001);
+  });
+
   it("keeps the message while hidden, still sends it, and shows it again on switching back", async () => {
     const { p } = await openInvitePoll("Kept **here**");
     expect(previewHtml(p)).toBe("Kept <strong>here</strong>");
