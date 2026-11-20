@@ -131,6 +131,8 @@ export interface AppConfig {
   /** How often the maximized view's line graph refreshes, clamped up to the live-refresh floor. */
   lineGraphRefreshIntervalMs: number;
   maxVotesPerIpPerMinute: number;
+  /** Whether Live Results is offered: its tab, the cards' Live Results control and the /api/live routes (ENV_LIVE_RESULTS=1; 0 or none turns it off). */
+  liveResultsEnabled: boolean;
   maxLiveResultsPerUser: number;
   maxInvitationsPerDay: number;
   liveResultsMaxIdleTimeMs: number;
@@ -444,6 +446,11 @@ export function loadConfig(env: Env = process.env): AppConfig {
   const deviceEvents = deviceEventsConfig(env);
   if (!deviceEvents.enabled) read.none("ENV_DEVICE_EVENTS_ENABLED", "false (no device evidence is collected)");
   if (!env.ENV_STAY_SIGNED_IN?.trim()) read.none("ENV_STAY_SIGNED_IN", "0 (the Stay logged in box starts clear)");
+  const liveResults = env.ENV_LIVE_RESULTS?.trim() ?? "";
+  if (liveResults !== "" && liveResults !== "0" && liveResults !== "1") {
+    throw new ConfigError(`Invalid ENV_LIVE_RESULTS: "${liveResults}" — expected 1 (on) or 0 (off).`);
+  }
+  if (liveResults === "") read.none("ENV_LIVE_RESULTS", "0 (Live Results is off)");
   for (const name of ["ENV_SMTP_USER", "ENV_SMTP_PASS"]) {
     if (!env[name]) read.none(name, "none (emails logged to the console, not sent)");
   }
@@ -512,6 +519,7 @@ export function loadConfig(env: Env = process.env): AppConfig {
     // the tightest per-user refresh the service defends.
     lineGraphRefreshIntervalMs: Math.max(read.int("ENV_LINE_GRAPH_REFRESH_INTERVAL", 60_000), floors.live),
     maxVotesPerIpPerMinute: read.int("ENV_MAX_VOTES_PER_IP_PER_MINUTE", 600),
+    liveResultsEnabled: liveResults === "1",
     maxLiveResultsPerUser: read.int("ENV_MAX_LIVE_RESULTS_PER_USER", 5),
     maxInvitationsPerDay: read.int("ENV_MAX_INVITATIONS_PER_DAY", 200),
     liveResultsMaxIdleTimeMs: read.int("ENV_LIVE_RESULTS_MAX_IDLE_TIME", 1_800_000),

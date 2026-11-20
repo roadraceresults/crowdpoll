@@ -29,6 +29,7 @@
         "ENV_MAX_PRIVATE_POLL_VOTERS": "10",
         "ENV_MAX_INVITATIONS_PER_DAY": "200",
         "ENV_STAY_SIGNED_IN": "1",
+        "ENV_LIVE_RESULTS": "0",
         "ENV_INVITATION_RESEND_WAIT": "86400000",
 
         // --- 1. Runtime: where this process listens and the origin it is reached at ---
@@ -178,6 +179,7 @@
         "ENV_MAX_PRIVATE_POLL_VOTERS": "10",
         "ENV_MAX_INVITATIONS_PER_DAY": "200",
         "ENV_STAY_SIGNED_IN": "1",
+        "ENV_LIVE_RESULTS": "0",
         "ENV_INVITATION_RESEND_WAIT": "86400000",
 
         // --- 1. Runtime: where this process listens and the origin it is reached at ---
@@ -327,6 +329,7 @@
         "ENV_MAX_PRIVATE_POLL_VOTERS": "10",
         "ENV_MAX_INVITATIONS_PER_DAY": "200",
         "ENV_STAY_SIGNED_IN": "1",
+        "ENV_LIVE_RESULTS": "0",
         "ENV_INVITATION_RESEND_WAIT": "86400000",
 
         // --- 1. Runtime: where this process listens and the origin it is reached at ---
@@ -476,6 +479,7 @@
         "ENV_MAX_PRIVATE_POLL_VOTERS": "10",
         "ENV_MAX_INVITATIONS_PER_DAY": "200",
         "ENV_STAY_SIGNED_IN": "1",
+        "ENV_LIVE_RESULTS": "0",
         "ENV_INVITATION_RESEND_WAIT": "86400000",
 
         // --- 1. Runtime: where this process listens and the origin it is reached at ---
@@ -625,6 +629,7 @@
         "ENV_MAX_PRIVATE_POLL_VOTERS": "10",
         "ENV_MAX_INVITATIONS_PER_DAY": "200",
         "ENV_STAY_SIGNED_IN": "1",
+        "ENV_LIVE_RESULTS": "0",
         "ENV_INVITATION_RESEND_WAIT": "86400000",
 
         // --- 1. Runtime: where this process listens and the origin it is reached at ---
@@ -774,6 +779,7 @@
         "ENV_MAX_PRIVATE_POLL_VOTERS": "10",
         "ENV_MAX_INVITATIONS_PER_DAY": "200",
         "ENV_STAY_SIGNED_IN": "1",
+        "ENV_LIVE_RESULTS": "0",
         "ENV_INVITATION_RESEND_WAIT": "86400000",
 
         // --- 1. Runtime: where this process listens and the origin it is reached at ---
@@ -923,6 +929,7 @@
         "ENV_MAX_PRIVATE_POLL_VOTERS": "10",
         "ENV_MAX_INVITATIONS_PER_DAY": "200",
         "ENV_STAY_SIGNED_IN": "1",
+        "ENV_LIVE_RESULTS": "0",
         "ENV_INVITATION_RESEND_WAIT": "86400000",
 
         // --- 1. Runtime: where this process listens and the origin it is reached at ---

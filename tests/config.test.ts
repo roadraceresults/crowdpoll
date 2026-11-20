@@ -359,6 +359,24 @@ describe("ENV_STAY_SIGNED_IN", () => {
   });
 });
 
+describe("ENV_LIVE_RESULTS", () => {
+  it("leaves Live Results off when it is not set", () => {
+    expect(loadConfig(baseEnv()).liveResultsEnabled).toBe(false);
+  });
+
+  it("turns it on for 1 and off for 0", () => {
+    expect(loadConfig(baseEnv({ ENV_LIVE_RESULTS: "1" })).liveResultsEnabled).toBe(true);
+    expect(loadConfig(baseEnv({ ENV_LIVE_RESULTS: " 1 " })).liveResultsEnabled).toBe(true);
+    expect(loadConfig(baseEnv({ ENV_LIVE_RESULTS: "0" })).liveResultsEnabled).toBe(false);
+    expect(loadConfig(baseEnv({ ENV_LIVE_RESULTS: "" })).liveResultsEnabled).toBe(false);
+  });
+
+  it.each(["true", "yes", "on", "2", "01"])("stops the app for %j", (value) => {
+    expect(() => loadConfig(baseEnv({ ENV_LIVE_RESULTS: value }))).toThrow(ConfigError);
+    expect(() => loadConfig(baseEnv({ ENV_LIVE_RESULTS: value }))).toThrow(/ENV_LIVE_RESULTS/);
+  });
+});
+
 describe("Choice count configuration (014)", () => {
   it("takes both bounds from the environment", () => {
     const config = loadConfig({ ...baseEnv(), ENV_MIN_CHOICES: "3", ENV_MAX_CHOICES: "5" });
@@ -798,6 +816,7 @@ describe("defaultsUsed", () => {
     expect(defaultOf(config, "ENV_EMAIL_ASSET_ORIGIN")).toBe("none (each link's own origin)");
     expect(defaultOf(config, "ENV_PROTOTYPES")).toBe("none (no prototypes served)");
     expect(defaultOf(config, "ENV_STAY_SIGNED_IN")).toBe("0 (the Stay logged in box starts clear)");
+    expect(defaultOf(config, "ENV_LIVE_RESULTS")).toBe("0 (Live Results is off)");
     expect(defaultOf(config, "ENV_SMTP_USER")).toBe("none (emails logged to the console, not sent)");
     expect(defaultOf(config, "ENV_SMTP_PASS")).toBe("none (emails logged to the console, not sent)");
     expect(config.defaultsUsed.some((entry) => entry.name === "ENV_SPACES_BUCKET")).toBe(false);

@@ -2532,6 +2532,19 @@ describe("link preview message in Step 1", () => {
     expect(wizardCard(p).querySelector(".wizard-summary-copy-link")).toBeNull();
   });
 
+  it("offers no Copy control for an archived poll, whose link opens nothing, as a deleted poll's", async () => {
+    await seed(makePoll({ title: "Archived link", pollVisibility: "Private Poll", pollSharingMode: "Anyone With The Link", pollState: "ARCHIVED" }));
+    const p = await open();
+    const card = cardWith(p, "Archived link");
+    expect(card.querySelector(".wizard-summary-copy-link")).toBeNull();
+    expect(card.querySelector('.card-actions button[aria-label="Copy link to poll: Archived link"]')).toBeNull();
+    card.querySelector<HTMLButtonElement>(".actions-menu-trigger")!.click();
+    await p.settle();
+    const items = Array.from(card.querySelectorAll('.actions-menu [role="menuitem"]')).map((item) => item.textContent);
+    expect(items).toContain("Duplicate Poll");
+    expect(items).not.toContain("Copy Poll Link");
+  });
+
   it("copies the link from the link icon and the menu item first thing in the tap, and says so", async () => {
     await seed(makePoll({ title: "Linked", pollVisibility: "Private Poll", pollSharingMode: "Anyone With The Link", pollState: "OPEN" }));
     const p = await open();

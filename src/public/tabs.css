@@ -52,6 +52,9 @@
     max-width:var(--max-width);   /* content never exceeds 1280px */
     padding:32px 20px 60px;
   }
+  /* Home only, on trial: 10px sides, so three 408px columns fit at 1280. The
+     phone rules below (and phone-m3.css) set their own padding. */
+  .home-container{ padding-inline:10px; }
 
   .layout{ display:block; }
 
@@ -192,7 +195,9 @@
   /* ---------- Card grid ---------- */
   .card-grid{
     display:grid;
-    grid-template-columns:repeat(auto-fill, minmax(268px, 1fr));
+    /* On trial: a card is never narrower than 318px, so four never fit in
+       1260px (3 × 408px at 1280); below 654px one column, its card 420px. */
+    grid-template-columns:repeat(auto-fill, minmax(318px, 1fr));
     gap:18px;
   }
   .card-grid[hidden]{ display:none; }

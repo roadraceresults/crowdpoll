@@ -78,14 +78,17 @@
 .card-face .share-btn[hidden]{ display:none; }
 .card-face .share-btn svg{ width:22px; height:22px; display:block; }
 .card-face .icon-btn svg{ width:20px; height:20px; }
-/* The flip-back button: filled like an enabled Submit vote, a size up so its page and arrow read. */
+/* The flip-back button: filled like an enabled Submit vote, a size up so its page and arrow read;
+   its glyph fills the button, as the flip-to-front icon fills its circle. */
 .card-face .back-btn{
   width:40px;
   height:40px;
   background:var(--md-sys-color-primary);
   color:var(--md-sys-color-on-primary);
 }
-.card-face .back-btn svg{ width:26px; height:26px; }
+.card-face .back-btn svg{ width:40px; height:40px; }
+/* Where Vote is offered a bar acts: it opens the maximized view, and there it votes as Vote does (pollCard.js). */
+.card-front:has(.vote-btn:not([hidden]):not(:disabled)) .result-row{ cursor:pointer; }
 .card-face .bookmark-btn:hover,
 .card-face .bookmark-btn:focus-visible{ color:var(--md-sys-color-on-surface-variant); }
 .card-face .bookmark-btn[aria-pressed="true"]{ color:var(--md-sys-color-primary); }
@@ -325,7 +328,8 @@
   }
 }
 
-.card-flip{ min-height:calc(500px + 2 * var(--md-sys-typescale-body-medium-line-height) + 16px); }
+/* On trial: 450px in all, no longer 500px plus room for two lines of notes (556px). */
+.card-flip{ min-height:450px; }
 .card-face .poll-notes{
   margin:0 0 8px;
   padding:4px 0 0 14px;

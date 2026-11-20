@@ -358,11 +358,18 @@ export function createTabsApiRouter(context: AppContext): Router {
 
   // ---- Live Results ----
 
+  // With ENV_LIVE_RESULTS off the feature does not exist: its routes answer as an unknown address would.
+  const liveOn: RequestHandler = (_req, res, next) => {
+    if (config.liveResultsEnabled) next();
+    else res.status(404).json({ error: "Not found" });
+  };
+
   const sessionIdOf = (res: Response): string => String((res.locals.session as { session: { id: string } }).session.id);
   const liveSession = (res: Response) => ({ id: sessionIdOf(res), email: emailOf(res), userId: userIdOf(res) });
 
   router.post(
     "/api/live/refresh",
+    liveOn,
     requireSession,
     ...dynamic("live"),
     wrap(async (req, res) => {
@@ -380,6 +387,7 @@ export function createTabsApiRouter(context: AppContext): Router {
 
   router.post(
     "/api/live/:pid",
+    liveOn,
     requireSession,
     ...dynamic("refresh"),
     wrap(async (req, res) => {
@@ -398,6 +406,7 @@ export function createTabsApiRouter(context: AppContext): Router {
 
   router.delete(
     "/api/live/:pid",
+    liveOn,
     requireSession,
     ...dynamic("refresh"),
     wrap(async (req, res) => {

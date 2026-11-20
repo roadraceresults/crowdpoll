@@ -22,6 +22,16 @@ describe("the header-fixed sheet", () => {
     expect(sheet).toContain("background:var(--paper);");
   });
 
+  it("paints that background out to both edges of a window wider than the column, without clipping what hangs below", () => {
+    expect(sheet).toContain("border-image:linear-gradient(var(--paper) 0 0) fill 0 / 0 / 0 100vw;");
+    expect(sheet).not.toContain("clip-path");
+  });
+
+  it("draws the Tab Bar's full-width line under the header on pages without a Tab Bar, so Home keeps one line", () => {
+    expect(sheet).toContain("body:not(.has-tab-bar) #site-header::after{ content:''; position:absolute; left:50%; bottom:0; width:100vw; height:1px; background:var(--md-sys-color-outline-variant); transform:translateX(-50%); }");
+    expect(readFileSync(path.resolve("src/public/index.html"), "utf8")).toContain('<body class="is-guest has-tab-bar">');
+  });
+
   it("reserves space for the fixed chrome in .container's top padding, at both breakpoints", () => {
     expect(sheet).toContain(".container{ padding-top:calc(32px + var(--fixed-chrome-height,0px)); }");
     expect(flat(sheet)).toContain("@media (max-width: 640px){ .container{ padding-top:calc(20px + var(--fixed-chrome-height,0px)); } }");

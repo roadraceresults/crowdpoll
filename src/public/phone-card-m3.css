@@ -291,6 +291,7 @@
     background:var(--md-sys-color-primary);
     color:var(--md-sys-color-on-primary);
   }
+  .vote-bar .vote-bar-back svg{ width:48px; height:48px; }
   .vote-bar-count{
     flex:1 1 auto;
     min-width:0;

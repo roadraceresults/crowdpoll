@@ -552,7 +552,7 @@ describe("the Newest tab in a browser", () => {
 });
 
 describe("the Search tab in a browser", () => {
-  it("Enter in the header's Search CrowdPoll box searches, selects the tab, keeps the words, renders cards without a Vote button, and Refresh re-runs the query", async () => {
+  it("Enter in the header's Search CrowdPoll box searches, selects the tab, keeps the words, renders cards with a Vote button, and Refresh re-runs the query", async () => {
     await polls(ctx).insertMany([makePoll({ title: "Quantum kettle" }), makePoll({ title: "Ordinary kettle" }), makePoll({ title: "Teapot" })]);
     await trendingSweep(ctx, ctx.config, ctx.trendingPublisher);
     page = await openPage(ctx, "index.html");
@@ -570,7 +570,7 @@ describe("the Search tab in a browser", () => {
     expect(page.cardTitles("search").sort()).toEqual(["Ordinary kettle", "Quantum kettle"]);
     expect(requestsTo(page, "/api/search").filter((r) => r.url === "/api/search").length).toBe(1);
     const voteButtons = page.document.querySelectorAll('.tab-panel[data-panel="search"] .vote-btn:not([hidden])');
-    expect(voteButtons.length).toBe(0);
+    expect(voteButtons.length).toBe(2);
     const liveLinks = page.document.querySelectorAll('.tab-panel[data-panel="search"] .live-link:not([hidden])');
     expect(liveLinks.length).toBe(2);
 
@@ -635,6 +635,29 @@ describe("voting from a card in a browser", () => {
     await page.click('.tab-panel[data-panel="trending"] .submit-vote-btn');
     expect(page.document.querySelector(".poll-vote-notice")!.textContent).toMatch(/queued/);
     await ctx.cache.del("queue:lag");
+  });
+});
+
+describe("voting from a Search result in a browser", () => {
+  it("flips, submits, and shows the vote on the Search card and on the same poll's Trending card", async () => {
+    const { cookie } = await forgeSession(ctx, "search-voter@example.com");
+    const poll = makePoll({ title: "Searchable samovar" });
+    await polls(ctx).insertOne(poll);
+    await trendingSweep(ctx, ctx.config, ctx.trendingPublisher);
+    page = await openPage(ctx, "index.html", { cookie, url: ON_TRENDING });
+    await page.submitForm("#siteSearch", { siteSearchBox: "samovar" });
+    expect(page.cardTitles("search")).toEqual(["Searchable samovar"]);
+
+    const search = '.tab-panel[data-panel="search"]';
+    await page.click(`${search} .vote-btn`);
+    expect(page.document.querySelector(`${search} .card-flip`)!.classList.contains("is-flipped")).toBe(true);
+    await page.click(`${search} .vote-row`);
+    await page.click(`${search} .submit-vote-btn`);
+    expect(requestsTo(page, `/api/polls/${poll._id}/vote`).length).toBe(1);
+    expect(page.document.querySelector(`${search} .card-flip`)!.classList.contains("is-flipped")).toBe(false);
+    expect(page.document.querySelector(`${search} .poll-totals`)!.textContent).toContain("1 vote");
+    // The vote reaches every tab's copy of the poll, Trending's included.
+    expect(page.document.querySelector('.tab-panel[data-panel="trending"] .poll-totals')!.textContent).toContain("1 vote");
   });
 });
 

@@ -96,7 +96,7 @@ describe("the tab bar's icons", () => {
   });
 
   it("the bars are still for a guest: the page starts as a guest and the card stylesheet stops them", () => {
-    expect(index).toMatch(/<body class="is-guest">/);
+    expect(index).toMatch(/<body class="is-guest(?: [^"]*)?">/);
     expect(pollCardCss).toMatch(/\.is-guest \.live-bars i\s*\{[^}]*animation:\s*none/);
   });
 

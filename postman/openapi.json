@@ -1817,6 +1817,10 @@
                         }
                       }
                     },
+                    "liveResultsEnabled": {
+                      "type": "boolean",
+                      "description": "ENV_LIVE_RESULTS is 1; when false the page offers no Live Results tab or control"
+                    },
                     "maxLiveResultsPerUser": {
                       "type": "integer",
                       "description": "ENV_MAX_LIVE_RESULTS_PER_USER"
@@ -5304,6 +5308,16 @@
               }
             }
           },
+          "404": {
+            "description": "Live Results is off (ENV_LIVE_RESULTS=0)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "429": {
             "$ref": "#/components/responses/TooSoon"
           },
@@ -5376,7 +5390,7 @@
             }
           },
           "404": {
-            "description": "Unknown PID",
+            "description": "Unknown PID, or Live Results is off (ENV_LIVE_RESULTS=0)",
             "content": {
               "application/json": {
                 "schema": {
@@ -5472,6 +5486,16 @@
           },
           "403": {
             "$ref": "#/components/responses/TermsRequired"
+          },
+          "404": {
+            "description": "Live Results is off (ENV_LIVE_RESULTS=0)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           },
           "429": {
             "$ref": "#/components/responses/TooSoon"

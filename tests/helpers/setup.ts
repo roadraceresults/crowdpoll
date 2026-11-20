@@ -97,6 +97,8 @@ export async function startTestContext(
     ENV_BUDGET_CONTROLLER_SWEEP_INTERVAL: "1",
     // ENV_ADMINS has no default; suites that log in as config.admins[0] need one.
     ENV_ADMINS: "harness-admin@example.org",
+    // Live Results is off by default; the suites test it on, and the ones about it being off set "0".
+    ENV_LIVE_RESULTS: "1",
     ...envOverrides
   });
 

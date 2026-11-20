@@ -537,20 +537,24 @@ describe("the two faces of a card", () => {
 });
 
 describe("the flip-back button and the Submit bar", () => {
-  const flipBack = '<rect x="5" y="1.5" width="14" height="12" rx="2"/>';
+  const flipBack = '<path fill-rule="evenodd" d="M12 11H712V528H12Z M73 70V466H648V70Z"/>';
 
-  it("draws Back to results as a page with an arrow up and back, on the card and on the Submit bar", () => {
+  it("draws Back to results as the flip-to-front icon, a page with an arrow round to its front, on the card and on the Submit bar", () => {
     expect(read("pollCard.js")).toContain(flipBack);
     expect(read("index.html")).toContain(flipBack);
+    // The arrow's gaps are painted in the button's colour: a mask's id would repeat on every card.
+    expect(read("pollCard.js")).toContain('style="fill:var(--md-sys-color-primary);stroke:var(--md-sys-color-primary)"');
+    expect(read("pollCard.js")).not.toContain('<rect x="5" y="1.5" width="14" height="12" rx="2"/>');
     expect(read("pollCard.js")).not.toContain('<path d="M11 18l-6-6 6-6"/>');
   });
 
-  it("fills it like an enabled Submit vote, a size up on the card", () => {
+  it("fills it like an enabled Submit vote, a size up on the card, its glyph filling the button", () => {
     const card = /\.card-face \.back-btn\{([^}]*)\}/.exec(read("pollCard-m3.css"))![1]!;
     expect(card).toContain("background:var(--md-sys-color-primary);");
     expect(card).toContain("color:var(--md-sys-color-on-primary);");
     expect(card).toContain("width:40px;");
-    expect(read("pollCard-m3.css")).toContain(".card-face .back-btn svg{ width:26px; height:26px; }");
+    expect(read("pollCard-m3.css")).toContain(".card-face .back-btn svg{ width:40px; height:40px; }");
+    expect(read("phone-card-m3.css")).toContain(".vote-bar .vote-bar-back svg{ width:48px; height:48px; }");
     const bar = /\.vote-bar \.vote-bar-back\{([^}]*)\}/.exec(read("phone-card-m3.css"))![1]!;
     expect(bar).toContain("background:var(--md-sys-color-primary);");
     expect(bar).toContain("color:var(--md-sys-color-on-primary);");

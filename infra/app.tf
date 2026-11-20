@@ -51,6 +51,7 @@ locals {
     ENV_MIN_SEARCH_REFRESH_INTERVAL                 = "2000"
     ENV_MIN_VOTE_REFRESH_INTERVAL                   = "2000"
     ENV_MAX_VOTES_PER_IP_PER_MINUTE                 = "600"
+    ENV_LIVE_RESULTS                                = "0"
     ENV_MAX_LIVE_RESULTS_PER_USER                   = "3"
     ENV_MAX_INVITATIONS_PER_DAY                     = "200"
     ENV_LIVE_RESULTS_MAX_IDLE_TIME                  = "1800000"

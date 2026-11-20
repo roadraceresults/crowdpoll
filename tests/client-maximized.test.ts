@@ -265,6 +265,46 @@ describe("maximizing and restoring", () => {
   });
 });
 
+describe("a bar opens the maximized view, and votes there as Vote does", () => {
+  it("turns the maximized card to its voting side from a bar, as Vote does", async () => {
+    await seedPoll("Bars", 3);
+    await sweeps();
+    page = await open(await forgeSession(ctx, "bars@example.com").then((s) => s.cookie));
+    const card = cardByTitle(page, "Bars");
+    await clickIn(page, card.querySelector(".maximize-btn"));
+    expect(card.classList.contains("maximized-card-viewport")).toBe(true);
+    await clickIn(page, card.querySelector(".results-list > .result-row"));
+    expect(card.querySelector(".card-flip")!.classList.contains("is-flipped")).toBe(true);
+    expect(card.classList.contains("maximized-card-viewport")).toBe(true);
+  });
+
+  it("opens the card in the grid maximized on its results from a bar, then a bar turns it to its voting side", async () => {
+    await seedPoll("Grid bars", 3);
+    await sweeps();
+    page = await open(await forgeSession(ctx, "grid-bars@example.com").then((s) => s.cookie));
+    const card = cardByTitle(page, "Grid bars");
+    await clickIn(page, card.querySelector(".results-list > .result-row"));
+    expect(card.classList.contains("maximized-card-viewport")).toBe(true);
+    expect(card.querySelector(".card-flip")!.classList.contains("is-flipped")).toBe(false);
+    await clickIn(page, card.querySelector(".results-list > .result-row"));
+    expect(card.querySelector(".card-flip")!.classList.contains("is-flipped")).toBe(true);
+  });
+
+  it("opens a guest's card maximized from a bar, and there a bar sends the guest to log in", async () => {
+    await seedPoll("Guest bars", 3);
+    await sweeps();
+    page = await open();
+    const card = cardByTitle(page, "Guest bars");
+    await clickIn(page, card.querySelector(".results-list > .result-row"));
+    expect(card.classList.contains("maximized-card-viewport")).toBe(true);
+    // jsdom does not navigate; it reports the attempt, which is how a page "goes" to /login here.
+    const before = page.navigations.length;
+    await clickIn(page, card.querySelector(".results-list > .result-row"));
+    expect(page.navigations.length).toBe(before + 1);
+    expect(card.querySelector(".card-flip")!.classList.contains("is-flipped")).toBe(false);
+  });
+});
+
 describe("every choice at once", () => {
   const heights = (rows: NodeListOf<Element>) => Array.from(rows).map((row) => parseFloat((row as HTMLElement).style.height));
 
@@ -629,7 +669,7 @@ describe("the maximized card stays in step", () => {
     expect(page.document.documentElement.classList.contains("maximize-hint-dismissed")).toBe(false);
   });
 
-  it("keeps a Search card's own controls when maximized: no Vote", async () => {
+  it("keeps a Search card's own controls when maximized: Vote included", async () => {
     await seedPoll("Findable", 2);
     await sweeps();
     page = await open();
@@ -639,7 +679,7 @@ describe("the maximized card stays in step", () => {
     const card = cardByTitle(page, "Findable", "search");
     await clickIn(page, card.querySelector(".maximize-btn"));
     expect(isOpen(page, "search")).toBe(true);
-    expect((card.querySelector(".vote-btn") as HTMLElement).hidden).toBe(true);
+    expect((card.querySelector(".vote-btn") as HTMLElement).hidden).toBe(false);
   });
 });
 

@@ -152,7 +152,7 @@ describe('the "/" shortcut', () => {
   });
 });
 
-describe("the field while the header search box is hidden at a wide width", () => {
+describe("the field at a wide width", () => {
   const outsidePhoneBlock = () => {
     const css = readFileSync(path.resolve("src/public/single-column-m3.css"), "utf8");
     return css.slice(0, css.indexOf("@media (max-width: 640px)"));
@@ -165,7 +165,7 @@ describe("the field while the header search box is hidden at a wide width", () =
     showSearchTab(page);
   }
 
-  it("is on screen, so \"/\" focuses it", () => {
+  it("is on screen while the header search box is hidden, so \"/\" focuses it", () => {
     home = openHome();
     withSheet(home);
     home.document.documentElement.setAttribute("data-header-fit", "no-name no-search");
@@ -173,10 +173,10 @@ describe("the field while the header search box is hidden at a wide width", () =
     expect(home.document.activeElement).toBe(home.field);
   });
 
-  it("is off screen while the header box is shown, so \"/\" is left alone", () => {
+  it("is on screen while the header box is shown too, so on the Search tab \"/\" focuses it", () => {
     home = openHome();
     withSheet(home);
-    expect(slash(home).defaultPrevented).toBe(false);
-    expect(home.document.activeElement).not.toBe(home.field);
+    expect(slash(home).defaultPrevented).toBe(true);
+    expect(home.document.activeElement).toBe(home.field);
   });
 });

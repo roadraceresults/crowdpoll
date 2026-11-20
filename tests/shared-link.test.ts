@@ -89,9 +89,18 @@ describe("GET /?PID= for a logged-in visitor", () => {
   });
 
   it("lands the creator on Your Polls and records nothing", async () => {
-    const poll = await seed({ pollVisibility: "Private Poll", pollState: "ARCHIVED" });
+    const poll = await seed({ pollVisibility: "Private Poll", pollState: "CLOSED" });
     const res = await open(poll._id, owner.cookie);
     expect(res.headers.location).toBe(`/?open=${poll._id}&tab=your-polls`);
+    expect(await ctx.db.selectFrom("user_polls").selectAll().where("poll_id", "=", poll._id).where("relation", "=", "linked").execute()).toEqual([]);
+  });
+
+  it("shows an archived poll to no one, its creator included, as a deleted poll", async () => {
+    const poll = await seed({ pollState: "ARCHIVED" });
+    for (const cookie of [owner.cookie, undefined]) {
+      const res = await open(poll._id, cookie);
+      expect(res.headers.location).toBe("/?notice=unavailable");
+    }
     expect(await ctx.db.selectFrom("user_polls").selectAll().where("poll_id", "=", poll._id).where("relation", "=", "linked").execute()).toEqual([]);
   });
 
