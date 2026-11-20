@@ -255,6 +255,8 @@
         "specs/20261118-160304-CLIENT-CODE-OBFUSCATION/spec.md": "df14241548adc0d0f2598ddc72089b9d9587eb0856bf436cf076ea56c4a3f42e",
         "requirements/20261118-160304-client-code-obfuscation/requirements.md": "daea5fe788c9bd9f71d12d20a8c23d8c44c866618f508aa57ce15ea620f3d793",
         "specs/20261118-160304-CLIENT-CODE-OBFUSCATION/contracts/build.md": "adc903fc349f4ee18a289244f03cc9214da800e64012fdcab2073ec2fb204230",
-        "specs/20261118-160304-CLIENT-CODE-OBFUSCATION/research.md": "130000e35e08b9da57ebe864c2f521c47a0792abcb1be6b8a44adeaf8cce5fd5"
+        "specs/20261118-160304-CLIENT-CODE-OBFUSCATION/research.md": "130000e35e08b9da57ebe864c2f521c47a0792abcb1be6b8a44adeaf8cce5fd5",
+        "specs/20261119-144614-POLL-ADMIN-IMPROVEMENTS/analyze-findings.md": "f0afc26304f39843deabc6b94d2b0ef0ae360bf0655cd7c19012fb2a76d32a56",
+        "specs/20261119-144614-POLL-ADMIN-IMPROVEMENTS/tasks.md": "6770fd2df256e852cb5eabb41c52c0e3682ea4bd857bead24e4d4184032a1806"
     }
 }

@@ -131,7 +131,8 @@ export function createDefaultPoll(now: Date = new Date()): Poll {
     lineGraphEnabled: false,
     pendingUpdate: null,
     pendingRejectionReason: null,
-    votersAddChoices: false
+    votersAddChoices: false,
+    choicesInEnteredOrder: false
   };
 }
 
@@ -620,6 +621,13 @@ export function validatePollFields(
       throw new AdminError(400, "lineGraphEnabled must be true or false.");
     }
     $set.lineGraphEnabled = body.lineGraphEnabled;
+  }
+
+  if (body.choicesInEnteredOrder !== undefined) {
+    if (typeof body.choicesInEnteredOrder !== "boolean") {
+      throw new AdminError(400, "choicesInEnteredOrder must be true or false.");
+    }
+    $set.choicesInEnteredOrder = body.choicesInEnteredOrder;
   }
 
   const becomesPublic = isPublicVisibility($set.pollVisibility ?? poll.pollVisibility);
@@ -1223,7 +1231,8 @@ export function duplicatePoll(source: Poll, now: Date = new Date()): Poll {
     lineGraphEnabled: false,
     pendingUpdate: null,
     pendingRejectionReason: null,
-    votersAddChoices: source.votersAddChoices
+    votersAddChoices: source.votersAddChoices,
+    choicesInEnteredOrder: source.choicesInEnteredOrder
   };
 }
 

@@ -6,6 +6,24 @@ The full description, every earlier feature's decisions and the settings table a
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261119-144614-POLL-ADMIN-IMPROVEMENTS/plan.md` (research R1–R16, `data-model.md` — one column, two payload
+fields, the row's and the Choices field's states; the contracts `contracts/api.md` A1–A6, `contracts/ui.md` U1–U17 and
+the quickstart live alongside it).
+The requirements report is `requirements/20261119-144614-poll-admin-improvements/requirements-report.md`: 18 findings,
+all resolved; where it speaks of choices "locked by votes" and a "... view" link, the plan's R13 is right (neither
+exists).
+Decisions that are easy to get wrong:
+- **Every admin list is rows**: `adminList.js` has one list path; this supersedes "Search view only" below, and the
+  other row rules there now hold in every view and the creator's list (R1–R3).
+- **The open-poll link is a sibling of the row's button**, shown only while the server says `canWatch`, which is
+  `mayWatchMany` unchanged: unpublished polls never have it (R4, R5).
+- **`choicesInEnteredOrder` reorders only what is drawn**: `pollCard.js` keeps `data` share-sorted as the ranking;
+  `inDisplayOrder` is applied to the results shown and the ballot, nowhere else (R7).
+- **An info icon is never inside a `<label>`**: rows that take one are a `div` with `<label for>` parts (R10).
+- **The Choices field is a preview or today's textarea**, decided by `wizard.choicesOpen`; `commitChoices()` runs
+  wherever `commitNotes()` does (R12).
+
+The plan before it:
 `specs/20261118-160304-CLIENT-CODE-OBFUSCATION/plan.md` (research R1–R15, `data-model.md` — build inputs, mode and
 checks, nothing stored; the contract `contracts/build.md` B1–B16 and the quickstart live alongside it).
 The requirements report is `requirements/20261118-160304-client-code-obfuscation/requirements-report.md`: 14 findings,
@@ -104,15 +122,16 @@ nothing stored; the contract `contracts/ui.md` U1–U9 and the quickstart live a
 The requirements report is `requirements/20261113-102117-admin-search-results/requirements-report.md`: 9 findings, all
 resolved.
 Decisions that are easy to get wrong:
-- **Search view only, client only**: `adminList.js` draws one `div.admin-result` (a disclosure `<button>` and a panel)
-  per poll; the other views and the creator-only page keep cards; `adminCard.js`, the route and `openapi.json` do not
-  change (R1, R3).
+- **Rows, client only**: `adminList.js` draws one `div.admin-result` (a disclosure `<button>` and a panel) per poll;
+  written for the Search view, every list is rows since POLL-ADMIN-IMPROVEMENTS, the other views and the
+  creator-only page included; `adminCard.js`, the route and `openapi.json` did not change for it (R1, R3).
 - **A card exists only while its row is open**: created on open, forgotten on close unless it holds saved wizard
   progress; one `openPid` (R5).
 - **Only a fresh load opens by itself**: `selectTab` (Search, Clear, a view tab) closes the open card and opens a
   single result; the periodic refresh and card actions never open, close or move a card, and the editing poll's row is
   never removed (R6, R8).
-- **Held during an edit**: every row, Search and Clear are `disabled` with "Finish editing the open poll first" (R7).
+- **Held during an edit**: every row, Search and Clear are `disabled` with "Finish editing the open poll first" (R7);
+  since POLL-ADMIN-IMPROVEMENTS TWEAK09 the edited poll's own row stays enabled and acts as Cancel, then closes.
 - **The list is wider than the 420 px column**: `min(840px, 100%)`, one card-like frame (`admin.css`) of two-line, zebra-striped rows; the
   card keeps 420 px (R2).
 <!-- SPECKIT END -->

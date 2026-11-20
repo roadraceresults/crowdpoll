@@ -329,6 +329,7 @@
 
 /* ---------- 7. Result rows: one disclosure button per poll in a shared frame, its card under it ---------- */
 /* Material 3 lists: https://m3.material.io/components/lists/specs */
+.admin-result{ position:relative; }
 .admin-result:nth-child(even){ background:var(--md-sys-color-surface-container); }
 .admin-result.admin-result--open{
   background:var(--md-sys-color-secondary-container);
@@ -344,7 +345,7 @@
   width:100%;
   min-height:64px;
   margin:0;
-  padding:12px 12px 12px 20px;
+  padding:12px 12px 12px 72px;
   border:0;
   border-radius:inherit;
   background:transparent;
@@ -438,6 +439,31 @@
 }
 .admin-result-row[aria-expanded="true"] .admin-result-chevron{ transform:rotate(180deg); }
 .admin-result--open .admin-result-row:disabled .admin-result-chevron{ visibility:hidden; }
+.admin-result-open{
+  position:absolute;
+  z-index:1;
+  top:8px;
+  left:12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:48px;
+  height:48px;
+  border-radius:var(--md-sys-shape-corner-full);
+}
+.admin-result-open svg{ width:36px; height:36px; }
+.admin-result-open:hover .admin-result-open-disc{ opacity:0.92; }
+.admin-result-open:focus-visible{
+  outline:2px solid var(--md-sys-color-primary);
+  outline-offset:2px;
+}
+.admin-result-open-disc{ fill:var(--md-sys-color-primary); }
+.admin-result-open-mark{ fill:var(--md-sys-color-on-primary); }
+.admin-result-open-stroke{
+  fill:none;
+  stroke:var(--md-sys-color-on-primary);
+  stroke-width:2.4;
+}
 .admin-result-panel{ padding:4px 12px 20px; }
 .admin-result-panel[hidden]{ display:none; }
 @media (prefers-reduced-motion: reduce){

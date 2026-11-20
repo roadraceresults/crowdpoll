@@ -15,7 +15,7 @@ import { localScreener, screenWithTimeout } from "../polls/screening.js";
 import { projectPoll } from "../polls/versions.js";
 import { renderNotesHtml, renderNotesPreview } from "../polls/notes.js";
 import { adminSearch, AdminSearchError, parseAdminSearch } from "../search/adminSearch.js";
-import { mayViewResults, mayWatch } from "../polls/access.js";
+import { mayViewResults, mayWatch, mayWatchMany } from "../polls/access.js";
 import { addBookmark, BookmarkCapError, removeBookmark } from "../polls/bookmarks.js";
 import {
   countTitleCollisions,
@@ -640,7 +640,8 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
       const UPDATE_FIELDS = [
         "title", "subtitle", "notes", "invitationMessage", "linkPreviewMessage", "startAt", "endAt",
         "invitedVoterList", "bannedVoterList", "voterCountLimit", "colors", "lineGraphEnabled",
-        "labels", "pollSharingMode", "choiceMode", "voteMutability", "votersAddChoices"
+        "labels", "pollSharingMode", "choiceMode", "voteMutability", "votersAddChoices",
+        "choicesInEnteredOrder"
       ];
       // The frozen trio passes this gate so `validatePollFields` can refuse each
       // with its own 409 naming the field; everything else still gets the 400.
@@ -881,7 +882,8 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
       const names = await adderNames(db, rows.map((p) => p.choices));
       const accepted = await acceptedCounts(db, rows.map((p) => p.id));
       const totals = await voteTotals(db, rows.filter((p) => p.choice_mode === "Multiple-Choice Poll").map((p) => p.id));
-      const polls = rows.map((p) => adminListRow(p, votedPids.has(p.id), emails.get(p.created_by_id) ?? "", accepted, totals, names, caller?.id));
+      const openable = caller ? await mayWatchMany({ db, config }, caller, rows) : new Set<string>();
+      const polls = rows.map((p) => adminListRow(p, votedPids.has(p.id), emails.get(p.created_by_id) ?? "", accepted, totals, names, openable, caller?.id));
       // Re-attempt Screening stays with administrators; a creator republishes instead.
       res.json({ polls: ownerFilter ? polls.map((p) => ({ ...p, canRescreen: false })) : polls, truncated });
     })
@@ -892,7 +894,7 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
     return { notesPreviewHtml: preview.html, hasMoreNotes: preview.hasMore };
   }
 
-  function adminListRow(p: PollRow, hasEverBeenVotedOn: boolean, createdByEmail: string, accepted: Map<string, number>, totals: Map<string, number>, names: Map<string, string>, callerId?: string) {
+  function adminListRow(p: PollRow, hasEverBeenVotedOn: boolean, createdByEmail: string, accepted: Map<string, number>, totals: Map<string, number>, names: Map<string, string>, openable: Set<string>, callerId?: string) {
     const forRules = {
       pollState: p.poll_state as Poll["pollState"],
       pollAcceptabilityScreeningAttempts: p.poll_acceptability_screening_attempts,
@@ -920,6 +922,8 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
       pendingRejectionReason: p.pending_rejection_reason,
       lineGraphEnabled: p.line_graph_enabled,
       votersAddChoices: p.voters_add_choices,
+      choicesInEnteredOrder: p.choices_in_entered_order,
+      canWatch: openable.has(p.id),
       pollApprovalTimestamp: p.poll_approval_timestamp,
       pollAcceptabilityScreeningAttempts: p.poll_acceptability_screening_attempts,
       hasEverBeenVotedOn,
@@ -965,7 +969,8 @@ export function createPollsApiRouter({ db, cache, config, sessions }: PollsApiDe
       const names = await adderNames(db, rows.map((p) => p.choices));
       const accepted = await acceptedCounts(db, rows.map((p) => p.id));
       const totals = await voteTotals(db, rows.filter((p) => p.choice_mode === "Multiple-Choice Poll").map((p) => p.id));
-      res.json({ polls: rows.map((p) => adminListRow(p, votedPids.has(p.id), emails.get(p.created_by_id) ?? "", accepted, totals, names, caller?.id)), truncated });
+      const openable = caller ? await mayWatchMany({ db, config }, caller, rows) : new Set<string>();
+      res.json({ polls: rows.map((p) => adminListRow(p, votedPids.has(p.id), emails.get(p.created_by_id) ?? "", accepted, totals, names, openable, caller?.id)), truncated });
     })
   );
 

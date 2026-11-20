@@ -534,6 +534,10 @@
             "type": "boolean",
             "description": "Every action rule is decided server-side so the client renders the menu from booleans rather than re-deriving them (FR-052..FR-054)."
           },
+          "canWatch": {
+            "type": "boolean",
+            "description": "Whether the caller can open this poll from its link."
+          },
           "choices": {
             "type": "array",
             "items": {
@@ -588,6 +592,10 @@
           "votersAddChoices": {
             "type": "boolean",
             "description": "Voters of this Private poll may add choices while it is open (POST /api/polls/{pid}/choices); always false on a Public poll"
+          },
+          "choicesInEnteredOrder": {
+            "type": "boolean",
+            "description": "On: voters see the choices in the order entered; off: from most votes to least."
           }
         }
       },
@@ -805,6 +813,10 @@
           "votersAddChoices": {
             "type": "boolean",
             "description": "Voters of this Private poll may add choices while it is open (POST /api/polls/{pid}/choices); always false on a Public poll"
+          },
+          "choicesInEnteredOrder": {
+            "type": "boolean",
+            "description": "On: voters see the choices in the order entered; off: from most votes to least."
           }
         }
       },
@@ -1206,6 +1218,10 @@
           "votersAddChoices": {
             "type": "boolean",
             "description": "Voters of this Private poll may add choices while it is open (POST /api/polls/{pid}/choices); always false on a Public poll"
+          },
+          "choicesInEnteredOrder": {
+            "type": "boolean",
+            "description": "On: voters see the choices in the order entered; off: from most votes to least."
           }
         }
       },
@@ -3637,6 +3653,10 @@
                     "type": "boolean",
                     "description": "Let voters add choices; also changeable after votes. true on a Public poll is refused 400 \"Only a private poll can let voters add choices.\""
                   },
+                  "choicesInEnteredOrder": {
+                    "type": "boolean",
+                    "description": "On: voters see the choices in the order entered; off: from most votes to least."
+                  },
                   "baseChoiceIds": {
                     "type": "array",
                     "items": {
@@ -3892,6 +3912,10 @@
                   "votersAddChoices": {
                     "type": "boolean",
                     "description": "Let voters add choices; also changeable after votes. true on a Public poll is refused 400 \"Only a private poll can let voters add choices.\""
+                  },
+                  "choicesInEnteredOrder": {
+                    "type": "boolean",
+                    "description": "On: voters see the choices in the order entered; off: from most votes to least."
                   },
                   "baseChoiceIds": {
                     "type": "array",

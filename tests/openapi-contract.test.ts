@@ -339,6 +339,23 @@ describe("openapi.json tracks the EDITING-POLL-AVAILABLE surfaces", () => {
     expect(props).toContain("pendingRejectionReason");
   });
 
+  it("describes choicesInEnteredOrder wherever it describes votersAddChoices, and canWatch on the admin list row", () => {
+    const holders: Record<string, unknown>[] = [];
+    const walk = (node: unknown): void => {
+      if (node === null || typeof node !== "object") return;
+      const props = (node as { properties?: Record<string, unknown> }).properties;
+      if (props && "votersAddChoices" in props) holders.push(props);
+      for (const child of Object.values(node)) walk(child);
+    };
+    walk(spec);
+    expect(holders.length).toBeGreaterThanOrEqual(5);
+    for (const props of holders) {
+      expect((props.choicesInEnteredOrder as { type?: string } | undefined)?.type).toBe("boolean");
+    }
+    const summary = (spec.components.schemas.AdminPollSummary as { properties: Record<string, { type?: string }> }).properties;
+    expect(summary.canWatch?.type).toBe("boolean");
+  });
+
   it("keeps POLL_EDITING documented while narrowing it to the direct validation path", () => {
     const vote = spec.paths["/api/polls/{pid}/vote"] as Record<string, { responses: Record<string, unknown> }>;
     const refusal = JSON.stringify(vote.post!.responses["409"]);

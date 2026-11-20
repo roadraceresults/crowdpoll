@@ -85,10 +85,20 @@ async function seed(...items: Poll[]) {
   for (const poll of items) await polls(ctx).insertOne(poll);
 }
 
-const cardWith = (p: BrowserPage, title: string) =>
-  Array.from(p.document.querySelectorAll<HTMLElement>("#pollList .poll-admin-card")).find((c) =>
+/** Every list is rows: the poll's row is opened first when it is closed. */
+function openRow(p: BrowserPage, title: string) {
+  const row = Array.from(p.document.querySelectorAll<HTMLButtonElement>("#pollList .admin-result-row")).find((r) =>
+    (r.querySelector(".admin-result-title")?.textContent ?? "").includes(title)
+  );
+  if (row && row.getAttribute("aria-expanded") !== "true") row.click();
+}
+
+function cardWith(p: BrowserPage, title: string) {
+  openRow(p, title);
+  return Array.from(p.document.querySelectorAll<HTMLElement>("#pollList .poll-admin-card")).find((c) =>
     (c.querySelector(".wizard-summary-title")?.textContent ?? "").includes(title)
   )!;
+}
 const wizardCard = (p: BrowserPage) => p.document.querySelector<HTMLElement>(".poll-admin-card--new")!;
 const heading = (card: HTMLElement) => card.querySelector(".wizard-panel-heading")?.textContent ?? "";
 const links = (card: HTMLElement) => Array.from(card.querySelectorAll<HTMLElement>(".wizard-summary-link"));
@@ -127,7 +137,12 @@ async function createPoll(p: BrowserPage) {
 }
 
 const titleField = (p: BrowserPage) => wizardCard(p).querySelector<HTMLInputElement>('[id^="pollTitle-"]')!;
-const choicesBox = (p: BrowserPage) => wizardCard(p).querySelector<HTMLTextAreaElement>('textarea[aria-label="Choices"]')!;
+/** The Choices textarea, opening the list from its preview first when it is closed. */
+function choicesBox(p: BrowserPage): HTMLTextAreaElement {
+  const open = () => wizardCard(p).querySelector<HTMLTextAreaElement>('textarea[aria-label="Choices"]');
+  if (!open()) wizardCard(p).querySelector<HTMLButtonElement>(".wizard-choices-preview .wizard-notes-edit")?.click();
+  return open()!;
+}
 
 /** Answers Steps 1–3 of a new poll: a title and two choices. */
 async function answerFirstSteps(p: BrowserPage, title = "Bake sale") {
@@ -164,29 +179,33 @@ describe("a new poll's wizard", () => {
     expect(card.querySelector(".card-pen")).toBeNull();
   });
 
-  it("explains each answer to Who can vote under What does this mean?", async () => {
+  it("explains every answer to Who can vote in one dialog, from any of its info icons", async () => {
     const p = await open();
     const card = await createPoll(p);
-    const help = card.querySelector(".wizard-help")!;
-    expect(help.querySelector("summary")!.textContent).toBe("What does this mean?");
-    const pairs = Array.from(help.querySelectorAll("dt")).map((dt) => [dt.textContent, dt.nextElementSibling!.textContent]);
-    expect(pairs).toEqual([
-      [
+    expect(card.querySelector(".wizard-help")).toBeNull();
+    const buttons = Array.from(card.querySelectorAll<HTMLButtonElement>("button.wizard-info"));
+    expect(buttons.map((b) => b.getAttribute("aria-label"))).toEqual([
+      "About: Anyone you send the link to", "About: Only people you invite", "About: Everyone on CrowdPoll"
+    ]);
+    for (const button of buttons) {
+      button.click();
+      await p.settle();
+      const dialog = p.document.querySelector('.modal[role="dialog"]')!;
+      expect(dialog.querySelector(".modal-headline")!.textContent).toBe("Who can vote");
+      expect(Array.from(dialog.querySelectorAll(".modal-text > p")).map((el) => el.textContent)).toEqual([
         "Anyone you send the link to",
         "Your poll is private: it is listed only in the \"Shared With You\" tab for the people you share it with, " +
-          "and is not listed in Trending, Newest or Search. Anyone who has the link can open it and vote."
-      ],
-      [
+          "and is not listed in Trending, Newest or Search. Anyone who has the link can open it and vote.",
         "Only people you invite",
         "Your poll is private: it is listed only in the \"Shared With You\" tab for the people you share it with, " +
           "and is not listed in Trending, Newest or Search. Only the people whose email addresses you invite can vote. " +
-          "You add them after the poll is created."
-      ],
-      [
+          "You add them after the poll is created.",
         "Everyone on CrowdPoll",
         "Your poll is public: anyone on CrowdPoll can find it and vote. Public polls appear after they are reviewed and approved."
-      ]
-    ]);
+      ]);
+      dialog.querySelector<HTMLButtonElement>("button")!.click();
+      await p.settle();
+    }
   });
 
   it("moves forward only with Next, which Step 6 does not have, and back through a visited circle", async () => {
@@ -558,7 +577,7 @@ describe("the View step", () => {
     await openColors(p);
     const card = wizardCard(p);
     expect(heading(card)).toBe("Step 4 · View");
-    expect(card.querySelector(".wizard-colors-help")!.textContent).toBe("Optional. Leave a choice on Automatic to color it for you.");
+    expect(card.querySelector(".wizard-colors-help")!.textContent).toBe("Optional. Leave a choice on Automatic and an appropriate color is automatically assigned.");
     expect(rowsOf(p).map((r) => r.querySelector(".wizard-color-label")!.textContent)).toEqual(["Cakes", "Cookies"]);
     for (const choice of ["Cakes", "Cookies"]) {
       const button = colorButton(p, choice);
@@ -1263,7 +1282,7 @@ describe("the read-only face", () => {
     expect(archived.textContent).toBe("Notes: Kept");
     expect(cardWith(p, "No notes").querySelector(".wizard-summary-notes")).toBeNull();
 
-    part.click();
+    cardWith(p, "With notes").querySelector<HTMLElement>(".wizard-summary-notes .wizard-summary-link")!.click();
     await p.settle(50);
     expect(heading(wizardCard(p))).toBe("Step 2 · Title & Tags");
   });
@@ -1405,7 +1424,13 @@ describe("an existing poll in the wizard", () => {
     const p = await open();
     link(cardWith(p, "First"), "First").click();
     await p.settle(50);
-    expect(links(cardWith(p, "Second"))).toEqual([]);
+    const second = Array.from(p.document.querySelectorAll<HTMLButtonElement>("#pollList .admin-result-row")).find(
+      (r) => r.querySelector(".admin-result-title")!.textContent === "Second"
+    )!;
+    expect(second.disabled).toBe(true);
+    second.click();
+    await p.settle(50);
+    expect(p.document.querySelectorAll("#pollList .poll-admin-card")).toHaveLength(1);
   });
 
   it("returns focus to the card's first link after Cancel and after Save", async () => {
@@ -2049,16 +2074,16 @@ describe("voters may add choices (USER-ADD-CHOICES C5)", () => {
     return poll;
   }
 
-  it("offers the switch in Step 5 of a private poll only, off for a new poll, and sends it on Save and Publish", async () => {
+  it("offers the switch in Step 3 of a private poll only, off for a new poll, and sends it on Save and Publish", async () => {
     const p = await open();
     await createPoll(p);
-    for (let i = 0; i < 4; i++) await next(p);
-    expect(heading(wizardCard(p))).toBe("Step 5 · How to vote");
+    for (let i = 0; i < 2; i++) await next(p);
+    expect(heading(wizardCard(p))).toBe("Step 3 · Choices");
     expect(addSwitch(p)).toBeNull();
     (circles(wizardCard(p))[0]!.querySelector("button") as HTMLButtonElement).click();
     await p.settle();
     await pick(p, "who", "link");
-    (circles(wizardCard(p))[4]!.querySelector("button") as HTMLButtonElement).click();
+    (circles(wizardCard(p))[2]!.querySelector("button") as HTMLButtonElement).click();
     await p.settle();
     expect(addSwitch(p)!.checked).toBe(false);
     expect(summaryAdd(wizardCard(p))).toBeNull();
@@ -2075,7 +2100,7 @@ describe("voters may add choices (USER-ADD-CHOICES C5)", () => {
     const p = await open();
     await createPoll(p);
     await pick(p, "who", "link");
-    for (let i = 0; i < 4; i++) await next(p);
+    for (let i = 0; i < 2; i++) await next(p);
     addSwitch(p)!.click();
     await p.settle();
     (circles(wizardCard(p))[0]!.querySelector("button") as HTMLButtonElement).click();
@@ -2094,7 +2119,7 @@ describe("voters may add choices (USER-ADD-CHOICES C5)", () => {
     expect(summaryAdd(card)).toBe("Voters may add choices: No.");
     link(card, "No").click();
     await p.settle(50);
-    expect(heading(wizardCard(p))).toBe("Step 5 · How to vote");
+    expect(heading(wizardCard(p))).toBe("Step 3 · Choices");
     expect(addSwitch(p)!.disabled).toBe(false);
     addSwitch(p)!.click();
     await p.settle();
@@ -2499,7 +2524,7 @@ describe("link preview message in Step 1", () => {
       expect(cardWith(p, title).querySelector(".wizard-summary-copy-link"), title).toBeNull();
     }
     // The editor of the same poll shows no summary, so no button either.
-    link(linked, "Anyone you send the link to").click();
+    link(cardWith(p, "Linked"), "Anyone you send the link to").click();
     await p.settle(50);
     expect(wizardCard(p).querySelector(".wizard-summary")).toBeNull();
     expect(wizardCard(p).querySelector(".wizard-summary-copy-link")).toBeNull();

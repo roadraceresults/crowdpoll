@@ -74,6 +74,7 @@ describe("the vote path", () => {
     const at = new Date();
     await cast(poll._id, "a@example.com", ["c1"], { now: at });
     await ctx.consumer.runOnce();
+    await ctx.cache.del(QUEUE_LAG);
     const bucketBefore = (await ctx.cache.hgetall(trendBucketKey(at)))[poll._id];
     const removed = await cast(poll._id, "a@example.com", [], { sessionId: "s2-a@example.com", now: at });
     expect(removed).toMatchObject({ status: "recorded", voteCount: 0, choiceCounts: { c1: 0 }, myChoiceIds: [] });

@@ -1185,10 +1185,15 @@ no status message before a search. Each admin list row also carries `createdByNa
 and `createdByEmail` (one `creatorEmails()` query per page against the `user` table), which the read-only card shows
 as `Created By: <username> (<email>)` above its dates.
 
-In the Search view `adminList.js` draws results, not cards: one `div.admin-result` per poll, holding a disclosure
-`<button class="admin-result-row">` (`aria-expanded`, `aria-controls`) and a `div.admin-result-panel`. The request,
-the response and `adminCard.js` are unchanged; the row's cells (title and subtitle on one line; visibility, state,
-creator with date, and voters on a second) are painted from fields the response already carries. The view's state is a `resultRows` map (pid → result) and one `openPid`, both in memory:
+In every view, and on the creator-only page, `adminList.js` draws rows, not cards (one list path since
+POLL-ADMIN-IMPROVEMENTS): one `div.admin-result` per poll, holding a disclosure
+`<button class="admin-result-row">` (`aria-expanded`, `aria-controls`) and a `div.admin-result-panel`. The row's
+cells (title and subtitle on one line; visibility, state, creator with date, and voters on a second) are painted
+from fields the response already carries. Before the button, as its sibling, an `a.admin-result-open` to
+`/?PID=<pid>` is drawn only while the row's `canWatch` is `true`: both admin list routes compute it per page with
+`mayWatchMany` (the voter-side rule, unchanged, so an unpublished poll never has it). `canWatch` is not
+`capabilitiesFor`'s `canOpen`, which is the Open state action. The view's state is a `resultRows` map (pid →
+result) and one `openPid`, both in memory:
 
 - A card controller exists only while its row is open: `openResult` creates it (`AdminCard.create`) and puts its
   element in the panel, `closeResult` forgets it unless it holds saved wizard progress. So a search draws at most
@@ -1202,6 +1207,13 @@ creator with date, and voters on a second) are painted from fields the response 
 - The list is one frame: `admin.css` gives `.admin-card-list:has(> .admin-result)` the cards' fill, border, corners
   and shadow at `min(840px, 100%)`, with a hairline between results. Section 7 of `admin-search-m3.css` styles the
   rows, stripes every second result and tints the open one, row and panel; the card in the panel keeps its 420 px.
+
+`polls.choices_in_entered_order` (migration `023-choices-in-entered-order`, `boolean not null default false`) is
+the wizard's "Display Choices in the order above". It is written by the admin update routes like any other field
+(not held in `pending_update`), carried by `projectPoll` as `choicesInEnteredOrder` and by `deltaClient.js` to the
+card. `pollCard.js` keeps `data` sorted by share, which still decides which choices are drawn
+(`essentialChoices`, `fittingChoices`); `inDisplayOrder` then orders by `position` the rows drawn on the results
+side and the ballot when the setting is on. Colours follow the choice, so reordering never recolours.
 
 ## Sweeps
 

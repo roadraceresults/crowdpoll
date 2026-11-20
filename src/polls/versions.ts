@@ -25,6 +25,7 @@ export interface PollProjection {
   contentVersion: number;
   lineGraphEnabled: boolean;
   votersAddChoices: boolean;
+  choicesInEnteredOrder: boolean;
 }
 
 export function projectPoll(row: PollRow): PollProjection {
@@ -51,7 +52,8 @@ export function projectPoll(row: PollRow): PollProjection {
       .map(({ id, label, position, color }) => ({ id, label, position, ...(color ? { color } : {}) })),
     contentVersion: row.content_version,
     lineGraphEnabled: row.line_graph_enabled,
-    votersAddChoices: row.voters_add_choices
+    votersAddChoices: row.voters_add_choices,
+    choicesInEnteredOrder: row.choices_in_entered_order
   };
 }
 

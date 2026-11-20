@@ -176,6 +176,83 @@
     return pendingDeleteAnswer;
   }
 
+  let infoOpen = false;
+
+  function showInfo(title, blocks) {
+    if (infoOpen) return;
+    infoOpen = true;
+    const backdrop = el("div", "modal-backdrop");
+    const box = el("div", "modal modal--info");
+    box.setAttribute("role", "dialog");
+    box.setAttribute("aria-modal", "true");
+    box.setAttribute("aria-labelledby", "info-headline");
+    box.setAttribute("aria-describedby", "info-text");
+    const headline = el("h2", "modal-headline", title);
+    headline.id = "info-headline";
+    const text = el("div", "modal-text");
+    text.id = "info-text";
+    for (const block of blocks) {
+      if (block.heading) text.appendChild(el("p", "modal-info-heading", block.heading));
+      text.appendChild(el("p", null, block.text));
+    }
+    const close = el("button", "tab-refresh modal-action modal-keep", "Close");
+    close.type = "button";
+    const actions = el("div", "modal-actions");
+    actions.appendChild(close);
+    box.append(headline, text, actions);
+    backdrop.appendChild(box);
+    const opener = document.activeElement;
+
+    function dismiss() {
+      document.removeEventListener("keydown", onKey);
+      backdrop.remove();
+      infoOpen = false;
+      if (opener && opener !== document.body && opener.isConnected && opener.focus) opener.focus();
+    }
+    function onKey(event) {
+      if (event.key === "Escape") {
+        event.stopPropagation();
+        dismiss();
+      }
+      if (event.key === "Tab") {
+        event.preventDefault();
+        close.focus();
+      }
+    }
+    close.addEventListener("click", dismiss);
+    backdrop.addEventListener("click", (event) => { if (event.target === backdrop) dismiss(); });
+    document.addEventListener("keydown", onKey);
+    document.body.appendChild(backdrop);
+    close.focus();
+  }
+
+  function infoButton(label, title, blocks) {
+    const button = el("button", "wizard-info");
+    button.type = "button";
+    button.setAttribute("aria-label", "About: " + label);
+    const SVG = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(SVG, "svg");
+    for (const [name, value] of Object.entries({ viewBox: "0 0 24 24", "aria-hidden": "true", focusable: "false" })) {
+      svg.setAttribute(name, value);
+    }
+    const shapes = [
+      ["circle", { cx: "12", cy: "12", r: "9.25", fill: "none", stroke: "currentColor", "stroke-width": "1.5" }],
+      ["circle", { cx: "12", cy: "7.75", r: "1.25", fill: "currentColor" }],
+      ["rect", { x: "11", y: "10.5", width: "2", height: "7", rx: "1", fill: "currentColor" }]
+    ];
+    for (const [tag, attributes] of shapes) {
+      const shape = document.createElementNS(SVG, tag);
+      for (const [name, value] of Object.entries(attributes)) shape.setAttribute(name, value);
+      svg.appendChild(shape);
+    }
+    button.appendChild(svg);
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      showInfo(title, blocks);
+    });
+    return button;
+  }
+
   function formatTimestamp(value) {
     return value ? new Date(value).toLocaleString() : "—";
   }
@@ -509,7 +586,7 @@
       // Choice mode widens one way after votes: a Single-Choice poll may become
       // Multiple-Choice, never back. Mutability switches both ways.
       if (field === "choiceMode") return mode === "EDIT" || current.choiceMode === "Single-Choice Poll";
-      if (field === "voteMutability" || field === "votersAddChoices") return true;
+      if (field === "voteMutability" || field === "votersAddChoices" || field === "choicesInEnteredOrder") return true;
       return mode === "EDIT";   // pollVisibility, keywords
     }
 
@@ -585,6 +662,7 @@
         manualColors: Object.keys(storedColors()).length > 0,
         lineGraph: current.lineGraphEnabled === true,
         addChoices: current.votersAddChoices === true,
+        enteredOrder: current.choicesInEnteredOrder === true,
         ...storedHow(),
         ...storedWhen(),
         showVoters: current.voteAnonymity === "No"
@@ -601,6 +679,7 @@
         manualColors: Object.keys(storedColors()).length > 0,
         lineGraph: current.lineGraphEnabled === true,
         addChoices: current.votersAddChoices === true,
+        enteredOrder: current.choicesInEnteredOrder === true,
         ...storedHow(),
         ...storedWhen(),
         showVoters: current.voteAnonymity === "No"
@@ -628,6 +707,7 @@
         manualColors: from.manualColors === true,
         lineGraph: from.lineGraph,
         addChoices: from.addChoices,
+        enteredOrder: from.enteredOrder === true,
         multi: from.multi,
         rangeKind: from.rangeKind,
         from: from.from,
@@ -640,7 +720,9 @@
         endMode: from.endMode,
         endLocal: from.endLocal,
         titleTouched: false,
-        choicesTouched: false
+        choicesTouched: false,
+        choicesOpen: false,
+        choicesAtOpen: ""
       };
     }
 
@@ -654,7 +736,7 @@
         wizard.choicesText !== base.choicesText ||
         JSON.stringify(colorsOfLines(wizard)) !== JSON.stringify(colorsOfLines(base)) ||
         ["multi", "rangeKind", "from", "to", "exact", "mutable",
-          "startMode", "startLocal", "endMode", "endLocal", "showVoters", "lineGraph", "addChoices"].some((k) => wizard[k] !== base[k]);
+          "startMode", "startLocal", "endMode", "endLocal", "showVoters", "lineGraph", "addChoices", "enteredOrder"].some((k) => wizard[k] !== base[k]);
     }
 
     // Step 3: the choices are the box's non-blank lines. These helpers read the open
@@ -778,7 +860,7 @@
     }
 
     async function goToStep(n) {
-      if (!commitNotes()) return;
+      if (!commitNotes() || !commitChoices()) return;
       if (wizard.step === 3 && n !== 3) {
         if (duplicateMessage()) {
           const box = card.querySelector('[id^="pollChoices-"]');
@@ -997,6 +1079,18 @@
         if (more) choicesLine.append("... (" + more + (more === 1 ? " more choice)" : " more choices)"));
         choicesLine.append(".");
       }
+      if (s.answered.has(3)) {
+        if (who !== "public") {
+          const addLine = line();
+          addLine.classList.add("wizard-summary-add-choices");
+          addLine.append("Voters may add choices: ", part(s.addChoices ? "Yes" : "No", 3, "votersAddChoices"), ".");
+        }
+        if (s.enteredOrder) {
+          const orderLine = line();
+          orderLine.classList.add("wizard-summary-entered-order");
+          orderLine.append(part("Choices are shown in the order entered.", 3, "choicesInEnteredOrder"));
+        }
+      }
       if (s.answered.has(4)) buildColorsSummaryLine(s, line, part);
       // How to vote, once Step 5 is answered.
       if (s.answered.has(5)) {
@@ -1004,11 +1098,6 @@
         howLine.classList.add("wizard-summary-how");
         howLine.append("Each voter picks ", part(howPhrase(howPlan(s)), 5, "choiceMode"), ", and ",
           part(s.mutable ? "can change their vote" : "their vote is final", 5, "voteMutability"), ".");
-        if (who !== "public") {
-          const addLine = line();
-          addLine.classList.add("wizard-summary-add-choices");
-          addLine.append("Voters may add choices: ", part(s.addChoices ? "Yes" : "No", 5, "votersAddChoices"), ".");
-        }
       }
       // When to vote, once Step 6 is answered (its first change).
       if (s.answered.has(6)) {
@@ -1153,22 +1242,11 @@
           divider.setAttribute("aria-hidden", "true");
           group.appendChild(divider);
         }
-        const row = el("label", "m3-radio-item");
-        const input = el("input", "m3-radio");
-        input.type = "radio";
-        input.name = "who-" + current.pid;
-        input.value = option.key;
-        input.checked = wizard.who === option.key;
-        input.addEventListener("change", () => {
-          if (!input.checked) return;
+        group.appendChild(m3RadioRow("who", option.key, option.label, option.support, wizard.who === option.key, () => {
           wizard.who = option.key;
           syncWizardDirty();
           renderWizard();
-        });
-        const text = el("span", "m3-radio-text");
-        text.append(el("span", "m3-radio-label", option.label), el("span", "m3-radio-support", option.support));
-        row.append(input, text);
-        group.appendChild(row);
+        }, false, infoButton(option.label, WHO_TITLE, whoHelp())));
         if (option.key === "link" && wizard.who === "link") {
           group.appendChild(m3RichTextField({
             key: "linkPreviewMessage", htmlKey: "linkPreviewMessageHtml", idPrefix: "pollLinkPreviewMessage-",
@@ -1186,15 +1264,8 @@
           }).wrap);
         }
       }
-      const help = el("details", "wizard-help");
-      help.appendChild(el("summary", null, "What does this mean?"));
-      const list = el("dl");
-      for (const option of WHO_OPTIONS) list.append(el("dt", null, option.label), el("dd", null, option.help));
-      if (wizard.who !== "public") list.append(el("dt", null, VOTERS_SWITCH_LABEL), el("dd", null, VOTERS_SWITCH_HELP));
-      help.appendChild(list);
       body.appendChild(group);
       if (wizard.who !== "public") body.appendChild(buildVotersSwitch());
-      body.appendChild(help);
       return body;
     }
 
@@ -1207,20 +1278,47 @@
       "they picked. Turn it on only if your voters expect it, and tell them. It can't be changed once " +
       "your poll has votes.";
 
+    const WHO_TITLE = "Who can vote";
+
+    function whoHelp() {
+      const blocks = WHO_OPTIONS.map((option) => ({ heading: option.label, text: option.help }));
+      if (wizard.who !== "public") blocks.push({ heading: VOTERS_SWITCH_LABEL, text: VOTERS_SWITCH_HELP });
+      return blocks;
+    }
+
     function buildVotersSwitch() {
-      const row = el("label", "m3-switch-row");
+      return infoSwitchRow({
+        id: "votersSwitch-" + current.pid,
+        label: VOTERS_SWITCH_LABEL,
+        support: wizard.showVoters ? "On: voters' names are shown with their choices." : "Off: votes are anonymous.",
+        supportId: "votersSwitchSupport-" + current.pid,
+        inputClass: "m3-switch",
+        checked: wizard.showVoters,
+        title: WHO_TITLE,
+        help: whoHelp(),
+        onChange: (checked) => { wizard.showVoters = checked; }
+      });
+    }
+
+    function infoSwitchRow({ id, label, support, supportId, inputClass, checked, title, help, onChange }) {
+      const row = el("div", "m3-switch-row");
       const text = el("span", "m3-switch-text");
-      const support = el("span", "m3-switch-support",
-        wizard.showVoters ? "On: voters' names are shown with their choices." : "Off: votes are anonymous.");
-      support.id = "votersSwitchSupport-" + current.pid;
-      text.append(el("span", "m3-switch-label", VOTERS_SWITCH_LABEL), support);
-      const input = el("input", "m3-switch");
+      const heading = el("span", "m3-row-heading");
+      const name = el("label", "m3-switch-label", label);
+      name.htmlFor = id;
+      heading.append(name, infoButton(label, title || label, help));
+      const line = el("label", "m3-switch-support", support);
+      line.htmlFor = id;
+      line.id = supportId;
+      text.append(heading, line);
+      const input = el("input", inputClass);
       input.type = "checkbox";
+      input.id = id;
       input.setAttribute("role", "switch");
-      input.checked = wizard.showVoters;
-      input.setAttribute("aria-describedby", support.id);
+      input.checked = checked === true;
+      input.setAttribute("aria-describedby", supportId);
       input.addEventListener("change", () => {
-        wizard.showVoters = input.checked;
+        onChange(input.checked);
         howChanged();
       });
       row.append(text, input);
@@ -1255,11 +1353,16 @@
     // Underlined text fields: the label always above the input, an underline, the
     // supporting text below on the left, a counter below on the right, and an error
     // in place of the supporting text.
-    function m3Field(labelText, id, supportText) {
+    function m3Field(labelText, id, supportText, info) {
       const wrap = el("div", "m3-field");
       const box = el("div", "m3-field-box");
       const label = el("label", "m3-field-label", labelText);
       label.setAttribute("for", id);
+      let heading = label;
+      if (info) {
+        heading = el("span", "m3-row-heading");
+        heading.append(label, info);
+      }
       const below = el("div", "m3-field-below");
       const support = el("p", "m3-field-support", supportText);
       support.id = id + "-support";
@@ -1267,7 +1370,7 @@
       const counter = el("span", "m3-field-counter");
       counter.setAttribute("aria-hidden", "true");
       below.append(support, counter);
-      box.appendChild(label);
+      box.appendChild(heading);
       wrap.append(box, below);
 
       function setError(message) {
@@ -1427,13 +1530,17 @@
       return m3RichTextField({
         key: "notes", htmlKey: "notesHtml", idPrefix: "pollNotes-", label: "Notes",
         support: "Optional. Shown under the title on the poll card.",
-        max: window.NotesEditor.NOTES_MAX, editLabel: "Edit notes"
+        max: window.NotesEditor.NOTES_MAX, editLabel: "Edit notes",
+        info: infoButton("Notes", "Notes", [{ text: NOTES_HELP }])
       });
     }
 
-    function m3RichTextField({ key, htmlKey, idPrefix, label, support, max, editLabel }) {
+    const NOTES_HELP = "The first lines of your notes appear under the title on the polls card. " +
+      "The entire notes appear on the Maximized view.";
+
+    function m3RichTextField({ key, htmlKey, idPrefix, label, support, max, editLabel, info }) {
       const id = idPrefix + current.pid;
-      const field = m3Field(label, id, support);
+      const field = m3Field(label, id, support, info);
       field.wrap.classList.add("m3-field--notes");
       const host = el("div", "wizard-notes");
       field.box.appendChild(host);
@@ -1450,6 +1557,7 @@
         edit.setAttribute("aria-describedby", field.support.id);
         edit.addEventListener("click", openEditor);
         preview.append(text, edit);
+        openFromBox(preview, edit, openEditor);
         host.replaceChildren(preview);
         field.counter.textContent = wizard[key].length + " / " + max;
         return edit;
@@ -1529,7 +1637,102 @@
 
     // ── Step 3: Choices ──
     // The choices box and its rules (wireChoicesBox, sanitizeChoicesText) in Step
-    // 2's underlined field: one choice per line, Enter starts a new one.
+    // 2's underlined field: one choice per line, Enter starts a new one. Until it is
+    // opened the field is a preview of the first choices, like the Notes field.
+    const CHOICES_PREVIEW_LINES = 5;
+
+    function storedChoiceLabels() {
+      return new Set(existing ? ((session && session.poll.choices) || []).map((c) => c.label.trim()) : []);
+    }
+
+    function openChoicesList() {
+      wizard.choicesOpen = true;
+      wizard.choicesAtOpen = wizard.choicesText;
+      renderWizard();
+      const box = card.querySelector("textarea#pollChoices-" + current.pid);
+      if (box) box.focus();
+    }
+
+    function closeChoicesList() {
+      const box = card.querySelector("textarea#pollChoices-" + current.pid);
+      if (box) {
+        wizard.choicesText = sanitizeChoicesText(box.value, box.selectionStart,
+          { keepCaretLine: false, maxLabel: runtime.choiceLabelMax, storedLabels: storedChoiceLabels() }).text;
+      }
+      wizard.choicesTouched = true;
+      wizard.choicesOpen = false;
+      syncWizardDirty();
+    }
+
+    function commitChoices() {
+      if (!wizard || !wizard.choicesOpen) return true;
+      closeChoicesList();
+      renderWizard();
+      return true;
+    }
+
+    function focusChoicesLink() {
+      const edit = card.querySelector("button#pollChoices-" + current.pid);
+      if (edit) edit.focus();
+    }
+
+    async function cancelChoicesList() {
+      if (wizard.choicesText !== wizard.choicesAtOpen && !(await confirmDiscard())) return;
+      if (!wizard) return;
+      wizard.choicesText = wizard.choicesAtOpen;
+      wizard.choicesOpen = false;
+      syncWizardDirty();
+      renderWizard();
+      focusChoicesLink();
+    }
+
+    function buildChoicesPreview(field, id) {
+      const preview = el("div", "wizard-choices-preview");
+      const lines = el("div", "wizard-choices-lines");
+      const all = choiceLines();
+      if (all.length) {
+        for (const line of all.slice(0, CHOICES_PREVIEW_LINES)) lines.appendChild(el("div", null, line));
+      } else {
+        lines.textContent = "Enter your choices here";
+        lines.classList.add("is-placeholder");
+      }
+      const edit = el("button", "wizard-notes-edit", "... edit");
+      edit.appendChild(chevron("wizard-notes-edit-chevron"));
+      edit.type = "button";
+      edit.id = id;
+      edit.setAttribute("aria-label", "Edit choices");
+      edit.setAttribute("aria-describedby", field.support.id);
+      edit.addEventListener("click", openChoicesList);
+      preview.append(lines, edit);
+      openFromBox(preview, edit, openChoicesList);
+      field.box.appendChild(preview);
+    }
+
+    function openFromBox(box, edit, open) {
+      box.addEventListener("click", (event) => {
+        if (edit.disabled || edit.contains(event.target)) return;
+        open();
+      });
+    }
+
+    function buildChoicesBar() {
+      const bar = el("div", "notes-editor-bar");
+      const heading = el("h3", "notes-editor-heading", "Choices");
+      const actions = el("div", "notes-editor-actions");
+      const cancel = el("button", "notes-editor-cancel", "Cancel");
+      const done = el("button", "notes-editor-done", "Done");
+      cancel.type = done.type = "button";
+      cancel.addEventListener("click", cancelChoicesList);
+      done.addEventListener("click", () => {
+        closeChoicesList();
+        renderWizard();
+        focusChoicesLink();
+      });
+      actions.append(cancel, done);
+      bar.append(heading, actions);
+      return bar;
+    }
+
     function buildStep3() {
       const body = el("div", "wizard-step-body wizard-fields");
       const id = "pollChoices-" + current.pid;
@@ -1538,18 +1741,24 @@
       // No label (the step heading names it), a placeholder instead, and an
       // accessible name for screen readers.
       field.box.querySelector(".m3-field-label").remove();
-      const box = el("textarea", "m3-field-input");
-      box.id = id;
-      box.rows = 4;
-      box.spellcheck = false;
-      box.placeholder = "Enter your choices here";
-      box.setAttribute("aria-label", "Choices");
-      box.value = wizard.choicesText;
-      box.setAttribute("enterkeyhint", "enter");
-      box.setAttribute("aria-describedby", field.support.id);
-      field.box.appendChild(box);
+      let box = null;
+      if (wizard.choicesOpen) {
+        box = el("textarea", "m3-field-input");
+        box.id = id;
+        box.rows = 4;
+        box.spellcheck = false;
+        box.placeholder = "Enter your choices here";
+        box.setAttribute("aria-label", "Choices");
+        box.value = wizard.choicesText;
+        box.setAttribute("enterkeyhint", "enter");
+        box.setAttribute("aria-describedby", field.support.id);
+        field.box.append(buildChoicesBar(), box);
+      } else {
+        buildChoicesPreview(field, id);
+      }
 
       function grow() {
+        if (!box) return;
         box.style.height = "auto";
         box.style.height = box.scrollHeight + "px";
       }
@@ -1585,15 +1794,32 @@
         }
         return result.removed;
       }
-      box.addEventListener("paste", (event) => {
+      function pasteIntoPreview(text) {
+        const own = !isBlank(wizard.choicesText);
+        const joined = (own ? wizard.choicesText.replace(/\n+$/, "") + "\n" : "") + text;
+        const result = withoutDuplicateChoices(joined);
+        const clean = sanitizeChoicesText(result.text, result.text.length,
+          { keepCaretLine: false, maxLabel: runtime.choiceLabelMax, storedLabels: storedChoiceLabels() });
+        wizard.choicesText = clean.text;
+        wizard.choicesTouched = true;
+        syncWizardDirty();
+        renderWizard();
+        const button = card.querySelector(".wizard-paste .m3-tonal-btn");
+        if (button) button.focus();
+        if (result.removed) snackbar(result.removed === 1 ? "1 duplicate was removed." : result.removed + " duplicates were removed.");
+        else if (clean.droppedOverflow) snackbar(`Only the first ${runtime.maxChoices} choices were kept.`);
+        else if (clean.truncated) snackbar(`Choices are capped at ${runtime.choiceLabelMax} characters.`);
+        else snackbar(own ? "Choices added" : "Choices pasted");
+      }
+      if (box) box.addEventListener("paste", (event) => {
         const text = event.clipboardData && event.clipboardData.getData("text/plain");
         if (!text) return;
         event.preventDefault();
         insertPasted(text, box.selectionStart, box.selectionEnd);
       });
-      wireChoicesBox(box, {
+      if (box) wireChoicesBox(box, {
         maxLabel: runtime.choiceLabelMax,
-        storedLabels: new Set(existing ? ((session && session.poll.choices) || []).map((c) => c.label.trim()) : []),
+        storedLabels: storedChoiceLabels(),
         setError,
         onInput: () => {
           wizard.choicesText = box.value;
@@ -1629,12 +1855,17 @@
           text = await navigator.clipboard.readText();
         } catch {
           snackbar("Paste into the box instead");
-          box.focus();
+          if (box) box.focus();
+          else openChoicesList();
           return;
         }
         text = (text || "").replace(/\r\n?/g, "\n").replace(/\n+$/, "");
         if (isBlank(text)) {
           snackbar("The clipboard is empty");
+          return;
+        }
+        if (!box) {
+          pasteIntoPreview(text);
           return;
         }
         const own = !isBlank(box.value);
@@ -1644,13 +1875,48 @@
       });
 
       update();
+      setError("");
       requestAnimationFrame(grow);   // scrollHeight is only known once it is in the page
       pasteWrap.append(paste, pasteNote);
       body.append(field.wrap);
       const addedBy = buildAddedByList();
       if (addedBy) body.appendChild(addedBy);
-      body.appendChild(pasteWrap);
+      body.append(pasteWrap, buildEnteredOrderSwitch());
+      if (wizard.who !== "public") body.appendChild(buildAddChoicesSwitch());
       return body;
+    }
+
+    const ENTERED_ORDER_LABEL = "Display Choices in the order above";
+
+    const ENTERED_ORDER_HELP = [
+      { text: "This toggle allows you to override the default order of the poll's choices, which is most votes to least votes." },
+      { text: "Using the order you enter the Choices makes sense when the Choices have a logical order, such as " +
+        "consecutive dates, or a sequence of numbers (1 Star, 2 Star, 3 Star, etc.)." }
+    ];
+
+    function buildEnteredOrderSwitch() {
+      return infoSwitchRow({
+        id: "enteredOrderSwitch-" + current.pid,
+        label: ENTERED_ORDER_LABEL,
+        support: wizard.enteredOrder
+          ? "On: choices are displayed in the order entered above."
+          : "Off: choices are displayed from most votes to least votes.",
+        supportId: "enteredOrderSwitchSupport-" + current.pid,
+        inputClass: "m3-switch m3-switch--entered-order",
+        checked: wizard.enteredOrder,
+        title: CHOICES_TITLE,
+        help: choicesHelp(),
+        onChange: (checked) => { wizard.enteredOrder = checked; }
+      });
+    }
+
+    const CHOICES_TITLE = "Choices";
+
+    function choicesHelp() {
+      const [first, ...rest] = ENTERED_ORDER_HELP;
+      const blocks = [{ heading: ENTERED_ORDER_LABEL, text: first.text }, ...rest];
+      if (wizard.who !== "public") blocks.push({ heading: ADD_CHOICES_LABEL, text: ADD_CHOICES_HELP });
+      return blocks;
     }
 
     // The voters who added choices, in choice order; the names reach this card only.
@@ -1690,7 +1956,7 @@
       const row = el("label", "m3-switch-row");
       const text = el("span", "m3-switch-text");
       const support = el("span", "m3-switch-support",
-        wizard.lineGraph ? "On: the line graph is drawn beside the poll when it is maximized." : "Off: no line graph.");
+        wizard.lineGraph ? "On: the line graph is drawn on the Maximized view of a poll." : "Off: no line graph.");
       support.id = "lineGraphSwitchSupport-" + current.pid;
       text.append(el("span", "m3-switch-label", LINE_GRAPH_SWITCH_LABEL), support);
       const input = el("input", "m3-switch");
@@ -1746,7 +2012,7 @@
           "Add your choices first, then come back to choose their colors."));
         return body;
       }
-      body.appendChild(el("p", "wizard-colors-help", "Optional. Leave a choice on Automatic to color it for you."));
+      body.appendChild(el("p", "wizard-colors-help", "Optional. Leave a choice on Automatic and an appropriate color is automatically assigned."));
 
       const popover = el("div", "wizard-color-popover");
       popover.hidden = true;
@@ -1896,8 +2162,8 @@
     // ── Step 5: How to vote ──
     // Two Material radio lists, as Step 1's. "More than one" opens no range or
     // exact count (storedHow).
-    function m3RadioRow(name, value, label, support, checked, onPick, disabled) {
-      const row = el("label", "m3-radio-item" + (disabled ? " is-disabled" : ""));
+    function m3RadioRow(name, value, label, support, checked, onPick, disabled, info) {
+      const row = el(info ? "div" : "label", "m3-radio-item" + (disabled ? " is-disabled" : ""));
       const input = el("input", "m3-radio");
       input.type = "radio";
       input.name = name + "-" + current.pid;
@@ -1906,10 +2172,20 @@
       input.disabled = Boolean(disabled);
       input.addEventListener("change", () => { if (input.checked) onPick(); });
       const text = el("span", "m3-radio-text");
-      const labelEl = el("span", "m3-radio-label");
+      const labelEl = el(info ? "label" : "span", "m3-radio-label");
       labelEl.append(...(Array.isArray(label) ? label : [label]));
-      text.appendChild(labelEl);
-      if (support) text.appendChild(el("span", "m3-radio-support", support));
+      const supportEl = support ? el(info ? "label" : "span", "m3-radio-support", support) : null;
+      if (info) {
+        input.id = input.name + "-" + value;
+        labelEl.htmlFor = input.id;
+        if (supportEl) supportEl.htmlFor = input.id;
+        const heading = el("span", "m3-row-heading");
+        heading.append(labelEl, info);
+        text.appendChild(heading);
+      } else {
+        text.appendChild(labelEl);
+      }
+      if (supportEl) text.appendChild(supportEl);
       row.append(input, text);
       return row;
     }
@@ -1922,6 +2198,7 @@
         key = a.tagName.toLowerCase() + '[aria-label="' + a.getAttribute("aria-label") + '"]';
       }
       else if (a && a.type === "radio") key = 'input[name="' + a.name + '"][value="' + a.value + '"]';
+      else if (a && a.id && a.getAttribute("role") === "switch") key = '[id="' + a.id + '"]';
       else if (a && a.getAttribute && a.getAttribute("role") === "switch") key = 'input[role="switch"]';
       syncWizardDirty();
       renderWizard();
@@ -1941,10 +2218,10 @@
       many.setAttribute("aria-label", "How many choices can each voter pick?");
       const canMulti = n >= 2;
       many.appendChild(m3RadioRow("howmany", "one", "One choice", "Voters pick a single choice.",
-        !plan.multi, () => { wizard.multi = false; howChanged(); }));
+        !plan.multi, () => { wizard.multi = false; howChanged(); }, false, howInfo("One choice")));
       many.appendChild(m3RadioRow("howmany", "multi", "More than one",
         canMulti ? "Voters pick several choices." : "Add at least 2 choices in Step 3 first.",
-        plan.multi, () => { wizard.multi = true; howChanged(); }, !canMulti));
+        plan.multi, () => { wizard.multi = true; howChanged(); }, !canMulti, howInfo("More than one")));
       body.appendChild(many);
 
       // Can voters change their vote?
@@ -1956,56 +2233,47 @@
       change.append(
         m3RadioRow("mutable", "change", "Yes, as often as they like while the poll is open",
           "Voters can change their vote until the poll closes.",
-          wizard.mutable, () => { wizard.mutable = true; howChanged(); }),
+          wizard.mutable, () => { wizard.mutable = true; howChanged(); }, false,
+          howInfo("Yes, as often as they like while the poll is open")),
         m3RadioRow("mutable", "final", "No, their first vote is final", "Once a vote is cast, it cannot be changed.",
-          !wizard.mutable, () => { wizard.mutable = false; howChanged(); })
+          !wizard.mutable, () => { wizard.mutable = false; howChanged(); }, false, howInfo("No, their first vote is final"))
       );
       body.appendChild(change);
-      if (wizard.who !== "public") body.appendChild(buildAddChoicesSwitch());
-
-      const help = el("details", "wizard-help");
-      help.appendChild(el("summary", null, "What does this mean?"));
-      const list = el("dl");
-      list.append(
-        el("dt", null, "One choice"), el("dd", null, "Each voter picks exactly one choice."),
-        el("dt", null, "More than one"), el("dd", null,
-          "Each voter picks one or more of the choices."),
-        el("dt", null, "They can change their vote"), el("dd", null,
-          "Voters can change their vote as often as they like until the poll closes. Only their latest vote counts."),
-        el("dt", null, "Their first vote is final"), el("dd", null,
-          "A voter's first vote counts, and cannot be changed.")
-      );
-      if (wizard.who !== "public") list.append(el("dt", null, ADD_CHOICES_LABEL), el("dd", null, ADD_CHOICES_HELP));
-      help.appendChild(list);
-      body.appendChild(help);
       return body;
     }
 
+    const HOW_HELP = {
+      "One choice": "Each voter picks exactly one choice.",
+      "More than one": "Each voter picks one or more of the choices.",
+      "Yes, as often as they like while the poll is open":
+        "Voters can change their vote as often as they like until the poll closes. Only their latest vote counts.",
+      "No, their first vote is final": "A voter's first vote counts, and cannot be changed."
+    };
+
+    function howInfo(label) {
+      return infoButton(label, "How to vote", Object.entries(HOW_HELP).map(([heading, text]) => ({ heading, text })));
+    }
+
     // ── "Voters may add choices" ──
-    // A Material 3 switch below vote mutability, for private polls only; it can
-    // change after votes.
+    // A Material 3 switch at the end of Step 3, below the display-order switch, for
+    // private polls only; it can change after votes.
     const ADD_CHOICES_LABEL = "Voters may add choices";
     const ADD_CHOICES_HELP = "Off (the default): only you set the choices. On: anyone who may vote on your " +
-      "poll can add a choice while it is open, up to the most choices a poll may have.";
+      "poll can add a choice while it is open, up to the most choices a poll may have. " +
+      "This is only available for Private polls.";
 
     function buildAddChoicesSwitch() {
-      const row = el("label", "m3-switch-row");
-      const text = el("span", "m3-switch-text");
-      const support = el("span", "m3-switch-support",
-        wizard.addChoices ? "On: voters can add a choice while the poll is open." : "Off: only you set the choices.");
-      support.id = "addChoicesSwitchSupport-" + current.pid;
-      text.append(el("span", "m3-switch-label", ADD_CHOICES_LABEL), support);
-      const input = el("input", "m3-switch m3-switch--add-choices");
-      input.type = "checkbox";
-      input.setAttribute("role", "switch");
-      input.checked = wizard.addChoices === true;
-      input.setAttribute("aria-describedby", support.id);
-      input.addEventListener("change", () => {
-        wizard.addChoices = input.checked;
-        howChanged();
+      return infoSwitchRow({
+        id: "addChoicesSwitch-" + current.pid,
+        label: ADD_CHOICES_LABEL,
+        support: wizard.addChoices ? "On: voters can add a choice while the poll is open." : "Off: only you set the choices.",
+        supportId: "addChoicesSwitchSupport-" + current.pid,
+        inputClass: "m3-switch m3-switch--add-choices",
+        checked: wizard.addChoices,
+        title: CHOICES_TITLE,
+        help: choicesHelp(),
+        onChange: (checked) => { wizard.addChoices = checked; }
       });
-      row.append(text, input);
-      return row;
     }
 
     // ── Step 6: When to vote ──
@@ -2039,6 +2307,32 @@
       return input;
     }
 
+    function opensPicker(row, ariaLabel, onPick) {
+      row.addEventListener("click", (event) => {
+        const radio = row.querySelector(".m3-radio");
+        if (radio.disabled) return;
+        if (event.target.type === "datetime-local") {
+          showDatePicker(event.target);
+          return;
+        }
+        if (event.target === radio && event.detail === 0) return;
+        event.preventDefault();
+        if (!radio.checked) onPick();
+        showDatePicker(card.querySelector('input[aria-label="' + ariaLabel + '"]'));
+      });
+      return row;
+    }
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/showPicker
+    function showDatePicker(input) {
+      if (!input || input.disabled || typeof input.showPicker !== "function") return;
+      try {
+        input.showPicker();
+      } catch {
+        return;
+      }
+    }
+
     function buildStep6() {
       const body = el("div", "wizard-step-body wizard-how wizard-when");
 
@@ -2056,7 +2350,7 @@
       }
 
       // When does voting start?
-      body.appendChild(el("p", "wizard-question", "When does voting start?"));
+      body.appendChild(whenQuestion("When does voting start?"));
       const starts = el("div", "m3-radio-list");
       starts.setAttribute("role", "radiogroup");
       starts.setAttribute("aria-label", "When does voting start?");
@@ -2068,8 +2362,8 @@
       starts.append(
         m3RadioRow("starts", "now", "Poll starts immediately", "Voting opens as soon as your poll is published.",
           wizard.startMode === "now", () => { wizard.startMode = "now"; whenChanged(); }),
-        m3RadioRow("starts", "on", ["Poll starts on ", startInput], "Voting opens at the date and time you choose.",
-          wizard.startMode === "on", pickStart)
+        opensPicker(m3RadioRow("starts", "on", ["Poll starts on ", startInput], "Voting opens at the date and time you choose.",
+          wizard.startMode === "on", pickStart), "Start date and time", pickStart)
       );
       body.appendChild(starts);
       const start = startDate();
@@ -2080,7 +2374,7 @@
       }
 
       // When does voting end?
-      body.appendChild(el("p", "wizard-question", "When does voting end?"));
+      body.appendChild(whenQuestion("When does voting end?"));
       const ends = el("div", "m3-radio-list");
       ends.setAttribute("role", "radiogroup");
       ends.setAttribute("aria-label", "When does voting end?");
@@ -2092,8 +2386,8 @@
       ends.append(
         m3RadioRow("ends", "none", "Poll has no end date", "Your poll stays open until you close it.",
           wizard.endMode === "none", () => { wizard.endMode = "none"; whenChanged(); }),
-        m3RadioRow("ends", "on", ["Poll ends on ", endInput], "Voting closes at the date and time you choose.",
-          wizard.endMode === "on", pickEnd)
+        opensPicker(m3RadioRow("ends", "on", ["Poll ends on ", endInput], "Voting closes at the date and time you choose.",
+          wizard.endMode === "on", pickEnd), "End date and time", pickEnd)
       );
       body.appendChild(ends);
       const problem = scheduleProblem();
@@ -2107,26 +2401,26 @@
       }
 
       const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      body.appendChild(el("p", "wizard-tz", "Times are in your time zone" + (zone ? " (" + zone + ")." : ".")));
-
-      const help = el("details", "wizard-help");
-      help.appendChild(el("summary", null, "What does this mean?"));
-      const list = el("dl");
-      list.append(
-        el("dt", null, "Poll starts immediately"), el("dd", null,
-          "Voting opens as soon as your poll is published. Public polls open once they have been reviewed."),
-        el("dt", null, "Poll starts on"), el("dd", null,
-          "Your poll waits until this date and time, then opens for voting. Until then, anyone who opens it sees that it hasn't started yet."),
-        el("dt", null, "Poll has no end date"), el("dd", null,
-          "Your poll stays open until you close it from its card."),
-        el("dt", null, "Poll ends on"), el("dd", null,
-          "Voting closes at this date and time. The results stay available after it closes."),
-        el("dt", null, "Time zone"), el("dd", null,
-          "Dates and times are in your time zone. Voters see them in their own.")
-      );
-      help.appendChild(list);
-      body.appendChild(help);
+      const tz = el("p", "wizard-tz", "Times are in your time zone" + (zone ? " (" + zone + ")." : "."));
+      tz.appendChild(infoButton("Time zone", "When to vote", WHEN_HELP));
+      body.appendChild(tz);
       return body;
+    }
+
+    const WHEN_HELP = [
+      { heading: "Poll starts immediately",
+        text: "Voting opens as soon as your poll is published. Public polls open once they have been reviewed." },
+      { heading: "Poll starts on",
+        text: "Your poll waits until this date and time, then opens for voting. Until then, anyone who opens it sees that it hasn't started yet." },
+      { heading: "Poll has no end date", text: "Your poll stays open until you close it from its card." },
+      { heading: "Poll ends on", text: "Voting closes at this date and time. The results stay available after it closes." },
+      { heading: "Time zone", text: "Dates and times are in your time zone. Voters see them in their own." }
+    ];
+
+    function whenQuestion(text) {
+      const question = el("p", "wizard-question", text);
+      question.appendChild(infoButton(text, "When to vote", WHEN_HELP));
+      return question;
     }
 
     // On an existing poll, what cannot change is shown disabled, with one line
@@ -2154,7 +2448,9 @@
       if (n === 1 && !canChange("pollVisibility")) lock('.m3-radio[value="public"], .m3-switch', LOCKED_BY_VOTES);
       if (n === 1 && !canChange("pollSharingMode")) lock('.m3-radio[value="link"], .m3-radio[value="invite"]', LOCKED_BY_VOTES);
       if (n === 2 && !canChange("keywords")) lock(".m3-chip-input, .m3-chip-remove", LOCKED_BY_VOTES);
-      if (n === 3 && !canChange("labels")) lock(".m3-field-input, .wizard-paste .m3-tonal-btn", LOCKED_BY_VOTES);
+      if (n === 3 && !canChange("labels")) {
+        lock(".m3-field-input, .wizard-choices-preview .wizard-notes-edit, .wizard-paste .m3-tonal-btn", LOCKED_BY_VOTES);
+      }
       // Step 5 locks per control. Choice mode widens one way after votes, so only
       // the single-choice option locks on a voted Multiple-Choice poll.
       if (n === 5 && !canChange("choiceMode")) lock('.m3-radio[value="one"]', LOCKED_BY_VOTES);
@@ -2207,10 +2503,7 @@
       cancel.type = "button";
       cancel.setAttribute("aria-label", "Cancel setting up poll: " + current.title);
       // The wizard's Cancel awaits the page dialog too.
-      cancel.addEventListener("click", async () => {
-        if (dirty && !(await confirmDiscard())) return;
-        void cancelWizard();
-      });
+      cancel.addEventListener("click", () => { void requestCancel(); });
       const right = el("div", "wizard-footer-right");
       const save = el("button", "btn-header-ghost", "Save");
       save.type = "button";
@@ -2259,10 +2552,7 @@
       const cancel = el("button", "btn-header-ghost", "Cancel");
       cancel.type = "button";
       cancel.setAttribute("aria-label", "Cancel editing poll: " + current.title);
-      cancel.addEventListener("click", async () => {
-        if (dirty && !(await confirmDiscard())) return;
-        void cancelWizard();
-      });
+      cancel.addEventListener("click", () => { void requestCancel(); });
       const right = el("div", "wizard-footer-right");
       const save = el("button", "btn-header-primary", "Save changes");
       save.type = "button";
@@ -2358,6 +2648,7 @@
       if (viewerIsAdmin) fields.lineGraphEnabled = s.lineGraph === true;
       // Only a private poll takes added choices; a switch to public turns it off.
       fields.votersAddChoices = s.who !== "public" && s.addChoices === true;
+      fields.choicesInEnteredOrder = s.enteredOrder === true;
       return fields;
     }
 
@@ -2393,7 +2684,8 @@
         endLocal: wizard.endLocal,
         showVoters: wizard.showVoters,
         lineGraph: wizard.lineGraph,
-        addChoices: wizard.addChoices
+        addChoices: wizard.addChoices,
+        enteredOrder: wizard.enteredOrder
       };
     }
 
@@ -2429,7 +2721,7 @@
 
     // Save keeps the answers and the progress; the poll stays INITIALIZED.
     async function saveWizard() {
-      if (!commitNotes()) return;
+      if (!commitNotes() || !commitChoices()) return;
       const result = await postWizard("/save");
       if (!result.ok) {
         showStatus(result.body.error || "Could not save.");
@@ -2443,7 +2735,7 @@
 
     // Publish sends the poll on as the server would (screening: AWAITING APPROVAL).
     async function publishWizard() {
-      if (!commitNotes()) return;
+      if (!commitNotes() || !commitChoices()) return;
       if (wizard) wizard.answered.add(6);
       const result = await postWizard("/publish");
       if (!result.ok) {
@@ -2464,7 +2756,7 @@
 
     // Save changes sends only the fields that changed and may change, to /publish.
     async function saveChanges() {
-      if (!commitNotes()) return;
+      if (!commitNotes() || !commitChoices()) return;
       if (!(await confirmChoiceDeletions())) return;
       const before = wizardFields(pollAnswers());
       const after = wizardFields();
@@ -2495,6 +2787,12 @@
       sessionLost = true; // saving ends the session on the server
       leaveWizard();
       await deps.refresh({ focusPid: current.pid, message: answer.message || "" });
+    }
+
+    async function requestCancel() {
+      if (dirty && !(await confirmDiscard())) return false;
+      await cancelWizard();
+      return true;
     }
 
     // Cancel discards the answers since the last Save; the poll is unchanged.
@@ -3216,10 +3514,11 @@
       showStatus,
       focusSummary,
       openWizard: () => requestEdit(1),
+      requestCancel,
       hasSavedProgress: () => wizardSaved !== null,
       releaseSession
     };
   }
 
-  window.AdminCard = { create, setRuntimeConfig, sanitizeChoicesText, runtime };
+  window.AdminCard = { create, setRuntimeConfig, sanitizeChoicesText, runtime, showInfo };
 })();

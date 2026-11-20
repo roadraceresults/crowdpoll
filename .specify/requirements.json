@@ -1,6 +1,8 @@
 {
-    "requirements_directory": "requirements/20261118-160304-client-code-obfuscation",
+    "requirements_directory": "requirements/20261119-144614-poll-admin-improvements",
     "last_written": {
+        "requirements/20261119-144614-poll-admin-improvements/requirements.md": "5a632c9a791267982f804fd8a086dd1c546ec635bea608e1c4397b96722c39ca",
+        "requirements/20261119-144614-poll-admin-improvements/requirements-report.md": "8b9fcf1024c584371f460914ab4d0782c030ab75f8e649fda873fe62e32c4420",
         "requirements/20261118-160304-client-code-obfuscation/requirements.md": "daea5fe788c9bd9f71d12d20a8c23d8c44c866618f508aa57ce15ea620f3d793",
         "requirements/20261118-160304-client-code-obfuscation/requirements-report.md": "c13a0db2c6b91f5516c6df4e748479adad69e555d2086799c5f653fe4c8f94ce",
         "requirements/20261019-153514-production-email/requirements.md": "e0bd2b0bf28c2fbd6699c99cdf364c1398d3b7aed8eb456198295f78d108ee08",

@@ -751,6 +751,7 @@ function renderVotingOptions(wrap, list, data, layoutFor){
       + (phone ? ' is-phone' : '');
     row.style.height = barHeight + 'px';
     row.dataset.index = i;
+    row.dataset.choiceId = item.id;
     const labelText = item.label;
     row.title = labelText;
 
@@ -898,7 +899,7 @@ function initPollCard(viewport, opts){
     return fittingChoices(data, (poll && poll.myChoiceIds) || [], Math.max(0, places - 1));
   }
 
-  function resultsView(){
+  function rankedView(){
     const { shown, hiddenCount, hiddenShare } = isMaximized || isPhoneLayout() ? essential() : fitting();
     const share = poll.choiceMode === 'Single-Choice Poll' ? ' · ' + hiddenShare + '%' : '';
     if (!isMaximized){
@@ -920,8 +921,18 @@ function initPollCard(viewport, opts){
     return { shown, lastRow: { className: 'show-all-row', text: 'Show all ' + data.length + ' choices' + share, expanded: false } };
   }
 
+  function inDisplayOrder(choices){
+    if (!poll || poll.choicesInEnteredOrder !== true) return choices;
+    return choices.slice().sort((a, b) => a.position - b.position);
+  }
+
+  function resultsView(){
+    const view = rankedView();
+    return { shown: inDisplayOrder(view.shown), lastRow: view.lastRow };
+  }
+
   function ballot(){
-    return ballotOpensMaximized() && !cardFlip.classList.contains('is-flipped') ? [] : data;
+    return ballotOpensMaximized() && !cardFlip.classList.contains('is-flipped') ? [] : inDisplayOrder(data);
   }
 
   function renderBallot(){
@@ -932,6 +943,7 @@ function initPollCard(viewport, opts){
     data = poll.choices.map((c) => ({
       id: c.id,
       label: c.label,
+      position: c.position,
       color: c.color,
       pct: c.pct,
       count: c.count || 0,
@@ -1565,7 +1577,7 @@ function initPollCard(viewport, opts){
   votingList?.addEventListener('click', (event) => {
     const row = event.target.closest('.vote-row');
     if (!row || !data) return;
-    const item = data[Number(row.dataset.index)];
+    const item = data.find((choice) => choice.id === row.dataset.choiceId);
     if (!item) return;
     const single = poll && poll.choiceMode === 'Single-Choice Poll';
     if (single && !item.selected){

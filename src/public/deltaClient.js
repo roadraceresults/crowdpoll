@@ -119,6 +119,7 @@
       pollSharingMode: card.pollSharingMode,
       anonymousVotes: card.anonymousVotes,
       votersAddChoices: card.votersAddChoices === true,
+      choicesInEnteredOrder: card.choicesInEnteredOrder === true,
       pollState: card.pollState,
       lineGraphEnabled: card.lineGraphEnabled === true,
       startAt: card.startAt,

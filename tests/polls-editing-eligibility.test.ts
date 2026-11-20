@@ -304,7 +304,8 @@ describe("Every exit route warns (011 FR-014, FR-016, T067-T070)", () => {
     expect(js).toContain('"Discard changes?"');
     expect(js).toContain('"Your edits will be lost."');
     expect(js).not.toContain("window.confirm");
-    expect(js).toMatch(/cancel\.addEventListener\("click", async[\s\S]{0,120}await confirmDiscard\(\)/);
+    expect(js).toMatch(/cancel\.addEventListener\("click", \(\) => \{ void requestCancel\(\); \}\)/);
+    expect(js).toMatch(/async function requestCancel\(\) \{\s*if \(dirty && !\(await confirmDiscard\(\)\)\) return false;/);
     expect(listJs).toMatch(/function guardNavigation[\s\S]{0,1200}await controller\.confirmDiscard\(\)/);
   });
 

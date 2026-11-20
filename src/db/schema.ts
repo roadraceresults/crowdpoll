@@ -127,6 +127,7 @@ export interface PollTable {
   pending_update: ColumnType<PendingUpdateJson | null, string | null | undefined, string | null>;
   pending_rejection_reason: ColumnType<string | null, string | null | undefined, string | null>;
   voters_add_choices: Generated<boolean>;
+  choices_in_entered_order: Generated<boolean>;
 }
 
 export interface PendingUpdateJson {

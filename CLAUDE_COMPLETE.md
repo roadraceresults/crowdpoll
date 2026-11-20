@@ -5,6 +5,40 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261119-144614-POLL-ADMIN-IMPROVEMENTS/plan.md` (research R1–R16, `data-model.md` — one column, two payload
+fields, the row's and the Choices field's states; the contracts `contracts/api.md` A1–A6, `contracts/ui.md` U1–U17 and
+the quickstart live alongside it).
+The requirements report is `requirements/20261119-144614-poll-admin-improvements/requirements-report.md`: 18 findings,
+all resolved; where it speaks of choices "locked by votes" and a "... view" link, the plan's R13 is right (neither
+exists).
+What was built:
+- **Every admin list is rows**: `adminList.js` has one list path (`cardElements` is gone); the first load and
+  `selectTab` load with `fresh: true`, so a list of one opens it; Create New Poll goes to Newest, opens the new
+  poll's row and its wizard (R1–R3).
+- **`canWatch`** on both admin list routes' rows, from `mayWatchMany` unchanged (email plus View Polls; an admin
+  email counts), so an unpublished poll never has it. It is not named `canOpen`: `capabilitiesFor` already returns
+  `canOpen` for the Open state action and its spread would overwrite it (R5). While `canWatch` is `true`,
+  `paintOpenLink` draws `a.admin-result-open` (`/?PID=<pid>`, "View Poll: <title>", tooltip "View Poll") before the row's button, as
+  its sibling, never inside it (R4).
+- **`choices_in_entered_order`** (migration 023, default false; `choicesInEnteredOrder` in the payloads, `UPDATE_FIELDS`,
+  `projectPoll`, `deltaClient.js`, duplicates): applied at once on any poll, never held in `pending_update` (R6).
+  `pollCard.js` keeps `data` share-sorted; `resultsView` wraps the old ranking (`rankedView`) with `inDisplayOrder`,
+  and `ballot()` returns `inDisplayOrder(data)`; colours follow the choice (R7).
+- **Info icons** (`infoButton`, `showInfo` — also exported on `window.AdminCard`): a `button.wizard-info` beside a
+  label, never inside one; rows that take one are a `div` whose `label[for]` parts name the control
+  (`m3RadioRow(..., info)`, `infoSwitchRow`); the dialog sets every text through `textContent`, has one Close, and
+  Escape, Close or the backdrop close it; the three `details.wizard-help` blocks are gone (R8–R11).
+- **The Choices field** is a preview (`div.wizard-choices-preview`: five lines and "... edit", the Notes link's
+  button) until `wizard.choicesOpen`; the open list is today's textarea under a `notes-editor-bar` (Cancel asks
+  through `confirmDiscard` when the text changed); `commitChoices()` runs beside `commitNotes()` at the four sites;
+  Paste works on `wizard.choicesText` in the preview; `lockStep`'s step-3 line also covers the preview's link (R12,
+  R13).
+- **"Voters may add choices"** is at the end of step 3 (private polls), below "Display Choices in the order above";
+  its summary line and the "Choices are shown in the order entered." line point to step 3 (R14).
+- **Tests**: `client-admin-rows`, `client-admin-info`, `client-admin-choices-field`, `client-entered-order`,
+  `polls-entered-order`, `polls-admin-can-watch`; the wizard suite's `choicesBox` opens the list first.
+
+The plan before it:
 `specs/20261118-160304-CLIENT-CODE-OBFUSCATION/plan.md` (research R1–R15, `data-model.md` — build inputs, mode and
 checks, nothing stored; the contract `contracts/build.md` B1–B16 and the quickstart live alongside it).
 The requirements report is `requirements/20261118-160304-client-code-obfuscation/requirements-report.md`: 14 findings,

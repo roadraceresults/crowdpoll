@@ -1,7 +1,7 @@
 /**
  * admin.html logic: the view tabs (Newest, Awaiting Approval, Rejected, Search —
- * FIX010), the poll card list of the view on screen and its periodic refresh,
- * the shared actions-menu behaviour, and Create New Poll.
+ * FIX010), the list of the view on screen as rows, each opening its poll's card,
+ * and its periodic refresh, the shared actions-menu behaviour, and Create New Poll.
  */
 (function () {
   "use strict";
@@ -159,6 +159,7 @@
   /* Create and the other views are held while a card is being edited: the draft
      lives in that card's DOM, which a view change would replace. */
   const HELD_TITLE = "Finish editing the open poll first";
+  const CANCEL_TITLE = "Cancel editing";
 
   function refreshCreateButton() {
     const editing = editingPid !== null;
@@ -276,9 +277,51 @@
     return svg;
   }
 
-  function holdResult(result, held) {
+  function svgShape(name, attributes) {
+    const shape = document.createElementNS("http://www.w3.org/2000/svg", name);
+    for (const key of Object.keys(attributes)) shape.setAttribute(key, attributes[key]);
+    return shape;
+  }
+
+  function resultOpenLink(poll) {
+    const link = document.createElement("a");
+    link.className = "admin-result-open";
+    link.href = "/?PID=" + encodeURIComponent(poll.pid);
+    link.dataset.tooltip = "View Poll";
+    const svg = svgShape("svg", { viewBox: "0 0 46 46", "aria-hidden": "true", focusable: "false" });
+    const mark = svgShape("g", { class: "admin-result-open-mark", transform: "translate(6.75 8.75)" });
+    mark.append(
+      svgShape("path", { d: "M4.5 1H31.5V27.5H14V25H29V5.5H7V15H4.5Z" }),
+      svgShape("rect", { x: "9", y: "8", width: "18", height: "3" }),
+      svgShape("path", { d: "M9 13H24V16H14V15H9Z" }),
+      svgShape("rect", { x: "15", y: "18", width: "7", height: "3" }),
+      svgShape("path", { d: "M4 16H13V25H10.5V18.4H4Z" }),
+      svgShape("path", { class: "admin-result-open-stroke", d: "M11.5 17.5L2.3 26.7" })
+    );
+    svg.append(svgShape("circle", { class: "admin-result-open-disc", cx: "23", cy: "23", r: "23" }), mark);
+    link.appendChild(svg);
+    return link;
+  }
+
+  function paintOpenLink(result) {
+    if (result.poll.canWatch !== true) {
+      if (result.link) result.link.remove();
+      result.link = null;
+      return;
+    }
+    if (!result.link) {
+      result.link = resultOpenLink(result.poll);
+      result.element.insertBefore(result.link, result.button);
+    }
+    const label = "View Poll: " + resultTitle(result.poll);
+    if (result.link.getAttribute("aria-label") !== label) result.link.setAttribute("aria-label", label);
+  }
+
+  function holdResult(result, editing) {
+    const edited = editing && result.poll.pid === editingPid;
+    const held = editing && !edited;
     result.button.disabled = held;
-    const title = held ? HELD_TITLE : resultTitle(result.poll);
+    const title = held ? HELD_TITLE : edited ? CANCEL_TITLE : resultTitle(result.poll);
     if (result.shownTitle !== title) {
       result.shownTitle = title;
       result.button.title = title;
@@ -297,6 +340,7 @@
     for (const name of Object.keys(texts)) {
       if (result.cells[name].textContent !== texts[name]) result.cells[name].textContent = texts[name];
     }
+    paintOpenLink(result);
     holdResult(result, editingPid !== null);
   }
 
@@ -334,7 +378,7 @@
     button.append(main, resultChevron());
     button.addEventListener("click", () => toggleResult(poll.pid));
     element.append(button, panel);
-    const result = { element, button, panel, cells, poll, shownTitle: null };
+    const result = { element, button, panel, cells, poll, link: null, shownTitle: null };
     paintResult(result);
     return result;
   }
@@ -378,8 +422,19 @@
     if (box.top < chromeBottom || box.bottom > window.innerHeight) row.scrollIntoView({ block: "start" });
   }
 
+  async function cancelFromRow(pid) {
+    const controller = controllers.get(pid);
+    if (!controller || !(await controller.requestCancel())) return;
+    if (openPid === pid) closeResult();
+    const result = resultRows.get(pid);
+    if (result && result.button.isConnected) result.button.focus();
+  }
+
   function toggleResult(pid) {
-    if (editingPid !== null) return;
+    if (editingPid !== null) {
+      if (pid === editingPid) void cancelFromRow(pid);
+      return;
+    }
     if (openPid === pid) {
       closeResult();
       return;
@@ -431,30 +486,6 @@
       }
       if (pid === openPid) closeResult();
       resultRows.delete(pid);
-    }
-    return nextOrder;
-  }
-
-  function cardElements(polls) {
-    const nextOrder = [];
-    for (const poll of polls) {
-      // A card being edited keeps its element and ignores its row entirely: the
-      // server reports the poll as EDITING with every capability false, and the
-      // draft lives in the DOM this would otherwise replace.
-      if (poll.pid === editingPid) {
-        nextOrder.push(controllers.get(poll.pid).element);
-        continue;
-      }
-      let controller = controllers.get(poll.pid);
-      if (controller && !controller.isEditing()) {
-        controller.poll = poll;
-        controller.update(poll);
-      } else {
-        controller = window.AdminCard.create(poll, deps);
-        controller.poll = poll;
-        controllers.set(poll.pid, controller);
-      }
-      nextOrder.push(controller.element);
     }
     return nextOrder;
   }
@@ -640,17 +671,10 @@
     console.log(`[adminList] /admin received ${polls.length} polls`);
 
     const container = document.getElementById("pollList");
-    if (inSearch) {
-      if (fresh && editingPid === null) closeResult();
-      syncChildren(container, resultElements(container, polls));
-      dropControllers(new Set(openPid === null ? [] : [openPid]));
-      if (fresh && editingPid === null && polls.length === 1) openResult(polls[0].pid);
-    } else {
-      forgetResults();
-      const nextOrder = cardElements(polls);
-      dropControllers(new Set(polls.map((poll) => poll.pid)));
-      syncChildren(container, nextOrder);
-    }
+    if (fresh && editingPid === null) closeResult();
+    syncChildren(container, resultElements(container, polls));
+    dropControllers(new Set(openPid === null ? [] : [openPid]));
+    if (fresh && editingPid === null && polls.length === 1) openResult(polls[0].pid);
 
     if (focusPid) {
       const controller = controllers.get(focusPid);
@@ -738,7 +762,7 @@
     const intervalMs = await loadRuntimeConfig();
     if (!(await isAdministrator())) becomeCreatorView();
     paintTabs();
-    await loadList();
+    await loadList({ fresh: true });
     guardNavigation();
     startAutoRefresh(intervalMs);
     document.getElementById("adminTabBar")?.addEventListener("click", (event) => {
@@ -747,10 +771,10 @@
       if (btn.dataset.tab === "search") setSearchCollapsed(false);
       void selectTab(btn.dataset.tab);
     });
+    window.M3Ripple?.add("#pollList .admin-result-row");
     const searchForm = document.getElementById("adminSearchForm");
     if (searchForm) {
       window.M3Ripple?.add("#adminSearchForm .admin-search-btn, #adminSearchForm .admin-search-clear, #adminSearchToggle");
-      window.M3Ripple?.add("#pollList .admin-result-row");
       document.getElementById("adminSearchToggle").addEventListener("click", () => setSearchCollapsed(!searchCollapsed));
       searchForm.addEventListener("submit", async (event) => {
         event.preventDefault();
@@ -770,17 +794,18 @@
       });
     }
     // Create New Poll works from any view: the new poll is the newest, so the page
-    // moves to Newest, where the card is scrolled into view and opened for editing.
+    // moves to Newest, where its row is opened, scrolled into view, and its card opened for editing.
     document.getElementById("createPollBtn")?.addEventListener("click", async () => {
       if (editingPid !== null) return;
       const res = await fetch("/api/admin/polls", { method: "POST" });
       if (!res.ok) return;
       const { pid } = await res.json();
       await selectTab("newest");
-      const controller = controllers.get(pid);
-      if (!controller) return;
-      controller.element.scrollIntoView({ block: "center" });
-      controller.openWizard();
+      const result = resultRows.get(pid);
+      if (!result) return;
+      openResult(pid);
+      revealRow(result.button);
+      controllers.get(pid).openWizard();
     });
   });
 })();

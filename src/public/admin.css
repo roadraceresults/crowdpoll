@@ -337,9 +337,6 @@
 .wizard-note { margin: 2px 0 0 40px; }
 .wizard-error { margin: 2px 0 0 40px; }
 .wizard-tz { margin: 6px 0 0; }
-.wizard-help dl { margin: 8px 0 0; }
-.wizard-help dt { margin-top: 8px; }
-.wizard-help dd { margin: 2px 0 0; }
 
 /* Radio lists (Steps 1, 4 and 5) */
 .m3-radio-list { display: flex; flex-direction: column; gap: 4px; }
