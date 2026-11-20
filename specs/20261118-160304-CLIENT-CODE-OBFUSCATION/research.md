@@ -189,7 +189,9 @@ earlier build is removed.
 **Rationale**: FR-032. The obfuscator has no option to take an input map, hence the join. Checked: with its source
 map on, the obfuscator's code is byte-for-byte the code without it, and carries no `sourceMappingURL` comment, so a
 build with maps equals the released build and reveals nothing. To use a map, a developer opens the live script in
-the browser's developer tools and attaches the local file ("Add source map").
+the browser's developer tools and attaches the local file ("Add source map"). Each map carries its script's source
+text (`sourcesContent`): a map naming only `pollCard.js` sends the developer tools looking for that file beside the
+map, where it is not.
 
 **Alternatives considered**: publishing maps behind a secret address (it defeats the feature); a lookup command of
 our own (the developer tools already do it).

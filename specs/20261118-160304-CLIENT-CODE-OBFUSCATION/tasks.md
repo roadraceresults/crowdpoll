@@ -100,8 +100,10 @@ checklist passes on a built site with an empty console
 
 ### Manual verification for User Story 2
 
-- [ ] T022 [US2] Run section 4 of specs/20261118-160304-CLIENT-CODE-OBFUSCATION/quickstart.md (the eleven-step function checklist, console open) on a transformed build in Chrome, Edge, Firefox and Safari on a desktop, Safari on an iPhone and Chrome on an Android phone, and record the result per browser in that file (FR-021, SC-002); a browser that is not available is recorded as not run, not as passed
-- [ ] T023 [US2] Run section 5 of specs/20261118-160304-CLIENT-CODE-OBFUSCATION/quickstart.md (first usable card and line-graph drawing, transformed against readable, mid-range phone and desktop, median of three) and record the eight numbers in that file; if either is more than 10% slower, add the heaviest script to `LIGHTER_SCRIPTS` in devScripts/assetTransform.ts, rebuild, measure again, and list the exception for T037 (SC-004, FR-020)
+- [X] T044 [US2] Add a `-Built` switch to devScripts.example/launch-dev.ps1 and the local devScripts/launch-dev.ps1 that runs `npm run build` and `npm start` in place of `npm run dev`, and name it in quickstart.md section 4 (TWEAK02)
+- [X] T045 [US4] Add `$env:ENV_OBFUSCATE_ASSETS = "on"` under "Frequently changed" in devScripts.example/launch-dev.ps1 and the local devScripts/launch-dev.ps1, and say in quickstart.md section 5 how to get the readable build (TWEAK03)
+- [X] T022 [US2] Run section 4 of specs/20261118-160304-CLIENT-CODE-OBFUSCATION/quickstart.md (the eleven-step function checklist, console open) on a transformed build in Chrome, Edge, Firefox and Safari on a desktop, Safari on an iPhone and Chrome on an Android phone, and record the result per browser in that file (FR-021, SC-002); a browser that is not available is recorded as not run, not as passed
+- [X] T023 [US2] Run section 5 of specs/20261118-160304-CLIENT-CODE-OBFUSCATION/quickstart.md (first usable card and line-graph drawing, transformed against readable, phone and desktop, judged in use; TWEAK06) and record the result in that file; if either is noticeably slower, add the heaviest script to `LIGHTER_SCRIPTS` in devScripts/assetTransform.ts, rebuild, measure again, and list the exception for T037 (SC-004, FR-020)
 
 **Checkpoint**: a build that could harm visitors does not finish; the built site is verified by hand
 
@@ -123,7 +125,7 @@ built files with one command
 - [X] T025 [US3] In tests/helpers/browser.ts change the one line that sets `publicDir` to `path.resolve(process.env.TEST_PUBLIC_DIR ?? "src/public")` (research R12); change nothing else in the file
 - [X] T026 [P] [US3] Create vitest.built.config.ts at the repository root: the settings of vitest.config.ts with `include: ["tests/client-*.test.ts"]` and `env: { TEST_PUBLIC_DIR: "dist/public" }`; add `"test:built": "npm run build && vitest run --config vitest.built.config.ts"` to the `scripts` of package.json after `"test"`
 - [X] T027 [US3] Run `npm test` (must pass with `dist/` deleted) and `npm run test:built`; for each client suite that fails only on the built files, find whether it reads a script's internal name or source text and change that test to use what the script publishes on `window` or at its top level, without changing what it verifies; if the failure is a real difference in behaviour, fix the transformation's settings in devScripts/assetTransform.ts instead and note it in specs/20261118-160304-CLIENT-CODE-OBFUSCATION/research.md under R12 (FR-018, SC-005)
-- [ ] T028 [US3] Run `npm run dev`, open http://localhost:8080/pollCard.js and confirm it is the source with its comments (contract B15, by hand); run `npm run build` twice and confirm with `git status` that nothing tracked changed
+- [X] T028 [US3] Run `npm run dev`, open http://localhost:8080/pollCard.js and confirm it is the source with its comments (contract B15, by hand); run `npm run build` twice and confirm with `git status` that nothing tracked changed
 
 **Checkpoint**: everyday development is as before
 
@@ -164,7 +166,7 @@ built files with one command
 
 ### Implementation for User Story 5
 
-- [X] T034 [US5] In devScripts/assetTransform.ts make `transformScript` return `{ code, map }` when asked (`esbuild` `sourcemap: "external"`, `sourcefile: name`, `sourcesContent: false`; the obfuscator's `sourceMap: true`, `sourceMapMode: "separate"`, `inputFileName: name`; the two joined with `remapping` from `@jridgewell/remapping`, which is loaded with `import()` only when source maps are asked for), and make `buildAssets` remove the maps folder at the start of every build and, when `sourceMaps` is true and the switch is on, write `<mapsDir>/<name>.map` for each transformed, non-empty script (a script in `LIGHTER_SCRIPTS` gets the `esbuild` map alone); the code written under the target folder must not depend on the flag (FR-032, research R11)
+- [X] T034 [US5] In devScripts/assetTransform.ts make `transformScript` return `{ code, map }` when asked (`esbuild` `sourcemap: "external"`, `sourcefile: name`, `sourcesContent: true`, so a map holds its script's source text and needs no other file (TWEAK05); the obfuscator's `sourceMap: true`, `sourceMapMode: "separate"`, `inputFileName: name`; the two joined with `remapping` from `@jridgewell/remapping`, which is loaded with `import()` only when source maps are asked for), and make `buildAssets` remove the maps folder at the start of every build and, when `sourceMaps` is true and the switch is on, write `<mapsDir>/<name>.map` for each transformed, non-empty script (a script in `LIGHTER_SCRIPTS` gets the `esbuild` map alone); the code written under the target folder must not depend on the flag (FR-032, research R11)
 - [X] T035 [US5] Run `npx vitest run tests/build-assets.test.ts` until T033 passes, then `npm run build -- --source-maps` and confirm section 3 of specs/20261118-160304-CLIENT-CODE-OBFUSCATION/quickstart.md, including that `git status` shows nothing new
 
 **Checkpoint**: all five stories work

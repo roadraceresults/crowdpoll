@@ -428,6 +428,7 @@ npm install
 
 ```
 npm run dev          # tsx watch src/server.ts — or ./devScripts/launch-dev.ps1, which sets the ENV_* variables
+./devScripts/launch-dev.ps1 -Built   # the same settings, but builds and serves the built files, as a release does
 npm run build        # compiles to dist/, transforms the site's own scripts, style sheets and pages (hard to read, not secret), and writes fingerprinted copies of the static assets
 npm run test:built   # builds, then runs the browser-side tests against the built files (by hand, before a release)
 npm start            # node dist/server.js

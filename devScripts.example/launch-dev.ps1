@@ -8,6 +8,10 @@
 # The settings are in the eleven groups of requirements/environmentVariablesGroups.md.
 # Unless a note says otherwise, a value is the production default and intervals are in ms.
 # The settings changed most often while testing are pulled out of their groups to the top.
+#
+# -Built builds the site and serves dist/ (the files a release serves) instead of watching src/.
+
+param([switch]$Built)
 
 # --- Frequently changed ---
 $env:ENV_PORT = "8081"  # default 8080
@@ -20,6 +24,9 @@ $env:ENV_ALLOWED_EMAILS = ""
 # sign-in testing painful: two login links and you are locked out for 15 minutes.
 $env:ENV_EMAIL_RATE_LIMIT_WINDOW_MINUTES = "5"  # default 15
 $env:ENV_EMAIL_RATE_LIMIT_MAX_REQUESTS_PER_WINDOW = "10"  # default 2
+# Read by the build only, so only -Built uses it: "on" serves the transformed client files,
+# "off" serves them as written. Unset means "on".
+$env:ENV_OBFUSCATE_ASSETS = "on"
 # The voter ceiling on a private poll -- both the limit a blank field means and the
 # largest value enterable. Production default is 100; 10 here so a test poll can be
 # filled in a handful of votes.
@@ -28,6 +35,9 @@ $env:ENV_MAX_INVITATIONS_PER_DAY = "200"
 $env:ENV_STAY_SIGNED_IN = "1"  # default 0
 $env:ENV_LIVE_RESULTS = "0"  # default 0; "1" shows the Live Results tab and the cards' Live Results control
 $env:ENV_INVITATION_RESEND_WAIT = "86400000"
+
+$env:ENV_DATABASE_URL = ""
+
 
 # --- 1. Runtime: where this process listens and the origin it is reached at ---
 # (ENV_PORT and ENV_PUBLIC_ORIGIN are at the top.)
@@ -39,7 +49,7 @@ $env:ENV_PROTOTYPES = ""
 # ENV_SPACES_* variables empty: the server then uses PostgreSQL full-text search and
 # instance-served TRENDING/Newest objects. A local Valkey is optional; empty
 # ENV_VALKEY_URL uses the in-process cache, queue and registry.
-$env:ENV_DATABASE_URL = ""
+#$env:ENV_DATABASE_URL = ""
 $env:ENV_DATABASE_CA_CERT = ""
 # Start-Process "C:\Program Files\Docker\Docker\Docker Desktop.exe"
 # docker run -d --name crowdpoll-valkey -p 6379:6379 --restart unless-stopped valkey/valkey:8
@@ -205,5 +215,12 @@ if ($databaseHost -in @("localhost", "127.0.0.1", "[::1]")) {
 }
 
 # --- Launch the server ---
-Write-Host "Starting server on http://localhost:$($env:ENV_PORT) ($($env:ENV_SIGNIN_METHOD) mode)..."
-npm run dev
+if ($Built) {
+    npm run build
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    Write-Host "Starting the built server on http://localhost:$($env:ENV_PORT) ($($env:ENV_SIGNIN_METHOD) mode)..."
+    npm start
+} else {
+    Write-Host "Starting server on http://localhost:$($env:ENV_PORT) ($($env:ENV_SIGNIN_METHOD) mode)..."
+    npm run dev
+}

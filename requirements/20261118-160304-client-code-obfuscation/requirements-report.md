@@ -479,7 +479,7 @@ the requirements now give the size and speed limits under Requirement 7.
     [X] ➡️ **Accepted**
 
     - Size: the compressed (gzip) total of the built scripts, sheets and pages is no larger than that of the source; the build prints both totals.  
-    - Speed: on the home page with a full tab of cards, the time to the first usable card and the time to draw the line graph are no more than 10% slower than the readable build, on a mid-range phone and on a desktop.  
+    - Speed: on the home page with a full tab of cards, the first usable card and the drawing of the line graph are not noticeably slower in use than on the readable build, on a phone and on a desktop.  
     - A script that fails either limit is given a lighter setting or left at minification, and the exception is documented.  
 
 

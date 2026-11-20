@@ -458,6 +458,7 @@ describe("source maps", () => {
     const declaredOn = text(FIXTURE, "sample.js").split("\n").findIndex((line) => line.startsWith("function sharedHelper"));
     expect(path.basename((entry as { originalSource: string }).originalSource)).toBe("sample.js");
     expect((entry as { originalLine: number }).originalLine).toBe(declaredOn);
+    expect(JSON.parse(text(mapsDir, "sample.js.map")).sourcesContent).toEqual([text(FIXTURE, "sample.js")]);
   });
 
   it("are removed by a build that does not ask for them", async () => {

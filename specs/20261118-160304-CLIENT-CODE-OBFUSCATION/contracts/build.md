@@ -87,7 +87,7 @@ Two builds of the same source produce the same set of files with the same bytes,
 
 - With `--source-maps`: one `dist-maps/<name>.js.map` per transformed script; every file under `dist/public/` equals
   the same build without the flag; a position in a built fixture script resolves through its map to the right source
-  line.
+  line; each map holds its script's source text, so it is used without any other file.
 - Without it: `dist-maps/` does not exist after the build, even if an earlier build left one.
 
 ## B14. Lighter scripts
