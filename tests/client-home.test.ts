@@ -979,23 +979,31 @@ describe("the date fields on an admin card", () => {
         makePoll({ title: "Waiting", pollState: "WAITING TO OPEN", startAt: scheduled })
       ]);
       adminPage = await openPage(admin, "admin.html", { cookie, scripts: ["app.js", "notesEditor.js", "adminCard.js", "adminList.js"] });
-      const cardOf = (title: string) =>
-        Array.from(adminPage!.document.querySelectorAll("#pollList .poll-admin-card")).find((el) =>
-          (el.textContent ?? "").includes(title)
+      // Every admin list is rows: a poll's card is in its row's panel once the row is open.
+      const cardOf = async (title: string) => {
+        const result = Array.from(adminPage!.document.querySelectorAll<HTMLElement>("#pollList .admin-result")).find((el) =>
+          (el.querySelector(".admin-result-row")!.textContent ?? "").includes(title)
         )!;
-      const fieldsOf = (title: string) =>
-        Array.from(cardOf(title).querySelectorAll(".card-dates-panel .card-field")).map((el) => [
+        const row = result.querySelector<HTMLButtonElement>(".admin-result-row")!;
+        if (row.getAttribute("aria-expanded") !== "true") {
+          row.click();
+          await adminPage!.settle();
+        }
+        return result.querySelector<HTMLElement>(".poll-admin-card")!;
+      };
+      const fieldsOf = async (title: string) =>
+        Array.from((await cardOf(title)).querySelectorAll(".card-dates-panel .card-field")).map((el) => [
           el.querySelector(".card-field-label")!.textContent,
           el.querySelector(".card-field-value")!.textContent
         ]);
-      expect(fieldsOf("Running").map((f) => f[0])).toEqual(["Created", "Launched"]);
-      expect(fieldsOf("Running")[1]![1]).toBe(new Date(launchedAt).toLocaleString());
-      expect(fieldsOf("Finished")[1]![1]).toBe("not launched");
-      expect(fieldsOf("Waiting")[1]![1]).toBe("not launched");
+      expect((await fieldsOf("Running")).map((f) => f[0])).toEqual(["Created", "Launched"]);
+      expect((await fieldsOf("Running"))[1]![1]).toBe(new Date(launchedAt).toLocaleString());
+      expect((await fieldsOf("Finished"))[1]![1]).toBe("not launched");
+      expect((await fieldsOf("Waiting"))[1]![1]).toBe("not launched");
       // The start and end are the Settings Summary's when-line now
       // (client-admin-wizard.test.ts covers its wording in each state).
-      expect(cardOf("Running").querySelector(".wizard-summary-when")!.textContent).toContain("is open now");
-      expect(cardOf("Waiting").querySelector(".wizard-summary-when")!.textContent).toMatch(/^Voting opens on /);
+      expect((await cardOf("Running")).querySelector(".wizard-summary-when")!.textContent).toContain("is open now");
+      expect((await cardOf("Waiting")).querySelector(".wizard-summary-when")!.textContent).toMatch(/^Voting opens on /);
     } finally {
       adminPage?.close();
       await admin.stop();
@@ -1011,12 +1019,13 @@ describe("the admin search form in a browser", () => {
       const { cookie } = await forgeSession(admin, "admin-search@example.com");
       await polls(admin).insertMany([makePoll({ title: "Kettle poll", pollState: "OPEN" }), makePoll({ title: "Teapot poll", pollState: "CLOSED" })]);
       adminPage = await openPage(admin, "admin.html", { cookie, scripts: ["app.js", "notesEditor.js", "adminCard.js", "adminList.js"] });
-      const titles = () => Array.from(adminPage!.document.querySelectorAll("#pollList .poll-admin-card")).map((el) => el.querySelector(".card-title, .poll-title, h2, h3")?.textContent ?? el.textContent ?? "");
-      expect(adminPage.document.querySelectorAll("#pollList .poll-admin-card").length).toBe(2);
+      const rows = () => adminPage!.document.querySelectorAll("#pollList .admin-result").length;
+      const titles = () => Array.from(adminPage!.document.querySelectorAll("#pollList .admin-result-row")).map((el) => el.textContent ?? "");
+      expect(rows()).toBe(2);
       await adminPage.submitForm("#adminSearchForm", {});
       (adminPage.document.querySelector('#adminSearchForm [name="state"]') as HTMLSelectElement).value = "OPEN";
       await adminPage.submitForm("#adminSearchForm", {});
-      expect(adminPage.document.querySelectorAll("#pollList .poll-admin-card").length).toBe(1);
+      expect(rows()).toBe(1);
       expect(titles()[0]).toContain("Kettle");
       const searches = () => adminPage!.requests.filter((r) => r.url.startsWith("/api/admin/polls/search")).length;
       const before = searches();
@@ -1025,10 +1034,10 @@ describe("the admin search form in a browser", () => {
       expect(adminPage.requests.filter((r) => r.url === "/api/admin/polls").length).toBeGreaterThanOrEqual(1);
       // FIX010: Clear empties the Search view and prompts; Newest is its own view.
       await adminPage.click("#adminSearchClear");
-      expect(adminPage.document.querySelectorAll("#pollList .poll-admin-card").length).toBe(0);
+      expect(rows()).toBe(0);
       expect(adminPage.document.getElementById("adminSearchNotice")!.textContent).toBe("");
       await adminPage.click('#adminTabBar .tab[data-tab="newest"]');
-      expect(adminPage.document.querySelectorAll("#pollList .poll-admin-card").length).toBe(2);
+      expect(rows()).toBe(2);
       expect(adminPage.document.getElementById("adminSearchForm")!.hidden).toBe(true);
     } finally {
       adminPage?.close();
@@ -1049,7 +1058,7 @@ describe("the admin search form in a browser", () => {
       await polls(admin).insertMany(seeded);
       adminPage = await openPage(admin, "admin.html", { cookie, scripts: ["app.js", "notesEditor.js", "adminCard.js", "adminList.js"] });
       adminPage.window.HTMLElement.prototype.scrollIntoView = () => {};
-      const cards = () => adminPage!.document.querySelectorAll("#pollList .poll-admin-card").length;
+      const cards = () => adminPage!.document.querySelectorAll("#pollList .admin-result").length;
       const active = () => (adminPage!.document.querySelector("#adminTabBar .tab.is-active") as HTMLElement).dataset.tab;
       expect(active()).toBe("newest");
       expect(cards()).toBe(3);
@@ -1057,11 +1066,11 @@ describe("the admin search form in a browser", () => {
       await adminPage.click('#adminTabBar .tab[data-tab="awaiting"]');
       expect(active()).toBe("awaiting");
       expect(cards()).toBe(1);
-      expect(adminPage.document.querySelector("#pollList .poll-admin-card")!.textContent).toContain("Waiting one");
+      expect(adminPage.document.querySelector("#pollList .admin-result-row")!.textContent).toContain("Waiting one");
 
       await adminPage.click('#adminTabBar .tab[data-tab="rejected"]');
       expect(cards()).toBe(1);
-      expect(adminPage.document.querySelector("#pollList .poll-admin-card")!.textContent).toContain("Rejected one");
+      expect(adminPage.document.querySelector("#pollList .admin-result-row")!.textContent).toContain("Rejected one");
 
       // A search is in effect, as in the report; Create still shows its poll.
       await adminPage.click('#adminTabBar .tab[data-tab="search"]');

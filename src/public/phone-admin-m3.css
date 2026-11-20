@@ -198,8 +198,6 @@
   .poll-admin-card .wizard-question:first-child{ margin-top:0; }
   .poll-admin-card .wizard-note,
   .poll-admin-card .wizard-error{ margin-left:44px; }
-  .poll-admin-card .wizard-help summary{ min-height:48px; padding:0 16px; margin-left:-16px; overflow:visible; }
-  .poll-admin-card .wizard-help{ padding-block:0; }
   .poll-admin-card .wizard-panel-actions{ padding-block:0; }
 
   .poll-admin-card .m3-radio-list{ gap:0; }
@@ -214,6 +212,7 @@
   .poll-admin-card .m3-field-input{ min-height:48px; padding-block:12px; }
   .poll-admin-card .m3-field-input,
   .poll-admin-card .wizard-notes-preview,
+  .poll-admin-card .wizard-choices-preview,
   .poll-admin-card .notes-editor-text,
   .poll-admin-card .m3-datetime{
     font-size:max(16px, var(--md-sys-typescale-body-small-size));
@@ -238,7 +237,9 @@
   .poll-admin-card .wizard-footer :is(.btn-header-ghost, .btn-header-primary){ padding:0 24px; }
 
   .poll-admin-card .wizard-notes-preview{ min-height:48px; }
+  .poll-admin-card .wizard-choices-preview{ min-height:48px; }
   .poll-admin-card .wizard-notes-edit{ overflow:visible; padding-left:16px; }
+  .poll-admin-card .wizard-info{ overflow:visible; }
   .poll-admin-card .wizard-notes-edit::after{ content:''; position:absolute; inset:-9px -8px; }
   .poll-admin-card .wizard-notes-edit-chevron{ width:24px; height:24px; }
   .poll-admin-card .notes-editor-bar{ gap:16px; padding:8px 8px 8px 16px; }
@@ -311,12 +312,13 @@
   .modal .modal-ok{ height:48px; min-width:64px; padding:0 20px; overflow:visible; }
 
   .admin-toolbar .admin-create-btn::after,
+  .admin-result-open::after,
   .admin-search-toggle::after,
   .admin-search .admin-search-btn::after,
   .admin-search .admin-search-clear::after,
   .poll-admin-card :is(.admin-icon-btn, .actions-menu-trigger, .admin-state-btn, .admin-rescreen-btn)::after,
   .poll-admin-card :is(.m3-filled-btn, .m3-tonal-btn, .btn-header-primary, .btn-header-ghost)::after,
-  .poll-admin-card .wizard-help summary::after,
+  .poll-admin-card .wizard-info::after,
   .poll-admin-card .m3-chip-remove::after,
   .poll-admin-card .notes-editor-actions button::after,
   .poll-admin-card .notes-editor-mark::after,
@@ -327,4 +329,5 @@
   .poll-admin-card .invitees-page-btn::after,
   .modal .modal-action::after,
   .modal .modal-ok::after{ content:''; position:absolute; inset:-8px; }
+  .poll-admin-card .wizard-info::after{ inset:-20px; }
 }

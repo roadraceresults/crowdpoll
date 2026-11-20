@@ -511,7 +511,7 @@ describe("The editing page reads the voter ceiling from configuration (012 FR-06
   it("has it before the first render, not after", () => {
     const listJs = readFileSync("src/public/adminList.js", "utf8");
     const boot = listJs.slice(listJs.indexOf('DOMContentLoaded", async'));
-    expect(boot.indexOf("loadRuntimeConfig()")).toBeLessThan(boot.indexOf("loadList()"));
+    expect(boot.indexOf("loadRuntimeConfig()")).toBeLessThan(boot.indexOf("loadList({ fresh: true })"));
   });
 });
 
@@ -572,7 +572,7 @@ describe("The periodic refresh never detaches the card being edited (014 R5)", (
 
   it("reconciles the list in place instead of replacing its children", () => {
     expect(loadList).not.toContain("replaceChildren");
-    expect(loadList).toContain("syncChildren(container, nextOrder)");
+    expect(loadList).toContain("syncChildren(container, resultElements(container, polls))");
   });
 
   it("leaves cards already in position where they are, and restores focus otherwise", () => {

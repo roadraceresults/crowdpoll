@@ -181,6 +181,8 @@ export interface Poll {
   pendingRejectionReason: string | null;
   /** Whether voters of a Private poll may add choices. */
   votersAddChoices: boolean;
+  /** Whether voters see the choices in the order entered rather than by share. */
+  choicesInEnteredOrder: boolean;
 }
 
 export interface PendingUpdate {
@@ -244,7 +246,8 @@ function rowToPoll(row: PollRow, invited: string[], banned: string[], votes: Vot
     lineGraphEnabled: row.line_graph_enabled,
     pendingUpdate: (row.pending_update as PendingUpdate | null) ?? null,
     pendingRejectionReason: row.pending_rejection_reason,
-    votersAddChoices: row.voters_add_choices
+    votersAddChoices: row.voters_add_choices,
+    choicesInEnteredOrder: row.choices_in_entered_order
   };
 }
 
@@ -308,7 +311,8 @@ const FIELD_TO_COLUMN: Partial<Record<keyof Poll, keyof PollRowUpdate>> = {
   timeZone: "time_zone",
   lineGraphEnabled: "line_graph_enabled",
   pendingRejectionReason: "pending_rejection_reason",
-  votersAddChoices: "voters_add_choices"
+  votersAddChoices: "voters_add_choices",
+  choicesInEnteredOrder: "choices_in_entered_order"
 };
 
 /** Fields whose change is invisible to a voter and so leaves `content_version` alone. */
@@ -554,7 +558,8 @@ function newRow(poll: Poll, creator?: PollCreator): NewPollRow {
     line_graph_enabled: poll.lineGraphEnabled,
     pending_update: poll.pendingUpdate === null ? null : JSON.stringify(poll.pendingUpdate),
     pending_rejection_reason: poll.pendingRejectionReason,
-    voters_add_choices: poll.votersAddChoices
+    voters_add_choices: poll.votersAddChoices,
+    choices_in_entered_order: poll.choicesInEnteredOrder
   };
 }
 

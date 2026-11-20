@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -289,5 +289,87 @@ describe("the result rows' style", () => {
 
   it("does not animate the chevron when the visitor asks for reduced motion", () => {
     expect(compact(css)).toContain("@media (prefers-reduced-motion: reduce){ .admin-result-chevron{ transition:none; } }");
+  });
+});
+
+describe("the open-poll link's styles (POLL-ADMIN-IMPROVEMENTS U16)", () => {
+  const css = read("admin-search-m3.css");
+  const rules = (selector: string) =>
+    [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].filter(([, selectors]) => selectors!.split(",").some((s) => s.trim() === selector)).map(([, , body]) => compact(body!));
+
+  it("is a 48 px absolutely placed circle with a focus ring, in the theme's primary and on-primary", () => {
+    const box = rules(".admin-result-open").join(" ");
+    expect(box).toMatch(/position:\s*absolute/);
+    expect(box).toMatch(/width:\s*48px/);
+    expect(box).toMatch(/height:\s*48px/);
+    expect(rules(".admin-result-open:focus-visible").join(" ")).toMatch(/outline:/);
+    expect(rules(".admin-result-open-disc").join(" ")).toContain("fill:var(--md-sys-color-primary)");
+    expect(rules(".admin-result-open-mark").join(" ")).toContain("fill:var(--md-sys-color-on-primary)");
+    expect(rules(".admin-result-open-stroke").join(" ")).toContain("stroke:var(--md-sys-color-on-primary)");
+    const own = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].filter(([, selectors]) => selectors!.includes("admin-result-open"));
+    expect(own.length).toBeGreaterThan(0);
+    for (const [, , body] of own) {
+      expect(body).not.toMatch(/#[0-9a-fA-F]{3}/);
+      expect(body).not.toMatch(/font-size/);
+    }
+  });
+
+  it("has its 64 px halo in the phone layout", () => {
+    const phone = mediaBlock(read("phone-admin-m3.css"), "(max-width: 640px)");
+    const halo = [...phone.matchAll(/([^{}]+)\{([^{}]*)\}/g)].find(([, selectors]) => selectors!.includes(".admin-result-open::after"));
+    expect(halo).toBeDefined();
+    expect(compact(halo![2]!)).toMatch(/inset:\s*-8px/);
+  });
+});
+
+describe("the wizard's info icons, dialog and Choices preview (POLL-ADMIN-IMPROVEMENTS U16)", () => {
+  const css = read("admin-card-m3.css");
+  const ruleList = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)];
+
+  for (const name of [".wizard-info", ".m3-row-heading", ".wizard-choices-preview", ".modal--info"]) {
+    it(`has rules for ${name}, with theme colors and token sizes only`, () => {
+      const own = ruleList.filter(([, selectors]) => selectors!.includes(name));
+      expect(own.length).toBeGreaterThan(0);
+      for (const [, , body] of own) {
+        expect(body).not.toMatch(/#[0-9a-fA-F]{3}/);
+        expect(body).not.toMatch(/font-size:\s*[\d.]+px/);
+      }
+    });
+  }
+
+  const rules = (selector: string) =>
+    ruleList.filter(([, selectors]) => selectors!.split(",").some((s) => s.trim() === selector)).map(([, , body]) => compact(body!)).join(" ");
+
+  it("keeps each info icon on its label's line, about 8 px after it (TWEAK07)", () => {
+    expect(rules(".poll-admin-card .m3-row-heading")).toMatch(/flex-wrap:\s*nowrap/);
+    expect(rules(".poll-admin-card .m3-row-heading")).toMatch(/gap:\s*0 4px/);
+    expect(rules(".poll-admin-card .m3-row-heading > label")).toMatch(/min-width:\s*0/);
+    const icon = rules(".poll-admin-card .wizard-info");
+    expect(icon).toMatch(/width:\s*24px/);
+    expect(icon).toMatch(/height:\s*24px/);
+    expect(icon).toMatch(/overflow:\s*visible/);
+    expect(rules(".poll-admin-card .wizard-info::after")).toMatch(/inset:\s*-12px 0/);
+  });
+
+  it("puts a switch row's label and icon on a line of their own, the switch on the next (TWEAK07)", () => {
+    const row = ".poll-admin-card .m3-switch-row:has(> .m3-switch-text > .m3-row-heading)";
+    expect(rules(row)).toMatch(/display:\s*grid/);
+    expect(rules(row + " > .m3-switch-text")).toMatch(/display:\s*contents/);
+    expect(rules(row + " .m3-row-heading")).toMatch(/grid-column:\s*1 \/ -1/);
+    expect(rules(row + " > .m3-switch")).toMatch(/grid-column:\s*2/);
+  });
+
+  it("keeps the info icon's 64 px target in the phone layout (TWEAK07)", () => {
+    const phone = mediaBlock(read("phone-admin-m3.css"), "(max-width: 640px)");
+    const own = [...phone.matchAll(/([^{}]+)\{([^{}]*)\}/g)].filter(([, selectors]) => selectors!.trim() === ".poll-admin-card .wizard-info::after");
+    expect(own.map(([, , body]) => compact(body!)).join(" ")).toMatch(/inset:\s*-20px/);
+  });
+
+  it("leaves no .wizard-help in any file of src/public", () => {
+    const dir = path.resolve("src/public");
+    for (const name of readdirSync(dir, { recursive: true }) as string[]) {
+      if (!/\.(js|html|css)$/.test(name)) continue;
+      expect(readFileSync(path.join(dir, name), "utf8"), name).not.toContain("wizard-help");
+    }
   });
 });

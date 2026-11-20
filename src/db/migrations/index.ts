@@ -21,6 +21,7 @@ import * as deviceEvents from "./019-device-events.js";
 import * as invitationMessage from "./020-invitation-message.js";
 import * as linkPreviewMessage from "./021-link-preview-message.js";
 import * as adminSearchFlags from "./022-admin-search-flags.js";
+import * as choicesInEnteredOrder from "./023-choices-in-entered-order.js";
 
 /** Applied in key order; add a new migration by appending the next number. */
 export const migrations: Record<string, Migration> = {
@@ -45,5 +46,6 @@ export const migrations: Record<string, Migration> = {
   "019-device-events": deviceEvents,
   "020-invitation-message": invitationMessage,
   "021-link-preview-message": linkPreviewMessage,
-  "022-admin-search-flags": adminSearchFlags
+  "022-admin-search-flags": adminSearchFlags,
+  "023-choices-in-entered-order": choicesInEnteredOrder
 };

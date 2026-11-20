@@ -75,6 +75,15 @@ const rows = (p: BrowserPage) =>
   ]);
 const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
+/** Every list is rows: opens the poll's row when it is closed. */
+async function openRow(p: BrowserPage, title: string): Promise<void> {
+  const row = Array.from(p.document.querySelectorAll<HTMLButtonElement>("#pollList .admin-result-row")).find(
+    (r) => r.querySelector(".admin-result-title")!.textContent === title
+  )!;
+  if (row.getAttribute("aria-expanded") !== "true") row.click();
+  await p.settle();
+}
+
 async function invite(p: BrowserPage, text: string): Promise<void> {
   const input = p.document.querySelector<HTMLTextAreaElement>(".invitees-input")!;
   input.value = text;
@@ -306,12 +315,14 @@ describe("the time zone on every write", () => {
     await polls(ctx).insertOne(invitationPoll({ pollState: "INITIALIZED", title: "Draft one" }));
     await polls(ctx).insertOne(invitationPoll({ pollState: "OPEN", title: "Open one" }));
     const p = await open();
+    await openRow(p, "Open one");
     await invite(p, "ann@example.com");
     const closeBtn = Array.from(p.document.querySelectorAll<HTMLButtonElement>(".admin-state-btn")).find(
       (b) => b.textContent === "Close" && !b.disabled
     )!;
     closeBtn.click();
     await p.settle();
+    await openRow(p, "Draft one");
     Array.from(p.document.querySelectorAll<HTMLElement>(".poll-admin-card"))
       .find((c) => c.textContent!.includes("Draft one"))!
       .querySelector<HTMLElement>(".wizard-summary-link")!

@@ -262,6 +262,8 @@
         "specs/20261119-182343-DEEP-LINKS/research.md": "db252e25b848eed027458d19493d410722d0ba2dd91ad438509bcca8529e254b",
         "specs/20261119-182343-DEEP-LINKS/data-model.md": "a96f9ab7102997f5239b5c2cdb5f4b084a4fc956ca6d1438d5c40009dfdc4230",
         "specs/20261119-182343-DEEP-LINKS/contracts/links.md": "f047ac3cad1a1594cdf352a7444ae41674f037b12f6e1d2d54a18445c6c3d7f9",
-        "specs/20261119-182343-DEEP-LINKS/contracts/share.md": "fb6718212f0fa135f6972eba8d6fe41a243fd914637ee966577f0791dbce6ff4"
+        "specs/20261119-182343-DEEP-LINKS/contracts/share.md": "fb6718212f0fa135f6972eba8d6fe41a243fd914637ee966577f0791dbce6ff4",
+        "specs/20261119-144614-POLL-ADMIN-IMPROVEMENTS/analyze-findings.md": "f0afc26304f39843deabc6b94d2b0ef0ae360bf0655cd7c19012fb2a76d32a56",
+        "specs/20261119-144614-POLL-ADMIN-IMPROVEMENTS/tasks.md": "6770fd2df256e852cb5eabb41c52c0e3682ea4bd857bead24e4d4184032a1806"
     }
 }

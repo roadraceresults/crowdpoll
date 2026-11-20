@@ -20,7 +20,8 @@ function projection(pid: string, contentVersion: number): PollProjection {
     choices: [{ id: "c1", label: "One", position: 0 }],
     contentVersion,
     lineGraphEnabled: false,
-    votersAddChoices: false
+    votersAddChoices: false,
+    choicesInEnteredOrder: false
   };
 }
 

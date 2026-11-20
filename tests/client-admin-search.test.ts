@@ -349,7 +349,11 @@ describe("the read-only card's Created By field", () => {
     await ctx.db.updateTable("polls").set({ created_by_id: owner.userId, created_by_name: "Otto Other" }).where("id", "=", theirs._id).execute();
     await ctx.db.updateTable("polls").set({ created_by_id: adminId, created_by_name: "Ada Admin" }).where("id", "=", mine._id).execute();
     const page = await openAdmin();
-    const chip = (pid: string) => page.document.querySelector(`#pollList .poll-admin-card[data-pid="${pid}"] .card-dates-panel .not-your-poll-chip`);
+    const chip = (pid: string) => {
+      const row = page.document.querySelector<HTMLButtonElement>(`#pollList .admin-result[data-pid="${pid}"] .admin-result-row`)!;
+      if (row.getAttribute("aria-expanded") !== "true") row.click();
+      return page.document.querySelector(`#pollList .poll-admin-card[data-pid="${pid}"] .card-dates-panel .not-your-poll-chip`);
+    };
     expect(chip(theirs._id)?.textContent).toBe("Not your poll");
     expect(chip(mine._id)).toBeNull();
   });
@@ -548,7 +552,9 @@ describe("the search results list", () => {
     expect(list.querySelector(".poll-admin-card")).toBeNull();
 
     for (const result of results(page)) {
-      const [row, panel] = Array.from(result.children) as [HTMLButtonElement, HTMLElement];
+      const row = result.querySelector<HTMLButtonElement>(":scope > .admin-result-row")!;
+      const panel = result.querySelector<HTMLElement>(":scope > .admin-result-panel")!;
+      expect(row.nextElementSibling).toBe(panel);
       expect([row.tagName, row.className, row.type, row.hasAttribute("tabindex")]).toEqual(["BUTTON", "admin-result-row", "button", false]);
       expect([panel.tagName, panel.className, panel.hidden, panel.children.length]).toEqual(["DIV", "admin-result-panel", true, 0]);
       expect(row.getAttribute("aria-controls")).toBe(panel.id);
@@ -574,13 +580,13 @@ describe("the search results list", () => {
     expect(results(page).map((result) => result.querySelector(".admin-result-row")!.getAttribute("title"))).toEqual(["Kettle with a name", "(untitled)", "Kettle alone"]);
   });
 
-  it("keeps full cards, and no rows, in the Newest view", async () => {
+  it("draws the Newest view as rows too, with no card until one is opened", async () => {
     await seedKettles();
     const page = await openAdmin();
     const list = page.document.getElementById("pollList")!;
-    expect(Array.from(list.children).every((child) => child.classList.contains("poll-admin-card"))).toBe(true);
-    expect(list.children.length).toBe(3);
-    expect(results(page)).toEqual([]);
+    expect(Array.from(list.children).every((child) => child.classList.contains("admin-result"))).toBe(true);
+    expect(results(page).length).toBe(3);
+    expect(list.querySelector(".poll-admin-card")).toBeNull();
   });
 
   it("opens a row's card under it, closes it on a second click, and keeps one card open at a time", async () => {
@@ -599,7 +605,7 @@ describe("the search results list", () => {
     expect(cardIn(two)!.dataset.pid).toBe(two.dataset.pid);
     expect(page.document.querySelectorAll("#pollList .poll-admin-card").length).toBe(1);
     expect(page.document.activeElement).toBe(rowOf(page, "Kettle two"));
-    expect(two.firstElementChild).toBe(rowOf(page, "Kettle two"));
+    expect(rowOf(page, "Kettle two").nextElementSibling).toBe(two.querySelector(".admin-result-panel"));
 
     await clickRow(page, "Kettle three");
     expect(openResults(page)).toEqual([resultOf(page, "Kettle three")]);
@@ -668,8 +674,8 @@ describe("the search results list", () => {
     await clickRow(page, "Kettle one");
     await page.click('#adminTabBar .tab[data-tab="newest"]');
     await page.settle(200);
-    expect(results(page)).toEqual([]);
-    expect(page.document.querySelectorAll("#pollList > .poll-admin-card").length).toBe(3);
+    expect(results(page).length).toBe(3);
+    expect(openResults(page)).toEqual([]);
     await page.click(searchTab);
     await page.settle(200);
     expect(results(page).length).toBe(3);
@@ -726,15 +732,18 @@ describe("the results list while a card is being edited", () => {
     await startEditing(page, "Kettle one");
     const editing = page.document.querySelector<HTMLElement>(".admin-result--open")!;
 
-    expect(heldControls(page).length).toBe(5);
-    for (const control of heldControls(page)) {
+    const editingRow = editing.querySelector<HTMLButtonElement>(".admin-result-row")!;
+    const held = () => heldControls(page).filter((control) => control !== editingRow);
+    expect(held().length).toBe(4);
+    for (const control of held()) {
       expect(control.disabled).toBe(true);
       expect(control.getAttribute("title")).toBe(HELD);
     }
+    expect(editingRow.disabled).toBe(false);
+    expect(editingRow.getAttribute("title")).toBe("Cancel editing");
 
     const other = results(page).find((result) => result !== editing)!;
     other.querySelector<HTMLButtonElement>(".admin-result-row")!.click();
-    editing.querySelector<HTMLButtonElement>(".admin-result-row")!.click();
     await page.settle(100);
     expect(openResults(page)).toEqual([editing]);
     expect(cardIn(editing)!.classList.contains("poll-admin-card--new")).toBe(true);

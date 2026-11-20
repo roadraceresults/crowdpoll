@@ -224,7 +224,8 @@ delivery network.
 
 ## For administrators
 
-- **Poll cards** — the admin page (`/admin`) shows each poll as a card: its state and actions,
+- **Poll cards** — the admin page (`/admin`) lists each poll as a row (see *Poll rows* below); opening a row
+  shows the poll's card: its state and actions,
   a panel with Open, Close and Archive, who created it (`Created By: <username> (<email>)`) and the dates it was created and launched, a panel of
   counts, and a **Settings Summary** — a few plain sentences describing the poll ("Your poll is
   a Public Poll. Everyone on CrowdPoll can find it and vote."; for a private poll the anonymity
@@ -241,19 +242,34 @@ delivery network.
   puts each radio row back on Any. **Collapse Search**, above the
   panel, folds it away (the button then reads **Expand Search**); it folds itself after a search that shows results
   and stays open when nothing matched. Clicking the **Search** view tab opens a collapsed panel.
-- **Search results** — a search lists one compact row per poll instead of a card, in one frame that looks like a
-  card (up to 840 px wide), with every second row shaded. A row has two lines: the title and subtitle, then
-  **Public**, **Private (invitation)** or **Private (shared link)**, "Poll state: OPEN", "Created by: <user name,
-  else email> on <date>" and the number of voters. A line above the list says how many polls matched ("12 polls match."). Click a row, or press Enter or
-  Space on it, to open that poll's card under it; click it again to close it. One card is open at a time, and a
-  search with a single result opens it for you. The list keeps itself current without opening, closing or
-  moving anything. While you edit a poll, the rows, **Search** and **Clear** are held ("Finish editing the open
-  poll first") until you save or cancel.
-- **Create New Poll** opens the new poll's card as a six-step wizard: Who can vote, Title &
-  Tags, Choices, View, How to vote, and When to vote. **Save** keeps your answers so you can
+- **Poll rows** — every admin view, and the list a poll creator sees, shows one compact row per poll in one frame
+  that looks like a card (up to 840 px wide), with every second row shaded. A row has two lines: the title and
+  subtitle, then **Public**, **Private (invitation)** or **Private (shared link)**, "Poll state: OPEN", "Created by:
+  <user name, else email> on <date>" and the number of voters. In the Search view a line above the list says how
+  many polls matched ("12 polls match."). Click a row, or press Enter or Space on it, to open that poll's card under
+  it; click it again to close it. One card is open at a time, and a list with a single poll opens it for you. The
+  list keeps itself current without opening, closing or moving anything. While you edit a poll, the rows, the view
+  tabs, **Search** and **Clear** are held ("Finish editing the open poll first") until you save or cancel. The
+  edited poll's own row is Cancel: clicking it ends the edit (asking first if you changed something) and closes it.
+- **View Poll** — a round button at the left of a row opens the poll itself (`/?PID=…`), as a voter sees it. It
+  shows only on a poll you can open from its link, so never on a poll that has not been published.
+- **Create New Poll** opens the new poll's card, in its row of the Newest view, as a six-step wizard: Who can
+  vote, Title & Tags, Choices, View, How to vote, and When to vote. **Save** keeps your answers so you can
   finish later; **Publish**, available once every step has been visited and the poll is complete,
   sends the poll to be reviewed. New polls are public and let voters change their vote unless
   you choose otherwise.
+- **Info icons** — each option and switch of the wizard, the Notes field and the When to vote questions carry a
+  small ⓘ beside their label; it opens a dialog explaining the setting (one **Close** button, Escape or a click
+  outside closes it). Pressing it never changes the setting. The Who can vote, Choices, How to vote and When to vote
+  steps each have one dialog: any of their icons opens it, with every entry of the step under its own heading.
+- **Choices** — the Choices step shows the first five choices with **... edit ⌄**; clicking anywhere in the box opens the full
+  list, one choice per line, under **Cancel** and **Done**, as the Notes editor does. **Done**, **Next >>**, a step
+  circle, **Save** or **Publish** keeps what you typed; **Cancel** drops it (asking first if it changed). **Paste
+  choices** works in both states.
+- **Display Choices in the order above** — a switch at the end of the Choices step, off by default. Off, voters
+  see the choices from most votes to least; on, in the order you entered them, on the results and the ballot
+  alike. It can be changed at any time, even after votes, and the summary then says "Choices are shown in the
+  order entered."
 - **Notes** — Title & Tags has a **Notes** field after Subtitle: up to 6000 characters of text with
   **bold**, *italic* and underline (the toolbar, or Ctrl/⌘+B, I, U) and line breaks; pasted text
   keeps no formatting. **... edit ⌄** opens the editor in place; **Done** keeps the notes in the
@@ -276,7 +292,7 @@ delivery network.
   started, while the choices themselves stay locked; changing only colors does not send the poll
   to be reviewed again. With the switch on, the poll's summary says how many colors have
   been set manually, with a swatch for each; with it off, the summary says nothing about colors.
-- **Voters may add choices** — on a Private poll, the How to vote step has a **Voters may add
+- **Voters may add choices** — on a Private poll, the Choices step ends with a **Voters may add
   choices** switch, off by default, which can be changed at any time, even after votes; the summary
   says "Voters may add choices: Yes" or "No". A choice a voter adds is an ordinary choice: you can
   rename, recolor or delete it. On a poll that shows who voted for what, the Choices step lists

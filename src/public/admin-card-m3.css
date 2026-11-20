@@ -325,30 +325,57 @@
   letter-spacing:var(--md-sys-typescale-body-small-tracking);
   color:var(--md-sys-color-error);
 }
-.poll-admin-card .wizard-help{ color:var(--md-sys-color-on-surface); }
-.poll-admin-card .wizard-help summary{
+.poll-admin-card .m3-row-heading{
   display:inline-flex;
-  align-items:center;
-  min-height:40px;
-  padding:0 12px;
-  margin-left:-12px;
-  border-radius:var(--md-sys-shape-corner-full);
-  color:var(--md-sys-color-primary);
-  font-size:var(--md-sys-typescale-label-large-size);
-  font-weight:var(--md-sys-typescale-label-large-weight);
-  line-height:var(--md-sys-typescale-label-large-line-height);
-  letter-spacing:var(--md-sys-typescale-label-large-tracking);
-  cursor:pointer;
+  align-items:flex-start;
+  flex-wrap:nowrap;
+  gap:0 4px;
 }
-.poll-admin-card .wizard-help dt{
+.poll-admin-card .m3-row-heading > label{ min-width:0; }
+.poll-admin-card .m3-switch-row:has(> .m3-switch-text > .m3-row-heading){
+  display:grid;
+  grid-template-columns:minmax(0, 1fr) auto;
+  align-items:center;
+  column-gap:16px;
+}
+.poll-admin-card .m3-switch-row:has(> .m3-switch-text > .m3-row-heading) > .m3-switch-text{ display:contents; }
+.poll-admin-card .m3-switch-row:has(> .m3-switch-text > .m3-row-heading) .m3-row-heading{ grid-column:1 / -1; }
+.poll-admin-card .m3-switch-row:has(> .m3-switch-text > .m3-row-heading) .m3-switch-support{ grid-column:1; }
+.poll-admin-card .m3-switch-row:has(> .m3-switch-text > .m3-row-heading) > .m3-switch{ grid-column:2; }
+.poll-admin-card :is(.m3-radio-label, .m3-switch-label, .m3-radio-support, .m3-switch-support){ cursor:pointer; }
+.poll-admin-card .m3-radio-item.is-disabled :is(.m3-radio-label, .m3-radio-support){ cursor:default; }
+.poll-admin-card .wizard-info{
+  display:inline-grid;
+  place-items:center;
+  flex:0 0 auto;
+  width:24px;
+  height:24px;
+  margin:calc((var(--md-sys-typescale-body-large-line-height) - 24px) / 2) 0;
+  padding:0;
+  border:0;
+  border-radius:var(--md-sys-shape-corner-full);
+  background:transparent;
+  color:inherit;
+  cursor:pointer;
+  vertical-align:middle;
+}
+.poll-admin-card .wizard-info svg{ width:20px; height:20px; }
+.poll-admin-card .wizard-info::after{ content:""; position:absolute; inset:-12px 0; }
+.poll-admin-card :is(.wizard-question, .wizard-tz) .wizard-info{ margin-left:4px; }
+
+.modal--info .modal-text{
+  max-height:calc(100dvh - 240px);
+  overflow-y:auto;
+}
+.modal--info .modal-text p{ margin:0 0 12px; }
+.modal--info .modal-text p:last-child{ margin-bottom:0; }
+.modal--info .modal-text .modal-info-heading{
+  margin-bottom:2px;
+  color:var(--md-sys-color-on-surface);
   font-size:var(--md-sys-typescale-title-small-size);
   font-weight:var(--md-sys-typescale-title-small-weight);
   line-height:var(--md-sys-typescale-title-small-line-height);
-}
-.poll-admin-card .wizard-help dd{
-  font-size:var(--md-sys-typescale-body-medium-size);
-  line-height:var(--md-sys-typescale-body-medium-line-height);
-  color:var(--md-sys-color-on-surface-variant);
+  letter-spacing:var(--md-sys-typescale-title-small-tracking);
 }
 
 /* ---------- 5b. Colors step ---------- */
@@ -678,7 +705,8 @@
 .poll-admin-card .m3-field.is-duplicate .m3-field-counter{ color:var(--md-sys-color-error); }
 
 .poll-admin-card .m3-field--notes .m3-field-box{ cursor:default; }
-.poll-admin-card .wizard-notes-preview{
+.poll-admin-card .wizard-notes-preview,
+.poll-admin-card .wizard-choices-preview{
   position:relative;
   min-height:calc(2 * var(--md-sys-typescale-body-large-line-height));
   font-size:var(--md-sys-typescale-body-large-size);
@@ -693,6 +721,16 @@
   overflow:hidden;
   overflow-wrap:anywhere;
 }
+.poll-admin-card .m3-field--notes .wizard-notes-preview,
+.poll-admin-card .wizard-choices-preview{ cursor:pointer; }
+.poll-admin-card :is(.wizard-notes-preview, .wizard-choices-preview):has(.wizard-notes-edit:disabled){ cursor:default; }
+.poll-admin-card .wizard-choices-lines > div{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.poll-admin-card .wizard-choices-lines > div:last-child{ padding-right:96px; }
+.poll-admin-card .wizard-choices-lines.is-placeholder{ color:var(--md-sys-color-on-surface-variant); }
 .poll-admin-card .wizard-notes-edit{
   position:absolute;
   right:0;
@@ -975,17 +1013,15 @@
    A ::before in currentColor at 0 opacity, raised on hover, keyboard focus
    and press, as on the Poll Card; and the 3px secondary focus ring. */
 .poll-admin-card :is(.m3-filled-btn, .m3-tonal-btn, .btn-header-primary, .btn-header-ghost,
-  .admin-state-btn, .admin-rescreen-btn, .admin-icon-btn, .actions-menu-trigger,
+  .admin-state-btn, .admin-rescreen-btn, .admin-icon-btn, .wizard-info, .actions-menu-trigger,
   .m3-chip-remove, .m3-radio-item, .m3-switch-row),
-.poll-admin-card .wizard-help summary,
 .actions-menu :is(a, button){
   position:relative;
   overflow:hidden;
 }
 .poll-admin-card :is(.m3-filled-btn, .m3-tonal-btn, .btn-header-primary, .btn-header-ghost,
-  .admin-state-btn, .admin-rescreen-btn, .admin-icon-btn, .actions-menu-trigger,
+  .admin-state-btn, .admin-rescreen-btn, .admin-icon-btn, .wizard-info, .actions-menu-trigger,
   .m3-chip-remove, .m3-radio-item, .m3-switch-row)::before,
-.poll-admin-card .wizard-help summary::before,
 .actions-menu :is(a, button)::before{
   content:"";
   position:absolute;
@@ -998,30 +1034,27 @@
 }
 /* The rows' layer follows their text, not the radio or switch. */
 .poll-admin-card :is(.m3-radio-item, .m3-switch-row){ color:var(--md-sys-color-on-surface); }
+.poll-admin-card .wizard-info{ overflow:visible; }
 
 .poll-admin-card :is(.m3-filled-btn, .m3-tonal-btn, .btn-header-primary, .btn-header-ghost,
-  .admin-state-btn, .admin-rescreen-btn, .admin-icon-btn, .actions-menu-trigger,
+  .admin-state-btn, .admin-rescreen-btn, .admin-icon-btn, .wizard-info, .actions-menu-trigger,
   .m3-chip-remove, .m3-radio-item, .m3-switch-row):hover::before,
-.poll-admin-card .wizard-help summary:hover::before,
 .actions-menu :is(a, button):hover::before{ opacity:var(--md-sys-state-hover-state-layer-opacity); }
 
 .poll-admin-card :is(.m3-filled-btn, .m3-tonal-btn, .btn-header-primary, .btn-header-ghost,
-  .admin-state-btn, .admin-rescreen-btn, .admin-icon-btn, .actions-menu-trigger,
+  .admin-state-btn, .admin-rescreen-btn, .admin-icon-btn, .wizard-info, .actions-menu-trigger,
   .m3-chip-remove):focus-visible::before,
 .poll-admin-card :is(.m3-radio-item, .m3-switch-row):focus-within::before,
-.poll-admin-card .wizard-help summary:focus-visible::before,
 .actions-menu :is(a, button):focus-visible::before{ opacity:var(--md-sys-state-focus-state-layer-opacity); }
 
 .poll-admin-card :is(.m3-filled-btn, .m3-tonal-btn, .btn-header-primary, .btn-header-ghost,
-  .admin-state-btn, .admin-rescreen-btn, .admin-icon-btn, .actions-menu-trigger,
+  .admin-state-btn, .admin-rescreen-btn, .admin-icon-btn, .wizard-info, .actions-menu-trigger,
   .m3-chip-remove, .m3-radio-item, .m3-switch-row):active::before,
-.poll-admin-card .wizard-help summary:active::before,
 .actions-menu :is(a, button):active::before{ opacity:var(--md-sys-state-pressed-state-layer-opacity); }
 
 .poll-admin-card :is(.m3-filled-btn, .m3-tonal-btn, .btn-header-primary, .btn-header-ghost,
-  .admin-state-btn, .admin-rescreen-btn, .admin-icon-btn, .actions-menu-trigger,
+  .admin-state-btn, .admin-rescreen-btn, .admin-icon-btn, .wizard-info, .actions-menu-trigger,
   .m3-chip-remove):focus-visible,
-.poll-admin-card .wizard-help summary:focus-visible,
 .actions-menu :is(a, button):focus-visible{
   outline:3px solid var(--md-sys-color-secondary);
   outline-offset:2px;
