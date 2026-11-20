@@ -152,7 +152,7 @@ describe("openapi.json describes the 012 model, not the retired one", () => {
       (spec.components.schemas.AdminPollSummary as { properties: Record<string, unknown> }).properties
     );
     for (const cap of [
-      "canEdit", "canUpdate", "canOpen", "canClose", "canArchive", "canDelete", "canRescreen"
+      "canEdit", "canUpdate", "canOpen", "canClose", "canArchive", "canDelete", "canRescreen", "canCopyLink"
     ]) {
       expect(props, cap).toContain(cap);
     }

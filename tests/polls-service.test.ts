@@ -308,6 +308,13 @@ describe("capabilitiesFor (012 FR-030/FR-031)", () => {
     }
   });
 
+  it("offers Copy poll link in every state but ARCHIVED, whose link opens nothing", () => {
+    expect(caps("ARCHIVED").canCopyLink).toBe(false);
+    for (const st of ["INITIALIZED", "EDITING", "AWAITING APPROVAL", "REJECTED", "WAITING TO OPEN", "OPEN", "CLOSED"]) {
+      expect(caps(st).canCopyLink, st).toBe(true);
+    }
+  });
+
   it("offers Delete only from INITIALIZED, REJECTED and ARCHIVED", () => {
     for (const st of ["INITIALIZED", "REJECTED", "ARCHIVED"]) {
       expect(caps(st).canDelete, st).toBe(true);

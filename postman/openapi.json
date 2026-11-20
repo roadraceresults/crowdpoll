@@ -530,6 +530,10 @@
           "canArchive": {
             "type": "boolean"
           },
+          "canCopyLink": {
+            "type": "boolean",
+            "description": "False for an ARCHIVED poll, whose link opens nothing, as a deleted poll's: the card offers no Copy poll link control."
+          },
           "canRescreen": {
             "type": "boolean",
             "description": "Every action rule is decided server-side so the client renders the menu from booleans rather than re-deriving them (FR-052..FR-054)."

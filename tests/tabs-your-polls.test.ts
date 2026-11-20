@@ -90,13 +90,17 @@ describe("Your Polls", () => {
     }
   });
 
-  it("keeps a poll listed when its visibility, sharing mode or state changes, and drops it only when deleted", async () => {
+  it("keeps a poll listed when its visibility, sharing mode or state changes, and drops it when archived or deleted", async () => {
     const poll = await created(me, meEmail, { title: "Changing" });
     await updatePoll(ctx, poll._id, { pollVisibility: "Private Poll", pollSharingMode: "Invitation Only" });
     expect((await tab("your-polls")).body.order).toEqual([poll._id]);
-    await updatePoll(ctx, poll._id, { pollState: "ARCHIVED" });
+    await updatePoll(ctx, poll._id, { pollState: "CLOSED" });
     expect((await tab("your-polls")).body.order).toEqual([poll._id]);
-    await ctx.db.deleteFrom("polls").where("id", "=", poll._id).execute();
+    // An archived poll is on no tab, as a deleted one: only Poll Administration shows it.
+    const kept = await created(me, meEmail, { title: "Kept" });
+    await updatePoll(ctx, poll._id, { pollState: "ARCHIVED" });
+    expect((await tab("your-polls")).body.order).toEqual([kept._id]);
+    await ctx.db.deleteFrom("polls").where("id", "=", kept._id).execute();
     expect((await tab("your-polls")).status).toBe(304);
   });
 });

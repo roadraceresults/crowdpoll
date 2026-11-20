@@ -4,7 +4,9 @@ import { afterEach, describe, expect, it } from "vitest";
 import { openStubbedHome, pointerEvent, type StubbedHome, type StubbedHomeOptions } from "./helpers/single-column-page.js";
 
 const LAYOUT = { tabWidth: 100, barWidth: 300 };
-const LAST_POSITION = 8 * LAYOUT.tabWidth - LAYOUT.barWidth;
+// Seven tabs show: the page starts with Live Results hidden (ENV_LIVE_RESULTS off), and this page runs no tabs.js.
+const SHOWN_TABS = 7;
+const LAST_POSITION = SHOWN_TABS * LAYOUT.tabWidth - LAYOUT.barWidth;
 
 let page: StubbedHome | null = null;
 
@@ -155,7 +157,8 @@ describe("the all-tabs menu", () => {
     const home = await open();
     byId(home, "tabMenuBtn").click();
     const items = Array.from(home.document.querySelectorAll<HTMLElement>("#tabMenu .tab-menu-item"));
-    expect(items).toHaveLength(8);
+    expect(items).toHaveLength(SHOWN_TABS);
+    expect(items.map((item) => item.dataset.tab)).not.toContain("live");
     expect(items.filter((item) => item.classList.contains("is-active")).map((item) => item.dataset.tab)).toEqual(["trending"]);
     expect(byId(home, "tabMenuBtn").getAttribute("aria-expanded")).toBe("true");
     expect(byId(home, "tabMenu").hidden).toBe(false);
@@ -193,7 +196,7 @@ describe("the all-tabs menu", () => {
     items[4].dispatchEvent(new home.window.KeyboardEvent("keydown", { key: "Home", bubbles: true, cancelable: true }));
     expect(home.document.activeElement).toBe(items[0]);
     items[0].dispatchEvent(new home.window.KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true, cancelable: true }));
-    expect(home.document.activeElement).toBe(items[7]);
+    expect(home.document.activeElement).toBe(items[SHOWN_TABS - 1]);
 
     home.document.dispatchEvent(new home.window.KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
     expect(byId(home, "tabMenu").hidden).toBe(true);
@@ -221,7 +224,7 @@ describe("the More item", () => {
     expect(more.textContent?.trim()).toBe("More");
     more.click();
     const items = Array.from(home.document.querySelectorAll<HTMLElement>("#tabMenu .tab-menu-item"));
-    expect(items).toHaveLength(8);
+    expect(items).toHaveLength(SHOWN_TABS);
     expect(items.map((item) => item.dataset.tab)).not.toContain(undefined);
   });
 

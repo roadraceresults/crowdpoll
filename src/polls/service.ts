@@ -250,6 +250,7 @@ export interface PollCapabilities {
   canArchive: boolean;
   canDelete: boolean;
   canRescreen: boolean;
+  canCopyLink: boolean;
 }
 
 /** States from which an administrator may manually open a poll (012 FR-024). */
@@ -278,7 +279,9 @@ export function capabilitiesFor(
     // before that the sweep is still retrying on its own.
     canRescreen:
       poll.pollState === "REJECTED" &&
-      poll.pollAcceptabilityScreeningAttempts >= maxScreeningAttempts
+      poll.pollAcceptabilityScreeningAttempts >= maxScreeningAttempts,
+    // An archived poll's link opens nothing, as a deleted poll's, so no Copy control offers it.
+    canCopyLink: poll.pollState !== "ARCHIVED"
   };
 }
 
