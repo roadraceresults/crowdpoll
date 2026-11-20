@@ -64,7 +64,10 @@
     const body = { counters: counters, order: countsObject.polls.map((p) => p.pid), membershipVersion: countsObject.membershipVersion };
     if (cardsObject) body.cards = cardsObject.cards;
     const changed = window.DeltaClient.apply(state, body);
-    if (grid) grid.render(state, changed);
+    if (grid) {
+      grid.releaseKept();
+      grid.render(state, changed);
+    }
     window.Tabs.emptyState(TAB, state.order.length === 0 ? "No polls have been launched yet." : "");
     saveCopy(heldCounts, heldCards);
   }

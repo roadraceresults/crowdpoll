@@ -40,10 +40,10 @@ delivery network.
   - **Your Polls** — every poll you created, public and private, in every state, newest first. A
     poll that has not launched shows its state (and why it was rejected) and cannot be voted on.
   - **Shared With You** — the private polls someone else created that you were invited to, or whose
-    link you opened. It has no remove control. Opening a poll's shared link (`/?PID=…`, from **Copy
-    Link**) lists it here and opens that tab at the poll, shown maximized; a guest is sent to log in
-    first (or to create an account) and returns to the poll, even when the login email is opened in
-    another browser (after one click to confirm the login there). A poll that is not published yet waits here as a card saying who shared it; it
+    link you opened. It has no remove control. Opening a private poll's shared link (`/?PID=…`, from
+    **Share** or **Copy poll link**) lists it here; a guest is sent to log in first (or to create an
+    account) and returns to the poll, even when the login email is opened in another browser (after
+    one click to confirm the login there). Where a link lands is described under **Share**. A poll that is not published yet waits here as a card saying who shared it; it
     becomes the ordinary card once published. Any link to a poll you may not see answers "That poll
     isn't available."
   - **Your Votes** — every poll you voted in, public and private.
@@ -102,8 +102,21 @@ delivery network.
   tab you are on; the tab comes back as you
   left it. Your browser's or phone's Back button closes it too, and leaves you on the same page; only a
   poll opened from a link is different, where Back leaves the page as it always did.
-  Switching tabs or searching closes it too. A poll that leaves Trending or Newest while
-  you have it open stays open until you close it.
+  Switching tabs or searching closes it too. While a poll is maximized the address names it beside
+  the tab (`/?tab=trending&PID=…`, with the search words on Search), so the address can be copied
+  and shared; closing it takes the poll out of the address again. A poll that leaves Trending or
+  Newest while you have it open stays open until you close it, and its card then stays first in the
+  list until the tab next gets a new list from the server (a **Refresh**, a new search).
+- **Share** — the share icon beside the eye, on either side of a card of a poll that is waiting to
+  open, open or closed, offers the poll's link (`/?PID=…`) through your phone's or browser's share
+  sheet, or copies it and says **Link copied** where there is none. Whoever opens a link sees the
+  poll maximized: a guest on a public poll goes to its own page; anyone else lands on the tab the
+  address named when that tab fits them (Search only with search words; Trending, Newest and Home
+  only for a published public poll; Shared With You only for a private poll someone else created),
+  and otherwise on Your Polls, Shared With You, Your Votes, Watching or Home, the first that holds the
+  poll for them. The tab rides through logging in. Opening a link never watches the poll; the poll
+  shows first in the tab after you close it, even when the tab's list holds it further down, until
+  the tab's next list from the server.
 - **Who voted** — on a private poll whose **Users can see who voted for what** switch is on, the
   maximized view shows who voted for what, below the notes and above the line graph, to everyone who
   may see the poll's results (and to administrators). It lists current votes only, by name (never an

@@ -90,7 +90,8 @@ flowchart TB
     Live["liveResults.js<br/>LRU, timer, hidden pause, idle prompt"]
     Delta["deltaClient.js<br/>version map, merge, card detail"]
     Vote["voteClient.js<br/>submit, floor, retry once"]
-    Card["pollCard.js<br/>render only: Vote, Live Results (add | remove), Bookmark, Maximize; bar colours"]
+    Card["pollCard.js<br/>render only: Vote, Live Results (add | remove), Bookmark, Share, Maximize; bar colours"]
+    Share["sharePoll.js<br/>the poll link: share sheet or clipboard, snackbar"]
     Graph["lineGraph.js<br/>maximized view's vote-history graph: SVG, scales, crosshair, refresh timer"]
     Voters["whoVoted.js<br/>maximized view's Who voted panel: two sorts, one retry"]
     Admin["adminList.js + adminCard.js<br/>admin list, structured search"]
@@ -123,6 +124,8 @@ flowchart TB
   Voters -- "GET voters" --> TabsApi
   Trending & SearchTab & Live --> Tabs
   Card --> Vote
+  Card --> Share
+  Admin --> Share
   Tabs -- "POST refresh" --> TabsApi
   Vote -- "POST vote" --> PollsApi
   Admin --> PollsApi
@@ -650,19 +653,64 @@ stateDiagram-v2
   Maximized --> Grid: minimize button, Escape, the active tab, the browser's Back (scroll and focus restored)
   Maximized --> Grid: another tab, a search, a login change (quiet: neither restored)
   Maximized --> Grid: the poll leaves the tab's list (any tab but Trending and Newest)
-  Maximized --> Retained: a Trending or Newest recompute drops the poll
-  Retained --> Grid: any close (the card is removed)
+  Maximized --> Retained: a Trending or Newest recompute drops the poll, or a link landed on a poll the list lacks
+  Retained --> Kept: minimize button, Escape, the active tab, the browser's Back
+  Retained --> Grid: another tab, a login change (the card is removed)
+  Kept --> Grid: the tab's next answer from the server (the card goes unless the list holds it)
+  Kept --> Maximized: its maximize button
 ```
 
 One page holds at most one maximized card (`maximized` in `tabs.js`), and every way out runs one
 `restore`. Trending and Newest pass `retainMaximized`: they receive only a new list, so the
 browser cannot tell a recompute from a deletion, and a dropped poll stays shown until it is
 closed; its own votes and bookmarks are applied to it by `patchRetained`. Every other tab closes
-the view at once when its poll leaves. The address is never changed. A view opened from a card adds
-one step to the browser history, at the same address, so the browser's Back closes it (see
+the view at once when its poll leaves. A card a link opened (`linkedPid`: a landing, whether or not the
+tab's list holds the poll), or a retained card, closed in place is not removed or put back in the list's
+order: it goes first in the grid with focus on its maximize button, as the grid's `keptPid`, which
+`render` neither unmounts nor moves, until the tab's next answer from the server (`releaseKept()` in `trending.js`, `newest.js`,
+`searchTab.js` and the personal tabs' answer handler); a Watch, a Remove or a return to the tab keeps it.
+While a card is maximized the address names it beside the tab, `/?tab=<tab>&PID=<pid>` (`addressWithPoll`),
+keeping every other parameter, `q` among them; every close and every tab change removes `PID`
+(`addressWithoutPoll`, `showTabInAddress`). A view opened from a card adds one step to the browser
+history at that address, so the browser's Back closes it (see
 [The phone layout](#the-phone-layout), which describes the step; it is added at every width). In the
 phone layout the view has one column, shorter bars and a tab bar for its extras, also described
 there.
+
+### Poll links
+
+A poll link is `/?PID=<pid>`, from **Share** (`sharePoll.js`: `navigator.share`, else the clipboard)
+or **Copy poll link** on the admin card, or the address of a maximized poll, which adds `tab` and
+perhaps `q`. `GET /` in `pages.ts` decides where it lands; the browser only shows that landing.
+
+```mermaid
+sequenceDiagram
+  participant B as Browser
+  participant P as pages.ts GET /
+  participant S as sharedLink.ts
+  participant DB as PostgreSQL
+  B->>P: /?PID=<pid>&tab=<tab>[&q=<terms>]
+  alt guest
+    P-->>B: 302 /poll/<pid> (public, published) or /login?PID=<pid>&tab=<tab>
+  else logged in
+    P->>S: resolveSharedLink(caller, pid, { tab: parseTab(tab), hasTerms })
+    S->>DB: the poll, access (mayWatch), the caller's voted / bookmarked rows
+    S->>S: chooseTab(facts, request)
+    S-->>P: { open, tab, q } or a notice
+    P-->>B: 302 /?open=<pid>&tab=<chosen>[&q=<terms>]
+    B->>B: tabs.js shows the tab, maximizes the poll (mounting it when the list lacks it)
+    B->>B: replaceState /?tab=<chosen>[&q=<terms>]&PID=<pid>
+  end
+```
+
+`chooseTab` keeps the asked tab when it fits: Your Polls for the creator, Shared With You for a private
+poll the visitor did not create, Your Votes for a voter, Watching for a watcher, Home, Trending and Newest
+for a published public poll, Search when there are terms, Live never. Otherwise it takes the first that
+fits of Your Polls, Shared With You, Your Votes, Watching and Home. Refused and unpublished polls keep
+their notices. Opening a link writes nothing but the existing `linked` view of a link-only private poll.
+Through login `tab` rides beside `PID` (`sharedLinkQuery` on the server, `CardShell.sharedLinkQuery`
+and `withSharedLink` in the browser): the login and create-account pages, the request bodies, the
+emailed verify link, its redirects and the provider `callbackURL`; invitation links carry none.
 
 ### Poll notes
 

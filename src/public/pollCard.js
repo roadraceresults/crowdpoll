@@ -837,6 +837,7 @@ function initPollCard(viewport, opts){
   const removeMode = typeof opts.onClose === 'function';
   const voteBtn = viewport.querySelector('.vote-btn');
   const bookmarkBtn = viewport.querySelector('.bookmark-btn');
+  const shareBtns = viewport.querySelectorAll('.share-btn');
   const voteNoticeFront = viewport.querySelector('.card-front .poll-vote-notice');
   const closedMessageFront = viewport.querySelector('.card-front .poll-closed-message');
   const editingMessageFront = viewport.querySelector('.card-front .poll-editing-message');
@@ -1186,6 +1187,17 @@ function initPollCard(viewport, opts){
     if (row) row.classList.toggle('has-bookmark', !bookmarkBtn.hidden);
   }
 
+  var SHAREABLE_STATES = ['WAITING TO OPEN', 'OPEN', 'CLOSED'];
+
+  function syncShare(){
+    const shown = Boolean(poll) && !poll.notPublished && SHAREABLE_STATES.indexOf(poll.pollState) !== -1;
+    shareBtns.forEach((btn) => {
+      btn.hidden = !shown;
+      if (shown) btn.setAttribute('aria-label', 'Share poll: ' + poll.title);
+      btn.closest('.question-row').classList.toggle('has-share', shown);
+    });
+  }
+
   /* Private polls whose creator lets voters add choices: offered to whom a vote is open,
      until their final vote (the creator excepted). The server checks it all again. */
   function mayAddChoice(){
@@ -1236,8 +1248,10 @@ function initPollCard(viewport, opts){
       viewport.querySelectorAll('.question').forEach((el) => { el.textContent = line; });
       viewport.querySelectorAll('.subtitle').forEach((el) => { el.textContent = ''; });
       setNotes('');
+      syncShare();
       return;
     }
+    syncShare();
     if (cardFlip.classList.contains('is-flipped')) pendingSelection = selectedIds();
     const keep = pendingSelection !== null ? pendingSelection : (poll.myChoiceIds || []);
     rebuildData(keep);
@@ -1306,6 +1320,13 @@ function initPollCard(viewport, opts){
   bookmarkBtn?.addEventListener('click', () => {
     if (opts.showBookmark === false || !requireSignIn()) return;
     if (opts.onBookmark) opts.onBookmark(opts.pid, !(poll && poll.bookmarked), poll);
+  });
+
+  shareBtns.forEach((btn) => {
+    btn.addEventListener('click', (event) => {
+      event.stopPropagation();
+      if (poll) window.SharePoll.share(opts.pid, poll.title);
+    });
   });
 
   function requestMaximize(how){
@@ -1639,6 +1660,9 @@ const POLL_CARD_TEMPLATE = `
           <div class="question-wrap">
             <div class="question-row">
               <p class="question"></p>
+              <button class="share-btn" type="button" title="Share poll" aria-label="Share poll" hidden>
+                <svg class="share-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
+              </button>
               <!-- The Watch control: aria-pressed chooses between the outline eye and the
                    filled one (the symbols live once in index.html). -->
               <button class="bookmark-btn" type="button" aria-pressed="false" aria-label="Watch" title="Watch this poll">
@@ -1709,6 +1733,9 @@ const POLL_CARD_TEMPLATE = `
           <div class="question-wrap">
             <div class="question-row">
               <p class="question"></p>
+              <button class="share-btn" type="button" title="Share poll" aria-label="Share poll" hidden>
+                <svg class="share-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
+              </button>
               <button class="maximize-btn" type="button" aria-label="Maximize Poll Card" title="Maximize Poll">
                 <svg class="maximize-icon" viewBox="-2 -2 28 28" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="1.125" y="1.125" width="21.75" height="21.75" rx="4.125"/><path d="M14 10L19 5M14.5 5H19V9.5M10 14L5 19M5 14.5V19H9.5"/></svg>
                 <svg class="minimize-icon" viewBox="-2 -2 28 28" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" hidden><rect x="1.125" y="1.125" width="21.75" height="21.75" rx="4.125"/><path d="M19.5 4.5L14 10M18 10H14V6M4.5 19.5L10 14M6 14H10V18"/></svg>
@@ -1761,7 +1788,7 @@ const POLL_CARD_TEMPLATE = `
   `;
 
 window.M3Ripple?.add(
-  '.card-face .btn-vote, .card-face .icon-btn, .card-face .bookmark-btn, .card-face .maximize-btn, ' +
+  '.card-face .btn-vote, .card-face .icon-btn, .card-face .bookmark-btn, .card-face .share-btn, .card-face .maximize-btn, ' +
   '.card-face .live-link, .card-face .vote-row, .maximized-card-close, .card-face .add-choice-btn, ' +
   '.card-face .poll-notes-more'
 );

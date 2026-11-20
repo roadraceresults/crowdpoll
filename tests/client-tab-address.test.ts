@@ -93,9 +93,9 @@ describe("the home page's address names the tab shown (C2)", () => {
     expect(entries(p)).toBe(before);
   });
 
-  it("keeps the history entry's own state and the other parameters", async () => {
-    const p = await open("?PID=abc", { cookie: await login(), state: { kept: 1 } });
-    expect(search(p)).toBe("?PID=abc&tab=home");
+  it("keeps the history entry's own state and the other parameters, and drops a poll id", async () => {
+    const p = await open("?ref=abc&PID=abc", { cookie: await login(), state: { kept: 1 } });
+    expect(search(p)).toBe("?ref=abc&tab=home");
     expect(p.window.history.state).toEqual({ kept: 1 });
   });
 });
@@ -127,13 +127,13 @@ describe("a tab named in the address is shown on load", () => {
     expect(search(p)).toBe("?tab=home");
   });
 
-  it("keeps the tab after a poll link's landing, with the card maximized", async () => {
+  it("keeps the tab after a poll link's landing, with the card maximized and named beside it", async () => {
     const pid = await trendingPoll("Linked");
     const p = await open(`?open=${pid}&tab=trending`, { cookie: await login() });
     await p.settle(300);
     expect(activeTab(p)).toBe("trending");
     expect(maximized(p, "trending")!.hidden).toBe(false);
-    expect(search(p)).toBe("?tab=trending");
+    expect(search(p)).toBe(`?tab=trending&PID=${pid}`);
   });
 
   it("restores the tab only: a fresh load after a maximized card shows the list", async () => {

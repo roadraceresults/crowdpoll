@@ -26,6 +26,7 @@ import { isAllowed, logRefusal } from "./allowlist.js";
 import { appleClientSecret } from "./appleSecret.js";
 import { emailKey } from "./emailKey.js";
 import { adoptInvitations } from "../invitations/invitations.js";
+import { parseTab } from "../polls/sharedLink.js";
 import type { ObjectStore } from "../trending/publish.js";
 import { DEFAULT_AVATAR, refreshProfilePicture } from "./profilePicture.js";
 
@@ -267,8 +268,9 @@ export function createAuth(db: Db, config: AppConfig, cache?: Cache, store: Obje
           const origin = String(metadata?.origin ?? `http://localhost:${config.port}`);
           const stay = metadata?.stay ? "1" : "0";
           const pid = typeof metadata?.pid === "string" ? metadata.pid : "";
+          const tab = parseTab(metadata?.tab);
           const bind = typeof metadata?.bind === "string" ? metadata.bind : "";
-          const url = `${origin}/api/auth/verify?token=${encodeURIComponent(token)}&stay=${stay}${pid ? `&PID=${encodeURIComponent(pid)}` : ""}${bind ? `&bind=${encodeURIComponent(bind)}` : ""}`;
+          const url = `${origin}/api/auth/verify?token=${encodeURIComponent(token)}&stay=${stay}${pid ? `&PID=${encodeURIComponent(pid)}` : ""}${pid && tab ? `&tab=${tab}` : ""}${bind ? `&bind=${encodeURIComponent(bind)}` : ""}`;
           await mailer.sendLoginLink(email, url);
         }
       }),

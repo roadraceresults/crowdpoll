@@ -4,7 +4,7 @@
  * rate-limit consumption, and stay-logged-in cookie shaping live here.
  */
 import { Router, type Request, type RequestHandler, type Response } from "express";
-import { parsePid } from "../polls/sharedLink.js";
+import { parsePid, parseTab, sharedLinkQuery, type TabName } from "../polls/sharedLink.js";
 import type { AppConfig } from "../config.js";
 import {
   consumeRateLimit,
@@ -93,12 +93,12 @@ function bindingFrom(req: Request): string | null {
   return null;
 }
 
-function notLaunchedPath(pid: string | null): string {
-  return `/login?error=not-launched${pid ? `&PID=${pid}` : ""}`;
+function notLaunchedPath(pid: string | null, tab: TabName | null = null): string {
+  return `/login?error=not-launched${pid ? `&${sharedLinkQuery(pid, tab)}` : ""}`;
 }
 
-function invalidLinkPath(pid: string | null): string {
-  return `/login?error=invalid-link${pid ? `&PID=${pid}` : ""}`;
+function invalidLinkPath(pid: string | null, tab: TabName | null = null): string {
+  return `/login?error=invalid-link${pid ? `&${sharedLinkQuery(pid, tab)}` : ""}`;
 }
 
 function respondMailFailure(res: Response): void {
@@ -199,7 +199,8 @@ export function createApiRouter(deps: ApiDeps): Router {
     res: Response,
     email: string,
     stay: boolean,
-    pid: string | null
+    pid: string | null,
+    tab: TabName | null
   ): Promise<void> {
     await supersedeLoginLinks(db, email);
     const binding = randomBytes(24).toString("base64url");
@@ -209,7 +210,7 @@ export function createApiRouter(deps: ApiDeps): Router {
       body: {
         email,
         callbackURL: "/",
-        metadata: { origin: requestOrigin(req), stay, bind: hashToken(binding), ...(pid ? { pid } : {}) }
+        metadata: { origin: requestOrigin(req), stay, bind: hashToken(binding), ...(pid ? { pid } : {}), ...(pid && tab ? { tab } : {}) }
       },
       headers: new Headers()
     });
@@ -285,7 +286,7 @@ export function createApiRouter(deps: ApiDeps): Router {
     if (await sessions.getSession(req)) await sessions.endSession(req);
     let target: string | null = null;
     try {
-      target = await completeSignIn(req, res, await mintLoginToken(account?.email ?? link.email), link.stay, link.pid);
+      target = await completeSignIn(req, res, await mintLoginToken(account?.email ?? link.email), link.stay, link.pid, parseTab(req.body?.tab));
     } catch {
       target = null;
     }
@@ -371,7 +372,7 @@ export function createApiRouter(deps: ApiDeps): Router {
           console.log(`[auth] Created pending account for ${mailer.maskAddress(email)}`);
         }
         await recordAgreement(db, sessions, accountId!);
-        await issueLoginLink(req, res, existing?.email ?? email, false, parsePid(req.body?.pid));
+        await issueLoginLink(req, res, existing?.email ?? email, false, parsePid(req.body?.pid), parseTab(req.body?.tab));
       } catch (err) {
         if (err instanceof mailer.MailError) {
           respondMailFailure(res);
@@ -413,7 +414,7 @@ export function createApiRouter(deps: ApiDeps): Router {
       try {
         const existing = await userIdByEmail(email);
         if (existing) {
-          await issueLoginLink(req, res, email, stay, parsePid(req.body?.pid));
+          await issueLoginLink(req, res, email, stay, parsePid(req.body?.pid), parseTab(req.body?.tab));
           console.log(`[auth] Login link sent to ${mailer.maskAddress(email)}`);
         } else {
           // Never reveal whether an address is registered: identical response,
@@ -422,7 +423,7 @@ export function createApiRouter(deps: ApiDeps): Router {
           const token = await issueCreateAccountToken(db, { email, pid, stay });
           await mailer.sendCreateAccountInvitation(
             email,
-            `${requestOrigin(req)}/create-account?token=${token}${pid ? `&PID=${pid}` : ""}`
+            `${requestOrigin(req)}/create-account?token=${token}${pid ? `&${sharedLinkQuery(pid, req.body?.tab)}` : ""}`
           );
           console.log(`[auth] Login link requested for unknown address ${mailer.maskAddress(email)} — invitation sent`);
         }
@@ -446,7 +447,8 @@ export function createApiRouter(deps: ApiDeps): Router {
     res: Response,
     token: string,
     stay: boolean,
-    pid: string | null
+    pid: string | null,
+    tab: TabName | null = null
   ): Promise<string | null> {
     // Direct server API call: consumes the token atomically and runs the
     // session hook (other sessions revoked, account activated) without
@@ -486,7 +488,7 @@ export function createApiRouter(deps: ApiDeps): Router {
     }
     res.setHeader("Set-Cookie", [attrs.join("; "), bindingCookie("", 0)]);
     console.log(`[auth] Login completed (staySignedIn=${stay})`);
-    return pid ? `/?PID=${pid}&signedIn=1` : "/?signedIn=1";
+    return pid ? `/?${sharedLinkQuery(pid, tab)}&signedIn=1` : "/?signedIn=1";
   }
 
   /** The account and request time of an unused, unexpired login link; reads only (A5). */
@@ -516,29 +518,31 @@ export function createApiRouter(deps: ApiDeps): Router {
       const token = typeof req.query.token === "string" ? req.query.token : "";
       const stay = req.query.stay === "1";
       const pid = parsePid(req.query.PID);
+      const tab = parseTab(req.query.tab);
       const bind = typeof req.query.bind === "string" ? req.query.bind : "";
       const binding = bindingFrom(req);
       if (config.allowlist) {
         const link = await pendingLink(token);
         if (link && !isAllowed(link.email, config)) {
           logRefusal("session", link.email);
-          res.redirect(notLaunchedPath(pid));
+          res.redirect(notLaunchedPath(pid, tab));
           return;
         }
       }
       if (token && bind && binding && hashToken(binding) === bind) {
-        const target = await completeSignIn(req, res, token, stay, pid);
-        res.redirect(target ?? invalidLinkPath(pid));
+        const target = await completeSignIn(req, res, token, stay, pid, tab);
+        res.redirect(target ?? invalidLinkPath(pid, tab));
         return;
       }
       if (!(await pendingLink(token))) {
         console.log("[auth] Login link refused (invalid, expired, used, or superseded)");
-        res.redirect(invalidLinkPath(pid));
+        res.redirect(invalidLinkPath(pid, tab));
         return;
       }
       console.log("[auth] Login link opened without its binding; asking for confirmation");
       const query = new URLSearchParams({ token, stay: stay ? "1" : "0" });
       if (pid) query.set("PID", pid);
+      if (pid && tab) query.set("tab", tab);
       res.redirect(`/confirm-signin?${query.toString()}`);
     })
   );
@@ -571,17 +575,18 @@ export function createApiRouter(deps: ApiDeps): Router {
       }
       const token = typeof req.body?.token === "string" ? req.body.token : "";
       const pid = parsePid(req.body?.pid);
+      const tab = parseTab(req.body?.tab);
       if (config.allowlist) {
         const link = await pendingLink(token);
         if (link && !isAllowed(link.email, config)) {
           logRefusal("session", link.email);
-          res.status(403).json({ ...NOT_LAUNCHED, redirect: notLaunchedPath(pid) });
+          res.status(403).json({ ...NOT_LAUNCHED, redirect: notLaunchedPath(pid, tab) });
           return;
         }
       }
-      const target = token ? await completeSignIn(req, res, token, req.body?.stay === true, pid) : null;
+      const target = token ? await completeSignIn(req, res, token, req.body?.stay === true, pid, tab) : null;
       if (!target) {
-        res.status(400).json({ error: INVALID_LINK, redirect: invalidLinkPath(pid) });
+        res.status(400).json({ error: INVALID_LINK, redirect: invalidLinkPath(pid, tab) });
         return;
       }
       res.json({ redirect: target });

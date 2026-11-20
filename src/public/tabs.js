@@ -176,6 +176,18 @@
   let droppingStep = false;
   let addressAfterDrop = "";
 
+  function addressWithPoll(pid) {
+    const params = new URLSearchParams(location.search);
+    if (pid) params.set("PID", pid);
+    else params.delete("PID");
+    const query = params.toString();
+    return location.pathname + (query ? "?" + query : "") + location.hash;
+  }
+
+  function addressWithoutPoll() {
+    return addressWithPoll(null);
+  }
+
   function hasMaximizedStep() {
     return Boolean(history.state && history.state.maximizedPid);
   }
@@ -188,8 +200,8 @@
 
   function setMaximizedStep(pid, replace) {
     const state = Object.assign({}, history.state, { maximizedPid: pid });
-    if (replace) history.replaceState(state, "");
-    else history.pushState(state, "");
+    if (replace) history.replaceState(state, "", addressWithPoll(pid));
+    else history.pushState(state, "", addressWithPoll(pid));
   }
 
   /* Deferred, so the address a tab change or a search writes in the same turn is carried over to the step left standing. */
@@ -197,7 +209,7 @@
     if (droppingStep || !hasMaximizedStep()) return;
     droppingStep = true;
     setTimeout(() => {
-      addressAfterDrop = location.href;
+      addressAfterDrop = maximized ? addressWithPoll(maximized.pid) : addressWithoutPoll();
       history.back();
     }, 0);
   }
@@ -216,7 +228,7 @@
     if (maximized && maximized.pid === pid) return;
     const grid = controllers[activeTab] && controllers[activeTab].grid;
     if (grid && grid.cardOf(pid)) grid.maximize(pid, { viaHistory: true });
-    else history.replaceState(stateWithoutStep(), "");
+    else history.replaceState(stateWithoutStep(), "", addressWithoutPoll());
   }
 
   function closeMaximized(options = {}) {
@@ -268,6 +280,8 @@
     let notesShown = null;
     let votersShown = null;
     let pinnedPid = null;
+    let keptPid = null;
+    let linkedPid = null;
     let extraShown = null;
     let notesAsked = false;
     const opts = Object.assign(
@@ -315,6 +329,7 @@
       });
       Array.from(mounted.keys()).forEach((pid) => {
         if (seen.has(pid)) return;
+        if (pid === keptPid && !barred) return;
         if (pid === maximizedPid) {
           if ((opts.retainMaximized || pid === pinnedPid) && !barred) {
             if (!retainedDetail) retainedDetail = mounted.get(pid).detail();
@@ -328,14 +343,28 @@
       // A card is moved only when its position is wrong: re-appending an element
       // that is already in place takes it out of the document and back, which
       // blurs whatever the visitor had focused.
-      order.filter((pid) => pid !== maximizedPid).forEach((pid, position) => {
+      const kept = keptCard();
+      if (kept && gridEl.firstElementChild !== kept.element) gridEl.insertBefore(kept.element, gridEl.firstElementChild);
+      const first = kept ? 1 : 0;
+      order.filter((pid) => pid !== maximizedPid && pid !== keptPid).forEach((pid, position) => {
         const card = mounted.get(pid);
         if (!card || !card.element) return;
-        if (gridEl.children[position] !== card.element) {
-          gridEl.insertBefore(card.element, gridEl.children[position] || null);
+        if (gridEl.children[position + first] !== card.element) {
+          gridEl.insertBefore(card.element, gridEl.children[position + first] || null);
         }
       });
       if (barred) emptyState(cardOpts.tab, "");
+    }
+
+    /* A linked poll closed on this tab stays first in its grid until the tab's next server answer, whether or not its list holds it. */
+    function keptCard() {
+      return keptPid && mounted.has(keptPid) ? mounted.get(keptPid) : null;
+    }
+
+    function releaseKept() {
+      const held = keptPid !== null;
+      keptPid = null;
+      return held;
     }
 
     function maximizedView() {
@@ -361,8 +390,18 @@
       if (maximized) maximized.grid.restore({ quiet: true, keepStep: true });
       const view = maximizedView();
       if (!view) return;
+      if (pid === keptPid) {
+        keptPid = null;
+        linkedPid = pid;
+        if (lastOrder.indexOf(pid) === -1) {
+          pinnedPid = pid;
+          retainedDetail = card.detail();
+        }
+      }
+      if (!how.fromCard && !how.viaHistory) linkedPid = pid;
       if (how.fromCard) setMaximizedStep(pid, stepHeld);
       else if (stepHeld && !how.viaHistory) dropMaximizedStep();
+      if (!how.fromCard && !how.viaHistory && !document.body.dataset.pollPage) history.replaceState(history.state, "", addressWithPoll(pid));
       extraShown = how.open || null;
       notesAsked = how.open === "notes";
       returnScrollY = window.scrollY;
@@ -508,25 +547,32 @@
       const pid = maximizedPid;
       const card = mounted.get(pid);
       notesAsked = false;
-      const leftTheTab = Boolean(options.left || retainedDetail);
-      const position = lastOrder.filter((held) => mounted.has(held)).indexOf(pid);
+      const leftTheTab = Boolean(options.left);
+      const linked = pid === linkedPid && !leftTheTab;
+      const position = lastOrder.filter((held) => mounted.has(held) && held !== keptPid).indexOf(pid) + (keptCard() ? 1 : 0);
       maximizedPid = null;
       maximized = null;
       gridEl.hidden = false;
       maximizedEl.hidden = true;
       setBackArrowShown(false);
-      if (card && retainedDetail) {
+      if (card && retainedDetail && options.left) {
         card.unmount();
         mounted.delete(pid);
+      } else if (card && (retainedDetail || linked)) {
+        gridEl.insertBefore(card.element, gridEl.firstElementChild);
+        card.setMaximized(false);
+        keptPid = pid;
       } else if (card) {
         gridEl.insertBefore(card.element, gridEl.children[position] || null);
         card.setMaximized(false);
       }
       retainedDetail = null;
       pinnedPid = null;
+      linkedPid = null;
       mounted.forEach((held) => held.render());
       syncVoteBar();
       if (!options.viaHistory && !options.keepStep) dropMaximizedStep();
+      if (!hasMaximizedStep()) history.replaceState(history.state, "", addressWithoutPoll());
       if (options.quiet) return;
       window.scrollTo(0, returnScrollY);
       if (leftTheTab) setTimeout(focusTabStart, 0);
@@ -605,6 +651,7 @@
 
     function clear() {
       restore({ quiet: true });
+      keptPid = null;
       mounted.forEach((card) => card.unmount());
       mounted.clear();
     }
@@ -618,6 +665,7 @@
       maximize: maximize,
       mountRetained: mountRetained,
       restore: restore,
+      releaseKept: releaseKept,
       patchRetained: patchRetained
     };
     return api;
@@ -893,11 +941,13 @@
           body: JSON.stringify(Object.assign(window.DeltaClient.versionsOf(state), keepOrder ? { keepOrder: true } : {}))
         },
         async (body) => {
+          const released = grid.releaseKept();
           if (body) {
             const changed = window.DeltaClient.apply(state, body);
             grid.render(state, changed);
           } else {
             state.receivedAt = Date.now();
+            if (released) grid.render(state);
           }
           emptyState(name, state.order.length === 0 ? emptyLine(name) : "");
         },
@@ -1239,14 +1289,23 @@
   function showTabInAddress(name) {
     const params = new URLSearchParams(location.search);
     params.set("tab", name);
+    params.delete("PID");
     if (name !== "search") params.delete("q");
+    history.replaceState(history.state, "", location.pathname + "?" + params.toString() + location.hash);
+  }
+
+  function showSearchTerms(terms) {
+    const params = new URLSearchParams(location.search);
+    params.set("tab", "search");
+    if (terms) params.set("q", terms);
+    else params.delete("q");
     history.replaceState(history.state, "", location.pathname + "?" + params.toString() + location.hash);
   }
 
   async function select(name) {
     const controller = controllers[name];
     if (!controller) return;
-    closeMaximized({ quiet: true });
+    closeMaximized({ quiet: true, left: true });
     if (name === "home" && !isSignedIn()) {
       await select("trending");
       return;
@@ -1448,7 +1507,7 @@
       });
     }
     applyGuestState();
-    if (hasMaximizedStep()) history.replaceState(stateWithoutStep(), "");
+    if (hasMaximizedStep()) history.replaceState(stateWithoutStep(), "", addressWithoutPoll());
     window.addEventListener("popstate", onHistoryStep);
     document.querySelector("#voteBar .vote-bar-back")?.addEventListener("click", () => clickInMaximizedCard(".back-btn"));
     document.querySelector("#voteBar .vote-bar-submit")?.addEventListener("click", () => clickInMaximizedCard(".submit-vote-btn"));
@@ -1488,6 +1547,7 @@
     applyVote: applyVote,
     applyAddedChoices: applyAddedChoices,
     select: select,
+    showSearchTerms: showSearchTerms,
     active: () => activeTab,
     config: loadConfig,
     manualFloorMs: manualFloorMs,

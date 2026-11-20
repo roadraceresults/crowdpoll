@@ -37,12 +37,13 @@ function openHome(): Home {
   target.DeltaClient = { createTabState: () => ({ order: [], overlay: new Map() }), apply: () => ({}), setOverlay: () => {} };
   target.Tabs = {
     register: () => {},
-    createGrid: () => ({ render: () => {}, reapply: () => {} }),
+    createGrid: () => ({ render: () => {}, reapply: () => {}, releaseKept: () => false }),
     createOverlayFetcher: () => ({ fetch: async () => {}, reset: () => {} }),
     emptyState: (...args: unknown[]) => calls.push({ name: "emptyState", args }),
     select: record("select"),
     canRequest: () => true,
-    dynamicRequest: record("dynamicRequest")
+    dynamicRequest: record("dynamicRequest"),
+    showSearchTerms: record("showSearchTerms")
   };
   window.eval(readFileSync(path.resolve("src/public/searchTab.js"), "utf8"));
   return {

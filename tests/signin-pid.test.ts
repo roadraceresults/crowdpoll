@@ -35,6 +35,39 @@ describe("the poll id through login", () => {
     expect(verified.headers["set-cookie"]?.some((c: string) => c.startsWith("session_token="))).toBe(true);
   });
 
+  it("a tab requested beside the pid rides in the link and lands beside it", async () => {
+    const pid = randomUUID();
+    await forgeSession(ctx, "tab-existing@example.com");
+    await requestLink("tab-existing@example.com", { pid, tab: "your-votes" });
+    const link = new URL(extractLink(ctx.sent.at(-1)!));
+    expect(link.searchParams.get("tab")).toBe("your-votes");
+    const verified = await followSignInLink(ctx, extractLinkPath(ctx.sent.at(-1)!)).redirects(0);
+    expect(verified.headers.location).toBe(`/?PID=${pid}&tab=your-votes&signedIn=1`);
+  });
+
+  it("a tab without a pid, or not a tab name, is dropped", async () => {
+    await forgeSession(ctx, "tab-dropped@example.com");
+    await requestLink("tab-dropped@example.com", { tab: "trending" });
+    expect(new URL(extractLink(ctx.sent.at(-1)!)).searchParams.has("tab")).toBe(false);
+    await requestLink("tab-dropped@example.com", { pid: randomUUID(), tab: "nope" });
+    expect(new URL(extractLink(ctx.sent.at(-1)!)).searchParams.has("tab")).toBe(false);
+  });
+
+  it("an expired link keeps the tab on the invalid-link page, and the create-account invitation carries it", async () => {
+    const pid = randomUUID();
+    await forgeSession(ctx, "tab-expired@example.com");
+    await requestLink("tab-expired@example.com", { pid, tab: "watching" });
+    const path = extractLinkPath(ctx.sent.at(-1)!);
+    timeShiftMinutes(16);
+    const expired = await request(ctx.app).get(path).redirects(0);
+    expect(expired.headers.location).toBe(`/login?error=invalid-link&PID=${pid}&tab=watching`);
+    restoreTime();
+    await requestLink("tab-unknown@example.com", { pid, tab: "watching" });
+    const invite = new URL(extractLink(ctx.sent.at(-1)!));
+    expect(invite.pathname).toBe("/create-account");
+    expect(invite.searchParams.get("tab")).toBe("watching");
+  });
+
   it("without a pid the link and the landing are unchanged", async () => {
     await forgeSession(ctx, "pid-none@example.com");
     await requestLink("pid-none@example.com");

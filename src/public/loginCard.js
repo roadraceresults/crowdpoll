@@ -135,8 +135,8 @@
   /* Starts a provider login: the start route answers with the provider's
      address, and the browser goes there (research R9). */
   function startSignin(provider, stay) {
-    var pid = window.CardShell.sharedPid();
-    var callbackURL = (pid ? "/?PID=" + pid + "&" : "/?") + "signedIn=1";
+    var query = window.CardShell.sharedLinkQuery();
+    var callbackURL = (query ? "/?" + query + "&" : "/?") + "signedIn=1";
     var amazon = provider === "amazon";
     var body = amazon
       ? { providerId: provider, callbackURL: callbackURL }
@@ -222,11 +222,6 @@
     }
   }
 
-  function withSharedPid(body) {
-    var pid = window.CardShell.sharedPid();
-    return pid ? Object.assign({ pid: pid }, body) : body;
-  }
-
   /* The one Stay logged in box: above the provider buttons when there are any, since it applies
      to them too, and otherwise in the email form. */
   function stayBox(config) {
@@ -278,7 +273,7 @@
       return fetch("/api/auth/request-login-link", {
         method: "POST",
         headers: Object.assign({ "Content-Type": "application/json" }, checkHeaders()),
-        body: JSON.stringify(withSharedPid({ email: input.value, staySignedIn: stay.checked, homepage: homepage.value }))
+        body: JSON.stringify(window.CardShell.withSharedLink({ email: input.value, staySignedIn: stay.checked, homepage: homepage.value }))
       })
         .then(function (res) {
           return res.json().then(function (body) { return { res: res, body: body }; });

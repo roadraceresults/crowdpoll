@@ -17,7 +17,7 @@ import type { Db } from "../polls/store.js";
 import { projectPoll } from "../polls/versions.js";
 import { previewMessageOf, renderLoginPage } from "../seo/loginPage.js";
 import { canReachAdmin, createRequireAdmin, type Caller } from "../polls/service.js";
-import { landingUrl, parsePid, resolveSharedLink } from "../polls/sharedLink.js";
+import { landingUrl, parsePid, parseTab, resolveSharedLink, sharedLinkQuery } from "../polls/sharedLink.js";
 import { findSignInToken, useToken } from "../invitations/tokens.js";
 import { emailKeyOf } from "../auth/emailKey.js";
 import { createAssetServing } from "./assets.js";
@@ -80,11 +80,17 @@ export function createPagesRouter({ sessions, config, db, cache }: PageDeps): Ro
           .select(["poll_visibility", "poll_state", "poll_state_before_edit_update"])
           .where("id", "=", pid)
           .executeTakeFirst();
-        res.redirect(row && isIndexable(row) ? `/poll/${pid}` : `/login?PID=${pid}`);
+        res.redirect(row && isIndexable(row) ? `/poll/${pid}` : `/login?${sharedLinkQuery(pid, req.query.tab)}`);
         return;
       }
-      const landing = await resolveSharedLink({ db, config, cache }, session.user as Caller, pid);
-      console.log(`[link] Poll link opened: ${landing.notice ?? landing.tab}`);
+      const asked = parseTab(req.query.tab);
+      const terms = typeof req.query.q === "string" ? req.query.q.trim() : "";
+      const landing = await resolveSharedLink({ db, config, cache }, session.user as Caller, pid, {
+        tab: asked ?? undefined,
+        hasTerms: terms !== ""
+      });
+      if (landing.tab === "search" && !landing.notice) landing.q = terms;
+      console.log(`[link] Poll link opened: ${landing.notice ?? landing.tab} (asked ${asked ?? "none"})`);
       res.redirect(landingUrl(landing));
     })
   );
@@ -94,7 +100,7 @@ export function createPagesRouter({ sessions, config, db, cache }: PageDeps): Ro
     wrap(async (req, res) => {
       const pid = parsePid(req.query.PID);
       if (await sessions.getSession(req)) {
-        res.redirect(pid ? `/?PID=${pid}` : "/");
+        res.redirect(pid ? `/?${sharedLinkQuery(pid, req.query.tab)}` : "/");
         return;
       }
       // A guest's shared link lands here, and so does a messaging app's preview fetcher: for an open or closed poll
@@ -158,7 +164,7 @@ export function createPagesRouter({ sessions, config, db, cache }: PageDeps): Ro
       }
       const pid = parsePid(req.query.PID);
       if (pid && (await sessions.getSession(req))) {
-        res.redirect(`/?PID=${pid}`);
+        res.redirect(`/?${sharedLinkQuery(pid, req.query.tab)}`);
         return;
       }
       page("create-account.html")(req, res, () => undefined);

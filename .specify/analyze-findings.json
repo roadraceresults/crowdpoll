@@ -255,6 +255,13 @@
         "specs/20261118-160304-CLIENT-CODE-OBFUSCATION/spec.md": "df14241548adc0d0f2598ddc72089b9d9587eb0856bf436cf076ea56c4a3f42e",
         "requirements/20261118-160304-client-code-obfuscation/requirements.md": "daea5fe788c9bd9f71d12d20a8c23d8c44c866618f508aa57ce15ea620f3d793",
         "specs/20261118-160304-CLIENT-CODE-OBFUSCATION/contracts/build.md": "adc903fc349f4ee18a289244f03cc9214da800e64012fdcab2073ec2fb204230",
-        "specs/20261118-160304-CLIENT-CODE-OBFUSCATION/research.md": "130000e35e08b9da57ebe864c2f521c47a0792abcb1be6b8a44adeaf8cce5fd5"
+        "specs/20261118-160304-CLIENT-CODE-OBFUSCATION/research.md": "130000e35e08b9da57ebe864c2f521c47a0792abcb1be6b8a44adeaf8cce5fd5",
+        "specs/20261119-182343-DEEP-LINKS/analyze-findings.md": "40fcc2c4a0c31fb48e3c2ad0b26b64c7fd6101fbac71868da8d57a40da2a0538",
+        "specs/20261119-182343-DEEP-LINKS/spec.md": "99f46da08ae6120e496ebc06d6baef9ff30500e58a3ea4b9da5c808a91a31593",
+        "specs/20261119-182343-DEEP-LINKS/tasks.md": "99e0ca52c0f4849a13c5d0d7cba5d3b18f5512e0c350bd27cd84a57e19b08eb0",
+        "specs/20261119-182343-DEEP-LINKS/research.md": "db252e25b848eed027458d19493d410722d0ba2dd91ad438509bcca8529e254b",
+        "specs/20261119-182343-DEEP-LINKS/data-model.md": "a96f9ab7102997f5239b5c2cdb5f4b084a4fc956ca6d1438d5c40009dfdc4230",
+        "specs/20261119-182343-DEEP-LINKS/contracts/links.md": "f047ac3cad1a1594cdf352a7444ae41674f037b12f6e1d2d54a18445c6c3d7f9",
+        "specs/20261119-182343-DEEP-LINKS/contracts/share.md": "fb6718212f0fa135f6972eba8d6fe41a243fd914637ee966577f0791dbce6ff4"
     }
 }

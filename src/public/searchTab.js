@@ -34,6 +34,7 @@
       order: body.results.map((c) => c.pid),
       membershipVersion: null
     });
+    ensureGrid().releaseKept();
     ensureGrid().render(state, changed);
     if (state.order.length === 0) window.Tabs.emptyState(TAB, "No polls match your search.");
     else if (body.truncated) window.Tabs.emptyState(TAB, "More results are not shown. Try more specific words.");
@@ -56,6 +57,7 @@
     state.overlay.clear();
     ensureGrid().render(state);
     await window.Tabs.select(TAB);
+    window.Tabs.showSearchTerms("");
     window.Tabs.emptyState(TAB, "Enter your search terms in the 'Search CrowdPoll' field above.");
   }
 
@@ -87,6 +89,7 @@
     }
     if (!window.Tabs.canRequest(TAB, "search")) return;
     await window.Tabs.select(TAB);
+    window.Tabs.showSearchTerms(q);
     await run("/api/search", q, "search");
   }
 

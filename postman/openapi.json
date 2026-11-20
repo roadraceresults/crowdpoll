@@ -1511,7 +1511,7 @@
         ],
         "operationId": "homePage",
         "summary": "The home page; with ?PID=<id>, a poll link",
-        "description": "Without PID, or with one that is not a poll id, serves the home page. With a poll id a guest is redirected to /login?PID=<id> before the poll is looked up (the answer is the same for every poll). A logged-in visitor is redirected to / with the landing the server chose — ?open=<id>&tab=<your-polls|shared-with-you|trending>, ?tab=shared-with-you&notice=unpublished, or ?notice=unavailable — and the view is recorded here for a link-only private poll the visitor did not create.",
+        "description": "Without PID, or with one that is not a poll id, serves the home page. With a poll id a guest is redirected to /login?PID=<id>[&tab=<tab>] before the poll is looked up (the answer is the same for every poll); a public published poll goes to /poll/<id>. A logged-in visitor is redirected to / with the landing the server chose — ?open=<id>&tab=<tab>[&q=<terms>], ?tab=shared-with-you&notice=unpublished, or ?notice=unavailable — and the view is recorded here for a link-only private poll the visitor did not create. The tab is the one asked for when it fits the visitor (Search only with terms; Shared With You only for a private poll the visitor did not create; Trending, Newest and Home only for a published public poll; Live never), else Your Polls, Shared With You, Your Votes, Watching or Home, the first that fits. Opening a link writes nothing else.",
         "parameters": [
           {
             "name": "PID",
@@ -1521,6 +1521,35 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "tab",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "home",
+                "your-polls",
+                "shared-with-you",
+                "your-votes",
+                "trending",
+                "newest",
+                "watching",
+                "live",
+                "search"
+              ]
+            },
+            "description": "The tab the link was copied from; a hint the server keeps only when it fits the visitor"
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search terms; kept only with tab=search"
           }
         ],
         "responses": {
@@ -1528,7 +1557,7 @@
             "description": "The home page"
           },
           "302": {
-            "description": "Redirect to /login?PID=<id> (guest) or to the landing above (logged in)",
+            "description": "Redirect to /poll/<id> or /login?PID=<id>[&tab=<tab>] (guest) or to the landing above (logged in)",
             "headers": {
               "Location": {
                 "schema": {
@@ -1547,7 +1576,7 @@
         ],
         "operationId": "loginPage",
         "summary": "The login page",
-        "description": "A logged-in visitor is redirected to / (or to /?PID=<id> when a poll id is carried).",
+        "description": "A logged-in visitor is redirected to / (or to /?PID=<id>[&tab=<tab>] when a poll id is carried).",
         "parameters": [
           {
             "name": "PID",
@@ -1557,6 +1586,26 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "tab",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "home",
+                "your-polls",
+                "shared-with-you",
+                "your-votes",
+                "trending",
+                "newest",
+                "watching",
+                "live",
+                "search"
+              ]
+            },
+            "description": "Carried with PID; anything that is not a tab name is dropped"
           }
         ],
         "responses": {
@@ -1564,7 +1613,7 @@
             "description": "The login page"
           },
           "302": {
-            "description": "Redirect to / or /?PID=<id> for a logged-in visitor",
+            "description": "Redirect to / or /?PID=<id>[&tab=<tab>] for a logged-in visitor",
             "headers": {
               "Location": {
                 "schema": {
@@ -1583,7 +1632,7 @@
         ],
         "operationId": "createAccountPage",
         "summary": "The create-account page (native login only)",
-        "description": "404 outside native login mode. A logged-in visitor carrying a poll id is redirected to /?PID=<id>.",
+        "description": "404 outside native login mode. A logged-in visitor carrying a poll id is redirected to /?PID=<id>[&tab=<tab>].",
         "parameters": [
           {
             "name": "PID",
@@ -1593,6 +1642,26 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "tab",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "home",
+                "your-polls",
+                "shared-with-you",
+                "your-votes",
+                "trending",
+                "newest",
+                "watching",
+                "live",
+                "search"
+              ]
+            },
+            "description": "Carried with PID; anything that is not a tab name is dropped"
           }
         ],
         "responses": {
@@ -1600,7 +1669,7 @@
             "description": "The create-account page"
           },
           "302": {
-            "description": "Redirect to /?PID=<id> for a logged-in visitor",
+            "description": "Redirect to /?PID=<id>[&tab=<tab>] for a logged-in visitor",
             "headers": {
               "Location": {
                 "schema": {
@@ -1856,6 +1925,21 @@
                     "format": "uuid",
                     "description": "The poll a shared link was for; carried through login so the visitor lands on it. Anything that is not a poll id is ignored."
                   },
+                  "tab": {
+                    "type": "string",
+                    "enum": [
+                      "home",
+                      "your-polls",
+                      "shared-with-you",
+                      "your-votes",
+                      "trending",
+                      "newest",
+                      "watching",
+                      "live",
+                      "search"
+                    ],
+                    "description": "The tab a shared link named beside its poll; carried through login with pid. Ignored without pid or when not a tab name."
+                  },
                   "homepage": {
                     "type": "string",
                     "description": "Hidden anti-bot field, always empty for people. When it holds anything, nothing is sent and the success reply is returned."
@@ -1897,7 +1981,7 @@
         },
         "responses": {
           "200": {
-            "description": "Check your inbox; or, in the token form, logged in: `{ redirect }` (`/?PID=<pid>` when the request named a poll, else `/`) with the session_token cookie",
+            "description": "Check your inbox; or, in the token form, logged in: `{ redirect }` (`/?PID=<pid>[&tab=<tab>]` when the request named a poll, else `/`) with the session_token cookie",
             "content": {
               "application/json": {
                 "schema": {
@@ -2078,6 +2162,21 @@
                     "format": "uuid",
                     "description": "The poll a shared link was for; carried through login so the visitor lands on it. Anything that is not a poll id is ignored."
                   },
+                  "tab": {
+                    "type": "string",
+                    "enum": [
+                      "home",
+                      "your-polls",
+                      "shared-with-you",
+                      "your-votes",
+                      "trending",
+                      "newest",
+                      "watching",
+                      "live",
+                      "search"
+                    ],
+                    "description": "The tab a shared link named beside its poll; carried through login with pid. Ignored without pid or when not a tab name."
+                  },
                   "homepage": {
                     "type": "string",
                     "description": "Hidden anti-bot field, always empty for people. When it holds anything, nothing is sent and the success reply is returned."
@@ -2150,7 +2249,7 @@
         ],
         "operationId": "verifyLoginLink",
         "summary": "Consume a one-time login link",
-        "description": "Self-contained — no session required. When the bind parameter matches the signin_binding cookie of the requesting browser, the link is consumed: success activates a pending account, revokes any other session (single active session per account), sets the session_token cookie (persistent iff staySignedIn was chosen), clears signin_binding and redirects to / (or to /?PID=<id> when the request carried a poll id). Otherwise a valid link is not consumed and redirects to /confirm-signin?token=…&stay=…[&PID=…]. Any failure (expired, used, superseded, malformed) redirects to /login?error=invalid-link (with &PID=<id> when one was carried) without revealing why.",
+        "description": "Self-contained — no session required. When the bind parameter matches the signin_binding cookie of the requesting browser, the link is consumed: success activates a pending account, revokes any other session (single active session per account), sets the session_token cookie (persistent iff staySignedIn was chosen), clears signin_binding and redirects to / (or to /?PID=<id>[&tab=<tab>] when the request carried a poll id). Otherwise a valid link is not consumed and redirects to /confirm-signin?token=…&stay=…[&PID=…[&tab=…]]. Any failure (expired, used, superseded, malformed) redirects to /login?error=invalid-link (with &PID=<id>[&tab=<tab>] when one was carried) without revealing why.",
         "parameters": [
           {
             "name": "token",
@@ -2184,6 +2283,26 @@
             "description": "The poll a shared link was for, carried from the request step; ignored unless it is a poll id"
           },
           {
+            "name": "tab",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "home",
+                "your-polls",
+                "shared-with-you",
+                "your-votes",
+                "trending",
+                "newest",
+                "watching",
+                "live",
+                "search"
+              ]
+            },
+            "description": "The tab carried with PID from the request step; ignored without PID or when not a tab name"
+          },
+          {
             "name": "bind",
             "in": "query",
             "required": false,
@@ -2195,7 +2314,7 @@
         ],
         "responses": {
           "302": {
-            "description": "Redirect: / (or /?PID=<id>) on a bound success (Set-Cookie: session_token), /confirm-signin?… for a valid link opened without its binding, /login?error=invalid-link[&PID=<id>] on any failure While ENV_ALLOWED_EMAILS is set, a link for an unlisted address redirects to /login?error=not-launched without being consumed.",
+            "description": "Redirect: / (or /?PID=<id>[&tab=<tab>]) on a bound success (Set-Cookie: session_token), /confirm-signin?… for a valid link opened without its binding, /login?error=invalid-link[&PID=<id>[&tab=<tab>]] on any failure While ENV_ALLOWED_EMAILS is set, a link for an unlisted address redirects to /login?error=not-launched without being consumed.",
             "headers": {
               "Location": {
                 "schema": {
@@ -5781,6 +5900,21 @@
                   "pid": {
                     "type": "string",
                     "format": "uuid"
+                  },
+                  "tab": {
+                    "type": "string",
+                    "enum": [
+                      "home",
+                      "your-polls",
+                      "shared-with-you",
+                      "your-votes",
+                      "trending",
+                      "newest",
+                      "watching",
+                      "live",
+                      "search"
+                    ],
+                    "description": "The tab a shared link named beside its poll; carried through login with pid. Ignored without pid or when not a tab name."
                   }
                 }
               }

@@ -17,7 +17,7 @@ export interface HomeOptions {
   beforeScripts?: (window: BrowserPage["window"]) => void;
 }
 
-const HOME_SCRIPTS = ["app.js", "pollCard.js", "voteClient.js", "deltaClient.js", "whoVoted.js", "tabs.js", "trending.js", "newest.js", "searchTab.js", "liveResults.js"];
+const HOME_SCRIPTS = ["app.js", "sharePoll.js", "pollCard.js", "voteClient.js", "deltaClient.js", "whoVoted.js", "tabs.js", "trending.js", "newest.js", "searchTab.js", "liveResults.js"];
 
 /** The home page against the app under test, with the phone query, `scrollTo` and `scrollY` stubbed. */
 export async function openHome(ctx: TestContext, options: HomeOptions): Promise<BrowserPage> {
