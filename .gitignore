@@ -17,6 +17,7 @@ devScripts/*
 !devScripts/assetTransform.ts
 !devScripts/file-manifest.ts
 !devScripts/tapDebug.js
+!devScripts/cardSizeDebug.js
 !devScripts/favicon-ico.ts
 !devScripts/capture-admin-card.ts
 !devScripts/render-invitation-email.ts

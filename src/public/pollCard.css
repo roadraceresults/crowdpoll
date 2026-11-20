@@ -85,8 +85,8 @@ body.card-demo-page .page-decor{
    these cards sit in a responsive flowing grid). Each face hides its
    reverse side via backface-visibility, so only one is ever legible.
 
-   min-height:500px (FIX022; 420px before) + a minmax(min-content,1fr) row
-   is the height counterpart to the viewport's max-width:420px: 500px is
+   min-height:450px (on trial; 500px from FIX022, 420px before) + a minmax(min-content,1fr) row
+   is the height counterpart to the viewport's max-width:420px: 450px is
    the resting size at comfortable viewport widths, the row stretches to
    fill that minimum when content is shorter, and it's free to grow taller
    if content (e.g. wrapped text at narrow widths) needs more room —
@@ -95,7 +95,7 @@ body.card-demo-page .page-decor{
   position:relative;
   z-index:1;
   width:100%;
-  min-height:500px;
+  min-height:450px;
   display:grid;
   grid-template-rows:minmax(min-content, 1fr);
   transform-style:preserve-3d;

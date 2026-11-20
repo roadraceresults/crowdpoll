@@ -227,19 +227,19 @@ describe("Your Polls cards", () => {
     }
   });
 
-  it("show an archived poll read-only with its state, and never say why a poll is listed", async () => {
+  it("show no archived poll, not even to its creator who voted in it: only Poll Administration shows it", async () => {
     const me = "tabs026-archiver@example.com";
     const forged = await forgeSession(fast, me);
     const poll = await ownPoll(forged, me, { title: "Archived one", pollState: "ARCHIVED" });
     await recordVote(fast, poll._id, { emailAddress: me, userName: "", choiceIds: ["c1"], votedAt: new Date() });
     page = await openPage(fast, "index.html", { cookie: forged.cookie, url: ON_TRENDING });
     await page.settle(100);
-    await page.click('.tab[data-tab="your-polls"]');
-    await page.settle(200);
-    const card = cardOf(page, "Archived one");
-    expect(card.querySelector(".poll-state-message")!.textContent).toBe("Archived");
-    expect((card.querySelector(".vote-btn") as HTMLElement).hidden).toBe(true);
-    expect((card.querySelector(".poll-listed-because") as HTMLElement).hidden).toBe(true);
+    for (const tab of ["your-polls", "your-votes", "home"]) {
+      await page.click(`.tab[data-tab="${tab}"]`);
+      await page.settle(200);
+      expect(page.cardTitles(tab), tab).not.toContain("Archived one");
+      expect(page.document.querySelectorAll(`.tab-panel[data-panel="${tab}"] .card-viewport`).length, tab).toBe(0);
+    }
   });
 });
 

@@ -22,6 +22,8 @@
   const refreshBtn = () => document.getElementById("refreshBtn");
   const panelOf = (name) => document.querySelector('.tab-panel[data-panel="' + name + '"]');
   const isSignedIn = () => Boolean(window.Session && window.Session.getSession());
+  // ENV_LIVE_RESULTS: off by default, and then no tab, card control or address leads to Live Results.
+  const liveResultsOn = () => Boolean(config && config.liveResultsEnabled);
 
   window.M3Ripple?.add(".tab-notice-close, .modal .modal-ok");
 
@@ -303,6 +305,7 @@
       },
       cardOpts
     );
+    if (!liveResultsOn()) opts.showLive = false;
 
     function render(state, changed) {
       const barred = viewerBarred();
@@ -1304,7 +1307,7 @@
 
   async function select(name) {
     const controller = controllers[name];
-    if (!controller) return;
+    if (!controller || (name === "live" && !liveResultsOn())) return;
     closeMaximized({ quiet: true, left: true });
     if (name === "home" && !isSignedIn()) {
       await select("trending");
@@ -1391,7 +1394,7 @@
   // The tab the address names, as this visitor may see it: a guest's personal tab becomes Trending.
   function tabFromAddress() {
     const name = new URLSearchParams(location.search).get("tab") || "";
-    if (TAB_NAMES.indexOf(name) === -1) return null;
+    if (TAB_NAMES.indexOf(name) === -1 || (name === "live" && !liveResultsOn())) return null;
     return !isSignedIn() && PERSONAL_TABS.indexOf(name) !== -1 ? "trending" : name;
   }
 
@@ -1458,6 +1461,8 @@
     if (!bar) return;
     const noticeEl = document.getElementById("tabNotice");
     if (noticeEl) noticeEl.setAttribute("role", "status");
+    const liveBtn = bar.querySelector('.tab[data-tab="live"]');
+    if (liveBtn) liveBtn.hidden = !liveResultsOn();
 
     ["home", "your-polls", "shared-with-you", "your-votes", "watching"].forEach((name) => {
       controllers[name] = createDeltaTab(name, "/api/tabs/" + name + "/refresh", { showVote: true, showLive: true, tab: name });

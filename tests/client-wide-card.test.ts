@@ -86,8 +86,24 @@ function poll(count: number, overrides: Partial<Detail> = {}): Detail {
 
 const api = () => (home!.window as unknown as { PollCard: PollCardApi }).PollCard;
 
-async function mount(detail: Detail, options: { heights?: Heights; signedIn?: boolean } = {}) {
-  home = await openStubbedHome({ scripts: ["pollCard.js"], phone: false, phoneLayout: false });
+async function mount(detail: Detail, options: { heights?: Heights; signedIn?: boolean; observers?: Array<() => void> } = {}) {
+  const observers = options.observers;
+  home = await openStubbedHome({
+    scripts: ["pollCard.js"],
+    phone: false,
+    phoneLayout: false,
+    // Records each ResizeObserver's callback, so a test can fire it as a layout change would.
+    beforeScripts: observers
+      ? (window) => {
+          (window as unknown as { ResizeObserver: unknown }).ResizeObserver = class {
+            constructor(callback: () => void) { observers.push(callback); }
+            observe() {}
+            unobserve() {}
+            disconnect() {}
+          };
+        }
+      : undefined
+  });
   const maximizeCalls: MaximizeCall[] = [];
   const grid = home.document.querySelector('.tab-panel[data-panel="trending"] .card-grid')!;
   const card = api().mount(grid, "pid-1", {
@@ -238,11 +254,27 @@ describe("the wide card", () => {
     expect(view.maximizeCalls).toEqual([["pid-1", { open: "notes" }]]);
   });
 
-  it("opens nothing from a bar or from the notes outside Show more", async () => {
+  it("opens nothing from the notes outside Show more", async () => {
     const view = await mount(poll(37, { notesPreviewHtml: "<p>Some notes</p>" }), { heights: fits });
-    await view.click(".results-list > .result-row");
     await view.click(".card-front .poll-notes-text");
     expect(view.maximizeCalls).toEqual([]);
+  });
+
+  it("opens the maximized view on its results from a bar, whether or not the ballot fits", async () => {
+    const view = await mount(poll(37), { heights: fits });
+    await view.click(".results-list > .result-row");
+    expect(view.maximizeCalls).toEqual([["pid-1"]]);
+    const small = await mount(poll(3), { heights: fits });
+    await small.click(".results-list > .result-row");
+    expect(small.isFlipped()).toBe(false);
+    expect(small.maximizeCalls).toEqual([["pid-1"]]);
+  });
+
+  it("opens nothing from a bar when there is no Vote, as on a closed poll", async () => {
+    const view = await mount(poll(37, { pollState: "CLOSED" }), { heights: fits });
+    await view.click(".results-list > .result-row");
+    expect(view.maximizeCalls).toEqual([]);
+    expect(view.el.querySelector(".card-flip")!.classList.contains("is-flipped")).toBe(false);
   });
 
   it("follows the room it is given", async () => {
@@ -255,6 +287,17 @@ describe("the wide card", () => {
     expect(view.moreRow()).toBeNull();
     heights.results = 129;
     view.card.render();
+    expect(view.resultRows()).toHaveLength(4);
+    expect(view.moreRow()).not.toBeNull();
+  });
+
+  it("draws its bars again when their area changes height with no window resize", async () => {
+    const heights = { ...fits };
+    const observers: Array<() => void> = [];
+    const view = await mount(poll(12), { heights, observers });
+    expect(view.resultRows()).toHaveLength(9);
+    heights.results = 129;
+    observers.forEach((fire) => fire());
     expect(view.resultRows()).toHaveLength(4);
     expect(view.moreRow()).not.toBeNull();
   });

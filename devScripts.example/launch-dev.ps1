@@ -26,6 +26,7 @@ $env:ENV_EMAIL_RATE_LIMIT_MAX_REQUESTS_PER_WINDOW = "10"  # default 2
 $env:ENV_MAX_PRIVATE_POLL_VOTERS = "10"  # default 100
 $env:ENV_MAX_INVITATIONS_PER_DAY = "200"
 $env:ENV_STAY_SIGNED_IN = "1"  # default 0
+$env:ENV_LIVE_RESULTS = "0"  # default 0; "1" shows the Live Results tab and the cards' Live Results control
 $env:ENV_INVITATION_RESEND_WAIT = "86400000"
 
 # --- 1. Runtime: where this process listens and the origin it is reached at ---

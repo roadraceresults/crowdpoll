@@ -1,9 +1,9 @@
 .tab-menu-btn,
 .tab-menu,
-.tab-more,
-.search-tab-form{ display:none; }
+.tab-more{ display:none; }
 
 .search-tab-form{
+  display:flex;
   align-items:center;
   gap:10px;
   height:40px;
@@ -25,7 +25,6 @@
 }
 .search-tab-form input::placeholder{ color:var(--md-sys-color-on-surface-variant); }
 .search-tab-form input::-webkit-search-cancel-button{ -webkit-appearance:none; appearance:none; }
-html[data-header-fit~="no-search"] .search-tab-form{ display:flex; }
 
 @media (max-width: 640px){
   :root{ --card-gap:16px; }
@@ -58,12 +57,9 @@ html[data-header-fit~="no-search"] .search-tab-form{ display:flex; }
   .card-flip:not(.maximized-card-flip) .card-face .bookmark-btn svg,
   .card-flip:not(.maximized-card-flip) .card-face .maximize-btn svg{ width:15px; height:15px; }
   .card-flip:not(.maximized-card-flip) .card-face .live-bars{ height:10.5px; }
-
-  .search-tab-form{ display:flex; }
 }
 
 @media (max-width: 900px){
-  .card-flip .card-face .question,
   .line-graph .line-graph-title{
     font-size:calc(clamp(18px, 1.8vw, var(--md-sys-typescale-title-large-size)) * 0.75);
     line-height:1.27;

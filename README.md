@@ -76,6 +76,8 @@ delivery network.
   five polls; a sixth is refused until you remove one). On that tab the same link reads
   **✕ Live Results** and takes the poll off it — for every poll there, even one that has closed
   while you watched it. After 30 minutes without any interaction the tab asks whether to continue.
+  Live Results is offered only when `ENV_LIVE_RESULTS` is `1`; it is off by default, and then
+  neither the tab nor the cards' control appears, and a link naming the tab opens the usual one.
 - **Watch** — the eye on a card puts a poll in Watching until it is archived or has been closed or
   inactive for six months; press it again to stop. Up to 200 polls. You can watch a poll you may
   see (public, or private and invited to or opened by you); a poll you lose access to leaves
@@ -176,8 +178,12 @@ delivery network.
   five choices or fewer shows them all. A longer poll shows its four leading choices, then any choice you
   voted for, then a row such as **More choices · 18%**; the percentage is the share those choices hold
   together, and is shown on single-choice polls only. The title takes up to three lines, and the subtitle
-  and the notes one line each. Tap the title, a bar, the **more choices** row or the notes line to open
-  the poll maximized; the notes line opens it with the notes showing.
+  and the notes one line each. Tap the title, the **more choices** row or the notes line to open
+  the poll maximized; the notes line opens it with the notes showing. A bar opens it maximized too.
+- **A bar opens the poll, then votes** — where a card offers **Vote**, clicking or tapping a bar opens the
+  poll maximized, on its results, for a guest too; in the maximized view a bar does what **Vote** does (a
+  guest is sent to log in). On a poll with no **Vote**, such as a closed one, a bar opens the poll maximized
+  in the phone layout and does nothing at wider widths.
 - **Voting on a phone** — the voting side always lists every choice. On a card that shows all its choices,
   **Vote** turns the card over where it is. On a longer poll, **Vote** opens the poll maximized on its
   voting side: the full ballot scrolls with the page, and **Back**, the number of choices you have
@@ -800,6 +806,7 @@ provider settings only with `oauth` or `both`, and administrator addresses are m
 | `ENV_MANUAL_REFRESH_BURST` | `5` | Manual requests a visitor may make back to back before the floor applies |
 | `ENV_SEARCH_BURST` | `3` | Searches a visitor may make back to back before the floor applies |
 | `ENV_MAX_VOTES_PER_IP_PER_MINUTE` | `600` | Votes per address per minute before refusal |
+| `ENV_LIVE_RESULTS` | `0` | `1` → Live Results is offered (its tab, the cards' control and `/api/live/*`); `0` or none → it is not, and the routes answer `404`; any other value stops the app |
 | `ENV_MAX_LIVE_RESULTS_PER_USER` | `5` | Polls in the Live Results tab |
 | `ENV_LIVE_RESULTS_MAX_IDLE_TIME` | `1800000` | Idle time before Live Results asks whether to continue |
 | `ENV_SERVER_MAX_REQUESTS_PER_INSTANCE_PER_SECOND` | `1250` | Dynamic requests per second each live instance adds to the budget |

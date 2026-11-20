@@ -164,6 +164,42 @@ Decisions that are easy to get wrong:
 - **Poll Results is gone** with its three API routes and `exportPoll*`; `computeResults` stays (R13). `src/public/`
   holds 12 pages; the four removed addresses answer `404` for every caller (`tests/removed-results.test.ts`).
 No migration, setting, cookie, storage key or dependency; three new stylesheets, one page and three routes removed.
+
+The plan merged with it (branch `line-graph-fix`):
+`specs/20261113-150353-LINE-GRAPH-READABILITY/plan.md` (research R1–R10, `data-model.md` — five in-memory fields, nothing
+stored; the contract `contracts/ui.md` U1–U7 and the quickstart live alongside it).
+The requirements report is `requirements/20261113-150353-line-graph-readability/requirements-report.md`: 8 findings,
+all resolved.
+Decisions that are easy to get wrong:
+- **The response is in choice order, not share order**: `lineGraph.js` orders the series by current share itself and,
+  above 10 lines, draws the leading ones (`leadingCount()`: 80% of the shares, 10 at most); `drawnSeries()` feeds the legend, lines, markers, Y axis and announcement (R2, R8).
+- **The legend is the readout**: no `.line-graph-tooltip`; moving the selected time changes text only, and an entry's
+  width never depends on its value, so the plot does not move (R3, R4).
+- **A press or focus move to the legend or the show-all button keeps the selected time**; anywhere else outside the
+  plot clears it (R6).
+- **One highlight**, drawn last and wider; dimming is CSS under `.has-highlight`; it is cleared when its line leaves
+  the drawn set; nothing is stored (R5).
+No server, route, `postman/openapi.json`, setting, cookie, storage key or dependency change; one new test file.
+
+And the plan merged after it (branch `admin-search`):
+`specs/20261113-102117-ADMIN-SEARCH-RESULTS/plan.md` (research R1–R13, `data-model.md` — the states of a result row,
+nothing stored; the contract `contracts/ui.md` U1–U9 and the quickstart live alongside it).
+The requirements report is `requirements/20261113-102117-admin-search-results/requirements-report.md`: 9 findings, all
+resolved.
+Decisions that are easy to get wrong:
+- **Search view only, client only**: `adminList.js` draws one `div.admin-result` (a disclosure `<button>` and a panel)
+  per poll; the other views and the creator-only page keep cards; `adminCard.js`, the route and `openapi.json` do not
+  change (R1, R3).
+- **A card exists only while its row is open**: created on open, forgotten on close unless it holds saved wizard
+  progress; one `openPid` (R5).
+- **Only a fresh load opens by itself**: `selectTab` (Search, Clear, a view tab) closes the open card and opens a
+  single result; the periodic refresh and card actions never open, close or move a card, and the editing poll's row is
+  never removed (R6, R8).
+- **Held during an edit**: every row, Search and Clear are `disabled` with "Finish editing the open poll first" (R7).
+- **The list is wider than the 420 px column**: `min(840px, 100%)`, one card-like frame (`admin.css`) of two-line, zebra-striped rows; the
+  card keeps 420 px (R2).
+No server, table, cache key, setting, cookie, storage key or dependency change; no new file.
+
 The preceding feature is
 `specs/20261113-085157-FIXED-VIEWPORT-WIDTH/plan.md` (research R1–R9, `data-model.md` — the two viewport states,
 nothing stored; the contract `contracts/viewport.md` V1–V5 and the quickstart, which is the trial's checklist, live
@@ -1533,6 +1569,7 @@ All runtime configuration comes from `ENV_*` environment variables:
 | `ENV_MANUAL_REFRESH_BURST` | `5` | Manual-kind requests (tab clicks, Refresh, bookmarks, the overlay call) one user may make back to back before the manual floor applies; one comes back per floor interval. `1` is the plain floor |
 | `ENV_SEARCH_BURST` | `3` | The same allowance for searches. Live Results and votes are always one per interval |
 | `ENV_MAX_VOTES_PER_IP_PER_MINUTE` | `600` | Votes from one address per minute before `429 ip-vote-cap` and the `[abuse]` alert line |
+| `ENV_LIVE_RESULTS` | `0` | `1` → Live Results is offered: the Home tab, the cards' Live Results control and `/api/live/*`; `0` or none → none of them (the routes answer `404`, `tab=live` in an address is ignored); any other value stops the app |
 | `ENV_MAX_LIVE_RESULTS_PER_USER` | `5` | Polls in the Live Results tab; a sixth is refused (`409 live-cap`) until one is removed |
 | `ENV_LIVE_RESULTS_MAX_IDLE_TIME` | `1800000` | Idle time before the Live Results tab asks whether to continue (ms). Lower it (e.g. `60000`) to see the prompt in a minute |
 | `ENV_SERVER_MAX_REQUESTS_PER_INSTANCE_PER_SECOND` | `1250` | Dynamic requests per second each live instance adds to the effective budget |

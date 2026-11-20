@@ -8,9 +8,11 @@
   margin:0 auto;
   padding-inline:20px;
   background:var(--paper);
+  border-image:linear-gradient(var(--paper) 0 0) fill 0 / 0 / 0 100vw;
 }
 
 #site-header{ top:0; z-index:41; }
+body:not(.has-tab-bar) #site-header::after{ content:''; position:absolute; left:50%; bottom:0; width:100vw; height:1px; background:var(--md-sys-color-outline-variant); transform:translateX(-50%); }
 .tab-bar-wrap{ top:var(--fixed-chrome-height-header,0px); }
 
 .container{ padding-top:calc(32px + var(--fixed-chrome-height,0px)); }

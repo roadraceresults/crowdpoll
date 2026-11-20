@@ -43,6 +43,8 @@ export function personalTabQuery(
     ])
     .where("user_polls.email", "=", email)
     .where("user_polls.relation", "in", relations)
+    // An archived poll is on no tab, its creator's included: only Poll Administration shows it.
+    .where("polls.poll_state", "<>", "ARCHIVED")
     .$if(visibility !== undefined, (qb) => qb.where("polls.poll_visibility", "=", visibility!))
     .groupBy("user_polls.poll_id")
     .orderBy("updated_at", "desc")

@@ -992,6 +992,19 @@ function initPollCard(viewport, opts){
 
   if (notesText && typeof ResizeObserver === 'function') new ResizeObserver(decideNotesMore).observe(notesText);
 
+  // The bars are sized for the height their area has when drawn. When that height changes with
+  // no window resize (the title rewrapping once its web font arrives, the notes' "Show more"
+  // appearing), they are drawn again; otherwise the last bar is cut off until the next render.
+  if (typeof ResizeObserver === 'function'){
+    const drawnFor = new Map();
+    const areas = new ResizeObserver(() => {
+      const changed = [resultsWrap, votingWrap].some((wrap) => wrap && drawnFor.get(wrap) !== wrap.clientHeight);
+      [resultsWrap, votingWrap].forEach((wrap) => { if (wrap) drawnFor.set(wrap, wrap.clientHeight); });
+      if (changed) render();
+    });
+    [resultsWrap, votingWrap].forEach((wrap) => { if (wrap) areas.observe(wrap); });
+  }
+
   function setText(){
     viewport.querySelectorAll('.question').forEach((el) => { el.textContent = poll.title; });
     viewport.querySelectorAll('.subtitle').forEach((el) => { el.textContent = poll.subtitle || ''; });
@@ -1267,7 +1280,7 @@ function initPollCard(viewport, opts){
     return true;
   }
 
-  /* The card actions: Vote everywhere but the Search tab, Live Results
+  /* The card actions: Vote on every tab, Live Results
      everywhere but the Live Results tab, Watch everywhere a tab sets showBookmark, and
      the X that removes the poll on the Live Results tab alone. Guests are sent to log in by the first three. */
   function updateActionButtons(){
@@ -1369,8 +1382,17 @@ function initPollCard(viewport, opts){
       if (!expanding) scrollToCardTop();
       return;
     }
-    if (event.target.closest('.more-row')) requestMaximize({ choices: 'voted' });
-    else if (isPhoneLayout() && event.target.closest('.result-row')) requestMaximize();
+    if (event.target.closest('.more-row')){
+      requestMaximize({ choices: 'voted' });
+      return;
+    }
+    // Where Vote is offered, a bar opens the maximized view on its results (for a guest too), and in the
+    // maximized view does what Vote does (a guest is sent to log in, an edited or barred poll says why).
+    // Without Vote (closed, the Search tab), a bar in the phone layout still opens the maximized view.
+    if (!event.target.closest('.result-row')) return;
+    const voteOffered = Boolean(voteBtn && !voteBtn.hidden && !voteBtn.disabled);
+    if (isMaximized && voteOffered) voteBtn.click();
+    else if (voteOffered || isPhoneLayout()) requestMaximize();
   });
 
   if (opts.onFace && typeof MutationObserver === 'function'){
@@ -1755,12 +1777,12 @@ const POLL_CARD_TEMPLATE = `
           <p class="poll-vote-error" hidden></p>
 
           <div class="actions">
-            <!-- Flips back to the front: a page with an arrow up and back to it, filled like Submit,
-                 so it is never mistaken for the page's Back arrow. -->
+            <!-- Flips back to the front: a page with an arrow curving round it to the front, filled
+                 like Submit, so it is never mistaken for the page's Back arrow. The gaps where the
+                 arrow crosses the page are painted in the button's colour, not masked, since a mask's
+                 id would repeat on every card. -->
             <button class="icon-btn back-btn" type="button" aria-label="Back to results without voting">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="5" y="1.5" width="14" height="12" rx="2"/><path d="M8.5 5.5h7M8.5 8.5h7M8.5 11.5h4"/><path d="M17 13.5v2.5a4 4 0 0 1-4 4H7"/><path d="M9.5 17.5 7 20l2.5 2.5"/>
-              </svg>
+              <svg viewBox="-143 -218 1193 1193" fill="currentColor" aria-hidden="true" focusable="false"><path fill-rule="evenodd" d="M12 11H712V528H12Z M73 70V466H648V70Z"/><path d="M125 130h470v65H125zM125 243h385v65H125zM124 351h332v65H124z"/><g transform="matrix(-1 0 0 1 900 0)" style="fill:var(--md-sys-color-primary);stroke:var(--md-sys-color-primary)" stroke-linejoin="round"><path d="M163 169C81 187 6 245 6 335C7 553 293 623 468 628V531C339 526 118 484 77 331C76 283 123 252 163 236Z" stroke-width="80"/><path d="M468 431L695 579L468 746Z" stroke-width="56"/><path d="M468 431L695 579L720 541L493 393Z" stroke="none"/><circle cx="468" cy="431" r="42" stroke="none"/></g><path d="M648 11h64v289h-64z"/><g transform="matrix(-1 0 0 1 900 0)"><path d="M163 169C81 187 6 245 6 335C7 553 293 623 468 628V531C339 526 118 484 77 331C76 283 123 252 163 236Z"/><path d="M468 431L695 579L468 746Z"/></g></svg>
             </button>
             <button class="add-choice-btn" type="button" hidden>Add Choice</button>
             <!-- 008 FR-007: the same label span and sizer pair as the front's Vote

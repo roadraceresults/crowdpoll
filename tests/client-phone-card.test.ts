@@ -134,7 +134,6 @@ describe("the compact card in the phone layout", () => {
   for (const [what, selector] of [
     ["the title", ".card-front .question"],
     ["the subtitle", ".card-front .subtitle"],
-    ["a bar", ".results-list > .result-row"],
     ["Maximize", ".card-front .maximize-btn"]
   ] as const) {
     it(`opens the maximized view from ${what}`, async () => {
@@ -143,6 +142,32 @@ describe("the compact card in the phone layout", () => {
       expect(view.maximizeCalls).toEqual([["pid-1"]]);
     });
   }
+
+  it("opens the maximized view on its results from a bar, the card not turned, when every choice shows", async () => {
+    const view = await mount(poll(4));
+    await view.click(".results-list > .result-row");
+    expect(view.isFlipped()).toBe(false);
+    expect(view.maximizeCalls).toEqual([["pid-1"]]);
+  });
+
+  it("opens the maximized view on its results from a bar when choices are left out", async () => {
+    const view = await mount(poll(12));
+    await view.click(".results-list > .result-row");
+    expect(view.maximizeCalls).toEqual([["pid-1"]]);
+  });
+
+  it("opens the maximized view on its results from a bar for a guest", async () => {
+    const view = await mount(poll(4), { signedIn: false });
+    await view.click(".results-list > .result-row");
+    expect(view.maximizeCalls).toEqual([["pid-1"]]);
+    expect(home!.window.location.pathname).not.toBe("/login");
+  });
+
+  it("opens the maximized view from a bar when there is no Vote, as on a closed poll", async () => {
+    const view = await mount(poll(12, { pollState: "CLOSED" }));
+    await view.click(".results-list > .result-row");
+    expect(view.maximizeCalls).toEqual([["pid-1"]]);
+  });
 
   it("opens the maximized view on the choices with votes from the more-choices row", async () => {
     const view = await mount(poll(12));
@@ -190,8 +215,6 @@ describe("the compact card in the phone layout", () => {
     expect(view.resultRows()).toHaveLength(12);
     expect(view.moreRow()).toBeNull();
     expect(view.resultRows()[0]!.classList.contains("is-phone")).toBe(false);
-    await view.click(".results-list > .result-row");
-    expect(view.maximizeCalls).toEqual([]);
   });
 });
 

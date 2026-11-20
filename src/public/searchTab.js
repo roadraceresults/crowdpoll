@@ -14,7 +14,7 @@
   function ensureGrid() {
     if (!grid) {
       const panel = document.querySelector('.tab-panel[data-panel="search"]');
-      grid = window.Tabs.createGrid(panel.querySelector(".card-grid"), { showVote: false, showLive: true, tab: TAB });
+      grid = window.Tabs.createGrid(panel.querySelector(".card-grid"), { showVote: true, showLive: true, tab: TAB });
     }
     return grid;
   }

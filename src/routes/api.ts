@@ -167,6 +167,8 @@ export function createApiRouter(deps: ApiDeps): Router {
       newestMaxAgeMs: listingMaxAgeMs(config.newestPollsRecomputeSweepIntervalMs),
       floors: config.floors,
       bursts: config.bursts,
+      // Off by default: the page then shows no Live Results tab or control, and ignores tab=live.
+      liveResultsEnabled: config.liveResultsEnabled,
       maxLiveResultsPerUser: config.maxLiveResultsPerUser,
       liveResultsMaxIdleTimeMs: config.liveResultsMaxIdleTimeMs,
       // 011 FR-059: the admin list refreshes on its own interval, deliberately

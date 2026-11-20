@@ -71,6 +71,7 @@ All runtime configuration comes from `ENV_*` environment variables:
 | `ENV_MANUAL_REFRESH_BURST` | `5` | Manual-kind requests (tab clicks, Refresh, bookmarks, the overlay call) one user may make back to back before the manual floor applies; one comes back per floor interval. `1` is the plain floor |
 | `ENV_SEARCH_BURST` | `3` | The same allowance for searches. Live Results and votes are always one per interval |
 | `ENV_MAX_VOTES_PER_IP_PER_MINUTE` | `600` | Votes from one address per minute before `429 ip-vote-cap` and the `[abuse]` alert line |
+| `ENV_LIVE_RESULTS` | `0` | `1` → Live Results is offered: the Home tab, the cards' Live Results control and `/api/live/*`; `0` or none → none of them (the routes answer `404`, `tab=live` in an address is ignored); any other value stops the app |
 | `ENV_MAX_LIVE_RESULTS_PER_USER` | `5` | Polls in the Live Results tab; a sixth is refused (`409 live-cap`) until one is removed |
 | `ENV_LIVE_RESULTS_MAX_IDLE_TIME` | `1800000` | Idle time before the Live Results tab asks whether to continue (ms). Lower it (e.g. `60000`) to see the prompt in a minute |
 | `ENV_SERVER_MAX_REQUESTS_PER_INSTANCE_PER_SECOND` | `1250` | Dynamic requests per second each live instance adds to the effective budget |

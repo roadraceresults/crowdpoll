@@ -962,7 +962,7 @@
           linkMessage.append(linkPreviewMessagePart(s, part), ".");
           who1.append(" ", linkMessage);
         }
-        if (part === readOnlyPart) who1.append(" ", copyLinkButton());
+        if (part === readOnlyPart && !isArchived()) who1.append(" ", copyLinkButton());
       } else if (who === "invite") {
         who1.append(part("Only people you invite", 1, "pollSharingMode"), " by email can vote.");
       } else {
@@ -1239,6 +1239,12 @@
     // menu has closed, and the icon and menu item, which did both first, copied nothing.
     function copyPollLink() {
       return window.SharePoll.copy(current.pid);
+    }
+
+    // An archived poll is shown only here, for reference: its link opens nothing, as a deleted poll's,
+    // so no Copy control offers it.
+    function isArchived() {
+      return current.pollState === "ARCHIVED";
     }
 
     // ── Step 2: Title & Tags ──
@@ -2500,10 +2506,10 @@
       const menu = el("div", "actions-menu");
       menu.setAttribute("role", "menu");
       menu.hidden = true;
-      menu.append(
-        menuItem("Duplicate Poll", "Duplicate poll: " + current.title, () => deps.onDuplicate(current)),
-        menuItem("Copy Poll Link", "Copy link to poll: " + current.title, () => { copyPollLink(); deps.onCopyLink(current); })
-      );
+      menu.append(menuItem("Duplicate Poll", "Duplicate poll: " + current.title, () => deps.onDuplicate(current)));
+      if (!isArchived()) {
+        menu.append(menuItem("Copy Poll Link", "Copy link to poll: " + current.title, () => { copyPollLink(); deps.onCopyLink(current); }));
+      }
       if (current.canRescreen) {
         menu.append(menuItem("Re-attempt Screening", "Re-attempt screening for poll: " + current.title,
                              () => deps.onRescreen(current)));
@@ -2549,11 +2555,11 @@
       header.appendChild(stateWrap);
 
       const icons = el("div", "card-actions");
-      icons.append(
-        iconButton("icon-copy", "Duplicate poll: " + current.title, true, () => deps.onDuplicate(current)),
-        iconButton("icon-link", "Copy link to poll: " + current.title, true, () => { copyPollLink(); deps.onCopyLink(current); }),
-        iconButton("icon-trash", "Delete poll: " + current.title, current.canDelete, () => deps.onDelete(current))
-      );
+      icons.append(iconButton("icon-copy", "Duplicate poll: " + current.title, true, () => deps.onDuplicate(current)));
+      if (!isArchived()) {
+        icons.append(iconButton("icon-link", "Copy link to poll: " + current.title, true, () => { copyPollLink(); deps.onCopyLink(current); }));
+      }
+      icons.append(iconButton("icon-trash", "Delete poll: " + current.title, current.canDelete, () => deps.onDelete(current)));
       const menu = buildActionsMenu();
       const trigger = el("button", "actions-menu-trigger");
       trigger.type = "button";

@@ -49,20 +49,21 @@ function blockBody(css: string, marker: string): string {
 }
 
 describe("the single-column sheets", () => {
-  it("hold their layout rules in the phone block and outside it only hide the new controls and style the Search tab field", () => {
+  it("hold their layout rules in the phone block and outside it only hide the new controls and style the Search tab field, shown at every width", () => {
     const outsideHome = flat(split(home).outside).trim();
-    expect(outsideHome.startsWith(".tab-menu-btn, .tab-menu, .tab-more, .search-tab-form{ display:none; }")).toBe(true);
-    const rest = outsideHome.slice(".tab-menu-btn, .tab-menu, .tab-more, .search-tab-form{ display:none; }".length);
+    expect(outsideHome.startsWith(".tab-menu-btn, .tab-menu, .tab-more{ display:none; }")).toBe(true);
+    const rest = outsideHome.slice(".tab-menu-btn, .tab-menu, .tab-more{ display:none; }".length);
     const selectors = [...rest.matchAll(/([^{}]+)\{/g)].map((match) => match[1].trim());
     expect(selectors).toEqual([
       ".search-tab-form",
       ".search-tab-form input",
       ".search-tab-form input::placeholder",
-      ".search-tab-form input::-webkit-search-cancel-button",
-      'html[data-header-fit~="no-search"] .search-tab-form'
+      ".search-tab-form input::-webkit-search-cancel-button"
     ]);
-    expect(rest).toContain('html[data-header-fit~="no-search"] .search-tab-form{ display:flex; }');
-    expect(flat(split(home).inside)).toContain(".search-tab-form{ display:flex; }");
+    // The Search tab has its own field at every width, whether or not the header shows its search box.
+    expect(rest).toContain(".search-tab-form{ display:flex; align-items:center;");
+    expect(home).not.toContain("no-search");
+    expect(flat(split(home).inside)).not.toContain(".search-tab-form");
     expect(flat(split(header).outside).trim()).toBe(".avatar-menu-create-poll{ display:none; } .header-search-tab-btn{ display:none; }");
   });
 
@@ -101,14 +102,15 @@ describe("the cards", () => {
     expect(inside).toContain(".card-flip:not(.maximized-card-flip) .card-face .question-row{ --title-icon-size:24px; }");
   });
 
-  it("give the title the phone's size from 900 px down, on the grid card, the maximized card and both faces", () => {
+  it("shrink the line graph's title from 900 px down, but not the card's", () => {
     const blocks: string[] = [];
     for (let start = home.indexOf(TABLET_BLOCK); start >= 0; start = home.indexOf(TABLET_BLOCK, start + 1)) {
       const open = home.indexOf("{", start);
       blocks.push(flat(home.slice(open + 1, blockEnd(home, open) - 1)));
     }
-    const rule = ".card-flip .card-face .question, .line-graph .line-graph-title{ font-size:calc(clamp(18px, 1.8vw, var(--md-sys-typescale-title-large-size)) * 0.75); line-height:1.27; }";
+    const rule = ".line-graph .line-graph-title{ font-size:calc(clamp(18px, 1.8vw, var(--md-sys-typescale-title-large-size)) * 0.75); line-height:1.27; }";
     expect(blocks.filter((body) => body.includes(rule))).toHaveLength(1);
+    expect(blocks.join("")).not.toContain(".question");
     expect(inside).not.toContain(".card-face .question{");
   });
 

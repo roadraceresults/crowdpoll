@@ -130,7 +130,8 @@ export async function decideSharedLink(deps: SharedLinkDeps, caller: Caller, pid
     .select(["poll_visibility", "poll_sharing_mode", "poll_state", "poll_state_before_edit_update", "created_by_id"])
     .where("id", "=", pid)
     .executeTakeFirst();
-  if (!poll) return NOT_SHOWN;
+  // An archived poll's link is a deleted poll's, for its creator too: only Poll Administration shows it.
+  if (!poll || poll.poll_state === "ARCHIVED") return NOT_SHOWN;
   const isPrivate = poll.poll_visibility === "Private Poll";
   const published = isPublished(poll);
   const tabFor = async (created: boolean): Promise<TabName> =>
@@ -138,7 +139,7 @@ export async function decideSharedLink(deps: SharedLinkDeps, caller: Caller, pid
   if (poll.created_by_id !== "" && poll.created_by_id === caller.id) {
     return { landing: { open: pid, tab: await tabFor(true) }, recordView: false };
   }
-  if (poll.poll_state === "ARCHIVED" || (await holdsRow(db, "poll_bans", pid, email))) return NOT_SHOWN;
+  if (await holdsRow(db, "poll_bans", pid, email)) return NOT_SHOWN;
 
   if (!isPrivate) {
     return published ? { landing: { open: pid, tab: await tabFor(false) }, recordView: false } : NOT_SHOWN;
