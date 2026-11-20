@@ -62,6 +62,8 @@ describe("the single-column sheets", () => {
     ]);
     // The Search tab has its own field at every width, whether or not the header shows its search box.
     expect(rest).toContain(".search-tab-form{ display:flex; align-items:center;");
+    // At most 480 px wide, its border and padding included, and centred.
+    expect(rest).toMatch(/\.search-tab-form\{[^}]*box-sizing:border-box;[^}]*max-width:480px;[^}]*margin:0 auto 12px;/);
     expect(home).not.toContain("no-search");
     expect(flat(split(home).inside)).not.toContain(".search-tab-form");
     expect(flat(split(header).outside).trim()).toBe(".avatar-menu-create-poll{ display:none; } .header-search-tab-btn{ display:none; }");

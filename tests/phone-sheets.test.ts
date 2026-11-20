@@ -477,7 +477,9 @@ describe("the footer in the phone layout", () => {
 describe("the phone boundary", () => {
   it("is 640px in every sheet and script, with no older boundary left", () => {
     for (const name of readdirSync(publicDir).filter((file) => /\.(css|js)$/.test(file))) {
-      expect(read(name), name).not.toMatch(/639\.98px|max-width:\s*480px|min-width:\s*640px/);
+      // A boundary is a media condition, in parentheses in a sheet's query or a script's matchMedia;
+      // a declaration such as the Search tab field's max-width:480px is a width, not a boundary.
+      expect(read(name), name).not.toMatch(/639\.98px|\(\s*max-width:\s*480px|\(\s*min-width:\s*640px/);
     }
   });
 });
