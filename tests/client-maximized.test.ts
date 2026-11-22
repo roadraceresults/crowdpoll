@@ -388,11 +388,8 @@ describe("every choice at once", () => {
         const label = row.querySelector(".result-label") as HTMLElement;
         const pct = row.querySelector(".result-pct") as HTMLElement;
         return [
-          (row.querySelector(".result-fill") as HTMLElement).style.background,
-          (row as HTMLElement).style.getPropertyValue("--bar-track"),
-          (row as HTMLElement).style.getPropertyValue("--bar-ink"),
-          (row as HTMLElement).style.getPropertyValue("--bar-track-dark"),
-          (row as HTMLElement).style.getPropertyValue("--bar-ink-dark"),
+          ...["--bar-fill", "--bar-track", "--bar-ink", "--bar-ink-on-fill", "--bar-fill-dark", "--bar-track-dark", "--bar-ink-dark", "--bar-ink-on-fill-dark"]
+            .map((name) => (row as HTMLElement).style.getPropertyValue(name)),
           label.style.textShadow,
           pct.style.textShadow
         ].join("|");

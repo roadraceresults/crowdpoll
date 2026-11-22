@@ -200,6 +200,7 @@
     border:0;
     background:transparent;
   }
+  .maximized-graph{ background:var(--paper-raised); border-radius:var(--md-sys-shape-corner-medium); }
   .extras-tabs{
     display:flex;
     align-items:stretch;

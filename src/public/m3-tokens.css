@@ -35,6 +35,22 @@
   --md-sys-color-scrim:#000000;
 }
 
+/* The scheme aliases the rest of the site reads, for each scheme. These blocks outrank the
+   legacy :root palettes of tabs.css, pollCard.css and site.css, which load later.
+   Contrast rules they keep: COLOR-CONTRAST.md */
+:root:not([data-theme="dark"]){
+  --ink:var(--md-sys-color-on-surface);
+  --paper:#E5EAE2;
+  --paper-raised:#FFFFFF;
+  --line:#A3ABA2;
+  --track:var(--md-sys-color-surface-container-highest);
+  --choice-unselected:var(--md-sys-color-surface-container);
+  --choice-selected:#643F00;
+  --choice-edge:var(--md-sys-color-outline);
+  --on-choice-selected:#FFFFFF;
+  --muted:var(--md-sys-color-on-surface-variant);
+}
+
 :root[data-theme="dark"]{
   color-scheme:dark;
 
@@ -67,13 +83,15 @@
   --md-sys-color-inverse-primary:#2C6A46;
 
   --ink:var(--md-sys-color-on-surface);
-  --paper:var(--md-sys-color-surface);
-  --paper-raised:var(--md-sys-color-surface-container-low);
+  --paper:#0A0E0B;
+  --paper-raised:var(--md-sys-color-surface-container);
   --moss:var(--md-sys-color-primary);
-  --line:var(--md-sys-color-outline-variant);
+  --line:#4A524B;
   --track:var(--md-sys-color-surface-container-highest);
-  --choice-unselected:var(--md-sys-color-surface-container-high);
-  --choice-selected:var(--md-sys-color-tertiary-container);
+  --choice-unselected:var(--md-sys-color-surface-container-highest);
+  --choice-selected:var(--md-sys-color-tertiary);
+  --choice-edge:var(--md-sys-color-outline);
+  --on-choice-selected:var(--md-sys-color-on-tertiary);
   --muted:var(--md-sys-color-on-surface-variant);
   --shadow:none;
 }

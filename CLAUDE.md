@@ -6,6 +6,19 @@ The full description, every earlier feature's decisions and the settings table a
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261120-175903-COLOR-CONTRAST/plan.md` (research R1–R12, `data-model.md` — colour roles per scheme, contrast
+pairs, the result-colour derivation, the palette, nothing stored; the contracts `contracts/colors.md` C1–C14,
+`contracts/guardrail.md` G1–G8 and the quickstart live alongside it).
+The requirements report is `requirements/20261120-175903-color-contrast/requirements-report.md`: 14 findings, all resolved.
+Decisions that are easy to get wrong:
+- **`m3-tokens.css` sets the aliases for both schemes** (`:root:not([data-theme="dark"])` and `:root[data-theme="dark"]`);
+  the legacy `:root` palettes in `tabs.css`, `pollCard.css` and `site.css` are shadowed, not edited (R1).
+- **One lift rule**: every result fill is drawn through `lineColorOn(fill, card)` in both schemes; stored colours never
+  change (R5).
+- **Text on a bar's fill is ≥ 4.5:1** (black or white); 7:1 holds on tracks and vote rows (R7).
+- **The guideline is the test's data**: `tests/color-contrast.test.ts` reads the tables of `COLOR-CONTRAST.md` (R10).
+
+The plan before it:
 `specs/20261119-182343-DEEP-LINKS/plan.md` (research R1–R10, `data-model.md` — tab names, the link request, `chooseTab`
 and the address states, nothing stored; the contracts `contracts/links.md` L1–L12, `contracts/share.md` S1–S9 and the
 quickstart live alongside it).
@@ -148,6 +161,8 @@ npx vitest run -t "name of the test"   # tests matching a name
 - A new top-level client file is transformed by the build; a client script must not depend on its own internal names or
   source text at run time, and a new build package is an exact-version `devDependency`.
 - `m3-assets.test.ts` pins each page's stylesheets (`LAYER_ORDER`); M3 layers hold only M3 tokens, no literal font sizes.
+- A colour change keeps every Required pair and Frozen colour of `COLOR-CONTRAST.md`, in both schemes;
+  `tests/color-contrast.test.ts` reads those tables and checks them against `m3-tokens.css` and `pollCard.js`.
 - A back arrow or Cancel that leaves a page goes through `window.SiteBack` (`backArrow.js`), never its own
   `history.back()`; a new home tab joins `TAB_NAMES` in `tabs.js`, and tab changes use `replaceState`, never `pushState`.
 - Bookmark is "Favorites" in the UI only; routes, tables and identifiers keep `bookmark`; stored enumerations stay verbatim.

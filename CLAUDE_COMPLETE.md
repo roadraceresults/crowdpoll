@@ -5,6 +5,41 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261120-175903-COLOR-CONTRAST/plan.md` (research R1–R12, `data-model.md` — colour roles per scheme, contrast
+pairs, the result-colour derivation, the palette, nothing stored; the contracts `contracts/colors.md` C1–C14,
+`contracts/guardrail.md` G1–G8 and the quickstart live alongside it).
+The requirements report is `requirements/20261120-175903-color-contrast/requirements-report.md`: 14 findings, all resolved.
+What was built:
+- **`m3-tokens.css` sets the aliases for both schemes** (R1): a Light block `:root:not([data-theme="dark"])` beside the
+  Dark `:root[data-theme="dark"]` one sets `--ink`, `--paper`, `--paper-raised`, `--line`, `--track`, `--muted`,
+  `--choice-unselected`, `--choice-selected` and the new `--choice-edge` and `--on-choice-selected`. The legacy `:root`
+  palettes of `tabs.css`, `pollCard.css` and `site.css` are shadowed, not edited; their `--moss`, `--moss-dark`,
+  `--amber` and `--shadow` still apply.
+- **Page, card and border** (R2, R3): page `#E5EAE2` / `#0A0E0B`, card `#FFFFFF` / `#1C211D` (`surface-container`),
+  border `#A3ABA2` / `#4A524B`; Light `--muted` is `on-surface-variant`.
+- **Vote rows** (R4): every row has a 1 px inset `--choice-edge` (`pollCard.css`, a `box-shadow`, so nothing moves and
+  the phone row's transparent border keeps it inside); a selected row is `#643F00` / `#FFB956` with a 2 px inset edge,
+  and its label, radio ring, dot and check take `--on-choice-selected` (`pollCard-m3.css`). Rows are never focusable and
+  have no disabled look, so no focus or disabled pair exists.
+- **One lift rule for bars** (R5, R7, R8): `barColorsFor` / `darkBarColorsFor` take the stored colour and derive
+  `fill = lineColorOn(stored, card)` (`#FFFFFF`, `RESULTS_DARK_SURFACE` `#1C211D`), `track = trackOn(fill, card, tint)`
+  (largest tint ≤ 0.9 / 0.8 in 0.05 steps reaching 1.5:1), the track's 7:1 ink, and `inkOnFillFor(fill, stored)`
+  (an override only if ≥ 4.5:1 on the drawn fill, else black or white). `applyBarColors` writes `--bar-fill`,
+  `--bar-track`, `--bar-ink`, `--bar-ink-on-fill` and their `-dark` twins; nothing on a row is an inline colour any
+  more, and `pollCard-m3.css` draws `.result-fill` and `.result-ink-on-fill > *` from them. Stored colours never change.
+- **Palette** (R6): darkslategray → saddlebrown `#8B4513`, gray → olivedrab `#6B8E23`, coral → darkgoldenrod
+  `#B8860B`, same positions; the drawn base palette keeps ΔE ≥ 13 in each scheme.
+- **The graph is drawn on the card colour** (T020): `.maximized-space-right` is `--paper-raised` (it was
+  `--md-sys-color-surface`, `#0F1511` in Dark) and the phone layout's `.maximized-graph` gets a `--paper-raised`
+  background, so `lineGraph.js`'s `surfaceHex()` finds the card colour and a line equals its bar's fill; `lineGraph.js`
+  is unchanged.
+- **The guideline is the test's data** (R10, R11): `COLOR-CONTRAST.md` holds the Frozen colours and Required pairs
+  tables; `tests/color-contrast.test.ts` parses them, resolves each role per scheme through the cascade (Light alias
+  block, legacy palettes, Light roles; Dark block, legacy, Light roles) one `var()` at a time, and checks every row;
+  it also loads `pollCard.js` in a bare jsdom (no server, no database) and checks every palette, Yes/No and creator
+  colour's fill, track and inks and the ΔE rule.
+
+The plan before it:
 `specs/20261119-182343-DEEP-LINKS/plan.md` (research R1–R10, `data-model.md` — tab names, the link request, `chooseTab`
 and the address states, nothing stored; the contracts `contracts/links.md` L1–L12, `contracts/share.md` S1–S9 and the
 quickstart live alongside it).

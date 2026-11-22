@@ -25,12 +25,12 @@ const RESULTS_PALETTE_ENTRIES = [
   { hex: '#1A539E', name: 'darkslateblue' },
   { hex: '#0695F5', name: 'dodgerblue' },
   { hex: '#000000', name: 'black' },
-  { hex: '#404040', name: 'darkslategray' },
-  { hex: '#7D7D7D', name: 'gray' },
+  { hex: '#8B4513', name: 'saddlebrown' },
+  { hex: '#6B8E23', name: 'olivedrab' },
   { hex: '#800080', name: 'purple' },
   { hex: '#B045B0', name: 'darkorchid' },
   { hex: '#FF6601', name: 'orangered' },
-  { hex: '#FC8E45', name: 'coral' },
+  { hex: '#B8860B', name: 'darkgoldenrod' },
   { hex: '#007A7E', name: 'teal' },
   { hex: '#399FA2', name: 'lightseagreen' }
 ];
@@ -381,21 +381,14 @@ function darkShadeOf(hex){
   return ink;
 }
 
-function mixWithWhite(hex, amount){
-  return '#' + hexToRgb(hex)
-    .map((v) => Math.round((v * (1 - amount) + amount) * 255).toString(16).padStart(2, '0'))
-    .join('');
-}
-
-// The text on a bar's fill, chosen by eye on a monitor and a phone: any color listed here takes its
-// color; any other (a hex stored on a poll) takes white or black, whichever contrasts more.
+// The text on a bar's fill, chosen by eye on a monitor and a phone: a stored color listed here takes its
+// text color when that still reaches 4.5:1 on the fill as drawn; any other takes white or black, whichever
+// contrasts more. Rules: COLOR-CONTRAST.md
 const TEXT_ON_FILL_OVERRIDES = new Map(Object.entries({
-  '#7D7D7D': '#FFFFFF',
   '#F91010': '#FFFFFF',
   '#0695F5': '#FFFFFF',
   '#399FA2': '#FFFFFF',
   '#C8468B': '#FFFFFF',
-  '#FC8E45': '#FFFFFF',
   '#FF6601': '#FFFFFF',
   '#006120': '#FFFFFF',
   '#9E9E9E': '#FFFFFF',
@@ -405,7 +398,6 @@ const TEXT_ON_FILL_OVERRIDES = new Map(Object.entries({
   '#007A7E': '#FFFFFF',
   '#B045B0': '#FFFFFF',
   '#800080': '#FFFFFF',
-  '#404040': '#FFFFFF',
   '#1A539E': '#FFFFFF',
   '#880015': '#FFFFFF',
   '#E0E0E0': '#000000',
@@ -416,23 +408,18 @@ const TEXT_ON_FILL_OVERRIDES = new Map(Object.entries({
   '#784315': '#FFFFFF'
 }));
 
-function inkOnFillFor(fill){
-  const listed = TEXT_ON_FILL_OVERRIDES.get(fill.toUpperCase());
-  if (listed) return listed;
+const RESULTS_TEXT_ON_FILL_CONTRAST = 4.5;
+
+function inkOnFillFor(fill, stored = fill){
+  const listed = TEXT_ON_FILL_OVERRIDES.get(stored.toUpperCase());
+  if (listed && contrastRatio(listed, fill) >= RESULTS_TEXT_ON_FILL_CONTRAST) return listed;
   return contrastRatio('#FFFFFF', fill) >= contrastRatio('#000000', fill) ? '#FFFFFF' : '#000000';
 }
 
-function barColorsFor(fill, trackTint, inkOnFill){
-  const track = mixWithWhite(fill, trackTint);
-  return { track, inkOnTrack: darkShadeOf(track), inkOnFill };
-}
-
-const BAR_COLORS = new Map([
-  ...RESULTS_COLOR_PALETTE.map((hex) => [hex, barColorsFor(hex, RESULTS_TRACK_TINT, inkOnFillFor(hex))]),
-  ...[SEMANTIC_AFFIRMATIVE_COLOR, SEMANTIC_NEGATIVE_COLOR].map((hex) => [hex, barColorsFor(hex, RESULTS_TRACK_TINT, inkOnFillFor(hex))])
-]);
-
-const RESULTS_DARK_SURFACE = '#181D19';
+const RESULTS_LIGHT_SURFACE = '#FFFFFF';
+const RESULTS_DARK_SURFACE = '#1C211D';
+const RESULTS_TRACK_TARGET_CONTRAST = 1.5;
+const RESULTS_TRACK_TINT_STEP = 0.05;
 const RESULTS_DARK_INK_START_LIGHTNESS = 0.75;
 const RESULTS_DARK_INK_CEILING_LIGHTNESS = 0.98;
 
@@ -469,21 +456,42 @@ function lineColorOn(hex, surfaceHex){
   return shade.toUpperCase();
 }
 
-function darkBarColorsFor(fill, trackTint){
-  const track = mixWith(fill, RESULTS_DARK_SURFACE, trackTint);
-  return { track, inkOnTrack: lightShadeFor(track) };
+// The track behind a fill: the fill mixed into the card, as pale as the tint allows while still
+// standing 1.5:1 apart from the card.
+function trackOn(fill, surface, maxTint){
+  let tint = maxTint;
+  let track = mixWith(fill, surface, tint);
+  while (contrastRatio(track, surface) < RESULTS_TRACK_TARGET_CONTRAST && tint > RESULTS_TRACK_TINT_STEP + 1e-9){
+    tint = Math.round((tint - RESULTS_TRACK_TINT_STEP) * 100) / 100;
+    track = mixWith(fill, surface, tint);
+  }
+  return track;
 }
 
-const BAR_COLORS_DARK = new Map([
-  ...RESULTS_COLOR_PALETTE.map((hex) => [hex, darkBarColorsFor(hex, RESULTS_DARK_TRACK_TINT)]),
-  ...[SEMANTIC_AFFIRMATIVE_COLOR, SEMANTIC_NEGATIVE_COLOR].map((hex) => [hex, darkBarColorsFor(hex, RESULTS_DARK_TRACK_TINT)])
-]);
+// A bar as drawn on a card: the stored color at 3:1 against the card (the line graph's own shade), its
+// track, and the text on each. The stored color itself never changes.
+function barColorsFor(stored){
+  const fill = lineColorOn(stored, RESULTS_LIGHT_SURFACE);
+  const track = trackOn(fill, RESULTS_LIGHT_SURFACE, RESULTS_TRACK_TINT);
+  return { fill, track, inkOnTrack: darkShadeOf(track), inkOnFill: inkOnFillFor(fill, stored) };
+}
+
+function darkBarColorsFor(stored){
+  const fill = lineColorOn(stored, RESULTS_DARK_SURFACE);
+  const track = trackOn(fill, RESULTS_DARK_SURFACE, RESULTS_DARK_TRACK_TINT);
+  return { fill, track, inkOnTrack: lightShadeFor(track), inkOnFill: inkOnFillFor(fill, stored) };
+}
+
+const BAR_COLORS = new Map();
+const BAR_COLORS_DARK = new Map();
 
 function barColorsOf(hex){
-  if (!BAR_COLORS.has(hex)) BAR_COLORS.set(hex, barColorsFor(hex, RESULTS_TRACK_TINT, inkOnFillFor(hex)));
-  if (!BAR_COLORS_DARK.has(hex)) BAR_COLORS_DARK.set(hex, darkBarColorsFor(hex, RESULTS_DARK_TRACK_TINT));
+  if (!BAR_COLORS.has(hex)) BAR_COLORS.set(hex, barColorsFor(hex));
+  if (!BAR_COLORS_DARK.has(hex)) BAR_COLORS_DARK.set(hex, darkBarColorsFor(hex));
   return { light: BAR_COLORS.get(hex), dark: BAR_COLORS_DARK.get(hex) };
 }
+
+[...RESULTS_COLOR_PALETTE, SEMANTIC_AFFIRMATIVE_COLOR, SEMANTIC_NEGATIVE_COLOR].forEach(barColorsOf);
 
 function clipToWidth(width){
   return 'inset(0 calc(100% - ' + width + ') 0 0)';
@@ -495,7 +503,7 @@ function setFillWidth(row, pct){
   if (overlay) overlay.style.clipPath = clipToWidth(pct + '%');
 }
 
-function syncInkOnFill(row, inkOnFill){
+function syncInkOnFill(row){
   let overlay = row.querySelector('.result-ink-on-fill');
   if (!overlay){
     overlay = document.createElement('span');
@@ -506,9 +514,7 @@ function syncInkOnFill(row, inkOnFill){
     void overlay.offsetWidth;
   }
   const copies = Array.from(row.querySelectorAll(':scope > .result-label, :scope > .result-pct')).map((text) => {
-    const copy = text.cloneNode(true);
-    copy.style.color = inkOnFill;
-    return copy;
+    return text.cloneNode(true);
   });
   overlay.replaceChildren(...copies);
 }
@@ -567,15 +573,19 @@ function renderPollResults(wrap, list, allData, layoutFor, paletteOffset, palett
 
   function applyBarColors(rows){
     rows.forEach(({ row, color }) => {
-      const { light: { track, inkOnTrack, inkOnFill }, dark } = barColorsOf(color);
-      row.style.setProperty('--bar-track', track);
-      row.style.setProperty('--bar-ink', inkOnTrack);
+      const { light, dark } = barColorsOf(color);
+      row.style.setProperty('--bar-fill', light.fill);
+      row.style.setProperty('--bar-track', light.track);
+      row.style.setProperty('--bar-ink', light.inkOnTrack);
+      row.style.setProperty('--bar-ink-on-fill', light.inkOnFill);
+      row.style.setProperty('--bar-fill-dark', dark.fill);
       row.style.setProperty('--bar-track-dark', dark.track);
       row.style.setProperty('--bar-ink-dark', dark.inkOnTrack);
+      row.style.setProperty('--bar-ink-on-fill-dark', dark.inkOnFill);
       row.querySelectorAll(':scope > .result-label, :scope > .result-pct').forEach((text) => {
         text.style.textShadow = 'none';
       });
-      syncInkOnFill(row, inkOnFill);
+      syncInkOnFill(row);
     });
   }
 
@@ -604,15 +614,14 @@ function renderPollResults(wrap, list, allData, layoutFor, paletteOffset, palett
       const label = row.querySelector('.result-label');
       const pctEl = row.querySelector('.result-pct');
 
-      // Fill color MUST be reapplied here, not just on a rebuild. Bar
-      // color is a function of the choice, but `data` re-sorts by
-      // percentage on every refresh, so a given DOM row shows a
+      // Each row's colors MUST be reapplied here (applyBarColors below), not
+      // just on a rebuild. Bar color is a function of the choice, but `data`
+      // re-sorts by percentage on every refresh, so a given DOM row shows a
       // DIFFERENT choice after a reorder. Skipping this leaves each row
       // wearing the previous occupant's color: in a Yes/No poll where No
       // overtakes Yes, the card would render "No" green and "Yes" red --
       // silently, never on page load, only after a live vote change.
       const color = colors[i];
-      row.querySelector('.result-fill').style.background = color;
 
       row.title = item.label + ' — ' + item.pct + '%';
       if (label){
@@ -642,7 +651,6 @@ function renderPollResults(wrap, list, allData, layoutFor, paletteOffset, palett
 
     const fill = document.createElement('span');
     fill.className = 'result-fill';
-    fill.style.background = color;
 
     const label = document.createElement('span');
     label.className = 'result-label';

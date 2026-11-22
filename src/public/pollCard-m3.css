@@ -36,10 +36,14 @@
 .result-row{ background:var(--bar-track, var(--track)); }
 .result-row > .result-label,
 .result-row > .result-pct{ color:var(--bar-ink, var(--ink)); }
+.result-fill{ background:var(--bar-fill); }
+.result-ink-on-fill > *{ color:var(--bar-ink-on-fill); }
 
 :root[data-theme="dark"] .result-row{ background:var(--bar-track-dark, var(--track)); }
 :root[data-theme="dark"] .result-row > .result-label,
 :root[data-theme="dark"] .result-row > .result-pct{ color:var(--bar-ink-dark, var(--ink)); }
+:root[data-theme="dark"] .result-fill{ background:var(--bar-fill-dark); }
+:root[data-theme="dark"] .result-ink-on-fill > *{ color:var(--bar-ink-on-fill-dark); }
 
 .card-face .btn-vote{
   height:32px;
@@ -186,6 +190,14 @@
 }
 .card-face .voting-list.is-multi .vote-radio.is-selected{ background:var(--md-sys-color-primary); }
 .card-face .voting-list.is-multi .vote-radio.is-selected::after{ transform:translate(-50%, -50%) rotate(45deg) scale(1); }
+
+/* A selected row: an amber fill with its mark and label in the row's own text colour (COLOR-CONTRAST.md). */
+.card-face .vote-row.is-selected{ box-shadow:inset 0 0 0 2px var(--choice-selected); color:var(--on-choice-selected); }
+.card-face .vote-row.is-selected .vote-label{ color:var(--on-choice-selected); }
+.card-face .vote-row.is-selected .vote-radio{ border-color:var(--on-choice-selected); }
+.card-face .vote-row.is-selected .vote-radio::after{ background:var(--on-choice-selected); }
+.card-face .voting-list.is-multi .vote-row.is-selected .vote-radio{ background:var(--on-choice-selected); }
+.card-face .voting-list.is-multi .vote-row.is-selected .vote-radio::after{ background:none; border-color:var(--choice-selected); }
 
 .card-face .poll-totals,
 .card-face .poll-voted,
@@ -434,7 +446,7 @@
 .maximized-back-bar[hidden]{ display:none; }
 
 .maximized-space-right{
-  background:var(--md-sys-color-surface);
+  background:var(--paper-raised);
   border:1px solid var(--md-sys-color-outline-variant);
   border-radius:var(--md-sys-shape-corner-medium);
   padding:16px;

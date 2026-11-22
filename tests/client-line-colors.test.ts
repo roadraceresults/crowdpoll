@@ -10,7 +10,7 @@ import { openPage, type BrowserPage } from "./helpers/browser.js";
 import { BAR_PALETTE } from "../src/polls/barPalette.js";
 
 const LIGHT = "#FFFFFF";
-const DARK = "#0F1511";
+const DARK = "#1C211D";
 
 let ctx: TestContext;
 let page: BrowserPage;
@@ -87,10 +87,19 @@ describe("line colours on the graph's surface (C1)", () => {
   }
 
   it("shades to the nearest passing shade", () => {
-    expect(lineColorOn("#000000", DARK)).toBe("#636363");
-    expect(lineColorOn("#880015", DARK)).toBe("#C7001F");
+    expect(lineColorOn("#000000", DARK)).toBe("#6B6B6B");
+    expect(lineColorOn("#880015", DARK)).toBe("#D60021");
     expect(lineColorOn("#FFFF00", LIGHT)).toBe("#999900");
     expect(lineColorOn("#E0E0E0", LIGHT)).toBe("#949494");
+  });
+
+  it("draws each colour's line in its bar's fill, on the light and the dark card", () => {
+    type BarColorsOf = (hex: string) => { light: { fill: string }; dark: { fill: string } };
+    const barColorsOf = (page.window as unknown as { barColorsOf: BarColorsOf }).barColorsOf;
+    for (const hex of colors) {
+      expect(barColorsOf(hex).light.fill.toUpperCase(), hex).toBe(lineColorOn(hex, LIGHT).toUpperCase());
+      expect(barColorsOf(hex).dark.fill.toUpperCase(), hex).toBe(lineColorOn(hex, DARK).toUpperCase());
+    }
   });
 
   it("returns the colour as given when there is no surface", () => {
