@@ -250,6 +250,24 @@ passing (FR-011, FR-016, C4, C13).
   pass the same client suites)
 - [ ] T037 Run the whole of `quickstart.md`, including step 7 (show the tester), and record the outcome in
   `specs/20261120-175903-COLOR-CONTRAST/quickstart.md` under a "Results" heading
+- [X] T038 (TWEAK02) A grid card lifts while a mouse is over it or a finger presses it: `is-lifted` on `.card-viewport`
+  from pointer handlers in `src/public/pollCard.js`, styled in `src/public/pollCard-m3.css` (4 px, elevation 3, the
+  outline border in Dark); tests in `tests/client-maximized.test.ts`
+- [X] T039 (TWEAK03) A lifted card's edge grows from 1 px to 4 px in `--card-lift-edge` with a `--card-lift-glow` glow,
+  then fades (`.card-face::after`, `cardEdgeGrow` in `src/public/pollCard-m3.css`; aliases in `src/public/m3-tokens.css`;
+  a Required pair in `COLOR-CONTRAST.md`); tests in `tests/client-maximized.test.ts`
+- [X] T040 (TWEAK04) The lifted card's edge, once at 4 px, steps down through 3, 2 and 1 px and goes, its glow
+  following (`cardEdgeGrow`, 1.5s ease-in-out, in `src/public/pollCard-m3.css`); test in `tests/client-maximized.test.ts`
+- [X] T041 (TWEAK05) A card returned from the maximized view to its own tab's grid is scrolled into view
+  (`revealCard` in `src/public/tabs.js` `restore`; `scroll-margin-top` in `src/public/pollCard-m3.css`) and plays the
+  lift once (`replayLift` in `src/public/pollCard.js`); tests in `tests/client-maximized.test.ts`
+- [X] T042 (TWEAK06) The page background's two glows take their colour and strength per scheme, and their size and
+  centre, from `--page-glow-*` tokens in `src/public/m3-tokens.css` (`:root .page-decor`), at today's values; test in
+  `tests/m3-assets.test.ts`
+- [X] T043 (TWEAK07) The header and the Tab Bar take their colours from `--header-*` and `--tab-*` tokens set per
+  scheme in `src/public/m3-tokens.css`, starting as the roles they replaced; wired in `header-fixed-m3.css`,
+  `header-tab-bar-m3.css` and `single-column-m3.css`; the Tab Bar's Required pairs in `COLOR-CONTRAST.md` move to the
+  tokens; tests in `tests/m3-assets.test.ts`, `tests/header-fixed-sheet.test.ts`, `tests/phone-sheets.test.ts`
 
 ---
 

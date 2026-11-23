@@ -1,4 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { forgeSession, startTestContext, type TestContext } from "./helpers/setup.js";
 import { makePoll, polls } from "./helpers/poll-fixtures.js";
 import { LISTING_MAX_AGE_1S, openPage, type BrowserPage, ON_TRENDING } from "./helpers/browser.js";
@@ -867,5 +869,149 @@ describe("the Who voted panel follows the maximized poll", () => {
     await clickIn(page, card.querySelector(".submit-vote-btn"));
     await page.settle(50);
     expect(shows(calls)).toHaveLength(2);
+  });
+});
+
+describe("a grid card lifts while pointed at or pressed", () => {
+  function point(p: BrowserPage, card: Element, type: string, pointerType: string) {
+    const event = new p.window.Event(type, { bubbles: type !== "pointerenter" && type !== "pointerleave" });
+    Object.defineProperty(event, "pointerType", { value: pointerType });
+    card.dispatchEvent(event);
+  }
+
+  it("lifts under a mouse and drops when it leaves", async () => {
+    await seedPoll("Lift", 3);
+    await sweeps();
+    page = await open();
+    const card = cardByTitle(page, "Lift");
+    point(page, card, "pointerenter", "mouse");
+    expect(card.classList.contains("is-lifted")).toBe(true);
+    point(page, card, "pointerleave", "mouse");
+    expect(card.classList.contains("is-lifted")).toBe(false);
+  });
+
+  it("lifts while a finger presses it and drops on release or when the press becomes a scroll", async () => {
+    await seedPoll("Lift", 3);
+    await sweeps();
+    page = await open();
+    const card = cardByTitle(page, "Lift");
+    point(page, card, "pointerenter", "touch");
+    expect(card.classList.contains("is-lifted")).toBe(false);
+    point(page, card, "pointerdown", "touch");
+    expect(card.classList.contains("is-lifted")).toBe(true);
+    point(page, card, "pointerup", "touch");
+    expect(card.classList.contains("is-lifted")).toBe(false);
+    point(page, card, "pointerdown", "touch");
+    point(page, card, "pointercancel", "touch");
+    expect(card.classList.contains("is-lifted")).toBe(false);
+  });
+
+  it("never lifts the maximized card", async () => {
+    await seedPoll("Lift", 3);
+    await sweeps();
+    page = await open();
+    const card = cardByTitle(page, "Lift");
+    await clickIn(page, card.querySelector(".maximize-btn"));
+    expect(card.classList.contains("maximized-card-viewport")).toBe(true);
+    point(page, card, "pointerenter", "mouse");
+    point(page, card, "pointerdown", "touch");
+    expect(card.classList.contains("is-lifted")).toBe(false);
+  });
+
+  it("styles the lift in the M3 card sheet: 4px up, elevation 3, the outline border in Dark", () => {
+    const css = readFileSync(path.join(process.cwd(), "src/public/pollCard-m3.css"), "utf8");
+    expect(css).toContain(".card-viewport.is-lifted:not(.maximized-card-viewport){ top:-4px; }");
+    expect(css).toContain(".card-viewport.is-lifted:not(.maximized-card-viewport) .card-face{ box-shadow:var(--md-sys-elevation-3); }");
+    expect(css).toContain(':root[data-theme="dark"] .card-viewport.is-lifted:not(.maximized-card-viewport) .card-face{ border-color:var(--md-sys-color-outline); }');
+  });
+});
+
+describe("a card closed from the maximized view comes into view and lifts", () => {
+  /** jsdom has no scrollIntoView: records each card it is asked of, with its options. */
+  function watchReveal(p: BrowserPage) {
+    const calls: { card: Element; options: unknown }[] = [];
+    p.window.HTMLElement.prototype.scrollIntoView = function (this: Element, options?: unknown) {
+      calls.push({ card: this, options });
+    } as typeof p.window.HTMLElement.prototype.scrollIntoView;
+    return calls;
+  }
+
+  for (const [how, closer] of [
+    ["its Minimize icon", (p: BrowserPage, card: HTMLElement) => card.querySelector(".maximize-btn")],
+    ["the back arrow", (p: BrowserPage) => p.document.querySelector("#maximizedBack .maximized-back")]
+  ] as const) {
+    it(`by ${how}: scrolled into view, lifted, and dropped once its edge has gone`, async () => {
+      await seedPoll("Return", 3);
+      await sweeps();
+      page = await open();
+      const card = cardByTitle(page, "Return");
+      await clickIn(page, card.querySelector(".maximize-btn"));
+      const reveals = watchReveal(page);
+
+      await clickIn(page, closer(page, card));
+      expect(card.classList.contains("maximized-card-viewport")).toBe(false);
+      expect(reveals).toEqual([{ card, options: { block: "nearest" } }]);
+      expect(card.classList.contains("is-lifted")).toBe(true);
+
+      await page.settle(1600);
+      expect(card.classList.contains("is-lifted")).toBe(false);
+    });
+  }
+
+  it("stays lifted after the replay while a mouse is over it", async () => {
+    await seedPoll("Return", 3);
+    await sweeps();
+    page = await open();
+    const card = cardByTitle(page, "Return");
+    await clickIn(page, card.querySelector(".maximize-btn"));
+    await clickIn(page, card.querySelector(".maximize-btn"));
+    const enter = new page.window.Event("pointerenter");
+    Object.defineProperty(enter, "pointerType", { value: "mouse" });
+    card.dispatchEvent(enter);
+
+    await page.settle(1600);
+    expect(card.classList.contains("is-lifted")).toBe(true);
+  });
+
+  it("neither scrolls to nor lifts the card when another tab is chosen", async () => {
+    await seedPoll("Return", 3);
+    await sweeps();
+    page = await open();
+    const card = cardByTitle(page, "Return");
+    await clickIn(page, card.querySelector(".maximize-btn"));
+    const reveals = watchReveal(page);
+
+    await page.click('.tab[data-tab="newest"]');
+    expect(reveals).toEqual([]);
+    expect(card.classList.contains("is-lifted")).toBe(false);
+  });
+
+  it("keeps a revealed card below the fixed header", () => {
+    const css = readFileSync(path.join(process.cwd(), "src/public/pollCard-m3.css"), "utf8");
+    expect(css).toMatch(/\.card-viewport\{[^}]*scroll-margin-top:calc\(var\(--fixed-chrome-height, 0px\) \+ 8px\);/);
+  });
+});
+
+describe("a lifted card's edge grows with a glow", () => {
+  const css = () => readFileSync(path.join(process.cwd(), "src/public/pollCard-m3.css"), "utf8");
+
+  it("draws the edge on each face, over the card's border, in the lift-edge colour", () => {
+    expect(css()).toMatch(/\.card-viewport \.card-face::after\{[^}]*inset:-1px;[^}]*border-radius:20px;[^}]*border:0 solid var\(--card-lift-edge\);[^}]*pointer-events:none;/);
+  });
+
+  it("runs once on a lifted grid card, grows from 1px to 4px, then steps down through 3, 2 and 1px and goes", () => {
+    expect(css()).toContain(".card-viewport.is-lifted:not(.maximized-card-viewport) .card-face::after{ animation:cardEdgeGrow 1.5s ease-in-out 1 forwards; }");
+    const frames = css().match(/@keyframes cardEdgeGrow\{([\s\S]*?)\n\}/)![1];
+    expect(frames).toMatch(/0%\{ border-width:1px;/);
+    expect(frames).toMatch(/\n  40%\{ border-width:4px;/);
+    expect(frames).toMatch(/\n  55%\{ border-width:4px;/);
+    expect(frames).toMatch(/55\.01%\{ border-width:3px;/);
+    expect(frames).toMatch(/69\.01%\{ border-width:2px;/);
+    expect(frames).toMatch(/83\.01%\{ border-width:1px;/);
+    expect(frames).toMatch(/100%\{[^}]*opacity:0;/);
+  });
+
+  it("holds a steady 4px edge, without animating, under reduced motion", () => {
+    expect(css()).toMatch(/prefers-reduced-motion: reduce\)\{\s*\.card-viewport\.is-lifted:not\(\.maximized-card-viewport\) \.card-face::after\{\s*animation:none;\s*opacity:1;\s*border-width:4px;/);
   });
 });

@@ -199,6 +199,75 @@ describe("Material 3 page assets", () => {
     expect(tokens).toContain(".m3-ripple-host{");
   });
 
+  it("draws the page background's two glows from tokens, colour and strength set per scheme", () => {
+    const tokens = read("m3-tokens.css");
+    const scheme = (selector: string) => {
+      const start = tokens.indexOf(`${selector}{`);
+      return tokens.slice(start, tokens.indexOf("}", start));
+    };
+    for (const selector of [':root:not([data-theme="dark"])', ':root[data-theme="dark"]']) {
+      for (const declaration of ["--page-glow-1-color:#3D5A46;", "--page-glow-1-strength:6%;", "--page-glow-2-color:#E8A33D;", "--page-glow-2-strength:8%;"]) {
+        expect(scheme(selector), `${selector} ${declaration}`).toContain(declaration);
+      }
+    }
+    for (const declaration of ["--page-glow-1-size:600px 400px;", "--page-glow-1-at:12% 8%;", "--page-glow-2-size:500px 380px;", "--page-glow-2-at:90% 95%;"]) {
+      expect(tokens).toContain(declaration);
+    }
+    const decor = tokens.match(/:root \.page-decor\{([^}]*)\}/)![1];
+    for (const glow of [1, 2]) {
+      expect(decor).toContain(
+        `radial-gradient(var(--page-glow-${glow}-size) at var(--page-glow-${glow}-at), color-mix(in srgb, var(--page-glow-${glow}-color) var(--page-glow-${glow}-strength), transparent), transparent 60%)`
+      );
+    }
+  });
+
+  it("sets the header's and the Tab Bar's colours per scheme, starting from the roles they used before", () => {
+    const tokens = read("m3-tokens.css");
+    const scheme = (selector: string) => {
+      const start = tokens.indexOf(`${selector}{`);
+      return tokens.slice(start, tokens.indexOf("\n}", start));
+    };
+    const levers = {
+      "--header-background": "var(--paper)",
+      "--header-divider": "var(--md-sys-color-outline-variant)",
+      "--header-text": "var(--md-sys-color-on-surface)",
+      "--header-link": "var(--md-sys-color-primary)",
+      "--header-button": "var(--md-sys-color-primary)",
+      "--on-header-button": "var(--md-sys-color-on-primary)",
+      "--header-search-background": "var(--md-sys-color-surface-container-high)",
+      "--tab-bar-background": "var(--paper)",
+      "--tab-bar-divider": "var(--md-sys-color-outline-variant)",
+      "--tab-text": "var(--md-sys-color-on-surface-variant)",
+      "--tab-active-text": "var(--md-sys-color-primary)",
+      "--tab-indicator": "var(--md-sys-color-primary)",
+      "--tab-refresh-background": "var(--md-sys-color-secondary-container)",
+      "--tab-refresh-icon": "var(--md-sys-color-on-secondary-container)"
+    };
+    for (const selector of [':root:not([data-theme="dark"])', ':root[data-theme="dark"]']) {
+      for (const [name, value] of Object.entries(levers)) {
+        expect(scheme(selector), `${selector} ${name}`).toContain(`${name}:${value};`);
+      }
+    }
+    const bar = read("header-tab-bar-m3.css");
+    for (const use of [
+      "background:var(--tab-bar-divider);",
+      "color:var(--tab-text);",
+      "color:var(--tab-active-text);",
+      "background:var(--tab-indicator);",
+      '.tab-bar .tab-icon [fill="#e8edf2" i]{ fill:var(--tab-bar-background); }',
+      "background:var(--tab-refresh-background);",
+      "color:var(--tab-refresh-icon);",
+      "background:var(--header-search-background);",
+      ".search-icon-btn{ color:var(--header-text); }",
+      "color:var(--header-link);",
+      "background:var(--header-button);",
+      "color:var(--on-header-button);"
+    ]) {
+      expect(bar, use).toContain(use);
+    }
+    expect(read("single-column-m3.css")).toMatch(/\.tab-menu-btn\{[^}]*color:var\(--tab-text\);/);
+  });
+
   it("declares the type roles the admin cards read", () => {
     const tokens = read("m3-tokens.css");
     for (const role of ["title-medium", "label-medium", "label-small"]) {

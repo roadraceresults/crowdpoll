@@ -1455,6 +1455,33 @@ function initPollCard(viewport, opts){
     render();
   }
 
+  // ---- Lift ----
+  // A grid card rises while a mouse is over it, or while a finger or pen presses it; a press
+  // that turns into a scroll is cancelled, so the card drops back at once.
+  const lift = (on) => viewport.classList.toggle('is-lifted', on && !isMaximized);
+  let mouseOver = false;
+  let replayTimer = null;
+  viewport.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse'){ mouseOver = true; lift(true); } });
+  viewport.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse'){ mouseOver = false; lift(false); } });
+  viewport.addEventListener('pointerdown', (e) => { if (e.pointerType !== 'mouse') lift(true); });
+  viewport.addEventListener('pointerup', (e) => { if (e.pointerType !== 'mouse') lift(false); });
+  viewport.addEventListener('pointercancel', () => lift(false));
+
+  // Plays the lift once, as when pointed at, then drops the card once its edge has gone,
+  // unless a mouse is over it by then. The class is taken off first so the edge restarts.
+  const LIFT_REPLAY_MS = 1500;
+  function replayLift(){
+    if (isMaximized) return;
+    clearTimeout(replayTimer);
+    viewport.classList.remove('is-lifted');
+    void viewport.offsetWidth;
+    lift(true);
+    replayTimer = setTimeout(() => {
+      replayTimer = null;
+      if (!mouseOver) lift(false);
+    }, LIFT_REPLAY_MS);
+  }
+
   // ---- Flip wiring ----
   // Vote requires login (FR-016); guests are sent to the login page.
   viewport.querySelector('.vote-btn')?.addEventListener('click', () => {
@@ -1660,6 +1687,7 @@ function initPollCard(viewport, opts){
     applyPoll,
     unmount,
     setMaximized,
+    replayLift,
     showVoteFace,
     resultColors,
     detail: () => poll,

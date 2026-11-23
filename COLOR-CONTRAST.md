@@ -50,14 +50,19 @@ These colours are the brand: their values never change, in either scheme.
 | `--ink` | `--paper-raised` | 7 | both | text on a card |
 | `--muted` | `--paper` | 4.5 | both | secondary text on the page |
 | `--muted` | `--paper-raised` | 4.5 | both | secondary text on a card |
-| `--md-sys-color-on-surface-variant` | `--paper` | 4.5 | both | an inactive tab's text |
-| `--md-sys-color-primary` | `--paper` | 3 | both | the active tab's text and indicator |
+| `--tab-text` | `--tab-bar-background` | 4.5 | both | an inactive tab's text |
+| `--tab-active-text` | `--tab-bar-background` | 3 | both | the active tab's text |
+| `--tab-indicator` | `--tab-bar-background` | 3 | both | the active tab's underline |
+| `--header-text` | `--header-background` | 4.5 | both | the header's search text and the user's name |
+| `--header-link` | `--header-background` | 3 | both | the header's nav link and outlined button |
+| `--on-header-button` | `--header-button` | 4.5 | both | the header's filled button's text |
 | `--md-sys-color-on-surface-variant` | `--paper-raised` | 4.5 | both | radio and checkbox rings; an admin list row's text |
 | `--md-sys-color-outline` | `--paper-raised` | 3 | both | the admin search field's border |
 | `--md-sys-color-on-surface-variant` | `--md-sys-color-surface-container` | 4.5 | both | an admin list row's text on an even row |
 | `--md-sys-color-on-secondary-container` | `--md-sys-color-secondary-container` | 4.5 | both | an open admin list row's text |
 | `--md-sys-color-primary` | `--paper-raised` | 3 | both | the focus outline and green icons on a card |
 | `--md-sys-color-primary` | `--md-sys-color-surface-container` | 3 | both | the focus outline on an even admin row |
+| `--card-lift-edge` | `--paper-raised` | 3 | both | a lifted card's growing edge |
 
 ## Result colours
 
@@ -87,6 +92,22 @@ closer than ΔE 13 ([CIE76](https://en.wikipedia.org/wiki/Color_difference#CIE76
    and check take the row's text colour.
 4. **Every bar fill at 3:1 on the card**, in both schemes, by the shade rule above.
 5. **Lower track tints**, so a bar's length shows and the card reads as colourful.
+6. **A lifted card**: a grid card rises 4 px with M3 elevation 3 while a mouse is over it or a finger presses it; in
+   Dark, where a shadow does not show, its border also takes `outline`. As it rises, a blue edge (`--card-lift-edge`
+   `#2178F5`) grows from 1 px to 4 px with a glow (`--card-lift-glow` `#55A6FF`), holds, then steps down through 3, 2
+   and 1 px and goes, within 1.5 s; under reduced motion it stays at 4 px while lifted. The maximized card never lifts.
+   When it returns to its tab's grid (Minimize, the back arrow, Escape, Back, or its own tab chosen again) it is
+   scrolled into view below the fixed header and lifts once, for those 1.5 s.
+7. **The page background**: `--paper` with two faint glows fixed to the window (`.page-decor`), moss green at the top
+   left and amber at the bottom right, each fading out at 60% of its radii. Each glow's colour and strength are set per
+   scheme (`--page-glow-1-color`, `--page-glow-1-strength`, `--page-glow-2-color`, `--page-glow-2-strength`), its size
+   and centre once (`--page-glow-N-size`, `--page-glow-N-at`), all in `m3-tokens.css`. They are decoration, not part of
+   any Required pair: text never relies on them.
+8. **The header and the Tab Bar** take their colours from their own tokens, set per scheme in `m3-tokens.css`:
+   `--header-background`, `--header-divider`, `--header-text`, `--header-link`, `--header-button`,
+   `--on-header-button`, `--header-search-background`; `--tab-bar-background`, `--tab-bar-divider`, `--tab-text`,
+   `--tab-active-text`, `--tab-indicator`, `--tab-refresh-background`, `--tab-refresh-icon`. Each starts as the role it
+   replaced (a `var()`), and must stay a `#RRGGBB` colour or a `var()` so the pairs above can be checked.
 
 Green (`primary`) stays the brand: icons, links, buttons and the logo; it is never a selected-row colour, and no vote
 row takes its choice's result colour.
@@ -107,6 +128,9 @@ row takes its choice's result colour.
 | `--choice-edge` (new) | `#717971` | `#8A938B` |
 | `--on-choice-selected` (new) | `#FFFFFF` | `#462B00` |
 | Maximized side panel and phone graph background | `--md-sys-color-surface` / page → `--paper-raised` | same |
+| `--card-lift-edge`, `--card-lift-glow` (new) | `#2178F5`, `#55A6FF` | `#2178F5`, `#55A6FF` |
+| `--page-glow-1-color` / `-strength`, `--page-glow-2-color` / `-strength` (new; were literal in `tabs.css`) | `#3D5A46` 6%, `#E8A33D` 8% | same |
+| `--header-*`, `--tab-bar-*`, `--tab-*` (new; header and Tab Bar levers) | the roles used before | same |
 
 Base palette entries replaced (same positions): darkslategray `#404040` → saddlebrown `#8B4513`; gray `#7D7D7D` →
 olivedrab `#6B8E23`; coral `#FC8E45` → darkgoldenrod `#B8860B`. Bar fills are now drawn at 3:1 on the card in Light

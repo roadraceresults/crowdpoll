@@ -45,11 +45,53 @@
   --line:#A3ABA2;
   --track:var(--md-sys-color-surface-container-highest);
   --choice-unselected:var(--md-sys-color-surface-container);
-  --choice-selected:#643F00;
+--choice-selected:#643F00;
   --choice-edge:var(--md-sys-color-outline);
   --on-choice-selected:#FFFFFF;
   --muted:var(--md-sys-color-on-surface-variant);
+  --card-lift-edge:#2178F5;
+  --card-lift-glow:#55A6FF;
+  
+  --page-glow-1-color:#3D5A46;    /* page background */
+  --page-glow-1-strength:6%;        /* page background */
+  --page-glow-2-color:#E8A33D;    /* page background */
+  --page-glow-2-strength:8%;        /* page background */
+  
+  --page-glow-1-colorNEW:#3D5A46;    /* page background */
+  --page-glow-1-strengthNEW:6%;      /* page background */
+  --page-glow-2-colorNEW:#E8A33D;    /* page background */
+  --page-glow-2-strengthNEW:8%;       /* page background */
+
+  --header-paper:#E5EAE2;
+  --header-paper-raised:#ffffff;
+
+  --header-paperNEW:#ffffff;
+  --header-paper-raisedNEW:#000000;
+
+  --header-background:var(--header-paper);                                   /* header */
+  --header-divider:var(--md-sys-color-outline-variant);               /* header: line under it, pages without a Tab Bar */
+  --header-text:var(--md-sys-color-on-surface);                       /* header: search icon and text, user name */
+  --header-link:var(--md-sys-color-primary);                          /* header: nav link, outlined button */
+  --header-button:var(--md-sys-color-primary);                        /* header: filled button */
+  --on-header-button:var(--md-sys-color-on-primary);                  /* header: filled button's text */
+  --header-search-background:var(--md-sys-color-surface-container-high); /* header: search field */
+
+  --tab-bar-background:var(--header-paper);                                  /* Tab Bar */
+  --tab-bar-divider:var(--md-sys-color-outline-variant);              /* Tab Bar: line under it */
+  --tab-text:var(--md-sys-color-on-surface-variant);                  /* Tab Bar: other tabs */
+  --tab-active-text:var(--md-sys-color-primary);                      /* Tab Bar: the open tab */
+  --tab-indicator:var(--md-sys-color-primary);                        /* Tab Bar: the open tab's underline */
+  --tab-refresh-background:var(--md-sys-color-secondary-container);   /* Tab Bar: Refresh button */
+  --tab-refresh-icon:var(--md-sys-color-on-secondary-container);      /* Tab Bar: Refresh icon */
+
+  /* --header-background:var(--header-paper);                                   
+  --tab-bar-background:var(--header-paper);                                   */
+  --header-background:var(--header-paperNEW);                                  
+  --tab-bar-background:var(--header-paperNEW);                                
+
+  
 }
+
 
 :root[data-theme="dark"]{
   color-scheme:dark;
@@ -94,7 +136,64 @@
   --on-choice-selected:var(--md-sys-color-on-tertiary);
   --muted:var(--md-sys-color-on-surface-variant);
   --shadow:none;
+  --card-lift-edge:#2178F5;
+  --card-lift-glow:#55A6FF;
+  --page-glow-1-color:#3D5A46;    /* page background*/
+  --page-glow-1-strength:6%;        /* page background */
+  --page-glow-2-color:#E8A33D;    /* page background */
+  --page-glow-2-strength:8%;        /* page background */
+  
+
+  --page-glow-1-colorB:#3D5A46;    /* page background*/
+  --page-glow-1-strengthB:6%;        /* page background */
+  --page-glow-2-colorB:#E8A33D;    /* page background */
+  --page-glow-2-strengthB:8%;        /* page background */
+
+  --header-background:var(--paper);                                   /* header */
+  --header-divider:var(--md-sys-color-outline-variant);               /* header: line under it, pages without a Tab Bar */
+  --header-text:var(--md-sys-color-on-surface);                       /* header: search icon and text, user name */
+  --header-link:var(--md-sys-color-primary);                          /* header: nav link, outlined button */
+  --header-button:var(--md-sys-color-primary);                        /* header: filled button */
+  --on-header-button:var(--md-sys-color-on-primary);                  /* header: filled button's text */
+  --header-search-background:var(--md-sys-color-surface-container-high); /* header: search field */
+
+  --tab-bar-background:var(--paper);                                  /* Tab Bar */
+  --tab-bar-divider:var(--md-sys-color-outline-variant);              /* Tab Bar: line under it */
+  --tab-text:var(--md-sys-color-on-surface-variant);                  /* Tab Bar: other tabs */
+  --tab-active-text:var(--md-sys-color-primary);                      /* Tab Bar: the open tab */
+  --tab-indicator:var(--md-sys-color-primary);                        /* Tab Bar: the open tab's underline */
+  --tab-refresh-background:var(--md-sys-color-secondary-container);   /* Tab Bar: Refresh button */
+  --tab-refresh-icon:var(--md-sys-color-on-secondary-container);      /* Tab Bar: Refresh icon */
 }
+
+/* ---------- Page background: two faint glows over --paper, fixed to the window ----------
+   Each glow's colour and strength are set per scheme above; its size (the ellipse's horizontal and
+   vertical radii) and centre are the same in both. A glow fades out at 60% of its radii. */
+:root{
+  --page-glow-1-size:600px 400px;    /* page background */
+  --page-glow-1-at:12% 8%;            /* page background */
+  --page-glow-2-size:500px 380px;     /* page background */
+  --page-glow-2-at:90% 95%;           /* page background */
+
+  --page-glow-1-sizeNEW:1600px 1600px;     /* page background */
+  --page-glow-1-atNEW:50% 50%;            /* page background */
+  --page-glow-2-sizeNEW:1600px 1600px;     /* page background */
+  --page-glow-2-atNEW:90% 95%;           /* page background */
+}
+
+
+
+/* :root .page-decor{
+  background:                         
+    radial-gradient(var(--page-glow-1-size) at var(--page-glow-1-at), color-mix(in srgb, var(--page-glow-1-color) var(--page-glow-1-strength), transparent), transparent 60%),
+    radial-gradient(var(--page-glow-2-size) at var(--page-glow-2-at), color-mix(in srgb, var(--page-glow-2-color) var(--page-glow-2-strength), transparent), transparent 60%);
+} */
+:root .page-decor{
+  background:                         
+    radial-gradient(var(--page-glow-1-sizeNEW) at var(--page-glow-1-atNEW), color-mix(in srgb, var(--page-glow-1-colorNEW) var(--page-glow-1-strengthNEW), transparent), transparent 60%),
+    radial-gradient(var(--page-glow-2-sizeNEW) at var(--page-glow-2-atNEW), color-mix(in srgb, var(--page-glow-2-colorNEW) var(--page-glow-2-strengthNEW), transparent), transparent 60%);
+}
+
 
 /* ---------- Type scale: https://m3.material.io/styles/typography/type-scale-tokens ---------- */
 :root{
@@ -198,6 +297,7 @@
 
   --md-sys-motion-easing-emphasized-decelerate:cubic-bezier(0.05, 0.7, 0.1, 1);
 }
+
 
 /* ---------- Ripple: https://m3.material.io/foundations/interaction/states/applying-states ---------- */
 .m3-ripple{

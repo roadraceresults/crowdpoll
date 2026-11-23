@@ -535,3 +535,50 @@
     box-shadow:0 0 0 4px color-mix(in srgb, var(--md-sys-color-primary) 30%, transparent);
   }
 }
+
+/* A grid card rises while pointed at or pressed (pollCard.js sets .is-lifted). `top`, not a transform,
+   so nothing inside the card gets a new containing block. In Dark a shadow does not show on the
+   page, so the border takes the outline colour as well. */
+.card-viewport{ top:0; transition:top 0.15s ease; scroll-margin-top:calc(var(--fixed-chrome-height, 0px) + 8px); }
+.card-viewport .card-face{ transition:box-shadow 0.15s ease, border-color 0.15s ease; }
+.card-viewport.is-lifted:not(.maximized-card-viewport){ top:-4px; }
+.card-viewport.is-lifted:not(.maximized-card-viewport) .card-face{ box-shadow:var(--md-sys-elevation-3); }
+:root[data-theme="dark"] .card-viewport.is-lifted:not(.maximized-card-viewport) .card-face{ border-color:var(--md-sys-color-outline); }
+@media (prefers-reduced-motion: reduce){
+  .card-viewport,
+  .card-viewport .card-face{ transition:none; }
+}
+
+/* A lifted card's edge: a blue line that grows from 1 px to 4 px with a glow, then steps
+   down through 3, 2 and 1 px and goes.
+   On each face, so it turns with the card; over the face's own 1 px border. */
+.card-viewport .card-face::after{
+  content:"";
+  position:absolute;
+  inset:-1px;
+  border-radius:20px;
+  border:0 solid var(--card-lift-edge);
+  pointer-events:none;
+  opacity:0;
+}
+.card-viewport.is-lifted:not(.maximized-card-viewport) .card-face::after{ animation:cardEdgeGrow 1.5s ease-in-out 1 forwards; }
+@keyframes cardEdgeGrow{
+  0%{ border-width:1px; box-shadow:0 0 4px 0 color-mix(in srgb, var(--card-lift-glow) 18%, transparent); opacity:1; }
+  40%{ border-width:4px; box-shadow:0 0 12px 0 color-mix(in srgb, var(--card-lift-glow) 50%, transparent); opacity:1; }
+  55%{ border-width:4px; box-shadow:0 0 12px 0 color-mix(in srgb, var(--card-lift-glow) 50%, transparent); opacity:1; }
+  55.01%{ border-width:3px; box-shadow:0 0 10px 0 color-mix(in srgb, var(--card-lift-glow) 42%, transparent); opacity:1; }
+  69%{ border-width:3px; box-shadow:0 0 10px 0 color-mix(in srgb, var(--card-lift-glow) 42%, transparent); opacity:1; }
+  69.01%{ border-width:2px; box-shadow:0 0 7px 0 color-mix(in srgb, var(--card-lift-glow) 32%, transparent); opacity:1; }
+  83%{ border-width:2px; box-shadow:0 0 7px 0 color-mix(in srgb, var(--card-lift-glow) 32%, transparent); opacity:1; }
+  83.01%{ border-width:1px; box-shadow:0 0 4px 0 color-mix(in srgb, var(--card-lift-glow) 18%, transparent); opacity:1; }
+  97%{ border-width:1px; box-shadow:0 0 4px 0 color-mix(in srgb, var(--card-lift-glow) 18%, transparent); opacity:1; }
+  100%{ border-width:1px; box-shadow:0 0 4px 0 color-mix(in srgb, var(--card-lift-glow) 18%, transparent); opacity:0; }
+}
+@media (prefers-reduced-motion: reduce){
+  .card-viewport.is-lifted:not(.maximized-card-viewport) .card-face::after{
+    animation:none;
+    opacity:1;
+    border-width:4px;
+    box-shadow:0 0 12px 0 color-mix(in srgb, var(--card-lift-glow) 35%, transparent);
+  }
+}
