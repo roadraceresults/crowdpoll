@@ -348,6 +348,16 @@ content refresh, as after a creator's edit. A creator's later save sends `baseCh
 `withChoicesAddedSince` keeps every stored choice not in it, so an addition made while the wizard was open
 survives. Account deletion strips `addedBy`, and turning a poll anonymous drops it.
 
+In the browser the request comes from the add-your-own row (`pollCard.js`), the last row of both faces' bar
+lists while `mayAddChoice()` holds, the poll is below `maxChoices`, not being edited and published. Each face has
+one `li.add-own-item`, built on first need; `renderPollResults` and `renderVotingOptions` remove every child but it
+and insert the bars before it, so a live update never re-creates the field and its text, caret and focus survive.
+The row counts as one bar in the layout, in `fitting()` and in `ballotOpensMaximized()`, and the forced turn-back
+of a compact ballot waits while the voting row has focus or text. When the grid moves a card, `createGrid`'s
+render puts focus and selection back in a field it moved. Enter sends `saveChoice`, whose answer is applied to
+the card (`applyAddedChoices`) and handed to `Tabs.applyAddedChoices` for the poll's other cards; duplicates are
+checked as the voter types with the same rule as the server's (`keyOf`).
+
 ## Refresh model and the three load bounds
 
 Five mechanisms keep a page current, and they meet only through the cache and PostgreSQL:
@@ -1005,8 +1015,9 @@ flowchart TB
   the admin page's arrow.
 
 The tab bar itself is nine buttons in `index.html` — Home (hidden, not disabled, for a guest), Your Polls, Shared With You, Your Votes,
-Trending, Newest, Watching, Live Results, Search — each with an inline SVG icon before its label
-(the eye is a `<symbol>` defined once in the page and also used by the card's Watch control; the
+Trending, Newest, Following (tab name `watching`), Live Results, Search — each with an inline SVG icon before its label
+(the eye is a `<symbol>` defined once in the page and also used by the card's Follow control, on the results side and
+the maximized voting side; the
 animated bars and the magnifying glass are the same glyphs the card and header use; the Your
 Polls icon is a copy of `avatar-default.svg`). A 2px rule under the row is a `::after` on the non-scrolling
 `.tab-bar-wrap`, `100vw` wide, with `overflow-x:clip` on `.page` so it never adds a horizontal
@@ -1159,13 +1170,13 @@ hides the two sections not named there. `tabs.js` asks for the voters report and
 when their tab is first shown (`extraDeferred`); above 640 px the bar is hidden and all three
 sections show and load at once, as before.
 
-**The Submit bar.** `#voteBar` in `index.html` sits outside the cards and holds Back, a count
-("2 selected") and Submit. `syncVoteBar` shows it while a card is maximized, turned to its voting
+**The Cast bar.** `#voteBar` in `index.html` sits outside the cards and holds Cast, a count
+("2 selected") and the flip-back button, in that order. `syncVoteBar` shows it while a card is maximized, turned to its voting
 side and `isPhoneLayout()`; the card reports turns and selection changes through its `onFace` and
 `onSelection` options. The bar's buttons only click the card's own `.back-btn` and
 `.submit-vote-btn`, and the bar copies the Submit button's label and disabled state, so every vote
 rule stays in `pollCard.js`. While the bar shows, the Back-to-top button is hidden; the card keeps
-its own footer (flip on the left, Submit on the right, Add Choice between them when offered). The bar is fixed at
+its own footer (Cast on the left, flip on the right). The bar is fixed at
 `bottom: var(--cookie-banner-offset, 0px)`, above the cookie notice.
 
 **The history step.** This part applies at every width.

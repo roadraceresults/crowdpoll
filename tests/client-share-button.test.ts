@@ -88,13 +88,13 @@ async function mount(poll: object, browser: Browser = {}, signedIn = true) {
 }
 
 describe("the Share button", () => {
-  it("is on both faces, before Watch and Maximize, named for the poll, for a guest too", async () => {
+  it("is on both faces, before Follow and Maximize, named for the poll, for a guest too", async () => {
     const { card, buttons } = await mount(detail(), {}, false);
     expect(buttons()).toHaveLength(2);
     const front = card.element.querySelector(".card-front .question-row")!;
     const back = card.element.querySelector(".card-back .question-row")!;
     expect(front.querySelector(".share-btn")!.nextElementSibling!.classList.contains("bookmark-btn")).toBe(true);
-    expect(back.querySelector(".share-btn")!.nextElementSibling!.classList.contains("maximize-btn")).toBe(true);
+    expect(back.querySelector(".share-btn")!.nextElementSibling!.classList.contains("bookmark-btn")).toBe(true);
     for (const button of buttons()) {
       expect(button.hidden).toBe(false);
       expect(button.getAttribute("aria-label")).toBe("Share poll: Pizza night");

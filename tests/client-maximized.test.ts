@@ -571,7 +571,7 @@ describe("the maximized card stays in step", () => {
     const back = card.querySelector(".card-back .question-row .maximize-btn") as HTMLElement;
     expect(back).not.toBeNull();
     expect(back.getAttribute("aria-label")).toBe("Maximize Poll Card");
-    expect(card.querySelector(".card-back .bookmark-btn")).toBeNull();
+    expect(card.querySelector(".card-back .question-row .bookmark-btn")!.nextElementSibling).toBe(back);
 
     await clickIn(page, card.querySelector(".vote-btn"));
     await clickIn(page, back);
@@ -870,5 +870,117 @@ describe("the Who voted panel follows the maximized poll", () => {
     await clickIn(page, card.querySelector(".submit-vote-btn"));
     await page.settle(50);
     expect(shows(calls)).toHaveLength(2);
+  });
+});
+
+describe("a long maximized ballot repeats its actions under the title", () => {
+  const topRow = (card: Element) => card.querySelector(".card-back .actions--top") as HTMLElement;
+  const divider = (card: Element) => card.querySelector(".card-back .top-divider") as HTMLElement;
+  const topCast = (card: Element) => card.querySelector(".top-submit-btn") as HTMLButtonElement;
+  const bottomCast = (card: Element) => card.querySelector(".submit-vote-btn") as HTMLButtonElement;
+  const helps = (card: Element) => Array.from(card.querySelectorAll(".card-back .multi-help")) as HTMLElement[];
+  const phoneWidth = (window: BrowserPage["window"]) => {
+    window.matchMedia = ((query: string) => ({
+      matches: query === "(max-width: 640px)",
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {}
+    })) as unknown as typeof window.matchMedia;
+  };
+
+  async function openBallot(title: string, choices: number, overrides: Partial<Poll> = {}, maximized = true, beforeScripts?: (window: BrowserPage["window"]) => void) {
+    await seedPoll(title, choices, overrides);
+    await sweeps();
+    const { cookie } = await forgeSession(ctx, `${title.toLowerCase().replace(/\W+/g, "-")}@example.com`);
+    page = await open(cookie, DEFAULT_SCRIPTS, beforeScripts);
+    const card = cardByTitle(page, title);
+    if (maximized) await clickIn(page, card.querySelector(".card-front .maximize-btn"));
+    await clickIn(page, card.querySelector(".vote-btn"));
+    expect(card.querySelector(".card-flip")!.classList.contains("is-flipped")).toBe(true);
+    return card;
+  }
+
+  it("shows the divider and top row at ten choices, first on the face, and not at nine", async () => {
+    const card = await openBallot("Ten", 10);
+    expect(divider(card).hidden).toBe(false);
+    expect(topRow(card).hidden).toBe(false);
+    const face = Array.from(card.querySelector(".card-back")!.children);
+    expect(face.indexOf(topRow(card))).toBeLessThan(face.indexOf(card.querySelector(".voting-scroll-wrap")!));
+    expect(face.indexOf(divider(card))).toBe(face.indexOf(topRow(card)) - 1);
+    page!.close();
+
+    const nine = await openBallot("Nine", 9);
+    expect(divider(nine).hidden).toBe(true);
+    expect(topRow(nine).hidden).toBe(true);
+  });
+
+  it("is not shown on a compact card or at phone width", async () => {
+    const compact = await openBallot("Compact", 10, {}, false);
+    expect(topRow(compact).hidden).toBe(true);
+    page!.close();
+
+    const phone = await openBallot("Phone", 10, {}, true, phoneWidth);
+    expect(topRow(phone).hidden).toBe(true);
+    expect(divider(phone).hidden).toBe(true);
+  });
+
+  it("mirrors the bottom Cast button and casts, and its flip-back button turns the card", async () => {
+    const card = await openBallot("Mirror", 10, { choiceMode: "Multiple-Choice Poll" });
+    expect(topCast(card).querySelector(".btn-vote-label")!.textContent).toBe(bottomCast(card).querySelector(".btn-vote-label")!.textContent);
+    expect(topCast(card).disabled).toBe(true);
+    await clickIn(page!, card.querySelectorAll(".voting-list > .vote-row")[0]!);
+    await clickIn(page!, card.querySelectorAll(".voting-list > .vote-row")[1]!);
+    expect(topCast(card).querySelector(".btn-vote-label")!.textContent).toBe("Cast these votes");
+    expect(topCast(card).disabled).toBe(false);
+    expect(topCast(card).hidden).toBe(bottomCast(card).hidden);
+
+    await clickIn(page!, card.querySelector(".top-back-btn"));
+    expect(card.querySelector(".card-flip")!.classList.contains("is-flipped")).toBe(false);
+    await clickIn(page!, card.querySelector(".vote-btn"));
+    await clickIn(page!, card.querySelectorAll(".voting-list > .vote-row")[0]!);
+    await clickIn(page!, topCast(card));
+    await page!.settle(100);
+    expect(page!.requests.some((r) => r.method === "POST" && r.url.endsWith("/vote"))).toBe(true);
+    expect(card.querySelector(".card-flip")!.classList.contains("is-flipped")).toBe(false);
+  });
+
+  it("says a multiple-choice ballot takes more than one choice, and says nothing on a single-choice one", async () => {
+    const multi = await openBallot("Many", 10, { choiceMode: "Multiple-Choice Poll" });
+    expect(helps(multi).length).toBe(2);
+    expect(helps(multi).every((help) => !help.hidden && help.textContent === "You may select more than one choice.")).toBe(true);
+    page!.close();
+
+    const single = await openBallot("One", 10);
+    expect(helps(single).every((help) => help.hidden)).toBe(true);
+  });
+});
+
+describe("Follow on the maximized Voting Center", () => {
+  it("sits between Share and Maximize, follows the poll, and agrees with the results face", async () => {
+    await seedPoll("Followed", 3);
+    await sweeps();
+    const { cookie } = await forgeSession(ctx, "follower@example.com");
+    page = await open(cookie);
+    await page.settle(1250);
+    const card = cardByTitle(page, "Followed");
+    await clickIn(page, card.querySelector(".card-front .maximize-btn"));
+    await clickIn(page, card.querySelector(".vote-btn"));
+    const order = Array.from(card.querySelectorAll(".card-back .question-row > button")).map((el) => el.classList[0]);
+    expect(order).toEqual(["share-btn", "bookmark-btn", "maximize-btn"]);
+    const back = card.querySelector(".card-back .bookmark-btn") as HTMLButtonElement;
+    expect(back.getAttribute("aria-label")).toBe("Follow");
+    expect(back.title).toBe("Follow this Poll");
+    await clickIn(page, back);
+    await page.settle(50);
+    expect(page.requests.some((r) => r.method === "POST" && r.url.endsWith("/bookmark"))).toBe(true);
+    const pressed = Array.from(card.querySelectorAll(".bookmark-btn")).map((el) => el.getAttribute("aria-pressed"));
+    expect(pressed).toEqual(["true", "true"]);
+    expect(back.getAttribute("aria-label")).toBe("Following");
+    expect(back.title).toBe("Stop following this Poll");
+  });
+
+  it("is not displayed on a compact card's voting face", async () => {
+    const res = await (await import("supertest")).default(ctx.app).get("/pollCard-m3.css");
+    expect(res.text).toContain(".card-flip:not(.maximized-card-flip) .card-back .bookmark-btn{ display:none; }");
   });
 });

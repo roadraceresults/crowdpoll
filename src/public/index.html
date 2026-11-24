@@ -26,7 +26,7 @@
   <link rel="stylesheet" href="/back-to-top-m3.css">
   <link rel="stylesheet" href="/back-arrow-m3.css">
   <link rel="stylesheet" href="/tabs-modal-m3.css">
-  <link rel="stylesheet" href="/add-choice-m3.css">
+  <link rel="stylesheet" href="/add-own-m3.css">
   <link rel="stylesheet" href="/live-idle-prompt-m3.css">
   <link rel="stylesheet" href="/empty-tab-line-m3.css">
   <link rel="stylesheet" href="/pollCard-m3.css">
@@ -80,7 +80,7 @@
           </button>
           <button class="tab" type="button" data-tab="watching" role="tab" id="tab-watching" aria-controls="panel-watching" aria-selected="false" tabindex="-1">
             <svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#watching-eye"/></svg>
-            Watching
+            Following
           </button>
           <button class="tab" type="button" data-tab="live" role="tab" id="tab-live" aria-controls="panel-live" aria-selected="false" tabindex="-1" hidden>
             <span class="tab-icon tab-icon--live" aria-hidden="true"><span class="live-bars"><i></i><i></i><i></i></span></span>
@@ -195,11 +195,11 @@
 </template>
 
 <div id="voteBar" class="vote-bar" hidden>
+  <button type="button" class="btn-primary vote-bar-submit"></button>
+  <span class="vote-bar-count" aria-live="polite"></span>
   <button type="button" class="icon-btn vote-bar-back" aria-label="Back to results without voting">
     <svg viewBox="-143 -218 1193 1193" fill="currentColor" aria-hidden="true" focusable="false"><path fill-rule="evenodd" d="M12 11H712V528H12Z M73 70V466H648V70Z"/><path d="M125 130h470v65H125zM125 243h385v65H125zM124 351h332v65H124z"/><g transform="matrix(-1 0 0 1 900 0)" style="fill:var(--md-sys-color-primary);stroke:var(--md-sys-color-primary)" stroke-linejoin="round"><path d="M163 169C81 187 6 245 6 335C7 553 293 623 468 628V531C339 526 118 484 77 331C76 283 123 252 163 236Z" stroke-width="80"/><path d="M468 431L695 579L468 746Z" stroke-width="56"/><path d="M468 431L695 579L720 541L493 393Z" stroke="none"/><circle cx="468" cy="431" r="42" stroke="none"/></g><path d="M648 11h64v289h-64z"/><g transform="matrix(-1 0 0 1 900 0)"><path d="M163 169C81 187 6 245 6 335C7 553 293 623 468 628V531C339 526 118 484 77 331C76 283 123 252 163 236Z"/><path d="M468 431L695 579L468 746Z"/></g></svg>
   </button>
-  <span class="vote-bar-count" aria-live="polite"></span>
-  <button type="button" class="btn-primary vote-bar-submit"></button>
 </div>
 
 <script src="/m3-ripple.js" defer></script>
@@ -207,7 +207,6 @@
 <script src="/app.js" defer></script>
 <script src="/headerFit.js" defer></script>
 <script src="/fixedChrome.js" defer></script>
-<script src="/addChoiceDialog.js" defer></script>
 <script src="/sharePoll.js" defer></script>
 <script src="/pollCard.js" defer></script>
 <script src="/deviceEvidence.js" defer></script>

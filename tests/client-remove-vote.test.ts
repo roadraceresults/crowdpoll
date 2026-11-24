@@ -16,7 +16,7 @@ let ctx: TestContext;
 let page: BrowserPage | null = null;
 let users = 0;
 
-const SCRIPTS = ["app.js", "addChoiceDialog.js", "pollCard.js", "voteClient.js", "deltaClient.js", "tabs.js", "trending.js", "newest.js", "searchTab.js", "liveResults.js"];
+const SCRIPTS = ["app.js", "sharePoll.js", "pollCard.js", "voteClient.js", "deltaClient.js", "tabs.js", "trending.js", "newest.js", "searchTab.js", "liveResults.js"];
 const HOLD_MS = 300;
 
 beforeAll(async () => {
@@ -90,14 +90,15 @@ async function flip(p: BrowserPage) {
 }
 
 describe("the ballot of a voter who holds a vote on a Dynamic-Vote poll", () => {
-  it("reads Remove vote while the selection is empty, Submit vote while it holds a choice", async () => {
+  it("reads Remove vote while the selection is empty, Cast this vote while it holds a choice", async () => {
     const voter = await person();
     const poll = await seed(voter);
     await voteFor(voter, poll, ["c1"]);
     page = await openShared(voter.cookie);
+    expect(voteBtn(page).querySelector(".btn-vote-label")!.textContent).toBe("Cast Your Vote");
     await flip(page);
     expect(selectedLabels(page)).toEqual(["Pizza"]);
-    expect(submitLabel(page)).toBe("Submit vote");
+    expect(submitLabel(page)).toBe("Cast this vote");
     expect(submitBtn(page).disabled).toBe(false);
 
     rowOf(page, "Pizza").click();
@@ -106,7 +107,7 @@ describe("the ballot of a voter who holds a vote on a Dynamic-Vote poll", () => 
     expect(submitLabel(page)).toBe("Remove vote");
 
     rowOf(page, "Sushi").click();
-    expect(submitLabel(page)).toBe("Submit vote");
+    expect(submitLabel(page)).toBe("Cast this vote");
     expect(submitBtn(page).disabled).toBe(false);
 
     rowOf(page, "Sushi").click();
@@ -131,7 +132,7 @@ describe("the ballot of a voter who holds a vote on a Dynamic-Vote poll", () => 
     expect(notice(page).hidden).toBe(false);
     expect(notice(page).textContent).toBe("Your vote was removed.");
     expect(notice(page).closest(".card-foot-row")).not.toBeNull();
-    expect(Array.from(card(page).querySelectorAll(".card-front .actions > *:not([hidden])")).map((el) => el.className)).toEqual(["live-link", "btn-primary btn-vote vote-btn"]);
+    expect(Array.from(card(page).querySelectorAll(".card-front .actions > *:not([hidden])")).map((el) => el.className)).toEqual(["btn-primary btn-vote vote-btn", "live-link"]);
     expect(votedLine(page).hidden).toBe(true);
     expect(totals(page)).toBe("0 votes");
     const front = card(page).querySelector(".card-front")!.textContent!.replace(/\s+/g, " ");
@@ -147,7 +148,7 @@ describe("the ballot of a voter who holds a vote on a Dynamic-Vote poll", () => 
     await flip(page);
     expect(selectedLabels(page)).toEqual([]);
     expect(submitBtn(page).disabled).toBe(true);
-    expect(submitLabel(page)).toBe("Submit vote");
+    expect(submitLabel(page)).toBe("Cast this vote");
   });
 
   it("on a multiple-choice poll still submits while one of two choices is set, and removes only when both are un-set", async () => {
@@ -157,9 +158,13 @@ describe("the ballot of a voter who holds a vote on a Dynamic-Vote poll", () => 
     page = await openShared(voter.cookie);
     await flip(page);
     expect(selectedLabels(page).sort()).toEqual(["Pizza", "Sushi"]);
+    expect(submitLabel(page)).toBe("Cast these votes");
     rowOf(page, "Pizza").click();
-    expect(submitLabel(page)).toBe("Submit votes");
+    expect(submitLabel(page)).toBe("Cast this vote");
     expect(submitBtn(page).disabled).toBe(false);
+    rowOf(page, "Pizza").click();
+    expect(submitLabel(page)).toBe("Cast these votes");
+    rowOf(page, "Pizza").click();
     rowOf(page, "Sushi").click();
     expect(submitLabel(page)).toBe("Remove vote");
     expect(submitBtn(page).disabled).toBe(false);
@@ -167,20 +172,20 @@ describe("the ballot of a voter who holds a vote on a Dynamic-Vote poll", () => 
 });
 
 describe("the ballot where there is nothing to remove", () => {
-  it("stays disabled and reads Submit vote for a viewer who never voted, whatever they un-set", async () => {
+  it("stays disabled and reads Cast this vote for a viewer who never voted, whatever they un-set", async () => {
     const viewer = await person();
     await seed(viewer);
     page = await openShared(viewer.cookie);
     await flip(page);
     expect(selectedLabels(page)).toEqual([]);
     expect(submitBtn(page).disabled).toBe(true);
-    expect(submitLabel(page)).toBe("Submit vote");
+    expect(submitLabel(page)).toBe("Cast this vote");
     rowOf(page, "Pizza").click();
     expect(submitBtn(page).disabled).toBe(false);
-    expect(submitLabel(page)).toBe("Submit vote");
+    expect(submitLabel(page)).toBe("Cast this vote");
     rowOf(page, "Pizza").click();
     expect(submitBtn(page).disabled).toBe(true);
-    expect(submitLabel(page)).toBe("Submit vote");
+    expect(submitLabel(page)).toBe("Cast this vote");
   });
 
   it("never reads Remove vote on a Final-Vote poll, even for a voter who holds a vote", async () => {
@@ -190,11 +195,11 @@ describe("the ballot where there is nothing to remove", () => {
     page = await openShared(voter.cookie);
     await flip(page);
     expect(selectedLabels(page)).toEqual(["Pizza"]);
-    expect(submitLabel(page)).toBe("Submit vote");
+    expect(submitLabel(page)).toBe("Cast this vote");
     rowOf(page, "Pizza").click();
     expect(selectedLabels(page)).toEqual([]);
     expect(submitBtn(page).disabled).toBe(true);
-    expect(submitLabel(page)).toBe("Submit vote");
+    expect(submitLabel(page)).toBe("Cast this vote");
     expect(Array.from(submitBtn(page).querySelectorAll(".btn-vote-sizer")).map((el) => el.textContent)).toEqual(["Submit vote", ""]);
   });
 });

@@ -101,6 +101,12 @@ describe("the home page's address names the tab shown (C2)", () => {
 });
 
 describe("a tab named in the address is shown on load", () => {
+  it("keeps the name watching for the tab labelled Following", async () => {
+    const p = await open("?tab=watching", { cookie: await login() });
+    expect(activeTab(p)).toBe("watching");
+    expect(p.document.querySelector('#tabBar .tab[data-tab="watching"]')!.textContent!.trim()).toBe("Following");
+  });
+
   for (const name of TAB_NAMES) {
     it(`shows ${name} to a logged-in visitor`, async () => {
       const p = await open(`?tab=${name}`, { cookie: await login() });

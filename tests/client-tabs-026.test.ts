@@ -108,7 +108,7 @@ describe("empty tabs", () => {
     "your-polls": "You haven't created any polls yet.",
     "shared-with-you": "Nothing has been shared with you yet.",
     "your-votes": "You haven't voted in any polls yet.",
-    watching: "You aren't watching any polls yet."
+    watching: "You aren't following any polls yet."
   };
 
   it("say so to the user, mention neither email nor notifications, and offer Create Poll only to those who can create", async () => {
@@ -259,13 +259,13 @@ describe("the Watch control", () => {
     await page.settle(200);
     const card = cardOf(page, "shared-with-you", "Sent to me");
     expect(button(card).hidden).toBe(false);
-    expect(button(card).getAttribute("aria-label")).toBe("Watch");
-    expect(button(card).title).toBe("Watch this poll");
+    expect(button(card).getAttribute("aria-label")).toBe("Follow");
+    expect(button(card).title).toBe("Follow this Poll");
     await page.settle(100);
     await page.click('.tab-panel[data-panel="shared-with-you"] .bookmark-btn');
-    expect(button(card).getAttribute("aria-label")).toBe("Watching");
+    expect(button(card).getAttribute("aria-label")).toBe("Following");
     expect(button(card).getAttribute("aria-pressed")).toBe("true");
-    expect(button(card).title).toBe("Stop watching this poll");
+    expect(button(card).title).toBe("Stop following this Poll");
     expect(button(card).querySelector("use")).not.toBeNull();
   });
 

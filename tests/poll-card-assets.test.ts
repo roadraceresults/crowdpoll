@@ -124,28 +124,46 @@ describe("pollCard.js card template (008 FR-004)", () => {
     expect(res.text.match(/class="poll-totals"/g)).toHaveLength(2);
   });
 
-  it("carries the width sizer that equalises the two primary buttons", async () => {
+  it("carries the width sizers that equalise the primary buttons, on the labels the back button showed before Cast", async () => {
     const res = await request(ctx.app).get("/pollCard.js");
     expect(res.text).toContain("btn-vote-sizer");
+    for (const label of ["'Submit votes'", "'Submit vote'", "'Remove vote'"]) expect(res.text).toContain(label);
   });
 
   it("gives the back button a label span and two sizers, like the front", async () => {
     const res = await request(ctx.app).get("/pollCard.js");
     const sizer = '<span class="btn-vote-sizer" aria-hidden="true"></span>';
-    expect(res.text).toContain(`submit-vote-btn" type="button" disabled><span class="btn-vote-label">Submit vote</span>${sizer}${sizer}</button>`);
-    expect(res.text).toContain(`vote-btn" type="button"><span class="btn-vote-label">Vote</span>${sizer}${sizer}</button>`);
+    expect(res.text).toContain(`submit-vote-btn" type="button" disabled><span class="btn-vote-label">Cast this vote</span>${sizer}${sizer}</button>`);
+    expect(res.text).toContain(`vote-btn" type="button"><span class="btn-vote-label">Cast Your Vote</span>${sizer}${sizer}</button>`);
+  });
+
+  it("puts Cast Your Vote first in the front action row and the flip-back button last in the back one", async () => {
+    const res = await request(ctx.app).get("/pollCard.js");
+    const [front, back] = Array.from(res.text.matchAll(/<div class="actions">([\s\S]*?)\n\s*<\/div>/g)).map((m) => m[1]!.replace(/<!--[\s\S]*?-->/g, ""));
+    expect(front!.trim()).toMatch(/^<button class="btn-primary btn-vote vote-btn"/);
+    const buttons = Array.from(back!.matchAll(/<button class="([^"]*)"/g)).map((m) => m[1]);
+    expect(buttons[buttons.length - 1]).toBe("icon-btn back-btn");
   });
 });
 
-describe("site.css button sizing (008 FR-007)", () => {
-  it("stacks the Vote label and its sizer in one grid cell", async () => {
+describe("site.css button sizing", () => {
+  it("stacks the Cast Your Vote label and its sizers in one grid cell", async () => {
     const res = await request(ctx.app).get("/site.css");
     expect(res.text).toContain(".btn-vote-sizer");
-    // research.md R7: the grid is load-bearing. .btn-primary sets display:flex,
-    // and a row flex container sizes to the SUM of its items -- a sizer laid
-    // out beside the label would make the button about twice as wide as
-    // intended, instead of matching "Submit vote".
+    // .btn-primary sets display:flex, and a row flex container sizes to the SUM of its items: a sizer
+    // laid out beside the label would make the button about twice as wide as the sizers ask.
     expect(res.text).toContain(".vote-btn > *");
+  });
+
+  it("leaves the width to the sizers: the visible label of each primary button takes none of its own", async () => {
+    const res = await request(ctx.app).get("/site.css");
+    expect(res.text).toContain(".vote-btn > .btn-vote-label, .submit-vote-btn > .btn-vote-label, .top-submit-btn > .btn-vote-label{ width:0; min-width:100%; }");
+  });
+
+  it("keeps Live Results at the right of the front action row", async () => {
+    const res = await request(ctx.app).get("/site.css");
+    expect(res.text).toContain(".card-front .actions .live-link{ margin-left:auto; }");
+    expect(res.text).not.toContain(".card-front .actions .vote-btn{ margin-left:auto; }");
   });
 
   it("styles the vote notice as the foot's status text, beside the count", async () => {
@@ -154,10 +172,10 @@ describe("site.css button sizing (008 FR-007)", () => {
     expect(res.text).not.toContain(".poll-vote-notice{\n  color:");
   });
 
-  it("stacks the back button's label and sizers the same way", async () => {
+  it("stacks the back and top Cast buttons' labels and sizers the same way", async () => {
     const res = await request(ctx.app).get("/site.css");
-    expect(res.text).toContain(".vote-btn, .submit-vote-btn{ display:grid;");
-    expect(res.text).toContain(".vote-btn > *, .submit-vote-btn > *{ grid-area:1 / 1; }");
+    expect(res.text).toContain(".vote-btn, .submit-vote-btn, .top-submit-btn{ display:grid;");
+    expect(res.text).toContain(".vote-btn > *, .submit-vote-btn > *, .top-submit-btn > *{ grid-area:1 / 1; }");
   });
 });
 

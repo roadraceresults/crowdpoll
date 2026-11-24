@@ -78,15 +78,39 @@
 .card-face .share-btn[hidden]{ display:none; }
 .card-face .share-btn svg{ width:22px; height:22px; display:block; }
 .card-face .icon-btn svg{ width:20px; height:20px; }
-/* The flip-back button: filled like an enabled Submit vote, a size up so its page and arrow read;
+/* The flip-back button: filled like an enabled Cast button, a size up so its page and arrow read;
    its glyph fills the button, as the flip-to-front icon fills its circle. */
-.card-face .back-btn{
+.card-face .back-btn,
+.card-face .top-back-btn{
   width:40px;
   height:40px;
   background:var(--md-sys-color-primary);
   color:var(--md-sys-color-on-primary);
 }
-.card-face .back-btn svg{ width:40px; height:40px; }
+.card-face .back-btn svg,
+.card-face .top-back-btn svg{ width:40px; height:40px; }
+
+.card-face .top-divider{
+  width:100%;
+  margin:8px 0;
+  border:0;
+  border-top:1px solid var(--md-sys-color-outline-variant);
+}
+.card-face .actions--top{ margin-top:0; }
+.card-face .multi-help{
+  margin:4px 0 0;
+  text-align:end;
+  font-family:var(--md-sys-typescale-font);
+  font-weight:var(--md-sys-typescale-label-large-weight);
+  font-size:var(--md-sys-typescale-label-large-size);
+  line-height:var(--md-sys-typescale-label-large-line-height);
+  color:var(--md-sys-color-on-surface);
+}
+.card-flip:not(.maximized-card-flip) .card-back .bookmark-btn{ display:none; }
+
+.card-face .top-divider[hidden],
+.card-face .actions--top[hidden],
+.card-face .multi-help[hidden]{ display:none; }
 /* Where Vote is offered a bar acts: it opens the maximized view, and there it votes as Vote does (pollCard.js). */
 .card-front:has(.vote-btn:not([hidden]):not(:disabled)) .result-row{ cursor:pointer; }
 .card-face .bookmark-btn:hover,

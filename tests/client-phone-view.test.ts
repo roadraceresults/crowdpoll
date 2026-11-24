@@ -61,7 +61,9 @@ describe("Vote on a long poll in the phone layout", () => {
     expect(card.querySelectorAll(".voting-list > .vote-row")).toHaveLength(12);
     expect(voteBar(page).hidden).toBe(false);
     expect(rootHas(page, "vote-bar-shown")).toBe(true);
-    expect(barSubmit(page).textContent).toBe("Submit vote");
+    expect(barSubmit(page).textContent).toBe("Cast this vote");
+    expect(barSubmit(page).textContent).toBe(card.querySelector(".submit-vote-btn .btn-vote-label")!.textContent);
+    expect(Array.from(voteBar(page).children).map((el) => el.classList[el.classList.length - 1])).toEqual(["vote-bar-submit", "vote-bar-count", "vote-bar-back"]);
     expect(barSubmit(page).disabled).toBe(true);
     expect(barCount(page)).toBe("0 selected");
 

@@ -6,6 +6,22 @@ The full description, every earlier feature's decisions and the settings table a
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261122-012539-VOTING-CENTER-UI/plan.md` (research R1–R20, `data-model.md` — the add-your-own row's client
+state and the visibility and layout rules, nothing stored; the contract `contracts/ui.md` V1–V22 and the quickstart live
+alongside it).
+The requirements report is `requirements/20261122-012539-voting-center-ui/requirements-report.md`: 23 findings, all
+resolved. Client-only: no route, payload or address changes.
+Decisions that are easy to get wrong:
+- **The add-your-own row is never re-created by a render**: `renderPollResults` / `renderVotingOptions` clear every
+  child except `li.add-own-item`, and the grid re-focuses a row it moved, so live updates keep text, caret and focus (R2, R18).
+- **The row counts as one bar** in the layout, `fitting()` and `ballotOpensMaximized()` (R4); it shows while
+  `mayAddChoice()` (unchanged) and the poll is below `maxChoices` (R3).
+- **The top action row's buttons are `.top-submit-btn` / `.top-back-btn`**, kept in step by `syncTopRow`; `tabs.js`
+  and the suites find `.submit-vote-btn` / `.back-btn` by `querySelector` (R13).
+- **The button sizers keep today's labels** ("Submit vote(s)", "Remove vote"); "Cast Your Vote" and "Cast these votes"
+  shrink to fit (R11).
+
+The plan before it (branch `deep-links`):
 `specs/20261119-182343-DEEP-LINKS/plan.md` (research R1–R10, `data-model.md` — tab names, the link request, `chooseTab`
 and the address states, nothing stored; the contracts `contracts/links.md` L1–L12, `contracts/share.md` S1–S9 and the
 quickstart live alongside it).
@@ -42,7 +58,7 @@ Decisions that are easy to get wrong:
 - **The Choices field is a preview or today's textarea**, decided by `wizard.choicesOpen`; `commitChoices()` runs
   wherever `commitNotes()` does (R12).
 
-The plan before it:
+An earlier plan:
 `specs/20261118-160304-CLIENT-CODE-OBFUSCATION/plan.md` (research R1–R15, `data-model.md` — build inputs, mode and
 checks, nothing stored; the contract `contracts/build.md` B1–B16 and the quickstart live alongside it).
 The requirements report is `requirements/20261118-160304-client-code-obfuscation/requirements-report.md`: 14 findings,
@@ -151,6 +167,7 @@ npx vitest run -t "name of the test"   # tests matching a name
 - A back arrow or Cancel that leaves a page goes through `window.SiteBack` (`backArrow.js`), never its own
   `history.back()`; a new home tab joins `TAB_NAMES` in `tabs.js`, and tab changes use `replaceState`, never `pushState`.
 - Bookmark is "Favorites" in the UI only; routes, tables and identifiers keep `bookmark`; stored enumerations stay verbatim.
+- Watch is "Follow" in the UI only; the tab name `watching`, `mayWatch`/`canWatch` and the `#watching-eye` symbols keep their names.
 
 ## Architecture Notes
 
