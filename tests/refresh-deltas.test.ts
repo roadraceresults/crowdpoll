@@ -61,12 +61,12 @@ describe("computeDelta", () => {
   it("carries a choice's new color to a client holding the older content version", () => {
     const recolored: PollProjection = {
       ...projection("p1", 4),
-      choices: [{ id: "c1", label: "One", position: 0, color: "#F91010" }]
+      choices: [{ id: "c1", label: "One", position: 0, color: "#EC0606" }]
     };
     const delta = computeDelta(upToDate, listing({ projections: new Map([["p1", recolored], ["p2", projection("p2", 1)]]) }));
     expect(delta.status).toBe(200);
     if (delta.status !== 200) return;
-    expect(delta.body.cards.p1!.choices).toEqual([{ id: "c1", label: "One", position: 0, color: "#F91010" }]);
+    expect(delta.body.cards.p1!.choices).toEqual([{ id: "c1", label: "One", position: 0, color: "#EC0606" }]);
   });
 
   it("sends the card (with its counters) when the content version moved", () => {

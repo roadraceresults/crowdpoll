@@ -199,6 +199,142 @@ describe("Material 3 page assets", () => {
     expect(tokens).toContain(".m3-ripple-host{");
   });
 
+  it("draws the page background's two glows from tokens, colour and strength set per scheme", () => {
+    const tokens = read("m3-tokens.css");
+    const scheme = (selector: string) => {
+      const start = tokens.indexOf(`${selector}{`);
+      return tokens.slice(start, tokens.indexOf("}", start));
+    };
+    for (const selector of [':root:not([data-theme="dark"])', ':root[data-theme="dark"]']) {
+      for (const declaration of ["--page-glow-1-color:#3D5A46;", "--page-glow-1-strength:6%;", "--page-glow-2-color:#E8A33D;", "--page-glow-2-strength:8%;"]) {
+        expect(scheme(selector), `${selector} ${declaration}`).toContain(declaration);
+      }
+    }
+    for (const declaration of ["--page-glow-1-size:600px 400px;", "--page-glow-1-at:12% 8%;", "--page-glow-2-size:500px 380px;", "--page-glow-2-at:90% 95%;"]) {
+      expect(tokens).toContain(declaration);
+    }
+    const decor = tokens.match(/:root \.page-decor\{([^}]*)\}/)![1];
+    for (const glow of [1, 2]) {
+      expect(decor).toContain(
+        `radial-gradient(var(--page-glow-${glow}-size) at var(--page-glow-${glow}-at), color-mix(in srgb, var(--page-glow-${glow}-color) var(--page-glow-${glow}-strength), transparent), transparent 60%)`
+      );
+    }
+  });
+
+  it("sets the header's and the Tab Bar's colours per scheme, starting from the roles they used before", () => {
+    const tokens = read("m3-tokens.css");
+    const scheme = (selector: string) => {
+      const start = tokens.indexOf(`${selector}{`);
+      return tokens.slice(start, tokens.indexOf("\n}", start));
+    };
+    const levers = {
+      "--header-background": "var(--paper)",
+      "--header-divider": "var(--md-sys-color-outline-variant)",
+      "--header-text": "var(--md-sys-color-on-surface)",
+      "--header-link": "var(--md-sys-color-primary)",
+      "--header-button": "var(--md-sys-color-primary)",
+      "--on-header-button": "var(--md-sys-color-on-primary)",
+      "--search-field-background": "var(--md-sys-color-surface-container-high)",
+      "--tab-bar-background": "var(--paper)",
+      "--tab-bar-divider": "var(--md-sys-color-outline-variant)",
+      "--tab-text": "var(--md-sys-color-on-surface-variant)",
+      "--tab-active-text": "var(--md-sys-color-primary)",
+      "--tab-indicator": "var(--md-sys-color-primary)",
+      "--tab-refresh-background": "var(--icon-button-background)",
+      "--tab-refresh-icon": "var(--md-sys-color-on-secondary-container)"
+    };
+    for (const selector of [':root:not([data-theme="dark"])', ':root[data-theme="dark"]']) {
+      for (const [name, value] of Object.entries(levers)) {
+        expect(scheme(selector), `${selector} ${name}`).toContain(`${name}:${value};`);
+      }
+    }
+    const bar = read("header-tab-bar-m3.css");
+    for (const use of [
+      "background:var(--tab-bar-divider);",
+      "color:var(--tab-text);",
+      "color:var(--tab-active-text);",
+      "background:var(--tab-indicator);",
+      '.tab-bar .tab-icon [fill="#e8edf2" i]{ fill:var(--tab-bar-background); }',
+      "background:var(--tab-refresh-background);",
+      "color:var(--tab-refresh-icon);",
+      "background:var(--search-field-background);",
+      ".search-icon-btn{ color:var(--header-text); }",
+      "color:var(--header-link);",
+      "background:var(--header-button);",
+      "color:var(--on-header-button);"
+    ]) {
+      expect(bar, use).toContain(use);
+    }
+    expect(read("single-column-m3.css")).toMatch(/\.tab-menu-btn\{[^}]*color:var\(--tab-text\);/);
+  });
+
+  it("borders the header's Search field and the Search tab's field as a poll card is bordered", () => {
+    expect(read("pollCard.css")).toMatch(/\.card-face\{[^}]*border:1px solid var\(--line\);/);
+    expect(read("header-tab-bar-m3.css")).toMatch(/\.header-search,\s*\.header-search:focus-within\{[^}]*border:1px solid var\(--line\);/);
+    expect(read("single-column-m3.css")).toMatch(/\.search-tab-form\{[^}]*border:1px solid var\(--line\);/);
+  });
+
+  it("fills the header's Search field and the Search tab's field from one token, in both schemes", () => {
+    expect(read("header-tab-bar-m3.css")).toMatch(/\.header-search,\s*\.header-search:focus-within\{[^}]*background:var\(--search-field-background\);/);
+    expect(read("single-column-m3.css")).toMatch(/\.search-tab-form\{[^}]*background:var\(--search-field-background\);/);
+    expect(read("m3-tokens.css").match(/--search-field-background:/g)).toHaveLength(2);
+    expect(read("m3-tokens.css")).not.toContain("--header-search-background");
+  });
+
+  it("fills the filled icon buttons (Refresh, back arrow, phone vote bar) from one token, CrowdPoll green 30% in Light", () => {
+    const tokens = read("m3-tokens.css");
+    const block = (selector: string) => {
+      const from = tokens.indexOf(`${selector}{`);
+      return tokens.slice(from, tokens.indexOf("\n}", from));
+    };
+    expect(block(':root:not([data-theme="dark"])')).toContain("--icon-button-background:var(--crowdpoll-green-30-percent);");
+    expect(block(':root[data-theme="dark"]')).toContain("--icon-button-background:var(--md-sys-color-secondary-container);");
+    expect(read("back-arrow-m3.css")).toMatch(/\.back-arrow\{[^}]*background:var\(--icon-button-background\);/);
+    expect(read("phone-card-m3.css")).toMatch(/\.vote-bar \.icon-btn\{[^}]*background:var\(--icon-button-background\);/);
+    // The M3 role is its own token: chips, tonal buttons and pressed segments keep it.
+    expect(tokens).toContain("--md-sys-color-secondary-container:var(--crowdpoll-green-20-percent);");
+  });
+
+  it("rounds the Search tab's field fully, as the header's Search field is, with the same padding around its magnifier", () => {
+    const tab = /\.search-tab-form\{([^}]*)\}/.exec(read("single-column-m3.css"))![1]!;
+    const header = /\.header-search,\s*\.header-search:focus-within\{([^}]*)\}/.exec(read("header-tab-bar-m3.css"))![1]!;
+    for (const declaration of ["border-radius:var(--md-sys-shape-corner-full);", "padding:0 16px 0 8px;", "gap:4px;"]) {
+      expect(tab, declaration).toContain(declaration);
+      expect(header, declaration).toContain(declaration);
+    }
+    expect(read("phone-m3.css")).toMatch(/\.search-tab-form \.search-icon-btn,\s*\.search-tab-form \.header-search-clear\{ width:48px; height:48px; \}/);
+  });
+
+  it("paints the header's two horizontal glows across the header and the Tab Bar from tokens, colour and strength set per scheme", () => {
+    const tokens = read("m3-tokens.css");
+    const scheme = (selector: string) => {
+      const start = tokens.indexOf(`${selector}{`);
+      return tokens.slice(start, tokens.indexOf("}", start));
+    };
+    for (const selector of [':root:not([data-theme="dark"])', ':root[data-theme="dark"]']) {
+      for (const name of ["left-color", "left-strength", "right-color", "right-strength"]) {
+        expect(scheme(selector), `${selector} --header-glow-${name}`).toMatch(new RegExp(`--header-glow-${name}:[^;]+;`));
+      }
+    }
+    for (const name of ["left-at", "left-size", "right-at", "right-size"]) {
+      expect(tokens, `--header-glow-${name}`).toMatch(new RegExp(`--header-glow-${name}:[^;]+;`));
+    }
+    const sheet = read("header-fixed-m3.css");
+    const layer = sheet.slice(sheet.indexOf("#site-header::before{"), sheet.indexOf("}", sheet.indexOf("#site-header::before{")));
+    expect(layer).toContain("position:fixed;");
+    expect(layer).toContain("z-index:-1;");
+    expect(layer).toContain("pointer-events:none;");
+    expect(layer).toContain("background:var(--header-glows);");
+    expect(sheet).toMatch(/\.tab-bar-wrap::after\{[^}]*z-index:-1;[^}]*var\(--header-glows\)/);
+    expect(sheet).toMatch(/\.tab-bar-wrap::before\{[^}]*background:var\(--header-glows\), var\(--tab-bar-background\);/);
+    for (const side of [["left", "right"], ["right", "left"]]) {
+      const [glow, toward] = side;
+      expect(tokens).toContain(
+        `linear-gradient(to ${toward}, color-mix(in srgb, var(--header-glow-${glow}-color) var(--header-glow-${glow}-strength), transparent) var(--header-glow-${glow}-at), transparent calc(var(--header-glow-${glow}-at) + var(--header-glow-${glow}-size)))`
+      );
+    }
+  });
+
   it("declares the type roles the admin cards read", () => {
     const tokens = read("m3-tokens.css");
     for (const role of ["title-medium", "label-medium", "label-small"]) {
@@ -390,6 +526,14 @@ describe("Material 3 page assets", () => {
     expect(css).toContain("height:1lh; }");
     expect(css).toContain(".card-face .question-row.has-bookmark .question::before, .card-face .question-row.has-share .question::before{ width:calc(2 * var(--title-icon-size) + 4px); }");
     expect(css).toContain(".card-face .question-row.has-bookmark.has-share .question::before{ width:calc(3 * var(--title-icon-size) - 4px); }");
+  });
+
+  it("closes the card's title section with a 2px rule from edge to edge, matching the face's side padding", () => {
+    const css = read("pollCard-m3.css").replace(/\s+/g, " ");
+    expect(css).toContain(".card-viewport:not(.card-shell-viewport) .card-face .question-wrap{ margin:0 -22px 12px; padding:0 22px 8px; border-bottom:2px solid var(--line); }");
+    const face = /\.card-face\s*\{([^}]*)\}/.exec(read("pollCard.css"))![1]!;
+    expect(face).toMatch(/padding:\s*18px 22px 16px;/);
+    expect(read("phone-card-m3.css")).not.toContain(".question-wrap");
   });
 
   it("keeps the poll-card title hover off the card-shell pages", () => {

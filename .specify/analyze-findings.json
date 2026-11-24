@@ -272,6 +272,15 @@
         "specs/20261122-012539-VOTING-CENTER-UI/data-model.md": "ca7bdd0fa18f4faec2976ed77bfa0c1e13de20805f261b74da79661a5e7f5939",
         "specs/20261122-012539-VOTING-CENTER-UI/contracts/ui.md": "aed54372de947e36105032c3cc64d0f2d976cf45046f99fd840b1835cd3b4f56",
         "requirements/20261122-012539-voting-center-ui/requirements.md": "4016968dd5c829f7897c7429007f4f3ed0c8dcf98512e4dbcc08b0bcdcb4000d",
-        "specs/20261122-012539-VOTING-CENTER-UI/plan.md": "e2146d807b55688f1f279e7317f60b849b13b3626e5ebe88b2ccf2400b2eae61"
+        "specs/20261122-012539-VOTING-CENTER-UI/plan.md": "e2146d807b55688f1f279e7317f60b849b13b3626e5ebe88b2ccf2400b2eae61",
+        "specs/20261120-175903-COLOR-CONTRAST/analyze-findings.md": "43b4db60b2d9036fafa23578ce5ca56d97b090a0b8b18738f9da9051bbbbb3b9",
+        "specs/20261120-175903-COLOR-CONTRAST/spec.md": "c307103347e62f2df86df8ac9fe39d869ac438c1eb806855236f26e65fc3e2ba",
+        "specs/20261120-175903-COLOR-CONTRAST/tasks.md": "c529986cd6f76c4e82c00b38040710bba98fca25258646c427b43184ee598313",
+        "specs/20261120-175903-COLOR-CONTRAST/research.md": "c42f69e1b69964be764c21b7ae7c9c03482652c4b4ada5d6b2b606343898d888",
+        "specs/20261120-175903-COLOR-CONTRAST/data-model.md": "b4ce6346cb04ed23cc8b4de8c55d8a091ac9e9fe69a08e4deeba2125ea852714",
+        "specs/20261120-175903-COLOR-CONTRAST/quickstart.md": "34c6a2eca99a43ec5d61a4d1fe68e928480628ffe8623bde3e21da935723720c",
+        "specs/20261120-175903-COLOR-CONTRAST/contracts/colors.md": "3ac53cbd221363b4003cd55d935e02db06684fa5f934aa0646aa88ceedab4c4a",
+        "specs/20261120-175903-COLOR-CONTRAST/plan.md": "372c991997c03b8829cf43678ac554c679a1e6be83b40e547cad35fac7c91bf8",
+        "requirements/20261120-175903-color-contrast/requirements.md": "f3ee30216ef5b4104ef715546dd7cf9aa07541c0fb5a3af4d4a7cd5db401a2ce"
     }
 }

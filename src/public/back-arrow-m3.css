@@ -21,7 +21,7 @@
   padding:0;
   border:none;
   border-radius:var(--md-sys-shape-corner-full);
-  background:var(--md-sys-color-secondary-container);
+  background:var(--icon-button-background);
   color:var(--md-sys-color-on-secondary-container);
   cursor:pointer;
   pointer-events:auto;

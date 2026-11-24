@@ -586,7 +586,16 @@
       if (options.quiet) return;
       window.scrollTo(0, returnScrollY);
       if (leftTheTab) setTimeout(focusTabStart, 0);
-      else if (card) focusCardAfterClose(card);
+      else if (card) {
+        revealCard(card.element);
+        card.replayLift();
+        focusCardAfterClose(card);
+      }
+    }
+
+    /* Scrolls only as far as needed to show the whole card; its scroll-margin keeps it below the fixed header. */
+    function revealCard(element) {
+      if (element.scrollIntoView) element.scrollIntoView({ block: "nearest" });
     }
 
     function focusCardAfterClose(card) {

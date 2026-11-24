@@ -27,7 +27,7 @@
 .tab-bar-wrap::after{
   bottom:0;
   height:1px;
-  background:var(--md-sys-color-outline-variant);
+  background:var(--tab-bar-divider);
 }
 .tab-bar{
   gap:0;
@@ -41,7 +41,7 @@
   gap:8px;
   border-radius:0;
   background:none;
-  color:var(--md-sys-color-on-surface-variant);
+  color:var(--tab-text);
   font-family:var(--md-sys-typescale-font);
   font-weight:500;
   font-size:var(--md-sys-typescale-title-small-size);
@@ -50,7 +50,7 @@
 }
 .tab-bar .tab.is-active{
   background:none;
-  color:var(--md-sys-color-primary);
+  color:var(--tab-active-text);
 }
 .tab-bar .tab:hover:not(.is-active):not(:disabled):not([aria-disabled="true"]){ background:none; }
 .tab-bar .tab.is-active::after{
@@ -61,7 +61,7 @@
   bottom:0;
   height:3px;
   border-radius:3px 3px 0 0;
-  background:var(--md-sys-color-primary);
+  background:var(--tab-indicator);
 }
 
 .tab-bar .tab:disabled,
@@ -104,6 +104,9 @@
 /* ---------- 4. Tab icons: monochrome, 24px ---------- */
 .tab-icon [fill="#8093a7" i]{ fill:currentColor; }
 .tab-icon [fill="#e8edf2" i]{ fill:var(--paper); }
+.tab-bar .tab-icon [fill="#e8edf2" i]{ fill:var(--tab-bar-background); }
+.tab-icon [color="#e8edf2" i]{ color:var(--paper); }
+.tab-bar .tab-icon [color="#e8edf2" i]{ color:var(--tab-bar-background); }
 .tab-icon [stroke="#9AA197" i]{ stroke:currentColor; }
 .tab .live-bars i:nth-child(n){ background:currentColor; }
 
@@ -116,8 +119,8 @@
   height:40px;
   border:0;
   border-radius:var(--md-sys-shape-corner-full);
-  background:var(--md-sys-color-secondary-container);
-  color:var(--md-sys-color-on-secondary-container);
+  background:var(--tab-refresh-background);
+  color:var(--tab-refresh-icon);
 }
 .tab-refresh--icon svg{ width:26px; height:26px; }
 .tab-bar-wrap .tab-refresh--icon:disabled,
@@ -130,12 +133,12 @@
 /* ---------- 6. Search bar ---------- */
 .header-search,
 .header-search:focus-within{
-  height:56px;
+  height:40px;
   padding:0 16px 0 8px;
   gap:4px;
-  border:0;
+  border:1px solid var(--line);
   border-radius:var(--md-sys-shape-corner-full);
-  background:var(--md-sys-color-surface-container-high);
+  background:var(--search-field-background);
 }
 .search-icon-btn,
 .header-search-clear{
@@ -147,9 +150,9 @@
   justify-content:center;
   border-radius:var(--md-sys-shape-corner-full);
 }
-.search-icon-btn{ color:var(--md-sys-color-on-surface); }
+.search-icon-btn{ color:var(--header-text); }
 .search-icon-btn:hover,
-.search-icon-btn:focus-visible{ color:var(--md-sys-color-on-surface); }
+.search-icon-btn:focus-visible{ color:var(--header-text); }
 .search-icon-btn .search-icon{ width:24px; height:24px; color:inherit; }
 .header-search-clear,
 .header-search-clear:hover,
@@ -163,7 +166,7 @@
   font-size:var(--md-sys-typescale-body-large-size);
   line-height:var(--md-sys-typescale-body-large-line-height);
   letter-spacing:var(--md-sys-typescale-body-large-tracking);
-  color:var(--md-sys-color-on-surface);
+  color:var(--header-text);
 }
 .header-search input::placeholder{ color:var(--md-sys-color-on-surface-variant); }
 .search-kbd{
@@ -192,13 +195,13 @@
 .btn-header-ghost:hover{
   border:1px solid var(--md-sys-color-outline);
   background:transparent;
-  color:var(--md-sys-color-primary);
+  color:var(--header-link);
 }
 
 .btn-header-primary,
 .btn-header-primary:hover{
-  background:var(--md-sys-color-primary);
-  color:var(--md-sys-color-on-primary);
+  background:var(--header-button);
+  color:var(--on-header-button);
 }
 @media (max-width:640px){
   .btn-header-ghost,
@@ -219,7 +222,7 @@
   font-weight:500;
   font-size:var(--md-sys-typescale-label-large-size);
   letter-spacing:0.1px;
-  color:var(--md-sys-color-primary);
+  color:var(--header-link);
 }
 .header-nav-icon{ width:24px; height:24px; flex:0 0 auto; margin-right:8px; }
 .header-nav-link.is-inert{
@@ -234,7 +237,7 @@
   font-weight:500;
   font-size:var(--md-sys-typescale-label-large-size);
   letter-spacing:0.1px;
-  color:var(--md-sys-color-on-surface);
+  color:var(--header-text);
 }
 .header-user .avatar-btn{
   position:relative;
@@ -300,10 +303,11 @@
 .avatar-menu a:hover,
 .avatar-menu button:hover{ background:none; }
 
-/* ---------- 8. Logo and wordmark in the dark scheme ---------- */
+/* ---------- 8. Logo and wordmark: dark scheme inks; the wordmark's white ground and counters are transparent in both ---------- */
 :root[data-theme="dark"] .brand svg :is([fill="#000000" i], [fill="#020202" i], [fill="#030202" i], [fill="#030302" i], [fill="#30302F" i], [fill="#303030" i], [fill="#313030" i]){ fill:var(--md-sys-color-on-surface); }
 :root[data-theme="dark"] .brand svg [stroke="#000000" i]{ stroke:var(--md-sys-color-on-surface); }
 :root[data-theme="dark"] .brand svg :is([fill="#FAFAFA" i], [fill="#FBFBFB" i], [fill="#FDFAFA" i], [fill="#F9F9F9" i], [fill="#EEEDED" i], [fill="#EAEAEA" i]){ fill:transparent; }
+.brand-wordmark :is([fill="#FAFAFA" i], [fill="#FBFBFB" i], [fill="#FDFAFA" i], [fill="#F9F9F9" i], [fill="#EEEDED" i], [fill="#EAEAEA" i]){ fill:transparent; }
 
 /* ---------- 9. Snackbars ---------- */
 .tab-notice,

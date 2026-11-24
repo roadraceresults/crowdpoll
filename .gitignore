@@ -20,6 +20,7 @@ devScripts/*
 !devScripts/cardSizeDebug.js
 !devScripts/favicon-ico.ts
 !devScripts/capture-admin-card.ts
+!devScripts/tweak.ps1
 !devScripts/render-invitation-email.ts
 !devScripts/serve-prototypes.ts
 !devScripts/fix-migrations.ts

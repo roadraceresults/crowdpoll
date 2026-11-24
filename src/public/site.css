@@ -87,7 +87,7 @@
 }
 
 .header-search:focus-within{
-  border-color:#B7BDB5;
+  border-color:var(--crowdpoll-green-40-percent);
   background:var(--paper-raised);
 }
 
@@ -159,7 +159,7 @@
   flex-shrink:0;
   font-family:'Inter', sans-serif;
   font-size:13px;
-  color:#C3C8BC;
+  color:var(--crowdpoll-green-30-percent);
 }
 
 .header-actions{
@@ -177,7 +177,7 @@
   border:none;
   border-radius:12px;
   background:var(--ink);
-  color:#F7F8F5;
+  color:#FFFFFF;
   font-family:'Inter', sans-serif;
   font-weight:600;
   font-size:13.5px;
@@ -273,7 +273,7 @@
   font-weight:500;
   font-size:clamp(10.5px, 0.9vw, 12px);
   line-height:1.4;
-  color:#9AA197;
+  color:var(--crowdpoll-green-50-percent);
   margin:0;
   text-align:right;
 }
@@ -743,7 +743,7 @@
   border:0;
   border-radius:8px;
   background:transparent;
-  color:#9AA197;
+  color:var(--crowdpoll-green-50-percent);
   display:flex; align-items:center; justify-content:center;
   cursor:pointer;
 }

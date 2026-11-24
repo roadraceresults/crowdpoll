@@ -72,6 +72,14 @@ describe("the footer's look (C1, TWEAKS07)", () => {
     expect(css).toContain("width:min(calc(100% - 40px), calc(var(--max-width, 1280px) - 40px));");
     expect(css).toContain("margin:0 auto calc(16px + var(--cookie-banner-offset, 0px));");
   });
+
+  it("is drawn above the page glows, as the page itself is, so they never tint it", () => {
+    const footer = /\.site-footer\{([^}]*)\}/.exec(readFileSync(path.resolve("src/public/footer-m3.css"), "utf8").replace(/\s+/g, " "))![1]!;
+    expect(footer).toContain("position:relative;");
+    expect(footer).toContain("z-index:1;");
+    const tabs = readFileSync(path.resolve("src/public/tabs.css"), "utf8").replace(/\s+/g, " ");
+    expect(tabs).toMatch(/\.page-decor\{ position:fixed; inset:0; pointer-events:none; z-index:0;/);
+  });
 });
 
 describe("the cookie banner (C2)", () => {

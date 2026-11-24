@@ -209,7 +209,7 @@ describe("pollCard.js choice colours", () => {
     const res = await request(ctx.app).get("/pollCard.js");
     expect(res.status).toBe(200);
     expect(res.text).toContain("SEMANTIC_AFFIRMATIVE_COLOR = '#006120'");
-    expect(res.text).toContain("SEMANTIC_NEGATIVE_COLOR = '#F91010'");
+    expect(res.text).toContain("SEMANTIC_NEGATIVE_COLOR = '#EC0606'");
   });
 
   it("matches whole words only, with no g flag on either rule", async () => {
@@ -220,6 +220,17 @@ describe("pollCard.js choice colours", () => {
     // lastIndex across .test() calls and make results order-dependent.
     expect(res.text).toContain("/(?:^|[^a-z])(?:yes|true|correct|agree|yay|approve|approved|approval|support|favor|favour|accept|yeah|yep|aye)(?![a-z])/i");
     expect(res.text).toContain("/(?:^|[^a-z])(?:no|false|incorrect|disagree|nay|disapprove|disapproved|disapproval|oppose|against|reject|nah)(?![a-z])/i");
+  });
+
+  it("draws results from the fourteen base palette colours, in order", async () => {
+    const res = await request(ctx.app).get("/pollCard.js");
+    const block = res.text.slice(res.text.indexOf("RESULTS_PALETTE_ENTRIES = ["));
+    const entries = Array.from(block.slice(0, block.indexOf("];")).matchAll(/hex:\s*'(#[0-9A-Fa-f]{6})',\s*name:\s*'([a-z]+)'/g), (m) => `${m[1]} ${m[2]}`);
+    expect(entries).toEqual([
+      "#880015 darkred", "#C8468B palevioletred", "#0808FD blue", "#1A539E darkslateblue", "#0695F5 dodgerblue",
+      "#000000 black", "#8B4513 saddlebrown", "#6B8E23 olivedrab", "#800080 purple", "#B045B0 darkorchid",
+      "#FF6601 orangered", "#B8860B darkgoldenrod", "#007A7E teal", "#399FA2 lightseagreen"
+    ]);
   });
 
   it("expands the base list to one palette colour per allowed choice, never repeating a neighbour (FR-008, FIX03)", async () => {
@@ -251,7 +262,7 @@ describe("pollCard.js choice colours", () => {
   }
 
   const GREEN = "#006120";
-  const RED = "#F91010";
+  const RED = "#EC0606";
 
   it("keeps the colour of every label that holds no new word (SC-002)", async () => {
     const colorFor = await servedSemanticColorFor();

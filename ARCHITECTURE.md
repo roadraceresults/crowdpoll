@@ -873,7 +873,8 @@ scale shown: the smallest of 25, 50, 75 and 100 at or above the highest point (2
 with gridlines every 5, 10, 15 or 25%. A line's colour is the
 choice's manual hex from the response, else the colour the card itself assigned (`card.resultColors()`),
 so lines and bars never disagree in hue; `PollCard.lineColorOn` shades a colour under 3:1 against the
-panel's computed background to the nearest same-hue shade that reaches it, and a
+panel's computed background to the nearest same-hue shade that reaches it. The panel is always the card colour
+(`--paper-raised`, on the side panel and on the phone layout's graph), so a line is exactly its bar's drawn fill; a
 `data-theme` change on `<html>` (a `MutationObserver`) redraws. A pointer over the plot places a crosshair and ringed markers
 at the nearest bucket, and the readout row and the legend show the time (with the hour on hourly
 scales, in the viewer's time zone and always in the US English form, "Apr 16, 2026") and every drawn line's share at it: only
@@ -914,24 +915,35 @@ every user. A label holding a positive word (yes, agree, approve, support, …) 
 negative word (no, disagree, disapprove, oppose, …) takes `#F91010` instead, and neither uses up a palette colour; a
 neutral answer (neither, neutral, no opinion, don't know, …) is tested first and keeps its palette colour. The full
 lists are in `semanticColorFor` (`pollCard.js`), matched as whole words; a colour picked by hand wins over all three.
-Every bar is drawn the same way:
-- **The rest of the bar:** a tint of the fill, 90% of the way to white, for every colour: palette,
-  Yes/No and manual.
-- **The label and percentage:** drawn with no shadow, in the tint's dark shade (`darkShadeOf`: the
-  same hue, lightness stepped down until the pair reaches 7:1).
+The stored colour never changes; every bar is drawn from it the same way, per scheme, against the card colour
+(`#FFFFFF` in Light, `RESULTS_DARK_SURFACE` `#1C211D` in Dark):
+- **The fill:** `lineColorOn(stored, card)`, the stored colour or the nearest shade of its hue at 3:1 against the
+  card, the same shade the results graph draws its line in.
+- **The rest of the bar (the track):** the fill mixed into the card at the largest tint up to 90% (Light) or 80%
+  (Dark), in 5% steps, that still stands 1.5:1 from the card (`trackOn`).
+- **The label and percentage:** drawn with no shadow, in the track's own hue at 7:1: `darkShadeOf` in Light,
+  `lightShadeFor` in Dark.
 - **Over the fill:** a copy of the text, clipped to the fill's width and animated with it
-  (`setFillWidth`). It is white or black (`inkOnFillFor`): the colour
-  listed for that fill in `TEXT_ON_FILL_OVERRIDES` (chosen by eye on a monitor and a phone), else whichever of the two
-  contrasts more. The same for Yes/No as for any other colour. Dark mode keeps its 80% tint over the dark surface.
+  (`setFillWidth`), in white or black (`inkOnFillFor`): the colour listed for the stored colour in
+  `TEXT_ON_FILL_OVERRIDES` when it reaches 4.5:1 on the drawn fill, else whichever of the two contrasts more. The same
+  for Yes/No as for any other colour.
 
-Every bar's tint and text colours are computed once, at load, into one map (`BAR_COLORS`), and
-their dark-scheme counterparts into a second (`BAR_COLORS_DARK`: the track mixed toward the dark
-card surface by the same amount, and its text raised in lightness until it reaches 7:1). A row's
-track and text colours are not inline `background` / `color`: `applyBarColors` writes four custom
-properties (`--bar-track`, `--bar-ink`, `--bar-track-dark`, `--bar-ink-dark`), and
-`pollCard-m3.css` picks the pair for the scheme, so a scheme change needs no re-render. The fill
-and the clipped copy stay inline. The in-place update path re-applies fills, tints and copies on
+Each colour's light and dark set is computed once, on first use (the palette and Yes/No at load), into `BAR_COLORS`
+and `BAR_COLORS_DARK`. No colour on a row is inline: `applyBarColors` writes eight custom properties
+(`--bar-fill`, `--bar-track`, `--bar-ink`, `--bar-ink-on-fill` and their `-dark` twins), and `pollCard-m3.css`
+picks the set for the scheme, so a scheme change needs no re-render. The in-place update path re-applies them on
 every refresh, because a reorder puts a different choice in each row.
+
+### Colour schemes and contrast
+
+Both schemes' colours are set in `m3-tokens.css`: the M3 roles in `:root` (Light) and
+`:root[data-theme="dark"]`, and the aliases the site's rules read (`--ink`, `--paper`, `--paper-raised`,
+`--line`, `--track`, `--muted`, `--choice-*`, `--on-choice-selected`) in `:root:not([data-theme="dark"])` and
+`:root[data-theme="dark"]`. Those two blocks outrank the older `:root` palettes of `tabs.css`, `pollCard.css` and
+`site.css`, which load later but are less specific and now supply only the colours the aliases do not set (`--moss`,
+`--moss-dark`, `--amber`, `--shadow`). `COLOR-CONTRAST.md` lists the colours that never change (the greens and
+the Yes colour) and every pair that must stand apart, with its minimum; `tests/color-contrast.test.ts` reads those
+tables, resolves each colour per scheme from the token sheets, and fails on a pair that falls short, naming it.
 
 A choice can also carry a colour chosen by hand: an optional `color` (a palette hex code) on its
 element of the `polls.choices` jsonb array, absent for Automatic, so there is no column and no

@@ -1,4 +1,4 @@
-# Migrations on branches
+ # Migrations on branches
 
 Every branch folder under `C:\crowdPoll\` (`main`, `line-graph-toggle`, …) runs against the one development database
 `app01`. A branch's migration is therefore recorded in `app01` as soon as that branch's server starts, before the branch

@@ -50,6 +50,13 @@
     if (Array.isArray(cfg.barPalette)) runtime.barPalette = cfg.barPalette;
   }
 
+  // A swatch shows the colour as drawn: its hex in Light, its Dark twin (darkHex) in Dark.
+  function paintSwatch(node, hex) {
+    const entry = runtime.barPalette.find((c) => c.hex === String(hex).toUpperCase());
+    node.style.setProperty("--swatch", hex);
+    node.style.setProperty("--swatch-dark", (entry && entry.darkHex) || hex);
+  }
+
   function el(tag, className, text) {
     const node = document.createElement(tag);
     if (className) node.className = className;
@@ -1121,7 +1128,7 @@
       colorsLine.append(part(count + (count === 1 ? " color has" : " colors have") + " been set manually", 4, "colors"), ":");
       for (const label of colored) {
         const swatch = el("span", "wizard-summary-swatch");
-        swatch.style.setProperty("--swatch", s.colors[label]);
+        paintSwatch(swatch, s.colors[label]);
         swatch.setAttribute("role", "img");
         swatch.setAttribute("aria-label", label + ": " + colorName(s.colors[label]));
         swatch.title = label + ": " + colorName(s.colors[label]);
@@ -1946,7 +1953,7 @@
 
     function colorDot(hex) {
       const dot = el("span", "wizard-color-dot" + (hex ? "" : " is-automatic"));
-      if (hex) dot.style.setProperty("--swatch", hex);
+      if (hex) paintSwatch(dot, hex);
       dot.setAttribute("aria-hidden", "true");
       return dot;
     }
@@ -2035,7 +2042,7 @@
         swatch.title = name;
         swatch.dataset.color = hex || "";
         swatch.appendChild(hex ? el("span", "wizard-swatch-fill") : el("span", "wizard-swatch-fill is-automatic"));
-        if (hex) swatch.firstChild.style.setProperty("--swatch", hex);
+        if (hex) paintSwatch(swatch.firstChild, hex);
         swatch.appendChild(el("span", "wizard-swatch-check", "\u2713"));
         if (!hex) swatch.appendChild(el("span", "wizard-swatch-name", name));
         swatch.addEventListener("click", () => chooseColor(hex));

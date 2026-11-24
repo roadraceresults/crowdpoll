@@ -117,7 +117,7 @@ describe("GET /api/admin/polls/search", () => {
       lineGraphEnabled: true,
       createdAt: new Date(base + 2000),
       choices: [
-        { id: "c1", label: "Red", position: 0, color: "#F91010" },
+        { id: "c1", label: "Red", position: 0, color: "#EC0606" },
         { id: "c2", label: "Automatic", position: 1 },
         { id: "c3", label: "Added by a voter", position: 2, addedBy: "voter-1" }
       ]
@@ -126,14 +126,14 @@ describe("GET /api/admin/polls/search", () => {
       title: "All colors",
       createdAt: new Date(base + 3000),
       choices: [
-        { id: "c1", label: "Red", position: 0, color: "#F91010" },
+        { id: "c1", label: "Red", position: 0, color: "#EC0606" },
         { id: "c2", label: "Blue", position: 1, color: "#0808FD" }
       ]
     });
     const pendingOnly = makePoll({
       title: "Pending colors",
       createdAt: new Date(base + 4000),
-      pendingUpdate: { choices: [{ id: "c1", label: "Red", position: 0, color: "#F91010" }] }
+      pendingUpdate: { choices: [{ id: "c1", label: "Red", position: 0, color: "#EC0606" }] }
     });
     await polls(ctx).insertMany([automatic, oneColor, allColors, pendingOnly]);
     expect(pids(await search({ customColors: "true" }))).toEqual([allColors._id, oneColor._id]);
@@ -172,7 +172,7 @@ describe("GET /api/admin/polls/search", () => {
         pollState: i % 2 ? "OPEN" : "CLOSED",
         createdAt: new Date(Date.now() - i * 60_000),
         lineGraphEnabled: i % 10 === 0,
-        ...(i % 15 === 0 ? { choices: [{ id: "c1", label: "Red", position: 0, color: "#F91010" }] } : {})
+        ...(i % 15 === 0 ? { choices: [{ id: "c1", label: "Red", position: 0, color: "#EC0606" }] } : {})
       }));
     }
     await sql`analyze polls`.execute(ctx.db);

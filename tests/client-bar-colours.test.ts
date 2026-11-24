@@ -13,7 +13,7 @@ let base: string[] = [];
 let palette: string[] = [];
 
 const YES = "#006120";
-const NO = "#F91010";
+const NO = "#EC0606";
 
 beforeAll(async () => {
   ctx = await startTestContext({ ENV_MIN_MANUAL_REFRESH_INTERVAL: "1200", ...LISTING_MAX_AGE_1S });
@@ -64,18 +64,36 @@ function contrast(a: string, b: string): number {
   return (hi! + 0.05) / (lo! + 0.05);
 }
 
-// The text on a fill, as the page should pick it: the listed color, else white or black by contrast.
+// The text on a drawn fill, as the page should pick it: the color listed for the stored color when it
+// reaches 4.5:1 on the drawn fill, else white or black by contrast.
 const BLACK_TEXT_ON = new Set(["#E0E0E0", "#E3E335", "#FFFF00", "#06D400"]);
-const LISTED_WHITE_TEXT_ON = new Set(["#7D7D7D", "#F91010", "#0695F5", "#399FA2", "#C8468B", "#FC8E45", "#FF6601", "#006120", "#9E9E9E", "#545454", "#000000", "#0808FD", "#007A7E", "#B045B0", "#800080", "#404040", "#1A539E", "#880015", "#FF91CB", "#784315"]);
-function textOn(fill: string): string {
-  const hex = fill.toUpperCase();
-  if (BLACK_TEXT_ON.has(hex)) return "#000000";
-  if (LISTED_WHITE_TEXT_ON.has(hex)) return "#FFFFFF";
-  return contrast("#FFFFFF", hex) >= contrast("#000000", hex) ? "#FFFFFF" : "#000000";
+const LISTED_WHITE_TEXT_ON = new Set(["#EC0606", "#7B7924", "#0695F5", "#399FA2", "#C8468B", "#FF6601", "#006120", "#9E9E9E", "#545454", "#000000", "#0808FD", "#007A7E", "#B045B0", "#800080", "#1A539E", "#880015", "#FF91CB", "#784315"]);
+function textOn(stored: string): string {
+  const hex = stored.toUpperCase();
+  const fill = drawn(hex);
+  const listed = BLACK_TEXT_ON.has(hex) ? "#000000" : LISTED_WHITE_TEXT_ON.has(hex) ? "#FFFFFF" : null;
+  if (listed && contrast(listed, fill) >= 4.5) return listed;
+  return contrast("#FFFFFF", fill) >= contrast("#000000", fill) ? "#FFFFFF" : "#000000";
 }
 
 function tintOf(hex: string, amount = 0.9): string {
   return "#" + [0, 1, 2].map((i) => Math.round((parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16) / 255 * (1 - amount) + amount) * 255).toString(16).padStart(2, "0")).join("").toUpperCase();
+}
+
+// A stored color as a light card draws it: its shade at 3:1 or more against white (PollCard.lineColorOn,
+// pinned by client-line-colors.test.ts).
+function drawn(stored: string): string {
+  const lineColorOn = (page!.window as unknown as { PollCard: { lineColorOn: (hex: string, surface: string) => string } }).PollCard.lineColorOn;
+  return toHex(lineColorOn(stored.toUpperCase(), "#FFFFFF"));
+}
+
+// The track behind a stored color's fill: the palest tint of the drawn fill, from 90% in 5% steps, at
+// 1.5:1 or more against the white card.
+function trackFor(stored: string): string {
+  const fill = drawn(stored);
+  let tint = 0.9;
+  while (contrast(tintOf(fill, tint), "#FFFFFF") < 1.5 && tint > 0.05 + 1e-9) tint = Math.round((tint - 0.05) * 100) / 100;
+  return tintOf(fill, tint);
 }
 
 // FNV-1a: http://www.isthe.com/chongo/tech/comp/fnv/
@@ -104,10 +122,11 @@ async function addVotes(pid: string, votes: number[]) {
 }
 
 const rowsOf = (p: BrowserPage) => Array.from(p.document.querySelectorAll(".tab-panel[data-panel=\"trending\"] .results-list > .result-row")) as HTMLElement[];
-const fillOf = (row: HTMLElement) => toHex((row.querySelector(".result-fill") as HTMLElement).style.background);
+const fillOf = (row: HTMLElement) => toHex(row.style.getPropertyValue("--bar-fill").trim());
 const barProperty = (row: HTMLElement, name: string) => toHex(row.style.getPropertyValue(name).trim());
 const trackOf = (row: HTMLElement) => barProperty(row, "--bar-track");
 const inkOf = (row: HTMLElement) => barProperty(row, "--bar-ink");
+const inkOnFillOf = (row: HTMLElement) => barProperty(row, "--bar-ink-on-fill");
 const textsOf = (row: HTMLElement) => Array.from(row.querySelectorAll(":scope > .result-label, :scope > .result-pct")) as HTMLElement[];
 const cardTitled = (p: BrowserPage, title: string) =>
   Array.from(p.document.querySelectorAll(".tab-panel[data-panel=\"trending\"] .card-viewport"))
@@ -148,19 +167,18 @@ describe("bar colours and text on every card", () => {
     expect(new Set(palette).size).toBe(base.length);
     const start = paletteStartOf("poll-fifty");
     expect(new Set(rows.map(fillOf)).size).toBe(Math.min(rows.length, new Set(palette).size));
-    expect(fillOf(rows[(palette.length - start) % palette.length]!)).toBe(palette[0]);
+    expect(fillOf(rows[(palette.length - start) % palette.length]!)).toBe(drawn(palette[0]!));
     rows.forEach((row, i) => {
-      const fill = fillOf(row);
-      const track = tintOf(fill);
-      expect(fill).toBe(palette[(start + i) % palette.length]);
+      const stored = palette[(start + i) % palette.length]!;
+      const track = trackFor(stored);
+      expect(fillOf(row)).toBe(drawn(stored));
       expect(trackOf(row)).toBe(track);
       expect(contrast(inkOf(row), track)).toBeGreaterThanOrEqual(7);
       for (const text of textsOf(row)) expect(text.style.textShadow).toBe("none");
       const overlays = row.querySelectorAll(".result-ink-on-fill");
       expect(overlays.length).toBe(1);
-      for (const copy of Array.from(overlays[0]!.children) as HTMLElement[]) {
-        expect(toHex(copy.style.color)).toBe(textOn(fill));
-      }
+      expect(inkOnFillOf(row)).toBe(textOn(stored));
+      for (const copy of Array.from(overlays[0]!.children) as HTMLElement[]) expect(copy.style.color).toBe("");
     });
   });
 
@@ -172,8 +190,8 @@ describe("bar colours and text on every card", () => {
     await page.settle(50);
     const first = fillsOf(cardTitled(page, "First"));
     const second = fillsOf(cardTitled(page, "Second"));
-    expect(first).toEqual([0, 1, 2].map((i) => palette[(paletteStartOf("poll-colours-a") + i) % palette.length]));
-    expect(second).toEqual([0, 1, 2].map((i) => palette[(paletteStartOf("poll-colours-b") + i) % palette.length]));
+    expect(first).toEqual([0, 1, 2].map((i) => drawn(palette[(paletteStartOf("poll-colours-a") + i) % palette.length]!)));
+    expect(second).toEqual([0, 1, 2].map((i) => drawn(palette[(paletteStartOf("poll-colours-b") + i) % palette.length]!)));
     expect(first[0]).not.toBe(second[0]);
   });
 
@@ -184,7 +202,7 @@ describe("bar colours and text on every card", () => {
     await page.settle(50);
     const card = cardTitled(page, "Kept");
     const fills = fillsOf(card);
-    expect(fills).toEqual([0, 1, 2].map((i) => palette[(paletteStartOf("poll-colours-a") + i) % palette.length]));
+    expect(fills).toEqual([0, 1, 2].map((i) => drawn(palette[(paletteStartOf("poll-colours-a") + i) % palette.length]!)));
 
     (card.querySelector(".maximize-btn") as HTMLElement).click();
     await page.settle();
@@ -205,7 +223,7 @@ describe("bar colours and text on every card", () => {
     const card = cardTitled(page, "Order");
     const labels = () => Array.from(card.querySelectorAll(".results-list > .result-row > .result-label")).map((l) => l.textContent);
     const swapStart = paletteStartOf("poll-swap");
-    const sequence = [palette[swapStart], palette[(swapStart + 1) % palette.length]];
+    const sequence = [drawn(palette[swapStart]!), drawn(palette[(swapStart + 1) % palette.length]!)];
     expect(labels()).toEqual(["Alpha", "Beta"]);
     expect(fillsOf(card)).toEqual(sequence);
 
@@ -225,9 +243,9 @@ describe("bar colours and text on every card", () => {
     const [yes, no, maybe] = rowsOf(page);
 
     for (const [row, fill, pct, label] of [[yes!, YES, 50, "Yes"], [no!, NO, 33, "No"]] as const) {
-      expect(fillOf(row)).toBe(fill);
-      expect(trackOf(row)).toBe(tintOf(fill));
-      expect(contrast(inkOf(row), tintOf(fill))).toBeGreaterThanOrEqual(7);
+      expect(fillOf(row)).toBe(drawn(fill));
+      expect(trackOf(row)).toBe(trackFor(fill));
+      expect(contrast(inkOf(row), trackFor(fill))).toBeGreaterThanOrEqual(7);
       const overlays = row.querySelectorAll(".result-ink-on-fill");
       expect(overlays.length).toBe(1);
       const overlay = overlays[0] as HTMLElement;
@@ -236,11 +254,11 @@ describe("bar colours and text on every card", () => {
       expect(overlay.style.clipPath).toBe(`inset(0 calc(100% - ${pct}%) 0 0)`);
       const copies = Array.from(overlay.children) as HTMLElement[];
       expect(copies.map((c) => c.textContent)).toEqual([label, `${pct}%`]);
-      for (const copy of copies) expect(toHex(copy.style.color)).toBe(textOn(fill));
+      expect(inkOnFillOf(row)).toBe(textOn(fill));
     }
     const maybeFill = palette[paletteStartOf("poll-agree")]!;
-    expect(fillOf(maybe!)).toBe(maybeFill);
-    expect(trackOf(maybe!)).toBe(tintOf(maybeFill));
+    expect(fillOf(maybe!)).toBe(drawn(maybeFill));
+    expect(trackOf(maybe!)).toBe(trackFor(maybeFill));
     const maybeCopies = Array.from(maybe!.querySelector(".result-ink-on-fill")!.children) as HTMLElement[];
     expect(maybeCopies.map((c) => c.textContent)).toEqual(["Maybe", "17%"]);
     expect(maybeCopies.length).toBe(2);
@@ -256,7 +274,8 @@ describe("bar colours and text on every card", () => {
       fill: fillOf(row),
       track: trackOf(row),
       ink: inkOf(row),
-      copies: Array.from(row.querySelectorAll(".result-ink-on-fill > *")).map((c) => toHex((c as HTMLElement).style.color))
+      inkOnFill: inkOnFillOf(row),
+      dark: ["--bar-fill-dark", "--bar-track-dark", "--bar-ink-dark", "--bar-ink-on-fill-dark"].map((name) => barProperty(row, name))
     }));
     expect(colorsOfRows("Words")).toEqual(colorsOfRows("Hand"));
     expect(colorsOfRows("Words").length).toBe(2);
@@ -278,10 +297,10 @@ describe("bar colours and text on every card", () => {
     expect(top).toBe(firstRow);
     expect(list.children.length).toBe(2);
     expect(top!.querySelector(".result-label")!.textContent).toBe("No");
-    expect(fillOf(top!)).toBe(NO);
-    expect(trackOf(top!)).toBe(tintOf(NO));
-    expect(fillOf(second!)).toBe(YES);
-    expect(trackOf(second!)).toBe(tintOf(YES));
+    expect(fillOf(top!)).toBe(drawn(NO));
+    expect(trackOf(top!)).toBe(trackFor(NO));
+    expect(fillOf(second!)).toBe(drawn(YES));
+    expect(trackOf(second!)).toBe(trackFor(YES));
     for (const [row, label, pct] of [[top!, "No", 63], [second!, "Yes", 38]] as const) {
       const overlays = row.querySelectorAll(".result-ink-on-fill");
       expect(overlays.length).toBe(1);
@@ -290,7 +309,7 @@ describe("bar colours and text on every card", () => {
     }
   });
 
-  it("hands each row's light and dark track and ink to CSS, with no inline colours, and dark text at 7:1 or more", async () => {
+  it("hands each row's light and dark fill, track and inks to CSS, with no inline colours, and dark text at 7:1 on the track and 4.5:1 on the fill", async () => {
     await seed("Fifty dark", Array.from({ length: 50 }, (_, i) => `Option ${i + 1}`), [], "poll-fifty");
     await seed("Agree dark", ["Yes", "No"], [2, 1], "poll-agree");
     page = await openPage(ctx, "index.html");
@@ -299,7 +318,12 @@ describe("bar colours and text on every card", () => {
     expect(rows.length).toBe(52);
     for (const row of rows) {
       expect(row.style.background).toBe("");
+      expect((row.querySelector(".result-fill") as HTMLElement).style.background).toBe("");
       for (const text of textsOf(row)) expect(text.style.color).toBe("");
+      for (const copy of Array.from(row.querySelectorAll(".result-ink-on-fill > *")) as HTMLElement[]) expect(copy.style.color).toBe("");
+      const darkFill = barProperty(row, "--bar-fill-dark");
+      expect(contrast(darkFill, "#1C211D")).toBeGreaterThanOrEqual(3);
+      expect(contrast(barProperty(row, "--bar-ink-on-fill-dark"), darkFill)).toBeGreaterThanOrEqual(4.5);
       const darkTrack = barProperty(row, "--bar-track-dark");
       const darkInk = barProperty(row, "--bar-ink-dark");
       expect(darkTrack).toMatch(/^#[0-9A-F]{6}$/);
@@ -333,11 +357,11 @@ describe("manual bar colours", () => {
     await page.settle(50);
     await pause(120);
     const [yes, no, maybe] = rowsOf(page);
-    expect(fillOf(yes!)).toBe("#0000FF");
-    expect(trackOf(yes!)).toBe(tintOf("#0000FF"));
-    expect(fillOf(no!)).toBe(NO);
-    expect(trackOf(no!)).toBe(tintOf(NO));
-    expect(fillOf(maybe!)).toBe("#FF0000");
+    expect(fillOf(yes!)).toBe(drawn("#0000FF"));
+    expect(trackOf(yes!)).toBe(trackFor("#0000FF"));
+    expect(fillOf(no!)).toBe(drawn(NO));
+    expect(trackOf(no!)).toBe(trackFor(NO));
+    expect(fillOf(maybe!)).toBe(drawn("#FF0000"));
   });
 
   it("changes no Automatic bar when one choice is colored, for 2 to 50 choices with and without Yes or No", async () => {
@@ -376,7 +400,7 @@ describe("manual bar colours", () => {
     await page.settle(50);
     await pause(120);
     const start = paletteStartOf(poll._id);
-    expect(rowsOf(page).map(fillOf)).toEqual([YES, palette[start], NO, palette[(start + 1) % palette.length]]);
+    expect(rowsOf(page).map(fillOf)).toEqual([YES, palette[start]!, NO, palette[(start + 1) % palette.length]!].map(drawn));
   });
 
   it("colors a poll with no colors exactly as before", async () => {
@@ -392,8 +416,8 @@ describe("manual bar colours", () => {
     page = await openPage(ctx, "index.html");
     await page.settle(50);
     const fills = fillsOf(cardTitled(page, "Twins"));
-    expect(fills.slice(0, 2)).toEqual(["#800080", "#800080"]);
-    expect(fills[2]).toBe(palette[(paletteStartOf("poll-colours-a") + 2) % palette.length]);
+    expect(fills.slice(0, 2)).toEqual([drawn("#800080"), drawn("#800080")]);
+    expect(fills[2]).toBe(drawn(palette[(paletteStartOf("poll-colours-a") + 2) % palette.length]!));
   });
 
   it("draws a color outside the fifty automatic ones, without error, with all four bar properties set", async () => {
@@ -401,11 +425,11 @@ describe("manual bar colours", () => {
     page = await openPage(ctx, "index.html");
     await page.settle(50);
     const [first, second] = rowsOf(page);
-    expect(fillOf(first!)).toBe("#123456");
-    for (const name of ["--bar-track", "--bar-ink", "--bar-track-dark", "--bar-ink-dark"]) {
+    expect(fillOf(first!)).toBe(drawn("#123456"));
+    for (const name of ["--bar-fill", "--bar-track", "--bar-ink", "--bar-ink-on-fill", "--bar-fill-dark", "--bar-track-dark", "--bar-ink-dark", "--bar-ink-on-fill-dark"]) {
       expect(first!.style.getPropertyValue(name)).toMatch(/^#[0-9A-Fa-f]{6}$/);
     }
-    expect(fillOf(second!)).toBe(palette[(paletteStartOf("poll-colours-b") + 1) % palette.length]);
+    expect(fillOf(second!)).toBe(drawn(palette[(paletteStartOf("poll-colours-b") + 1) % palette.length]!));
   });
 
   it("draws a stored value that is not a six-digit hex as Automatic", async () => {
@@ -413,10 +437,10 @@ describe("manual bar colours", () => {
     page = await openPage(ctx, "index.html");
     await page.settle(50);
     const start = paletteStartOf("poll-colours-a");
-    expect(fillsOf(cardTitled(page, "Corrupt"))).toEqual([0, 1, 2].map((i) => palette[(start + i) % palette.length]));
+    expect(fillsOf(cardTitled(page, "Corrupt"))).toEqual([0, 1, 2].map((i) => drawn(palette[(start + i) % palette.length]!)));
   });
 
-  it("keeps every palette color legible: 7:1 on the track in light and dark, the listed text color over the fill", async () => {
+  it("keeps every palette color legible: 7:1 on the track in light and dark, 4.5:1 over the fill", async () => {
     const labels = BAR_PALETTE.map((c) => `Option ${c.name}`);
     await seed("Whole palette", labels, labels.map((_, i) => labels.length - i), "poll-colours-a", BAR_PALETTE.map((c) => c.hex));
     page = await openPage(ctx, "index.html");
@@ -425,11 +449,12 @@ describe("manual bar colours", () => {
     expect(rows).toHaveLength(BAR_PALETTE.length);
     rows.forEach((row, i) => {
       const fill = fillOf(row);
-      expect(fill).toBe(BAR_PALETTE[i]!.hex);
+      expect(fill).toBe(drawn(BAR_PALETTE[i]!.hex));
       expect(contrast(inkOf(row), trackOf(row)), BAR_PALETTE[i]!.name).toBeGreaterThanOrEqual(7);
       expect(contrast(barProperty(row, "--bar-ink-dark"), barProperty(row, "--bar-track-dark")), BAR_PALETTE[i]!.name).toBeGreaterThanOrEqual(7);
-      const copies = Array.from(row.querySelector(".result-ink-on-fill")!.children) as HTMLElement[];
-      for (const copy of copies) expect(toHex(copy.style.color), BAR_PALETTE[i]!.name).toBe(textOn(fill));
+      expect(inkOnFillOf(row), BAR_PALETTE[i]!.name).toBe(textOn(BAR_PALETTE[i]!.hex));
+      expect(contrast(inkOnFillOf(row), fill), BAR_PALETTE[i]!.name).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(barProperty(row, "--bar-ink-on-fill-dark"), barProperty(row, "--bar-fill-dark")), BAR_PALETTE[i]!.name).toBeGreaterThanOrEqual(4.5);
     });
   });
 
@@ -440,7 +465,7 @@ describe("manual bar colours", () => {
     const card = cardTitled(page, "Changing");
     const rowsBefore = Array.from(card.querySelectorAll(".results-list > .result-row"));
     const start = paletteStartOf("poll-colours-a");
-    expect(fillsOf(card)).toEqual([palette[start % palette.length], palette[(start + 1) % palette.length]]);
+    expect(fillsOf(card)).toEqual([palette[start % palette.length]!, palette[(start + 1) % palette.length]!].map(drawn));
 
     type Held = { contentVersion: number; choices: { id: string; color?: string }[] };
     const w = page.window as unknown as {
@@ -457,7 +482,7 @@ describe("manual bar colours", () => {
     trending.grid.render(trending.state, w.DeltaClient.apply(trending.state, { cards: { [poll._id]: refreshed } }));
     await page.settle(100);
 
-    expect(fillsOf(card)).toEqual(["#FF91CB", palette[(start + 1) % palette.length]]);
+    expect(fillsOf(card)).toEqual(["#FF91CB", palette[(start + 1) % palette.length]!].map(drawn));
     expect(Array.from(card.querySelectorAll(".results-list > .result-row"))).toEqual(rowsBefore);
   });
 });

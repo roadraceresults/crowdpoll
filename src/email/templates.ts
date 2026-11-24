@@ -1,8 +1,10 @@
+import { CROWDPOLL_GREEN_100_PERCENT, CROWDPOLL_GREEN_20_PERCENT } from "../brandColors.js";
 import { escapeHtml } from "../html.js";
 
 export { escapeHtml };
 
-const PRIMARY = "#2C6A46";
+const PRIMARY = CROWDPOLL_GREEN_100_PERCENT;
+const RULE = CROWDPOLL_GREEN_20_PERCENT;
 const ON_PRIMARY = "#FFFFFF";
 const TEXT = "#1A1C19";
 const MUTED = "#5C6058";
@@ -79,7 +81,7 @@ ${headingLine2}`, ...lead, ...(messageBox ? [messageBox.text] : []), ...rest];
     actionHtml +
     closing.map((p) => paragraphHtml(p)).join("") +
     `</td></tr>` +
-    `<tr><td style="padding:16px 24px;border-top:1px solid #E0E3DB;">` +
+    `<tr><td style="padding:16px 24px;border-top:1px solid ${RULE};">` +
     FOOTER.map((line) => paragraphHtml(line, MUTED, 13)).join("") +
     (action ? policyLinksHtml(origin) : "") +
     `</td></tr></table></td></tr></table></body></html>`;

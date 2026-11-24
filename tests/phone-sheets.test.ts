@@ -183,7 +183,7 @@ describe("touch targets in the phone layout (contract P3)", () => {
   });
 
   it("draws the Home tab bar's faint line under the admin tab bar", () => {
-    expect(read("header-tab-bar-m3.css")).toMatch(/\.tab-bar-wrap::after\{[^}]*height:1px;[^}]*background:var\(--md-sys-color-outline-variant\)/);
+    expect(read("header-tab-bar-m3.css")).toMatch(/\.tab-bar-wrap::after\{[^}]*height:1px;[^}]*background:var\(--tab-bar-divider\)/);
     expect(declarationsOf(read("phone-admin-m3.css"), ".admin-tab-bar")).toContain("border-bottom:1pxsolidvar(--md-sys-color-outline-variant)");
   });
 
@@ -418,20 +418,24 @@ describe("the extras tab bar and the Submit bar", () => {
     expect(declarationsOf(homePhone, "#tabBar .tab")).toContain("font-size:var(--md-sys-typescale-label-small-size)");
     expect(tab).toContain("font-size:var(--md-sys-typescale-label-small-size)");
     expect(tab).toContain("line-height:var(--md-sys-typescale-label-small-line-height)");
-    for (const declaration of ["color:var(--md-sys-color-on-surface-variant)", "font-weight:500", "letter-spacing:var(--md-sys-typescale-title-small-tracking)"]) {
+    for (const declaration of ["font-weight:500", "letter-spacing:var(--md-sys-typescale-title-small-tracking)"]) {
       expect(declarationsOf(home, ".tab-bar .tab"), declaration).toContain(declaration);
       expect(tab, declaration).toContain(declaration);
     }
-    expect(declarationsOf(home, ".tab-bar .tab.is-active")).toContain("color:var(--md-sys-color-primary)");
+    expect(declarationsOf(home, ".tab-bar .tab")).toContain("color:var(--tab-text)");
+    expect(tab).toContain("color:var(--md-sys-color-on-surface-variant)");
+    expect(declarationsOf(home, ".tab-bar .tab.is-active")).toContain("color:var(--tab-active-text)");
     expect(declarationsOf(phone, ".extras-tab.is-active")).toContain("color:var(--md-sys-color-primary)");
-    for (const declaration of ["bottom:0", "height:3px", "border-radius:3px3px00", "background:var(--md-sys-color-primary)"]) {
+    for (const declaration of ["bottom:0", "height:3px", "border-radius:3px3px00"]) {
       expect(declarationsOf(home, ".tab-bar .tab.is-active::after"), declaration).toContain(declaration);
       expect(declarationsOf(phone, ".extras-tab.is-active::after"), declaration).toContain(declaration);
     }
+    expect(declarationsOf(home, ".tab-bar .tab.is-active::after")).toContain("background:var(--tab-indicator)");
+    expect(declarationsOf(phone, ".extras-tab.is-active::after")).toContain("background:var(--md-sys-color-primary)");
     const greyed = "color:color-mix(insrgb,var(--md-sys-color-on-surface)38%,transparent)";
     expect(declarationsOf(home, '.tab-bar .tab[aria-disabled="true"]')).toContain(greyed);
     expect(declarationsOf(phone, '.extras-tab[aria-disabled="true"]')).toContain(greyed);
-    expect(declarationsOf(home, ".tab-bar-wrap::after")).toContain("background:var(--md-sys-color-outline-variant)");
+    expect(declarationsOf(home, ".tab-bar-wrap::after")).toContain("background:var(--tab-bar-divider)");
     expect(declarationsOf(phone, ".extras-tabs")).toContain("border-bottom:1pxsolidvar(--md-sys-color-outline-variant)");
   });
 
@@ -569,5 +573,15 @@ describe("the flip-back button and the Submit bar", () => {
     expect(css).not.toContain(".card-back .back-btn");
     expect(css).not.toContain(".card-back .submit-vote-btn");
     expect(/\.card-back \.actions\{([^}]*)\}/.exec(read("pollCard.css"))![1]).toContain("justify-content:space-between;");
+  });
+});
+
+describe("the card title beside the icons in the phone layout", () => {
+  it("keeps the icons' corner clear for one title line only, so lines 2 and 3 run under the icons", () => {
+    const phone = declarationsOf(read("phone-card-m3.css"), ".card-face .question-row .question::before");
+    expect(phone).toContain("width:48px");
+    expect(phone).not.toMatch(/(^|;)height:/);
+    const shared = declarationsOf(read("pollCard-m3.css"), ".card-face .question-row .question::before");
+    expect(shared).toContain("height:1lh");
   });
 });

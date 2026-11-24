@@ -23,6 +23,14 @@
   letter-spacing:var(--md-sys-typescale-body-medium-tracking);
   color:var(--md-sys-color-on-surface-variant);
 }
+/* The title, subtitle and top-right icons are a section of their own, closed by a 2px rule from
+   edge to edge of the card: the section reaches out over the face's 22px side padding (pollCard.css)
+   and restores it inside, so nothing in it moves sideways. */
+.card-viewport:not(.card-shell-viewport) .card-face .question-wrap{
+  margin:0 -22px 12px;
+  padding:0 22px 8px;
+  border-bottom:2px solid var(--line);
+}
 
 .card-face .result-label,
 .card-face .result-pct,
@@ -36,10 +44,14 @@
 .result-row{ background:var(--bar-track, var(--track)); }
 .result-row > .result-label,
 .result-row > .result-pct{ color:var(--bar-ink, var(--ink)); }
+.result-fill{ background:var(--bar-fill); }
+.result-ink-on-fill > *{ color:var(--bar-ink-on-fill); }
 
 :root[data-theme="dark"] .result-row{ background:var(--bar-track-dark, var(--track)); }
 :root[data-theme="dark"] .result-row > .result-label,
 :root[data-theme="dark"] .result-row > .result-pct{ color:var(--bar-ink-dark, var(--ink)); }
+:root[data-theme="dark"] .result-fill{ background:var(--bar-fill-dark); }
+:root[data-theme="dark"] .result-ink-on-fill > *{ color:var(--bar-ink-on-fill-dark); }
 
 .card-face .btn-vote{
   height:32px;
@@ -211,6 +223,23 @@
 .card-face .voting-list.is-multi .vote-radio.is-selected{ background:var(--md-sys-color-primary); }
 .card-face .voting-list.is-multi .vote-radio.is-selected::after{ transform:translate(-50%, -50%) rotate(45deg) scale(1); }
 
+/* A selected row is drawn in its choice's bar colours from the front face: the bar's fill, with its mark and label in
+   the bar's text-on-fill colour; a row without a bar colour keeps the amber fill (COLOR-CONTRAST.md). */
+.card-face .vote-row{
+  --vote-selected-fill:var(--bar-fill, var(--choice-selected));
+  --vote-selected-ink:var(--bar-ink-on-fill, var(--on-choice-selected));
+}
+:root[data-theme="dark"] .card-face .vote-row{
+  --vote-selected-fill:var(--bar-fill-dark, var(--choice-selected));
+  --vote-selected-ink:var(--bar-ink-on-fill-dark, var(--on-choice-selected));
+}
+.card-face .vote-row.is-selected{ background:var(--vote-selected-fill); color:var(--vote-selected-ink); }
+.card-face .vote-row.is-selected .vote-label{ color:var(--vote-selected-ink); }
+.card-face .vote-row.is-selected .vote-radio{ border-color:var(--vote-selected-ink); }
+.card-face .vote-row.is-selected .vote-radio::after{ background:var(--vote-selected-ink); }
+.card-face .voting-list.is-multi .vote-row.is-selected .vote-radio{ background:var(--vote-selected-ink); }
+.card-face .voting-list.is-multi .vote-row.is-selected .vote-radio::after{ background:none; border-color:var(--vote-selected-fill); }
+
 .card-face .poll-totals,
 .card-face .poll-voted,
 .card-face .poll-anonymous,
@@ -358,7 +387,7 @@
   margin:0 0 8px;
   padding:4px 0 0 14px;
   border-radius:var(--md-sys-shape-corner-small);
-  background:var(--md-sys-color-surface-container-low);
+  background:var(--poll-notes-background);
   font-family:var(--md-sys-typescale-font);
   font-weight:var(--md-sys-typescale-body-medium-weight);
   font-size:var(--md-sys-typescale-body-medium-size);
@@ -367,13 +396,31 @@
   color:var(--md-sys-color-on-surface);
 }
 .card-face .poll-notes[hidden]{ display:none; }
+/* Up to two and a half lines: notes that overflow stop halfway along the third line, in an ellipsis. The text box
+   is a flex item so the spacer's 100% height resolves; the spacer pushes the half-width cut down to the last line. */
+.card-face .poll-notes{ cursor:pointer; }
+.card-face .poll-notes-frame{ display:flex; }
 .card-face .poll-notes-text{
   display:-webkit-box;
   -webkit-box-orient:vertical;
-  -webkit-line-clamp:2;
-  line-clamp:2;
+  -webkit-line-clamp:3;
+  line-clamp:3;
   overflow:hidden;
   overflow-wrap:anywhere;
+}
+.card-face .poll-notes-text.is-clipped::before{
+  content:'';
+  float:right;
+  width:0;
+  height:calc(100% - var(--md-sys-typescale-body-medium-line-height));
+}
+.card-face .poll-notes-cut{ display:none; }
+.card-face .poll-notes-text.is-clipped .poll-notes-cut{
+  display:block;
+  float:right;
+  clear:both;
+  width:50%;
+  height:var(--md-sys-typescale-body-medium-line-height);
 }
 .card-face .poll-notes-more{
   display:flex;
@@ -384,7 +431,7 @@
   padding:0 12px;
   border:0;
   border-radius:var(--md-sys-shape-corner-full);
-  background:color-mix(in srgb, var(--md-sys-color-primary) 8%, transparent);
+  background:var(--poll-notes-background);
   filter:none;
   font-family:var(--md-sys-typescale-font);
   font-weight:var(--md-sys-typescale-label-medium-weight);
@@ -393,13 +440,9 @@
   color:var(--md-sys-color-primary);
   cursor:pointer;
 }
-.card-face .poll-notes-more-chevron{
-  width:18px;
-  height:18px;
-  flex:0 0 auto;
-}
 .card-face .poll-notes-more[hidden]{ display:none; }
-.card-face .poll-notes-more:hover{ background:color-mix(in srgb, var(--md-sys-color-primary) 16%, transparent); }
+/* On hover, the fill it had before the notes took --poll-notes-background. */
+.card-face .poll-notes-more:hover{ background:color-mix(in srgb, var(--md-sys-color-primary) 16%, var(--md-sys-color-surface-container-low)); }
 .card-face .poll-notes-more:focus-visible{
   outline:3px solid var(--md-sys-color-secondary);
   outline-offset:2px;
@@ -458,7 +501,7 @@
 .maximized-back-bar[hidden]{ display:none; }
 
 .maximized-space-right{
-  background:var(--md-sys-color-surface);
+  background:var(--paper-raised);
   border:1px solid var(--md-sys-color-outline-variant);
   border-radius:var(--md-sys-shape-corner-medium);
   padding:16px;
@@ -545,5 +588,52 @@
   :root:not(.maximize-hint-dismissed) .card-flip:not(.maximized-card-flip) .card-face .maximize-btn{
     animation:none;
     box-shadow:0 0 0 4px color-mix(in srgb, var(--md-sys-color-primary) 30%, transparent);
+  }
+}
+
+/* A grid card rises while pointed at or pressed (pollCard.js sets .is-lifted). `top`, not a transform,
+   so nothing inside the card gets a new containing block. In Dark a shadow does not show on the
+   page, so the border takes the outline colour as well. */
+.card-viewport{ top:0; transition:top 0.15s ease; scroll-margin-top:calc(var(--fixed-chrome-height, 0px) + 8px); }
+.card-viewport .card-face{ transition:box-shadow 0.15s ease, border-color 0.15s ease; }
+.card-viewport.is-lifted:not(.maximized-card-viewport){ top:-4px; }
+.card-viewport.is-lifted:not(.maximized-card-viewport) .card-face{ box-shadow:var(--md-sys-elevation-3); }
+:root[data-theme="dark"] .card-viewport.is-lifted:not(.maximized-card-viewport) .card-face{ border-color:var(--md-sys-color-outline); }
+@media (prefers-reduced-motion: reduce){
+  .card-viewport,
+  .card-viewport .card-face{ transition:none; }
+}
+
+/* A lifted card's edge: a blue line that grows from 1 px to 4 px with a glow, then steps
+   down through 3, 2 and 1 px and goes.
+   On each face, so it turns with the card; over the face's own 1 px border. */
+.card-viewport .card-face::after{
+  content:"";
+  position:absolute;
+  inset:-1px;
+  border-radius:20px;
+  border:0 solid var(--card-lift-edge);
+  pointer-events:none;
+  opacity:0;
+}
+.card-viewport.is-lifted:not(.maximized-card-viewport) .card-face::after{ animation:cardEdgeGrow 1.5s ease-in-out 1 forwards; }
+@keyframes cardEdgeGrow{
+  0%{ border-width:1px; box-shadow:0 0 4px 0 color-mix(in srgb, var(--card-lift-glow) 18%, transparent); opacity:1; }
+  40%{ border-width:4px; box-shadow:0 0 12px 0 color-mix(in srgb, var(--card-lift-glow) 50%, transparent); opacity:1; }
+  55%{ border-width:4px; box-shadow:0 0 12px 0 color-mix(in srgb, var(--card-lift-glow) 50%, transparent); opacity:1; }
+  55.01%{ border-width:3px; box-shadow:0 0 10px 0 color-mix(in srgb, var(--card-lift-glow) 42%, transparent); opacity:1; }
+  69%{ border-width:3px; box-shadow:0 0 10px 0 color-mix(in srgb, var(--card-lift-glow) 42%, transparent); opacity:1; }
+  69.01%{ border-width:2px; box-shadow:0 0 7px 0 color-mix(in srgb, var(--card-lift-glow) 32%, transparent); opacity:1; }
+  83%{ border-width:2px; box-shadow:0 0 7px 0 color-mix(in srgb, var(--card-lift-glow) 32%, transparent); opacity:1; }
+  83.01%{ border-width:1px; box-shadow:0 0 4px 0 color-mix(in srgb, var(--card-lift-glow) 18%, transparent); opacity:1; }
+  97%{ border-width:1px; box-shadow:0 0 4px 0 color-mix(in srgb, var(--card-lift-glow) 18%, transparent); opacity:1; }
+  100%{ border-width:1px; box-shadow:0 0 4px 0 color-mix(in srgb, var(--card-lift-glow) 18%, transparent); opacity:0; }
+}
+@media (prefers-reduced-motion: reduce){
+  .card-viewport.is-lifted:not(.maximized-card-viewport) .card-face::after{
+    animation:none;
+    opacity:1;
+    border-width:4px;
+    box-shadow:0 0 12px 0 color-mix(in srgb, var(--card-lift-glow) 35%, transparent);
   }
 }

@@ -136,6 +136,30 @@ describe("the Material 3 tab bar", () => {
     expect(headerM3Css).toMatch(/\.tab \.live-bars i:nth-child\(n\)\{ background:currentColor; \}/);
   });
 
+  it("draws Home, Watching and Search in the same circle as the other icons, their glyph in the light colour", () => {
+    for (const name of ["home", "watching", "search"]) {
+      expect(tabButton(name), name).toMatch(
+        /<svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="12" fill="#8093a7"\/><g color="#e8edf2"/
+      );
+    }
+    const home = tabButton("home");
+    expect(home).toContain('<g color="#e8edf2" fill="currentColor" stroke="currentColor"');
+    expect(home).toContain("scale(0.75)");
+    expect(home).toContain('<path fill-rule="evenodd" d="M12 3 21 10.5H19V20H5V10.5H3ZM10 20V14H14V20Z"></path>');
+    expect(headerM3Css).toContain('.tab-icon [color="#e8edf2" i]{ color:var(--paper); }');
+    expect(headerM3Css).toContain('.tab-bar .tab-icon [color="#e8edf2" i]{ color:var(--tab-bar-background); }');
+  });
+
+  it("gives the header's wordmark a transparent ground in both schemes", () => {
+    const start = appJs.indexOf('<svg class="brand-wordmark"');
+    const wordmark = appJs.slice(start, appJs.indexOf("</svg>", start));
+    for (const fill of wordmark.match(/fill="#[0-9A-F]{6}"/gi)!) {
+      const hex = fill.slice(7, 13);
+      const light = [0, 2, 4].every((at) => parseInt(hex.slice(at, at + 2), 16) > 0xd0);
+      if (light) expect(headerM3Css, hex).toMatch(new RegExp(`\\.brand-wordmark :is\\([^)]*\\[fill="#${hex}" i\\][^{]*\\{ fill:transparent; \\}`));
+    }
+  });
+
   it("is linked after the production sheets, with the empty-tab line's layer", () => {
     const after = index.slice(index.indexOf('href="/site.css"'));
     expect(after).toContain('href="/header-tab-bar-m3.css"');
