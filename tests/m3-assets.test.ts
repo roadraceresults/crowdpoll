@@ -56,13 +56,13 @@ const PAGES: Record<string, PageAssets> = {
   },
   "profile.html": {
     sheets: ["tabs.css", "pollCard.css", "site.css"],
-    scripts: ["app.js", "headerFit.js", "fixedChrome.js", "backArrow.js", "deviceEvidence.js", "cardShell.js", "profileCard.js", "backToTopFab.js"],
-    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "card-shell-m3.css", "profile-editor-m3.css", "footer-m3.css", "phone-m3.css"]
+    scripts: ["app.js", "pageTabBar.js", "headerFit.js", "fixedChrome.js", "backArrow.js", "deviceEvidence.js", "cardShell.js", "profileCard.js", "tabBarScroll.js", "tabBarScrollArrows.js", "backToTopFab.js"],
+    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "card-shell-m3.css", "profile-editor-m3.css", "single-column-m3.css", "tab-bar-scroll-arrows-m3.css", "footer-m3.css", "phone-m3.css"]
   },
   "settings.html": {
     sheets: ["tabs.css", "pollCard.css", "site.css"],
-    scripts: ["app.js", "headerFit.js", "fixedChrome.js", "deviceEvidence.js", "cardShell.js", "settingsCard.js", "backToTopFab.js"],
-    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "card-shell-m3.css", "profile-editor-m3.css", "site-settings-m3.css", "footer-m3.css", "phone-m3.css"]
+    scripts: ["app.js", "pageTabBar.js", "headerFit.js", "fixedChrome.js", "deviceEvidence.js", "cardShell.js", "settingsCard.js", "tabBarScroll.js", "tabBarScrollArrows.js", "backToTopFab.js"],
+    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "card-shell-m3.css", "profile-editor-m3.css", "site-settings-m3.css", "single-column-m3.css", "tab-bar-scroll-arrows-m3.css", "footer-m3.css", "phone-m3.css"]
   },
   "login.html": {
     sheets: ["tabs.css", "pollCard.css", "site.css"],
@@ -106,8 +106,8 @@ const PAGES: Record<string, PageAssets> = {
   },
   "admin.html": {
     sheets: ["styles.css", "tabs.css", "pollCard.css", "admin.css", "site.css"],
-    scripts: ["app.js", "headerFit.js", "fixedChrome.js", "backArrow.js", "notesEditor.js", "deviceEvidence.js", "sharePoll.js", "adminCard.js", "adminList.js", "backToTopFab.js"],
-    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "back-arrow-m3.css", "tabs-modal-m3.css", "discard-dialog-m3.css", "admin-card-m3.css", "admin-search-m3.css", "snackbar-m3.css", "footer-m3.css", "phone-m3.css", "phone-admin-m3.css"]
+    scripts: ["app.js", "pageTabBar.js", "headerFit.js", "fixedChrome.js", "backArrow.js", "notesEditor.js", "deviceEvidence.js", "sharePoll.js", "adminCard.js", "adminList.js", "tabBarScroll.js", "tabBarScrollArrows.js", "backToTopFab.js"],
+    layers: ["tooltip-m3.css", "header-tab-bar-m3.css", "header-single-column-m3.css", "header-single-row-m3.css", "header-fixed-m3.css", "back-to-top-m3.css", "back-arrow-m3.css", "tabs-modal-m3.css", "discard-dialog-m3.css", "admin-card-m3.css", "admin-search-m3.css", "single-column-m3.css", "tab-bar-scroll-arrows-m3.css", "snackbar-m3.css", "footer-m3.css", "phone-m3.css", "phone-admin-m3.css"]
   }
 };
 
