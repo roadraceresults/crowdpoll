@@ -10,8 +10,10 @@ The standard is [WCAG 2.2](https://www.w3.org/TR/WCAG22/) level AA, measured wit
 [contrast ratio](https://www.w3.org/TR/WCAG22/#dfn-contrast-ratio):
 
 - text at least 4.5:1 against what it sits on; a control's boundary, a selected state or a chart mark at least 3:1;
-- house rules above that: 7:1 for text on a vote row, a selected row and a result bar's track; 4.5:1 for text over a
-  bar's fill (black or white); 1.5:1 for a bar's track against the card; a card's border at least 1.5:1 and below
+- house rules above that: 7:1 for text on a vote row, an amber selected row and a result bar's track; 4.5:1 for text
+  over a bar's fill (black or white), which is also the rule for a selected vote row, drawn in its bar's fill and
+  text-on-fill colours (TWEAK30); 1.5:1 for a bar's track against the card unless `--bar-track-contrast` (or its `-dark`
+  twin) in `m3-tokens.css` sets another ratio; a card's border at least 1.5:1 and below
   3:1 against the card and the page, so it frames the card without outshouting its content.
 
 Each scheme's colours are set in one place: the two alias blocks of `m3-tokens.css`,
@@ -63,6 +65,9 @@ These colours are the brand: their values never change, in either scheme.
 | `--md-sys-color-primary` | `--paper-raised` | 3 | both | the focus outline and green icons on a card |
 | `--md-sys-color-primary` | `--md-sys-color-surface-container` | 3 | both | the focus outline on an even admin row |
 | `--card-lift-edge` | `--paper-raised` | 3 | both | a lifted card's growing edge |
+| `--md-sys-color-on-secondary-container` | `--icon-button-background` | 3 | both | the glyph on a filled icon button (Refresh, back arrow, phone vote bar) |
+| `--md-sys-color-on-surface` | `--poll-notes-background` | 4.5 | both | a card's notes |
+| `--md-sys-color-primary` | `--poll-notes-background` | 4.5 | both | the notes' Read more button |
 
 ## Result colours
 
@@ -73,15 +78,33 @@ never changed. `pollCard.js` derives what is drawn from it, once per colour and 
 - **Fill**: the stored colour if it already stands 3:1 from the card, else the nearest shade of its hue that does
   (darker on the light card, lighter on the dark one). The results graph draws its line for that choice in the same
   shade, so a bar and its line match; the graph is always drawn on the card colour.
-- **Track**: the fill mixed into the card, as pale as it can be (at most 90% card in Light, 80% in Dark, in 5% steps)
-  while still standing 1.5:1 from the card.
+- **Track**: the fill mixed into the card, as pale as it can be (at most `--bar-track-tint` card in Light, 90%, and
+  `--bar-track-tint-dark` in Dark, 80%, both in `m3-tokens.css`; in 5% steps) while still standing `--bar-track-contrast` (Light) or `--bar-track-contrast-dark` (Dark) from the card,
+  1.5:1 unless changed; a lower ratio gives a paler track, so the fill stands further from it.
 - **Text on the track**: a deep (Light) or pale (Dark) shade of the track's own hue at 7:1.
 - **Text on the fill**: black or white, whichever contrasts more with the fill (never below 4.58:1); a colour listed
   in `TEXT_ON_FILL_OVERRIDES` keeps its chosen text colour only while that reaches 4.5:1.
 
 Each row carries these as `--bar-fill`, `--bar-track`, `--bar-ink`, `--bar-ink-on-fill` and their `-dark` twins;
-the stylesheet picks the scheme's set. The base palette is chosen so that, as drawn, no two of its fourteen colours are
-closer than ΔE 13 ([CIE76](https://en.wikipedia.org/wiki/Color_difference#CIE76)) in either scheme.
+the stylesheet picks the scheme's set.
+
+The base palette (`RESULTS_PALETTE_ENTRIES` in `pollCard.js`, `RESULTS_PALETTE` in `src/polls/barPalette.ts`) is the
+reviewed original, in the order that keeps neighbouring bars from clashing. The creator's palette is the Yes and No
+colours followed by that list. The aim is that, as drawn, no two of its colours are closer than ΔE 13
+([CIE76](https://en.wikipedia.org/wiki/Color_difference#CIE76)) in either scheme; `tests/color-contrast.test.ts` checks it.
+Each name is the nearest CSS named colour.
+
+The Dark scheme has its own palette, `RESULTS_PALETTE_ENTRIES_DARK` in `pollCard.js`, one entry for each entry of the
+Light list, in the same order: in Dark, a bar or graph line in Light entry *i* (automatic, or chosen by the creator) is
+drawn from Dark entry *i*, then through the same fill, track and text rules. Yes and No have their own Dark colours
+(`SEMANTIC_AFFIRMATIVE_COLOR_DARK` `#00872C`, `SEMANTIC_NEGATIVE_COLOR_DARK` `#EC0606`); any other colour (an older
+creator's) is drawn from itself. The colour stored is always the Light hex. `src/polls/barPalette.ts` holds the same Dark
+list and Dark Yes and No (`BAR_PALETTE_DARK`), sent to the creator's picker as each colour's `darkHex`, so in Dark the
+picker shows what Dark voters see (TWEAK26, TWEAK28). Dark Yes, No, mediumvioletred, royalblue, mediumorchid, chocolate
+and olivedrab are dark enough for white text at 4.5:1 and are listed with white in `TEXT_ON_FILL_OVERRIDES`, since black
+is only just higher on them (TWEAK29). So are No `#EC0606` (the same in both schemes) and olive `#7B7924` in Light,
+darkened from `#F91010` and `#817F26` for white text (TWEAK31); polls that stored either old colour keep it, drawn from
+itself with black text.
 
 ## Techniques
 
@@ -102,17 +125,73 @@ closer than ΔE 13 ([CIE76](https://en.wikipedia.org/wiki/Color_difference#CIE76
    left and amber at the bottom right, each fading out at 60% of its radii. Each glow's colour and strength are set per
    scheme (`--page-glow-1-color`, `--page-glow-1-strength`, `--page-glow-2-color`, `--page-glow-2-strength`), its size
    and centre once (`--page-glow-N-size`, `--page-glow-N-at`), all in `m3-tokens.css`. They are decoration, not part of
-   any Required pair: text never relies on them.
+   any Required pair: text never relies on them. They are drawn under the page's content and the footer, so the
+   footer keeps its own colours.
 8. **The header and the Tab Bar** take their colours from their own tokens, set per scheme in `m3-tokens.css`:
    `--header-background`, `--header-divider`, `--header-text`, `--header-link`, `--header-button`,
-   `--on-header-button`, `--header-search-background`; `--tab-bar-background`, `--tab-bar-divider`, `--tab-text`,
-   `--tab-active-text`, `--tab-indicator`, `--tab-refresh-background`, `--tab-refresh-icon`. Each starts as the role it
+   `--on-header-button`; `--tab-bar-background`, `--tab-bar-divider`, `--tab-text`,
+   `--tab-active-text`, `--tab-indicator`, `--tab-refresh-background`, `--tab-refresh-icon`. The filled icon buttons
+   (Refresh, the back arrow, the phone vote bar's) share `--icon-button-background`. Each starts as the role it
    replaced (a `var()`), and must stay a `#RRGGBB` colour or a `var()` so the pairs above can be checked.
+   Every Tab Bar icon is a circle in the tab's text colour with its glyph cut in `--tab-bar-background`, and the
+   wordmark has no ground of its own in either scheme, so the header's background and glows show around its letters.
+   The header's Search field and the Search tab's field are bordered as a card is (`1px solid var(--line)`) and
+   filled from one token, `--search-field-background`, so both change together; both are fully rounded, with the
+   header's magnifier (`.search-icon-btn`) at the left.
+9. **The header's glows**: two horizontal gradients over the header and the Tab Bar (`--header-background`,
+   `--tab-bar-background`), the width of the window, moss from the left edge and amber from the right, one band from the
+   top of the header to the foot of the Tab Bar (`--header-glows`). The header's layer is pinned to the window, not
+   drawn wider than the header, so the header never measures as overflowing and keeps its Search field. Each is full strength from its edge to `--header-glow-<side>-at`, then
+   fades out over `--header-glow-<side>-size` (both shared); its colour and strength
+   (`--header-glow-<side>-color`, `--header-glow-<side>-strength`, `0%` turns it off) are set per scheme. Like the
+   page glows they are decoration, not part of any Required pair.
 
 Green (`primary`) stays the brand: icons, links, buttons and the logo; it is never a selected-row colour, and no vote
 row takes its choice's result colour.
 
+## CrowdPoll green shades
+
+The brand green `#2C6A46` lightened toward white. Each shade is written once, as a custom property in the plain
+`:root` block of `m3-tokens.css`; roles and rules name it with `var()`. The emails' copy is `src/brandColors.ts`, and
+`tests/color-contrast.test.ts` keeps the two the same and finds no other place that spells a shade's hex.
+
+| Shade | CSS custom property | Server constant |
+|---|---|---|
+| `#F4F8F6` | `--crowdpoll-green-5-percent` | `CROWDPOLL_GREEN_5_PERCENT` |
+| `#EAF0ED` | `--crowdpoll-green-10-percent` | `CROWDPOLL_GREEN_10_PERCENT` |
+| `#D5E1DA` | `--crowdpoll-green-20-percent` | `CROWDPOLL_GREEN_20_PERCENT` |
+| `#C0D2C8` | `--crowdpoll-green-30-percent` | `CROWDPOLL_GREEN_30_PERCENT` |
+| `#ABC3B5` | `--crowdpoll-green-40-percent` | `CROWDPOLL_GREEN_40_PERCENT` |
+| `#96B5A3` | `--crowdpoll-green-50-percent` | `CROWDPOLL_GREEN_50_PERCENT` |
+| `#80A690` | `--crowdpoll-green-60-percent` | `CROWDPOLL_GREEN_60_PERCENT` |
+| `#6B977E` | `--crowdpoll-green-70-percent` | `CROWDPOLL_GREEN_70_PERCENT` |
+| `#56886B` | `--crowdpoll-green-80-percent` | `CROWDPOLL_GREEN_80_PERCENT` |
+| `#417959` | `--crowdpoll-green-90-percent` | `CROWDPOLL_GREEN_90_PERCENT` |
+| `#2C6A46` | `--crowdpoll-green-100-percent` | `CROWDPOLL_GREEN_100_PERCENT` |
+
+White is not one of them: it stays `#FFFFFF`. The Google sign-in button's borders, the email's small grey text
+(`#5C6058`, 6.42:1 on white) and the legacy `:root` palettes keep their own colours.
+
 ## Change log
+
+### 2026-11-24 — CrowdPoll green shades
+
+| Colour | Light before → after | Dark before → after |
+|---|---|---|
+| `--md-sys-color-primary`, Dark `--md-sys-color-inverse-primary` | `#2C6A46` → 100% (same value) | `#2C6A46` → 100% (same value) |
+| `--md-sys-color-surface-container-high` | `#F4F8F6` → 5% (same value) | `#262B27` (unchanged) |
+| `--md-sys-color-surface-container`, `-low`, `--md-sys-color-inverse-on-surface`, `--header-paper` | `#EAEFE8`, `#F1F3EE`, `#EDF2EB`, `#E5EAE2` → 10% | unchanged |
+| `--md-sys-color-surface-container-highest`, `--md-sys-color-secondary-container` | `#DFE4DD`, `#D1E8D5` → 20% | unchanged |
+| `--md-sys-color-on-surface`, `--md-sys-color-inverse-surface`, `--md-sys-color-on-secondary-container` | unchanged | `#DFE4DD`, `#DFE4DD`, `#D1E8D5` → 20% |
+| `--md-sys-color-outline-variant` | `#C0C9C0` → 30% | `#414942` (unchanged) |
+| `--md-sys-color-on-surface-variant` | `#414942` (unchanged) | `#C0C9C0` → 30% |
+| `--icon-button-background`, page and header glows | `#C0D2C8` → 30% (same value) | unchanged |
+| `--md-sys-color-secondary` | `#4F6354` (unchanged) | `#B6CCB9` → 40% |
+| `--line` | `#919790` → 50% | `#4A524B` (unchanged) |
+| `--md-sys-color-outline` (and `--choice-edge`) | `#717971` → 70% (4.49 → 3.31:1 on the card) | `#8A938B` → 70% |
+| Search field hint (`.search-kbd`), header search focus border, vote radio border, ballot rules and bookmark icon | `#C3C8BC` → 30%, `#B7BDB5` → 40%, `#9AA197` → 50% | same |
+| Filled pill buttons' text (`.btn-primary`, `.btn-header-primary`) | `#F7F8F5` → `#FFFFFF` | same |
+| Email: header and button fill, footer rule | `#2C6A46` → 100% (same value), `#E0E3DB` → 20% | — |
 
 ### 2026-11-20 — colour contrast
 
@@ -131,8 +210,13 @@ row takes its choice's result colour.
 | `--card-lift-edge`, `--card-lift-glow` (new) | `#2178F5`, `#55A6FF` | `#2178F5`, `#55A6FF` |
 | `--page-glow-1-color` / `-strength`, `--page-glow-2-color` / `-strength` (new; were literal in `tabs.css`) | `#3D5A46` 6%, `#E8A33D` 8% | same |
 | `--header-*`, `--tab-bar-*`, `--tab-*` (new; header and Tab Bar levers) | the roles used before | same |
+| `--header-glow-left-*`, `--header-glow-right-*` (new; header glows, 0% at, 40% size) | `#3D5A46` 12%, `#E8A33D` 12% | `#94D5A8` 10%, `#FFB956` 10% |
+| `--icon-button-background` (new; Refresh, back arrow, phone vote bar icon buttons; was `--md-sys-color-secondary-container`) | `#D1E8D5` → `#C0D2C8` | `#374B3D` (unchanged) |
+| `--poll-notes-background` (new; a card's notes and Read more; was `--md-sys-color-surface-container-low`, Read more 8% primary) | `#F1F3EE` → `#E0E0E0` | `#181D19` (unchanged) |
+| `--header-search-background` → `--search-field-background` (now also the Search tab's field, which was `--md-sys-color-surface`) | `--md-sys-color-surface-container-high` | same |
 
-Base palette entries replaced (same positions): darkslategray `#404040` → saddlebrown `#8B4513`; gray `#7D7D7D` →
-olivedrab `#6B8E23`; coral `#FC8E45` → darkgoldenrod `#B8860B`. Bar fills are now drawn at 3:1 on the card in Light
+Base palette: three entries were replaced here (darkslategray → saddlebrown, gray → olivedrab, coral → darkgoldenrod),
+then restored to the reviewed original (TWEAK22); the creator's palette became the Yes and No colours followed by the
+base palette (it had been a separate list of eighteen). Bar fills are now drawn at 3:1 on the card in Light
 as well as Dark (before: Dark only, in the graph), text over a fill is black or white at 4.5:1, and tracks take the
 palest tint that reaches 1.5:1.

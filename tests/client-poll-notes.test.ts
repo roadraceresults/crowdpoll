@@ -1,4 +1,6 @@
 import { randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { startTestContext, type TestContext } from "./helpers/setup.js";
 import { makePoll, polls } from "./helpers/poll-fixtures.js";
@@ -92,9 +94,20 @@ describe("notes on the poll card", () => {
     expect(row.compareDocumentPosition(box) & p.window.Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(box.compareDocumentPosition(choices) & p.window.Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(box.hidden).toBe(false);
-    expect(box.querySelector(".poll-notes-text")!.innerHTML).toBe("<strong>Bring</strong> a plate");
-    expect(more(viewport).textContent).toBe("Show more");
-    expect(more(viewport).querySelector("svg.poll-notes-more-chevron path")!.getAttribute("d")).toBe("m6 9 6 6 6-6");
+    expect(box.querySelector(".poll-notes-body")!.innerHTML).toBe("<strong>Bring</strong> a plate");
+    expect(more(viewport).textContent).toBe("Read more...");
+    expect(more(viewport).querySelector("svg")).toBeNull();
+  });
+
+  it("fills the notes and Read more with --poll-notes-background (#E0E0E0 in Light), Read more keeping its old fill on hover", () => {
+    const sheet = readFileSync(path.resolve("src/public/pollCard-m3.css"), "utf8");
+    const rule = (selector: string) => sheet.slice(sheet.indexOf(selector + "{")).split("}")[0]!;
+    expect(rule(".card-face .poll-notes")).toContain("background:var(--poll-notes-background);");
+    expect(rule(".card-face .poll-notes-more")).toContain("background:var(--poll-notes-background);");
+    expect(sheet).toContain(".card-face .poll-notes-more:hover{ background:color-mix(in srgb, var(--md-sys-color-primary) 16%, var(--md-sys-color-surface-container-low)); }");
+    const tokens = readFileSync(path.resolve("src/public/m3-tokens.css"), "utf8");
+    expect(tokens).toContain("--poll-notes-background:#E0E0E0;");
+    expect(tokens).toContain("--poll-notes-background:var(--md-sys-color-surface-container-low);");
   });
 
   it("hides the notes without any, and on a placeholder", async () => {
@@ -131,6 +144,22 @@ describe("notes on the poll card", () => {
     const observer = (p.window as CardWindow).observed.find((o) => o.targets.includes(text))!;
     observer.callback();
     expect(more(viewport).hidden).toBe(false);
+    // Notes that overflow end halfway along the last line; notes that fit are not cut.
+    expect(text.classList.contains("is-clipped")).toBe(true);
+    Object.defineProperty(text, "scrollHeight", { configurable: true, value: 40 });
+    observer.callback();
+    expect(text.classList.contains("is-clipped")).toBe(false);
+  });
+
+  it("shows up to two and a half lines on a wide card: three lines, the last cut to half its width when clipped", () => {
+    const sheet = readFileSync(path.resolve("src/public/pollCard-m3.css"), "utf8");
+    const rule = (selector: string) => sheet.slice(sheet.indexOf(selector + "{")).split("}")[0]!;
+    expect(rule(".card-face .poll-notes-text")).toContain("-webkit-line-clamp:3;");
+    expect(rule(".card-face .poll-notes-frame")).toContain("display:flex;");
+    expect(rule(".card-face .poll-notes-text.is-clipped::before")).toContain("float:right;");
+    expect(rule(".card-face .poll-notes-text.is-clipped .poll-notes-cut")).toContain("width:50%;");
+    const phone = readFileSync(path.resolve("src/public/phone-card-m3.css"), "utf8");
+    expect(phone).toContain(".card-face .poll-notes-text.is-clipped .poll-notes-cut{ display:none; }");
   });
 
   it("maps the preview fields in toPollDetail, empty for a placeholder", async () => {
@@ -202,7 +231,7 @@ describe("notes in the Maximized view", () => {
     expect(area.innerHTML).toBe(renderNotesHtml(long));
     const sections = Array.from(side.children).filter((child) => !child.classList.contains("extras-tabs"));
     expect(sections.map((section) => section.className)).toEqual(["maximized-notes", "maximized-voters", "maximized-graph"]);
-    expect(cardOf(p, "Noted").querySelector(".poll-notes-text")!.innerHTML).toBe(renderNotesPreview(long).html);
+    expect(cardOf(p, "Noted").querySelector(".poll-notes-body")!.innerHTML).toBe(renderNotesPreview(long).html);
   });
 
   it("makes no fetch for a poll without notes", async () => {

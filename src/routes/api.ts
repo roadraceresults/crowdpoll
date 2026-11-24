@@ -20,7 +20,7 @@ import type { Cache } from "../cache/cache.js";
 import type { Db } from "../db/client.js";
 import { CHOICE_LABEL_MAX, effectivePermissions, isAdminEmail, type Caller } from "../polls/service.js";
 import { bumpContentVersion } from "../polls/versions.js";
-import { BAR_PALETTE } from "../polls/barPalette.js";
+import { SERVED_BAR_PALETTE } from "../polls/barPalette.js";
 import * as mailer from "../email/mailer.js";
 import { randomBytes } from "node:crypto";
 import { USERNAME_MAX } from "../auth/username.js";
@@ -189,7 +189,7 @@ export function createApiRouter(deps: ApiDeps): Router {
       // timer here; the interval is served post-clamp, usable verbatim.
       lineGraphMinVotePercentage: config.lineGraphMinVotePercentage,
       lineGraphRefreshIntervalMs: config.lineGraphRefreshIntervalMs,
-      barPalette: BAR_PALETTE,
+      barPalette: SERVED_BAR_PALETTE,
       termsVersion: TERMS_VERSION,
       // The widget is served by the FCaptcha service on this domain; the site key is public.
       humanCheck: config.humanCheck ? { siteKey: config.humanCheck.siteKey, endpoint: "/fcaptcha" } : null

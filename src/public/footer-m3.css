@@ -1,4 +1,8 @@
+/* The footer is appended to <body> after .page; positioned and lifted like .page, it is drawn above the
+   page glows (.page-decor, fixed at z-index 0) instead of under them, so its colours stay its own. */
 .site-footer{
+  position:relative;
+  z-index:1;
   box-sizing:border-box;
   width:min(calc(100% - 40px), calc(var(--max-width, 1280px) - 40px));
   margin:0 auto calc(16px + var(--cookie-banner-offset, 0px));

@@ -8,8 +8,8 @@ const flat = (css: string) => css.replace(/\s+/g, " ");
 describe("the header-fixed sheet", () => {
   it("pins the header and the Tab Bar to the top of the viewport, the header above the Tab Bar so its avatar menu is never covered", () => {
     expect(flat(sheet)).toContain("#site-header, .tab-bar-wrap{ position:fixed; left:0; right:0; z-index:40;");
-    expect(flat(sheet)).toContain("#site-header{ top:0; z-index:41; }");
-    expect(flat(sheet)).toContain(".tab-bar-wrap{ top:var(--fixed-chrome-height-header,0px); }");
+    expect(flat(sheet)).toContain("#site-header{ top:0; z-index:41;");
+    expect(flat(sheet)).toContain(".tab-bar-wrap{ top:var(--fixed-chrome-height-header,0px);");
   });
 
   it("keeps the header's and the Tab Bar's confined column matching .container's own", () => {
@@ -34,13 +34,25 @@ describe("the header-fixed sheet", () => {
     expect(readFileSync(path.resolve("src/public/index.html"), "utf8")).toContain('<body class="is-guest has-tab-bar">');
   });
 
+  it("runs the header's glows through the header and the Tab Bar as one band, beneath their content, with the Tab Bar's line on top", () => {
+    expect(flat(sheet)).toContain("#site-header::before{ content:''; position:fixed; top:0; left:0; right:0; height:var(--fixed-chrome-height-header,0px); z-index:-1; pointer-events:none; background:var(--header-glows); }");
+  });
+
+  it("keeps the header's glow layer out of the header's own width, so headerFit never hides the Search field for it", () => {
+    const layer = /#site-header::before{([^}]*)}/.exec(sheet)![1]!;
+    expect(layer).toContain("position:fixed;");
+    expect(layer).not.toContain("100vw");
+    expect(layer).not.toContain("position:absolute");
+    expect(sheet).toContain(".tab-bar-wrap::after{ top:0; height:auto; z-index:-1; pointer-events:none; background:linear-gradient(var(--tab-bar-divider) 0 0) bottom / 100% 1px no-repeat, var(--header-glows); }");
+  });
+
   it("reserves space for the fixed chrome in .container's top padding, at both breakpoints", () => {
     expect(sheet).toContain(".container{ padding-top:calc(32px + var(--fixed-chrome-height,0px)); }");
     expect(flat(sheet)).toContain("@media (max-width: 640px){ .container{ padding-top:calc(20px + var(--fixed-chrome-height,0px)); } }");
   });
 
   it("pins a background behind the Hamburger and Refresh row from 900 px down, so cards scroll under it", () => {
-    expect(flat(sheet)).toContain("@media (max-width: 900px){ .tab-bar-wrap::before{ content:''; position:absolute; left:0; right:0; top:100%; height:calc(40px + var(--refresh-gap)); background:var(--tab-bar-background); } }");
+    expect(flat(sheet)).toContain("@media (max-width: 900px){ .tab-bar-wrap::before{ content:''; position:absolute; left:0; right:0; top:100%; height:calc(40px + var(--refresh-gap)); background:var(--header-glows), var(--tab-bar-background); } }");
   });
 
   it("carries no token section, dark twin, literal font size or comment", () => {

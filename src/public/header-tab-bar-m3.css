@@ -105,6 +105,8 @@
 .tab-icon [fill="#8093a7" i]{ fill:currentColor; }
 .tab-icon [fill="#e8edf2" i]{ fill:var(--paper); }
 .tab-bar .tab-icon [fill="#e8edf2" i]{ fill:var(--tab-bar-background); }
+.tab-icon [color="#e8edf2" i]{ color:var(--paper); }
+.tab-bar .tab-icon [color="#e8edf2" i]{ color:var(--tab-bar-background); }
 .tab-icon [stroke="#9AA197" i]{ stroke:currentColor; }
 .tab .live-bars i:nth-child(n){ background:currentColor; }
 
@@ -134,9 +136,9 @@
   height:40px;
   padding:0 16px 0 8px;
   gap:4px;
-  border:0;
+  border:1px solid var(--line);
   border-radius:var(--md-sys-shape-corner-full);
-  background:var(--header-search-background);
+  background:var(--search-field-background);
 }
 .search-icon-btn,
 .header-search-clear{
@@ -301,10 +303,11 @@
 .avatar-menu a:hover,
 .avatar-menu button:hover{ background:none; }
 
-/* ---------- 8. Logo and wordmark in the dark scheme ---------- */
+/* ---------- 8. Logo and wordmark: dark scheme inks; the wordmark's white ground and counters are transparent in both ---------- */
 :root[data-theme="dark"] .brand svg :is([fill="#000000" i], [fill="#020202" i], [fill="#030202" i], [fill="#030302" i], [fill="#30302F" i], [fill="#303030" i], [fill="#313030" i]){ fill:var(--md-sys-color-on-surface); }
 :root[data-theme="dark"] .brand svg [stroke="#000000" i]{ stroke:var(--md-sys-color-on-surface); }
 :root[data-theme="dark"] .brand svg :is([fill="#FAFAFA" i], [fill="#FBFBFB" i], [fill="#FDFAFA" i], [fill="#F9F9F9" i], [fill="#EEEDED" i], [fill="#EAEAEA" i]){ fill:transparent; }
+.brand-wordmark :is([fill="#FAFAFA" i], [fill="#FBFBFB" i], [fill="#FDFAFA" i], [fill="#F9F9F9" i], [fill="#EEEDED" i], [fill="#EAEAEA" i]){ fill:transparent; }
 
 /* ---------- 9. Snackbars ---------- */
 .tab-notice,

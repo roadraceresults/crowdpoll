@@ -32,7 +32,7 @@ describe("the back-arrow sheet", () => {
       "width:40px;",
       "height:40px;",
       "border-radius:var(--md-sys-shape-corner-full);",
-      "background:var(--md-sys-color-secondary-container);",
+      "background:var(--icon-button-background);",
       "color:var(--md-sys-color-on-secondary-container);",
       "pointer-events:auto;"
     ]) expect(button).toContain(decl);

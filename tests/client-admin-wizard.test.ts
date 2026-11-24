@@ -3,12 +3,15 @@
  * wizard for an existing poll, the Settings Summary and its Summary Text links,
  * the read-only face and its when-line.
  */
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import request from "supertest";
 import { forgeSession, startTestContext, type TestContext } from "./helpers/setup.js";
 import { makePoll, polls, voteHistory } from "./helpers/poll-fixtures.js";
 import { openPage, type BrowserPage } from "./helpers/browser.js";
 import type { Poll } from "../src/polls/store.js";
+import { BAR_PALETTE, BAR_PALETTE_DARK } from "../src/polls/barPalette.js";
 
 const ADMIN = "admin-wizard-client@example.com";
 const CREATOR = "creator-wizard-client@example.com";
@@ -596,10 +599,8 @@ describe("the View step", () => {
     await p.settle();
     expect(popover(p).hidden).toBe(false);
     expect(colorButton(p, "Cakes").getAttribute("aria-expanded")).toBe("true");
-    expect(swatches(p).map((s) => s.getAttribute("aria-label"))).toEqual([
-      "Automatic", "red", "blue", "black", "darkslategray", "darkgray", "gainsboro", "darkred", "orangered",
-      "yellow", "greenyellow", "lime", "darkgreen", "teal", "dodgerblue", "darkslateblue", "purple", "plum", "saddlebrown"
-    ]);
+    expect(swatches(p).map((s) => s.getAttribute("aria-label"))).toEqual(["Automatic", ...BAR_PALETTE.map((c) => c.name)]);
+    expect(BAR_PALETTE.slice(0, 2).map((c) => c.name)).toEqual(["darkgreen", "red"]);
     swatchNamed(p, "red").click();
     await p.settle();
     expect(popover(p).hidden).toBe(true);
@@ -607,8 +608,22 @@ describe("the View step", () => {
     expect(p.document.activeElement).toBe(button);
     expect(nameOf(button)).toBe("red");
     expect(dotOf(button).classList.contains("is-automatic")).toBe(false);
-    expect(dotOf(button).style.getPropertyValue("--swatch")).toBe("#F91010");
+    expect(dotOf(button).style.getPropertyValue("--swatch")).toBe("#EC0606");
     expect(nameOf(colorButton(p, "Cookies"))).toBe("Automatic");
+  });
+
+  it("gives each swatch its Dark twin, which the Dark scheme shows in place of the stored colour", async () => {
+    const p = await open();
+    await openColors(p);
+    colorButton(p, "Cakes").click();
+    await p.settle();
+    BAR_PALETTE.forEach((c, i) => {
+      const fill = swatchNamed(p, c.name).querySelector(".wizard-swatch-fill") as HTMLElement;
+      expect(fill.style.getPropertyValue("--swatch"), c.name).toBe(c.hex);
+      expect(fill.style.getPropertyValue("--swatch-dark"), c.name).toBe(BAR_PALETTE_DARK[i]!.hex);
+    });
+    const sheet = readFileSync(path.resolve("src/public/admin-card-m3.css"), "utf8");
+    expect(sheet).toContain(':root[data-theme="dark"] .poll-admin-card .wizard-swatch-fill:not(.is-automatic){ background:var(--swatch-dark, var(--swatch)); }');
   });
 
   it("clears a color when Automatic is chosen", async () => {
@@ -627,7 +642,7 @@ describe("the View step", () => {
     await choose(p, "Cakes", "red");
     footerButton(wizardCard(p), "Save").click();
     await p.settle(100);
-    expect(sent("/save")[0]!.body).toMatchObject({ labels: ["Cakes", "Cookies"], colors: ["#F91010", null] });
+    expect(sent("/save")[0]!.body).toMatchObject({ labels: ["Cakes", "Cookies"], colors: ["#EC0606", null] });
     expect(sent("/publish")).toHaveLength(0);
 
     await createPoll(p);
@@ -638,7 +653,7 @@ describe("the View step", () => {
     await next(p);
     footerButton(wizardCard(p), "Publish").click();
     await p.settle(100);
-    expect(sent("/publish")[0]!.body).toMatchObject({ labels: ["Cakes", "Cookies"], colors: ["#F91010", null] });
+    expect(sent("/publish")[0]!.body).toMatchObject({ labels: ["Cakes", "Cookies"], colors: ["#EC0606", null] });
   });
 
   it("shows the saved colors again when the poll is reopened, also after a reload", async () => {
@@ -741,11 +756,11 @@ describe("colors on an existing poll", () => {
     const posts = bodies.slice(before).filter((b) => b.method === "POST");
     expect(posts.map((b) => b.url.replace(/^.*\/api/, "/api"))).toEqual([`/api/admin/polls/${poll._id}/colors`]);
     expect(Object.keys(posts[0]!.body!).sort()).toEqual(["clientGuid", "colors", "timeZone"]);
-    expect(posts[0]!.body!.colors).toEqual(["#F91010", null]);
+    expect(posts[0]!.body!.colors).toEqual(["#EC0606", null]);
     expect(sent("/publish")).toHaveLength(0);
     const stored = (await polls(ctx).findOne({ _id: poll._id }))!;
     expect(stored.pollState).toBe("OPEN");
-    expect(stored.choices.map((c) => c.color)).toEqual(["#F91010", undefined]);
+    expect(stored.choices.map((c) => c.color)).toEqual(["#EC0606", undefined]);
     expect(p.document.querySelector(".poll-admin-card--new")).toBeNull();
   });
 
@@ -834,26 +849,26 @@ describe("the color picker's keyboard, roles and look", () => {
     await atColors(p);
     await openFor(p, "Cakes");
     key(p, p.document.activeElement!, "ArrowRight");
-    expect(focusedLabel(p)).toBe("red");
+    expect(focusedLabel(p)).toBe("darkgreen");
     key(p, p.document.activeElement!, "ArrowDown");
-    expect(focusedLabel(p)).toBe("blue");
-    key(p, p.document.activeElement!, "ArrowLeft");
     expect(focusedLabel(p)).toBe("red");
+    key(p, p.document.activeElement!, "ArrowLeft");
+    expect(focusedLabel(p)).toBe("darkgreen");
     key(p, p.document.activeElement!, "ArrowUp");
     expect(focusedLabel(p)).toBe("Automatic");
     key(p, p.document.activeElement!, "ArrowUp");
     expect(focusedLabel(p)).toBe("Automatic");
     key(p, p.document.activeElement!, "End");
-    expect(focusedLabel(p)).toBe("saddlebrown");
+    expect(focusedLabel(p)).toBe(BAR_PALETTE[BAR_PALETTE.length - 1]!.name);
     key(p, p.document.activeElement!, "ArrowRight");
-    expect(focusedLabel(p)).toBe("saddlebrown");
+    expect(focusedLabel(p)).toBe(BAR_PALETTE[BAR_PALETTE.length - 1]!.name);
     key(p, p.document.activeElement!, "Home");
     expect(focusedLabel(p)).toBe("Automatic");
     key(p, p.document.activeElement!, "ArrowRight");
     const enter = key(p, p.document.activeElement!, "Enter");
     await p.settle();
     expect(enter.defaultPrevented).toBe(true);
-    expect(nameOf(colorButton(p, "Cakes"))).toBe("red");
+    expect(nameOf(colorButton(p, "Cakes"))).toBe("darkgreen");
     expect(popover(p).hidden).toBe(true);
     expect(p.document.activeElement).toBe(colorButton(p, "Cakes"));
 
@@ -861,7 +876,7 @@ describe("the color picker's keyboard, roles and look", () => {
     key(p, p.document.activeElement!, "End");
     key(p, p.document.activeElement!, " ");
     await p.settle();
-    expect(nameOf(colorButton(p, "Cookies"))).toBe("saddlebrown");
+    expect(nameOf(colorButton(p, "Cookies"))).toBe(BAR_PALETTE[BAR_PALETTE.length - 1]!.name);
   });
 
   it("closes on Escape with focus back on the button, and on a press outside", async () => {
@@ -916,7 +931,7 @@ describe("the color picker's keyboard, roles and look", () => {
     expect(button.getAttribute("aria-expanded")).toBe("true");
     expect(popover(p).getAttribute("role")).toBe("radiogroup");
     expect(popover(p).getAttribute("aria-label")).toBe("Color for Cakes");
-    expect(swatches(p)).toHaveLength(19);
+    expect(swatches(p)).toHaveLength(BAR_PALETTE.length + 1);
     for (const swatch of swatches(p)) {
       expect(swatch.getAttribute("aria-checked")).toBe(swatch.getAttribute("aria-label") === "Automatic" ? "true" : "false");
       expect(swatch.title).toBe(swatch.getAttribute("aria-label"));
@@ -1047,7 +1062,7 @@ describe("the Settings Summary's line for colors", () => {
   it("opens with the switch on for a poll that has a color", async () => {
     await seed(makePoll({
       title: "Tinted", pollState: "OPEN",
-      choices: [{ id: "a", label: "Left", position: 0, color: "#F91010" }, { id: "b", label: "Right", position: 1 }]
+      choices: [{ id: "a", label: "Left", position: 0, color: "#EC0606" }, { id: "b", label: "Right", position: 1 }]
     }));
     const p = await open();
     link(cardWith(p, "Tinted"), "Tinted").click();
@@ -1075,7 +1090,7 @@ describe("the Settings Summary's line for colors", () => {
     await p.settle();
     let line = colorsLine(wizardCard(p))!;
     expect(line.textContent).toBe("1 color has been set manually: .");
-    expect(swatchesIn(line).map((s) => [s.getAttribute("aria-label"), s.style.getPropertyValue("--swatch")])).toEqual([["Cakes: red", "#F91010"]]);
+    expect(swatchesIn(line).map((s) => [s.getAttribute("aria-label"), s.style.getPropertyValue("--swatch")])).toEqual([["Cakes: red", "#EC0606"]]);
 
     await pickFor("Cookies", "blue");
     line = colorsLine(wizardCard(p))!;
@@ -1086,7 +1101,7 @@ describe("the Settings Summary's line for colors", () => {
   it("is worded the same on an existing poll's read-only face, and the sentence opens Step 4", async () => {
     await seed(makePoll({
       title: "Painted", pollState: "OPEN",
-      choices: [{ id: "a", label: "Left", position: 0, color: "#F91010" }, { id: "b", label: "Right", position: 1 }]
+      choices: [{ id: "a", label: "Left", position: 0, color: "#EC0606" }, { id: "b", label: "Right", position: 1 }]
     }));
     const p = await open();
     const card = cardWith(p, "Painted");

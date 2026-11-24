@@ -244,7 +244,7 @@ describe("mount (C1, C2, C4, C5, FR-018)", () => {
       Array.from(side.querySelectorAll("polyline.line-graph-line")).map((line) => [line.getAttribute("data-choice-id"), line.getAttribute("stroke")])
     );
     // Yes/No take the card's fixed semantic colours; Maybe carries its manual hex.
-    expect(strokes).toEqual({ c1: "#006120", c2: "#F91010", c3: "#0808FD" });
+    expect(strokes).toEqual({ c1: "#006120", c2: "#EC0606", c3: "#0808FD" });
   });
 });
 

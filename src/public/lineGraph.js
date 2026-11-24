@@ -48,9 +48,13 @@
     return null;
   }
 
+  // In the Dark scheme a palette colour is drawn from its Dark twin (pollCard.js), as the bars are.
   function lineColorOf(choiceId, surface) {
-    const hex = colorOf(choiceId);
-    return /^#[0-9a-f]{6}$/i.test(hex) ? window.PollCard.lineColorOn(hex, surface) : hex;
+    const stored = colorOf(choiceId);
+    if (!/^#[0-9a-f]{6}$/i.test(stored)) return stored;
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const hex = dark && window.PollCard.darkTwinOf ? window.PollCard.darkTwinOf(stored) : stored;
+    return window.PollCard.lineColorOn(hex, surface);
   }
 
   function el(tag, className, text) {

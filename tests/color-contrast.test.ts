@@ -2,11 +2,12 @@
  * COLOR-CONTRAST.md is this test's data: every Frozen colours row keeps its values and every
  * Required pairs row reaches its minimum, in each scheme, with the colours m3-tokens.css sets.
  */
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { JSDOM } from "jsdom";
 import { describe, expect, it } from "vitest";
-import { BAR_PALETTE } from "../src/polls/barPalette.js";
+import { BAR_PALETTE, RESULTS_PALETTE } from "../src/polls/barPalette.js";
+import * as brandColors from "../src/brandColors.js";
 
 const root = path.resolve(".");
 const publicDir = path.join(root, "src/public");
@@ -180,9 +181,31 @@ describe("COLOR-CONTRAST.md: required pairs", () => {
 interface BarColors { fill: string; track: string; inkOnTrack: string; inkOnFill: string }
 type BarColorsOf = (hex: string) => Record<Scheme, BarColors>;
 
+// The track tints m3-tokens.css sets, which pollCard.js reads once on load.
+function trackTintToken(name: string): string {
+  const match = new RegExp(`${name}:\\s*([0-9.]+%)\\s*;`).exec(tokens);
+  if (!match) throw new Error(`${name} is not set in m3-tokens.css`);
+  return match[1]!;
+}
+const TRACK_TINTS = { light: trackTintToken("--bar-track-tint"), dark: trackTintToken("--bar-track-tint-dark") };
+
+// How far a track must stand from the card, per scheme, from m3-tokens.css (the house rule's value).
+function trackContrastToken(name: string): number {
+  const match = new RegExp(`${name}:\\s*([0-9.]+)\\s*;`).exec(tokens);
+  if (!match) throw new Error(`${name} is not set in m3-tokens.css`);
+  return Number(match[1]);
+}
+const TRACK_CONTRAST: Record<Scheme, number> = { light: trackContrastToken("--bar-track-contrast"), dark: trackContrastToken("--bar-track-contrast-dark") };
+
 function loadBarColors(): BarColorsOf {
-  const { window } = new JSDOM("<!doctype html><html><body></body></html>", { url: "http://localhost/", runScripts: "outside-only", pretendToBeVisual: true });
+  const style = `<style>:root{ --bar-track-tint:${TRACK_TINTS.light}; --bar-track-tint-dark:${TRACK_TINTS.dark}; --bar-track-contrast:${TRACK_CONTRAST.light}; --bar-track-contrast-dark:${TRACK_CONTRAST.dark}; }</style>`;
+  const { window } = new JSDOM(`<!doctype html><html><head>${style}</head><body></body></html>`, { url: "http://localhost/", runScripts: "outside-only", pretendToBeVisual: true });
   window.eval(pollCardScript);
+  const read = (window as unknown as { barTrackTints: () => { light: number; dark: number; contrast: number; contrastDark: number } }).barTrackTints();
+  if (Math.abs(read.light * 100 - parseFloat(TRACK_TINTS.light)) > 1e-9 || Math.abs(read.dark * 100 - parseFloat(TRACK_TINTS.dark)) > 1e-9
+    || read.contrast !== TRACK_CONTRAST.light || read.contrastDark !== TRACK_CONTRAST.dark) {
+    throw new Error(`pollCard.js read ${JSON.stringify(read)}, m3-tokens.css sets ${JSON.stringify({ ...TRACK_TINTS, contrast: TRACK_CONTRAST })}`);
+  }
   const barColorsOf = (window as unknown as { barColorsOf: (hex: string) => { light: BarColors; dark: BarColors } }).barColorsOf;
   return (hex) => {
     const { light, dark } = barColorsOf(hex);
@@ -226,18 +249,61 @@ const MIN_PALETTE_DELTA_E = 13;
 describe("COLOR-CONTRAST.md: result colours", () => {
   const barColorsOf = loadBarColors();
 
+  it("draws each Light palette colour, Yes and No in Dark from their Dark twins, and any other colour from itself", () => {
+    const { window } = new JSDOM("<!doctype html><html><head></head><body></body></html>", { url: "http://localhost/", runScripts: "outside-only", pretendToBeVisual: true });
+    window.eval(pollCardScript);
+    const darkTwinOf = (window as unknown as { PollCard: { darkTwinOf: (hex: string) => string } }).PollCard.darkTwinOf;
+    const darkBlock = pollCardScript.slice(pollCardScript.indexOf("RESULTS_PALETTE_ENTRIES_DARK = ["));
+    const darkPalette = (darkBlock.slice(0, darkBlock.indexOf("]")).match(/#[0-9A-Fa-f]{6}/g) ?? []).map((hex) => hex.toUpperCase());
+    expect(darkPalette).toHaveLength(basePalette.length);
+    basePalette.forEach((hex, i) => {
+      expect(darkTwinOf(hex).toUpperCase(), hex).toBe(darkPalette[i]);
+      expect(darkTwinOf(hex.toLowerCase()).toUpperCase(), hex).toBe(darkPalette[i]);
+    });
+    expect(darkTwinOf(constantOf("SEMANTIC_AFFIRMATIVE_COLOR")!).toUpperCase()).toBe(constantOf("SEMANTIC_AFFIRMATIVE_COLOR_DARK"));
+    expect(darkTwinOf(constantOf("SEMANTIC_NEGATIVE_COLOR")!).toUpperCase()).toBe(constantOf("SEMANTIC_NEGATIVE_COLOR_DARK"));
+    expect(darkTwinOf("#123456")).toBe("#123456");
+    expect(readFileSync(path.resolve("src/public/lineGraph.js"), "utf8")).toContain("window.PollCard.darkTwinOf(stored)");
+  });
+
+  it("draws white text on the Dark colours darkened for it, and black on mediumspringgreen, which was left bright", () => {
+    // Light colour → its Dark twin, darkened until white reaches 4.5:1.
+    const whiteInDark: Record<string, string> = {
+      "#006120": "#00872C", "#EC0606": "#EC0606", "#880015": "#D900B6", "#0808FD": "#006EFE",
+      "#B045B0": "#C434C4", "#FF6601": "#C84F00", "#7B7924": "#4F8400"
+    };
+    for (const [light, dark] of Object.entries(whiteInDark)) {
+      const drawn = barColorsOf(light).dark;
+      expect(drawn.fill.toUpperCase(), light).toBe(dark);
+      expect(drawn.inkOnFill.toUpperCase(), light).toBe("#FFFFFF");
+    }
+    const teal = barColorsOf("#007A7E").dark;
+    expect(teal.fill.toUpperCase()).toBe("#02F2A4");
+    expect(teal.inkOnFill.toUpperCase()).toBe("#000000");
+  });
+
+  it("draws white text on No and olive in Light, both darkened for it", () => {
+    for (const hex of ["#EC0606", "#7B7924"]) {
+      const drawn = barColorsOf(hex).light;
+      expect(drawn.fill.toUpperCase(), hex).toBe(hex);
+      expect(drawn.inkOnFill.toUpperCase(), hex).toBe("#FFFFFF");
+    }
+    expect(constantOf("SEMANTIC_NEGATIVE_COLOR")).toBe("#EC0606");
+    expect(RESULTS_PALETTE.find((c) => c.name === "olive")?.hex).toBe("#7B7924");
+  });
+
   it("covers the base palette, Yes/No and the creator swatches", () => {
-    expect(basePalette).toHaveLength(14);
+    expect(basePalette).toEqual(RESULTS_PALETTE.map((c) => c.hex.toUpperCase()));
     expect(resultColors.length).toBeGreaterThan(20);
   });
 
   for (const scheme of SCHEMES) {
     for (const hex of resultColors) {
-      it(`${scheme}: ${hex} draws a fill ≥ 3, a track ≥ 1.5, ink ≥ 7 on the track and ≥ 4.5 on the fill`, () => {
+      it(`${scheme}: ${hex} draws a fill ≥ 3, a track ≥ ${TRACK_CONTRAST[scheme]}, ink ≥ 7 on the track and ≥ 4.5 on the fill`, () => {
         const card = resolve("--paper-raised", scheme);
         const { fill, track, inkOnTrack, inkOnFill } = barColorsOf(hex)[scheme];
         expect(contrast(fill, card), `fill ${fill} on card ${card}`).toBeGreaterThanOrEqual(3);
-        expect(contrast(track, card), `track ${track} on card ${card}`).toBeGreaterThanOrEqual(1.5);
+        expect(contrast(track, card), `track ${track} on card ${card}`).toBeGreaterThanOrEqual(TRACK_CONTRAST[scheme]);
         expect(contrast(inkOnTrack, track), `ink ${inkOnTrack} on track ${track}`).toBeGreaterThanOrEqual(7);
         expect(contrast(inkOnFill, fill), `ink ${inkOnFill} on fill ${fill}`).toBeGreaterThanOrEqual(4.5);
       });
@@ -252,4 +318,39 @@ describe("COLOR-CONTRAST.md: result colours", () => {
       }
     });
   }
+});
+
+describe("CrowdPoll green shades", () => {
+  const PERCENTS = [5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+  const serverShade = (n: number) => (brandColors as Record<string, string>)[`CROWDPOLL_GREEN_${n}_PERCENT`];
+
+  it("defines each shade once in m3-tokens.css, as src/brandColors.ts holds it", () => {
+    for (const n of PERCENTS) {
+      const name = `--crowdpoll-green-${n}-percent`;
+      expect(tokens.match(new RegExp(`${name}:`, "g")), name).toHaveLength(1);
+      expect(resolve(name, "light"), name).toBe(serverShade(n));
+      expect(resolve(name, "dark"), name).toBe(serverShade(n));
+    }
+    expect(Object.keys(brandColors).sort()).toEqual(PERCENTS.map((n) => `CROWDPOLL_GREEN_${n}_PERCENT`).sort());
+  });
+
+  it("spells a shade's hex only where it is defined", () => {
+    const hexes = PERCENTS.map(serverShade).map((hex) => hex!.toUpperCase());
+    const sheets = readdirSync(publicDir).filter((name) => name.endsWith(".css"));
+    for (const name of sheets) {
+      const lines = stripComments(read(path.join(publicDir, name))).split(/\r?\n/);
+      for (const line of lines) {
+        if (name === "m3-tokens.css" && /^\s*--crowdpoll-green-\d+-percent:/.test(line)) continue;
+        for (const hex of hexes) expect(line.toUpperCase(), `${name}: ${line.trim()}`).not.toContain(hex);
+      }
+    }
+    expect(read(path.join(root, "src/email/templates.ts")).toUpperCase()).not.toMatch(new RegExp(hexes.join("|")));
+  });
+
+  it("names the shades in the roles that use them", () => {
+    expect(resolve("--md-sys-color-primary", "light")).toBe(brandColors.CROWDPOLL_GREEN_100_PERCENT);
+    expect(tokens).toContain("--md-sys-color-primary:var(--crowdpoll-green-100-percent);");
+    expect(tokens).toContain("--md-sys-color-inverse-primary:var(--crowdpoll-green-100-percent);");
+    expect(tokens).toContain("--icon-button-background:var(--crowdpoll-green-30-percent);");
+  });
 });

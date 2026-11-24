@@ -448,6 +448,10 @@
   border-radius:var(--md-sys-shape-corner-full);
   background:var(--swatch);
 }
+/* In Dark a swatch shows the colour's Dark twin, as the bars draw it. */
+:root[data-theme="dark"] .poll-admin-card .wizard-summary-swatch,
+:root[data-theme="dark"] .poll-admin-card .wizard-color-dot:not(.is-automatic),
+:root[data-theme="dark"] .poll-admin-card .wizard-swatch-fill:not(.is-automatic){ background:var(--swatch-dark, var(--swatch)); }
 .poll-admin-card .wizard-color-dot.is-automatic,
 .poll-admin-card .wizard-swatch-fill.is-automatic{ background:transparent; }
 .poll-admin-card .wizard-color-arrow{ color:var(--md-sys-color-on-surface-variant); }

@@ -309,9 +309,9 @@ describe("colors through the wizard's requests", () => {
     const poll = makePoll({ pollState: "INITIALIZED" });
     await polls(ctx).insertOne(poll);
     expect((await editSession(poll._id, "tab-1")).status).toBe(200);
-    expect((await save(poll._id, { clientGuid: "tab-1", labels: ["Cakes", "Cookies"], colors: ["#F91010", null] })).status).toBe(200);
+    expect((await save(poll._id, { clientGuid: "tab-1", labels: ["Cakes", "Cookies"], colors: ["#EC0606", null] })).status).toBe(200);
     const body = (await detail(poll._id)).body;
-    expect(body.choices.map((c: { label: string; color?: string }) => [c.label, c.color])).toEqual([["Cakes", "#F91010"], ["Cookies", undefined]]);
+    expect(body.choices.map((c: { label: string; color?: string }) => [c.label, c.color])).toEqual([["Cakes", "#EC0606"], ["Cookies", undefined]]);
   });
 
   it("sends a published poll without votes for review when only its colors change, as it does for a title", async () => {
@@ -329,7 +329,7 @@ describe("colors through the wizard's requests", () => {
     await polls(ctx).insertOne(poll);
     await addVote(poll._id);
     expect((await editSession(poll._id, "tab-1")).body.mode).toBe("UPDATE");
-    const res = await publish(poll._id, { clientGuid: "tab-1", subtitle: "Now with colors", colors: ["#FF91CB", null] });
+    const res = await publish(poll._id, { clientGuid: "tab-1", subtitle: "Now with colors", colors: ["#C8468B", null] });
     expect(res.status).toBe(200);
     // EDITING-POLL-AVAILABLE: the colours apply in the save transaction while the
     // subtitle, a reviewed field, waits as the pending update; the poll stays OPEN.
@@ -338,6 +338,6 @@ describe("colors through the wizard's requests", () => {
     expect(stored.pollState).toBe("OPEN");
     expect(stored.subtitle).toBe("");
     expect(stored.pendingUpdate).toEqual({ subtitle: "Now with colors" });
-    expect(stored.choices.map((c) => [c.id, c.label, c.color])).toEqual([["a", "Left", "#FF91CB"], ["b", "Right", undefined]]);
+    expect(stored.choices.map((c) => [c.id, c.label, c.color])).toEqual([["a", "Left", "#C8468B"], ["b", "Right", undefined]]);
   });
 });

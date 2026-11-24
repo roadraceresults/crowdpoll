@@ -55,7 +55,7 @@
         </button>
         <div class="tab-bar" id="tabBar" role="tablist" aria-label="Poll tabs">
           <button class="tab" type="button" data-tab="home" role="tab" id="tab-home" aria-controls="panel-home" aria-selected="false" tabindex="-1" hidden>
-            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 9v11h14V9"></path><path d="M10 20v-6h4v6"></path></svg>
+            <svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="12" fill="#8093a7"/><g color="#e8edf2" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round" transform="translate(12 12) scale(0.75) translate(-12 -11.5)"><path fill-rule="evenodd" d="M12 3 21 10.5H19V20H5V10.5H3ZM10 20V14H14V20Z"></path></g></svg>
             Home
           </button>
           <button class="tab" type="button" data-tab="your-polls" role="tab" id="tab-your-polls" aria-controls="panel-your-polls" aria-selected="false" tabindex="-1">
@@ -79,7 +79,7 @@
             Newest
           </button>
           <button class="tab" type="button" data-tab="watching" role="tab" id="tab-watching" aria-controls="panel-watching" aria-selected="false" tabindex="-1">
-            <svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#watching-eye"/></svg>
+            <svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="12" fill="#8093a7"/><g color="#e8edf2" transform="translate(12 12) scale(0.66) translate(-12 -12)"><use href="#watching-eye"/></g></svg>
             Watching
           </button>
           <button class="tab" type="button" data-tab="live" role="tab" id="tab-live" aria-controls="panel-live" aria-selected="false" tabindex="-1" hidden>
@@ -87,7 +87,7 @@
             Live Results
           </button>
           <button class="tab" type="button" data-tab="search" role="tab" id="tab-search" aria-controls="panel-search" aria-selected="false" tabindex="-1">
-            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="12" fill="#8093a7"/><g color="#e8edf2" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" transform="translate(12 12) scale(0.6) translate(-12.5 -12.5)"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></g></svg>
             Search
           </button>
           <button class="tab-more" id="tabMoreBtn" type="button" aria-label="More" aria-haspopup="true" aria-expanded="false" aria-controls="tabMenu">
@@ -129,7 +129,7 @@
         <section class="tab-panel" data-panel="newest" role="tabpanel" id="panel-newest" aria-labelledby="tab-newest" hidden><div class="card-grid"></div><p class="tab-empty" hidden></p></section>
         <section class="tab-panel" data-panel="watching" role="tabpanel" id="panel-watching" aria-labelledby="tab-watching" hidden><div class="card-grid"></div><p class="tab-empty" hidden></p></section>
         <section class="tab-panel" data-panel="live" role="tabpanel" id="panel-live" aria-labelledby="tab-live" hidden><div class="card-grid"></div><p class="tab-empty" hidden></p></section>
-        <section class="tab-panel" data-panel="search" role="tabpanel" id="panel-search" aria-labelledby="tab-search" hidden><form class="search-tab-form" id="searchTabForm" role="search" autocomplete="off"><input type="search" id="searchTabBox" name="q" placeholder="Search CrowdPoll" aria-label="Search CrowdPoll" maxlength="200"><button class="header-search-clear" id="searchTabClear" type="button" aria-label="Clear Search Terms" title="Clear Search Terms" hidden><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></form><div class="card-grid"></div><p class="tab-empty" hidden></p></section>
+        <section class="tab-panel" data-panel="search" role="tabpanel" id="panel-search" aria-labelledby="tab-search" hidden><form class="search-tab-form" id="searchTabForm" role="search" autocomplete="off"><button class="search-icon-btn" type="submit" aria-label="Search" title="Search"><svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></button><input type="search" id="searchTabBox" name="q" placeholder="Search CrowdPoll" aria-label="Search CrowdPoll" maxlength="200"><button class="header-search-clear" id="searchTabClear" type="button" aria-label="Clear Search Terms" title="Clear Search Terms" hidden><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></form><div class="card-grid"></div><p class="tab-empty" hidden></p></section>
       </main>
 
     </div>

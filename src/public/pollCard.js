@@ -17,29 +17,54 @@
   generating its own.
 */
 
-// Colour names and values from the xkcd colour survey: https://xkcd.com/color/rgb/
+// Each name is the nearest CSS named colour: https://developer.mozilla.org/en-US/docs/Web/CSS/named-color
+// The order is chosen so neighbouring bars do not clash. The creator's palette (src/polls/barPalette.ts) is this
+// list with the Yes and No colours in front; tests/bar-palette.test.ts keeps the two in step.
 const RESULTS_PALETTE_ENTRIES = [
-  { hex: '#880015', name: 'darkred' },
-  { hex: '#C8468B', name: 'palevioletred' },
-  { hex: '#0808FD', name: 'blue' },
-  { hex: '#1A539E', name: 'darkslateblue' },
-  { hex: '#0695F5', name: 'dodgerblue' },
-  { hex: '#000000', name: 'black' },
-  { hex: '#8B4513', name: 'saddlebrown' },
-  { hex: '#6B8E23', name: 'olivedrab' },
-  { hex: '#800080', name: 'purple' },
-  { hex: '#B045B0', name: 'darkorchid' },
-  { hex: '#FF6601', name: 'orangered' },
-  { hex: '#B8860B', name: 'darkgoldenrod' },
-  { hex: '#007A7E', name: 'teal' },
-  { hex: '#399FA2', name: 'lightseagreen' }
+  { name: "maroon", hex: "#880015" },
+  { name: "mediumvioletred", hex: "#C8468B" },
+  { name: "blue", hex: "#0808FD" },
+  { name: "darkslateblue", hex: "#1A539E" },
+  { name: "dodgerblue", hex: "#0695F5" },
+  { name: "darkcyan", hex: "#399FA2" },
+  { name: "mediumorchid", hex: "#B045B0" },
+  { name: "black", hex: "#000000" },
+  { name: "darkslategray", hex: "#404040" },
+  { name: "gray", hex: "#7D7D7D" },
+  { name: "purple", hex: "#800080" },
+  { name: "orangered", hex: "#FF6601" },
+  { name: "teal", hex: "#007A7E" },
+  { name: "olive", hex: "#7B7924" },
+  { name: "peru", hex: "#DB9044" }
+];
+
+// The Dark scheme's palette: entry i is drawn in Dark wherever entry i of the list above would be, for an
+// automatic colour and for the same colour chosen by a poll's creator. Same length and order as the list above;
+// Yes and No have their own Dark colours (SEMANTIC_..._DARK); any other colour (an older creator's) is drawn from
+// itself in both schemes. src/polls/barPalette.ts holds the same list (RESULTS_PALETTE_DARK), for the creator's picker.
+const RESULTS_PALETTE_ENTRIES_DARK = [
+  { name: "mediumvioletred", hex: "#D900B6" },
+  { name: "hotpink", hex: "#FF82C8" },
+  { name: "royalblue", hex: "#006EFE" },
+  { name: "blueviolet", hex: "#5353FE" },
+  { name: "deepskyblue", hex: "#00D4FF" },
+  { name: "darkturquoise", hex: "#00C1C7" },
+  { name: "mediumorchid", hex: "#C434C4" },
+  { name: "darkgray", hex: "#9E9E9E" },
+  { name: "gainsboro", hex: "#E0E0E0" },
+  { name: "yellow", hex: "#FFF500" },
+  { name: "plum", hex: "#C8A8FF" },
+  { name: "chocolate", hex: "#C84F00" },
+  { name: "mediumspringgreen", hex: "#02F2A4" },
+  { name: "olivedrab", hex: "#4F8400" },
+  { name: "gold", hex: "#FFD201" }
 ];
 
 /*
   The list above is the base; the palette a card draws from is that list
   repeated until it holds one entry per choice the poll may have
   (ENV_MAX_CHOICES, handed to the card as choiceBounds.maxChoices).
-  Repeating the list keeps equal colors 14 entries apart. When the count
+  Repeating the list keeps equal colors a list length apart. When the count
   leaves the last entry equal to the first, one more entry is added so
   the wrap from the end back to the start never repeats a color.
 */
@@ -100,7 +125,10 @@ function dismissMaximizeHint(){
 }
 
 const SEMANTIC_AFFIRMATIVE_COLOR = '#006120';
-const SEMANTIC_NEGATIVE_COLOR = '#F91010';
+const SEMANTIC_NEGATIVE_COLOR = '#EC0606';
+// Yes and No as drawn in Dark (AFFIRMATIVE_COLOR_DARK and NEGATIVE_COLOR_DARK in src/polls/barPalette.ts).
+const SEMANTIC_AFFIRMATIVE_COLOR_DARK = '#00872C';
+const SEMANTIC_NEGATIVE_COLOR_DARK = '#EC0606';
 
 const AFFIRMATIVE_WORDS = /(?:^|[^a-z])(?:yes|true|correct|agree|yay|approve|approved|approval|support|favor|favour|accept|yeah|yep|aye)(?![a-z])/i;
 const NEGATIVE_WORDS = /(?:^|[^a-z])(?:no|false|incorrect|disagree|nay|disapprove|disapproved|disapproval|oppose|against|reject|nah)(?![a-z])/i;
@@ -385,7 +413,6 @@ function darkShadeOf(hex){
 // text color when that still reaches 4.5:1 on the fill as drawn; any other takes white or black, whichever
 // contrasts more. Rules: COLOR-CONTRAST.md
 const TEXT_ON_FILL_OVERRIDES = new Map(Object.entries({
-  '#F91010': '#FFFFFF',
   '#0695F5': '#FFFFFF',
   '#399FA2': '#FFFFFF',
   '#C8468B': '#FFFFFF',
@@ -405,7 +432,17 @@ const TEXT_ON_FILL_OVERRIDES = new Map(Object.entries({
   '#FFFF00': '#000000',
   '#06D400': '#000000',
   '#FF91CB': '#FFFFFF',
-  '#784315': '#FFFFFF'
+  '#784315': '#FFFFFF',
+  // Colours darkened until white reaches 4.5:1 (black is only just higher on them): Dark palette colours, Dark Yes,
+  // No (the same in both schemes) and Light olive.
+  '#00872C': '#FFFFFF',
+  '#EC0606': '#FFFFFF',
+  '#7B7924': '#FFFFFF',
+  '#D900B6': '#FFFFFF',
+  '#006EFE': '#FFFFFF',
+  '#C434C4': '#FFFFFF',
+  '#C84F00': '#FFFFFF',
+  '#4F8400': '#FFFFFF'
 }));
 
 const RESULTS_TEXT_ON_FILL_CONTRAST = 4.5;
@@ -457,29 +494,69 @@ function lineColorOn(hex, surfaceHex){
 }
 
 // The track behind a fill: the fill mixed into the card, as pale as the tint allows while still
-// standing 1.5:1 apart from the card.
-function trackOn(fill, surface, maxTint){
+// standing the target contrast (1.5:1 unless m3-tokens.css says otherwise) apart from the card.
+function trackOn(fill, surface, maxTint, target){
   let tint = maxTint;
   let track = mixWith(fill, surface, tint);
-  while (contrastRatio(track, surface) < RESULTS_TRACK_TARGET_CONTRAST && tint > RESULTS_TRACK_TINT_STEP + 1e-9){
+  while (contrastRatio(track, surface) < target && tint > RESULTS_TRACK_TINT_STEP + 1e-9){
     tint = Math.round((tint - RESULTS_TRACK_TINT_STEP) * 100) / 100;
     track = mixWith(fill, surface, tint);
   }
   return track;
 }
 
+// The most card colour a track may hold, per scheme: m3-tokens.css sets them as percentages
+// (--bar-track-tint, --bar-track-tint-dark); without them, the defaults above. Read once, as the
+// colours are derived once per page.
+function trackTintFromCss(name, fallback){
+  if (typeof document === 'undefined' || typeof getComputedStyle !== 'function') return fallback;
+  const value = parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name));
+  return Number.isFinite(value) && value > 0 && value <= 100 ? value / 100 : fallback;
+}
+
+const BAR_TRACK_TINT = trackTintFromCss('--bar-track-tint', RESULTS_TRACK_TINT);
+const BAR_TRACK_TINT_DARK = trackTintFromCss('--bar-track-tint-dark', RESULTS_DARK_TRACK_TINT);
+
+// How far a track stands from the card, per scheme: --bar-track-contrast and --bar-track-contrast-dark
+// in m3-tokens.css (a ratio above 1, at most 3), else RESULTS_TRACK_TARGET_CONTRAST. Lower is paler.
+function trackContrastFromCss(name, fallback){
+  if (typeof document === 'undefined' || typeof getComputedStyle !== 'function') return fallback;
+  const value = parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name));
+  return Number.isFinite(value) && value > 1 && value <= 3 ? value : fallback;
+}
+
+const BAR_TRACK_CONTRAST = trackContrastFromCss('--bar-track-contrast', RESULTS_TRACK_TARGET_CONTRAST);
+const BAR_TRACK_CONTRAST_DARK = trackContrastFromCss('--bar-track-contrast-dark', RESULTS_TRACK_TARGET_CONTRAST);
+
+function barTrackTints(){
+  return { light: BAR_TRACK_TINT, dark: BAR_TRACK_TINT_DARK, contrast: BAR_TRACK_CONTRAST, contrastDark: BAR_TRACK_CONTRAST_DARK };
+}
+
+// The colour a Light palette entry, Yes or No becomes in Dark; any other colour is itself.
+const DARK_TWINS = new Map([
+  ...RESULTS_PALETTE_ENTRIES.slice(0, RESULTS_PALETTE_ENTRIES_DARK.length)
+    .map((entry, i) => [entry.hex.toUpperCase(), RESULTS_PALETTE_ENTRIES_DARK[i].hex.toUpperCase()]),
+  [SEMANTIC_AFFIRMATIVE_COLOR, SEMANTIC_AFFIRMATIVE_COLOR_DARK],
+  [SEMANTIC_NEGATIVE_COLOR, SEMANTIC_NEGATIVE_COLOR_DARK]
+]);
+
+function darkTwinOf(hex){
+  return DARK_TWINS.get(String(hex).toUpperCase()) || hex;
+}
+
 // A bar as drawn on a card: the stored color at 3:1 against the card (the line graph's own shade), its
 // track, and the text on each. The stored color itself never changes.
 function barColorsFor(stored){
   const fill = lineColorOn(stored, RESULTS_LIGHT_SURFACE);
-  const track = trackOn(fill, RESULTS_LIGHT_SURFACE, RESULTS_TRACK_TINT);
+  const track = trackOn(fill, RESULTS_LIGHT_SURFACE, BAR_TRACK_TINT, BAR_TRACK_CONTRAST);
   return { fill, track, inkOnTrack: darkShadeOf(track), inkOnFill: inkOnFillFor(fill, stored) };
 }
 
 function darkBarColorsFor(stored){
-  const fill = lineColorOn(stored, RESULTS_DARK_SURFACE);
-  const track = trackOn(fill, RESULTS_DARK_SURFACE, RESULTS_DARK_TRACK_TINT);
-  return { fill, track, inkOnTrack: lightShadeFor(track), inkOnFill: inkOnFillFor(fill, stored) };
+  const twin = darkTwinOf(stored);
+  const fill = lineColorOn(twin, RESULTS_DARK_SURFACE);
+  const track = trackOn(fill, RESULTS_DARK_SURFACE, BAR_TRACK_TINT_DARK, BAR_TRACK_CONTRAST_DARK);
+  return { fill, track, inkOnTrack: lightShadeFor(track), inkOnFill: inkOnFillFor(fill, twin) };
 }
 
 const BAR_COLORS = new Map();
@@ -497,10 +574,16 @@ function clipToWidth(width){
   return 'inset(0 calc(100% - ' + width + ') 0 0)';
 }
 
+// TEMPORARY, for choosing the palettes: true draws every bar half filled, whatever its share (the percentage
+// shown stays the real one), so each colour's fill and track can be compared. Remove once the palettes are final;
+// tests/bar-palette.test.ts fails while it is true.
+const PALETTE_PREVIEW_HALF_FILL = true;
+
 function setFillWidth(row, pct){
-  row.querySelector('.result-fill').style.width = pct + '%';
+  const shown = PALETTE_PREVIEW_HALF_FILL ? 50 : pct;
+  row.querySelector('.result-fill').style.width = shown + '%';
   const overlay = row.querySelector('.result-ink-on-fill');
-  if (overlay) overlay.style.clipPath = clipToWidth(pct + '%');
+  if (overlay) overlay.style.clipPath = clipToWidth(shown + '%');
 }
 
 function syncInkOnFill(row){
@@ -731,7 +814,8 @@ function scaleRadioSize(barHeight){
   return Math.max(VOTE_RADIO_MIN, Math.min(VOTE_RADIO_MAX, barHeight - 2, barHeight * 0.55));
 }
 
-function renderVotingOptions(wrap, list, data, layoutFor){
+// colorOf(item) is the hex the choice's bar has on the front face; a selected row is drawn in that bar's colours.
+function renderVotingOptions(wrap, list, data, layoutFor, colorOf){
   if (!wrap || !list) return;
 
   const count = data.length;
@@ -760,6 +844,14 @@ function renderVotingOptions(wrap, list, data, layoutFor){
     row.style.height = barHeight + 'px';
     row.dataset.index = i;
     row.dataset.choiceId = item.id;
+    const hex = colorOf ? colorOf(item) : null;
+    if (hex){
+      const { light, dark } = barColorsOf(hex);
+      row.style.setProperty('--bar-fill', light.fill);
+      row.style.setProperty('--bar-ink-on-fill', light.inkOnFill);
+      row.style.setProperty('--bar-fill-dark', dark.fill);
+      row.style.setProperty('--bar-ink-on-fill-dark', dark.inkOnFill);
+    }
     const labelText = item.label;
     row.title = labelText;
 
@@ -856,6 +948,7 @@ function initPollCard(viewport, opts){
   const voteErrorBack = viewport.querySelector('.card-back .poll-vote-error');
   const notesBox = viewport.querySelector('.card-front .poll-notes');
   const notesText = notesBox?.querySelector('.poll-notes-text');
+  const notesBody = notesBox?.querySelector('.poll-notes-body');
   const notesMore = notesBox?.querySelector('.poll-notes-more');
 
   // ---- This card's dataset ----
@@ -945,7 +1038,8 @@ function initPollCard(viewport, opts){
   }
 
   function renderBallot(){
-    renderVotingOptions(votingWrap, votingList, ballot(), votingLayoutFor);
+    const hexById = new Map(resultColors().map((c) => [c.id, c.hex]));
+    renderVotingOptions(votingWrap, votingList, ballot(), votingLayoutFor, (item) => hexById.get(item.id));
   }
 
   function rebuildData(selectedIds){
@@ -998,22 +1092,27 @@ function initPollCard(viewport, opts){
   function setNotes(html){
     if (!notesBox) return;
     if (html !== shownNotesHtml){
-      notesText.innerHTML = html;
+      notesBody.innerHTML = html;
       shownNotesHtml = html;
     }
     notesBox.hidden = !html;
     decideNotesMore();
   }
 
+  // Notes longer than the lines shown end halfway along the last line, in an ellipsis (is-clipped: the
+  // .poll-notes-cut float); whether they are longer is measured without that cut.
   function decideNotesMore(){
     if (!notesBox || notesBox.hidden) return;
-    notesMore.hidden = !(poll && poll.hasMoreNotes) && notesText.scrollHeight <= notesText.clientHeight;
+    notesText.classList.remove('is-clipped');
+    const overflows = notesText.scrollHeight > notesText.clientHeight;
+    notesText.classList.toggle('is-clipped', overflows);
+    notesMore.hidden = !(poll && poll.hasMoreNotes) && !overflows;
   }
 
   if (notesText && typeof ResizeObserver === 'function') new ResizeObserver(decideNotesMore).observe(notesText);
 
   // The bars are sized for the height their area has when drawn. When that height changes with
-  // no window resize (the title rewrapping once its web font arrives, the notes' "Show more"
+  // no window resize (the title rewrapping once its web font arrives, the notes' "Read more"
   // appearing), they are drawn again; otherwise the last bar is cut off until the next render.
   if (typeof ResizeObserver === 'function'){
     const drawnFor = new Map();
@@ -1382,7 +1481,7 @@ function initPollCard(viewport, opts){
     event.stopPropagation();
     requestMaximizedNotes();
   });
-  notesBox?.addEventListener('click', () => { if (isPhoneLayout()) requestMaximizedNotes(); });
+  notesBox?.addEventListener('click', () => requestMaximizedNotes());
 
   function scrollToCardTop(){
     const chrome = window.FixedChrome ? window.FixedChrome.height() : 0;
@@ -1749,8 +1848,8 @@ const POLL_CARD_TEMPLATE = `
           </div>
 
           <div class="poll-notes" hidden>
-            <div class="poll-notes-text"></div>
-            <button type="button" class="poll-notes-more" hidden>Show more<svg class="poll-notes-more-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m6 9 6 6 6-6"/></svg></button>
+            <div class="poll-notes-frame"><div class="poll-notes-text"><span class="poll-notes-cut" aria-hidden="true"></span><div class="poll-notes-body"></div></div></div>
+            <button type="button" class="poll-notes-more" hidden>Read more...</button>
           </div>
 
           <div class="bar-scroll-wrap results-scroll-wrap">
@@ -1873,6 +1972,7 @@ window.PollCard = {
     return instance;
   },
   lineColorOn: lineColorOn,
+  darkTwinOf: darkTwinOf,
   isPhoneLayout: isPhoneLayout,
   essentialChoices: essentialChoices,
   fittingChoices: fittingChoices,

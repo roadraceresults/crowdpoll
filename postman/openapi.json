@@ -1848,6 +1848,11 @@
                           "hex": {
                             "type": "string",
                             "pattern": "^#[0-9A-F]{6}$"
+                          },
+                          "darkHex": {
+                            "type": "string",
+                            "pattern": "^#[0-9A-F]{6}$",
+                            "description": "The color a bar given this color is drawn from in the Dark scheme; the stored color is always hex"
                           }
                         }
                       },

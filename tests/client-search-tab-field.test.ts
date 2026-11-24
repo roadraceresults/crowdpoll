@@ -77,6 +77,21 @@ describe("the Search tab's own field", () => {
     expect(home.clearButton.hidden).toBe(true);
   });
 
+  it("starts with the header's magnifier, a submit button drawn with the same glass", () => {
+    home = openHome();
+    const form = home.document.getElementById("searchTabForm") as HTMLFormElement;
+    const button = form.firstElementChild as HTMLButtonElement;
+    expect(button.tagName).toBe("BUTTON");
+    expect(button.className).toBe("search-icon-btn");
+    expect(button.type).toBe("submit");
+    expect(button.getAttribute("aria-label")).toBe("Search");
+    const appJs = readFileSync(path.resolve("src/public/app.js"), "utf8");
+    for (const part of ['<circle cx="11" cy="11" r="7"></circle>', '<line x1="21" y1="21" x2="16.65" y2="16.65"></line>']) {
+      expect(button.innerHTML, part).toContain(part);
+      expect(appJs, part).toContain(part);
+    }
+  });
+
   it("makes the same search request as the header box and keeps the terms in the field", async () => {
     home = openHome();
     home.field.value = "  senate  ";

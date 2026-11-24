@@ -3,6 +3,8 @@
  * `matchMedia("(max-width: 640px)")` does not match, the two bar areas are given a height
  * (jsdom lays nothing out), and no server is involved.
  */
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { openStubbedHome, type StubbedHome } from "./helpers/single-column-page.js";
 
@@ -254,10 +256,10 @@ describe("the wide card", () => {
     expect(view.maximizeCalls).toEqual([["pid-1", { open: "notes" }]]);
   });
 
-  it("opens nothing from the notes outside Show more", async () => {
+  it("opens the maximized view at the notes from anywhere in the notes, as Read more does", async () => {
     const view = await mount(poll(37, { notesPreviewHtml: "<p>Some notes</p>" }), { heights: fits });
     await view.click(".card-front .poll-notes-text");
-    expect(view.maximizeCalls).toEqual([]);
+    expect(view.maximizeCalls).toEqual([["pid-1", { open: "notes" }]]);
   });
 
   it("opens the maximized view on its results from a bar, whether or not the ballot fits", async () => {
@@ -370,6 +372,25 @@ describe("voting from the wide card", () => {
     const selected = view.el.querySelectorAll(".voting-list > .vote-row.is-selected");
     expect(selected).toHaveLength(1);
     expect(selected[0]!.querySelector(".vote-label")!.textContent).toBe("Choice 3");
+  });
+});
+
+describe("a selected choice on the voting side", () => {
+  it("is drawn in the colours of its bar on the results side, in both schemes", async () => {
+    const view = await mount(poll(10), { heights: fits });
+    const barOf = (label: string) => view.resultRows().find((row) => row.querySelector(".result-label")?.textContent === label) as HTMLElement;
+    const bar = barOf("Choice 3");
+    await view.click(".vote-btn");
+    await view.click(".voting-list > .vote-row:nth-child(3)");
+    const selected = view.el.querySelector(".voting-list > .vote-row.is-selected") as HTMLElement;
+    expect(selected.querySelector(".vote-label")!.textContent).toBe("Choice 3");
+    for (const property of ["--bar-fill", "--bar-ink-on-fill", "--bar-fill-dark", "--bar-ink-on-fill-dark"]) {
+      expect(selected.style.getPropertyValue(property), property).not.toBe("");
+      expect(selected.style.getPropertyValue(property), property).toBe(bar.style.getPropertyValue(property));
+    }
+    const sheet = readFileSync(path.resolve("src/public/pollCard-m3.css"), "utf8");
+    expect(sheet).toContain(".card-face .vote-row.is-selected{ background:var(--vote-selected-fill); color:var(--vote-selected-ink); }");
+    expect(sheet).toContain("--vote-selected-fill:var(--bar-fill-dark, var(--choice-selected));");
   });
 });
 

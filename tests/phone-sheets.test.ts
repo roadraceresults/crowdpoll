@@ -576,3 +576,13 @@ describe("the flip-back button and the Submit bar", () => {
     expect(/\.card-back \.actions\{([^}]*)\}/.exec(read("pollCard.css"))![1]).toContain("justify-content:space-between;");
   });
 });
+
+describe("the card title beside the icons in the phone layout", () => {
+  it("keeps the icons' corner clear for one title line only, so lines 2 and 3 run under the icons", () => {
+    const phone = declarationsOf(read("phone-card-m3.css"), ".card-face .question-row .question::before");
+    expect(phone).toContain("width:48px");
+    expect(phone).not.toMatch(/(^|;)height:/);
+    const shared = declarationsOf(read("pollCard-m3.css"), ".card-face .question-row .question::before");
+    expect(shared).toContain("height:1lh");
+  });
+});

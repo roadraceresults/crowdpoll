@@ -13,7 +13,7 @@ let base: string[] = [];
 let palette: string[] = [];
 
 const YES = "#006120";
-const NO = "#F91010";
+const NO = "#EC0606";
 
 beforeAll(async () => {
   ctx = await startTestContext({ ENV_MIN_MANUAL_REFRESH_INTERVAL: "1200", ...LISTING_MAX_AGE_1S });
@@ -67,7 +67,7 @@ function contrast(a: string, b: string): number {
 // The text on a drawn fill, as the page should pick it: the color listed for the stored color when it
 // reaches 4.5:1 on the drawn fill, else white or black by contrast.
 const BLACK_TEXT_ON = new Set(["#E0E0E0", "#E3E335", "#FFFF00", "#06D400"]);
-const LISTED_WHITE_TEXT_ON = new Set(["#F91010", "#0695F5", "#399FA2", "#C8468B", "#FF6601", "#006120", "#9E9E9E", "#545454", "#000000", "#0808FD", "#007A7E", "#B045B0", "#800080", "#1A539E", "#880015", "#FF91CB", "#784315"]);
+const LISTED_WHITE_TEXT_ON = new Set(["#EC0606", "#7B7924", "#0695F5", "#399FA2", "#C8468B", "#FF6601", "#006120", "#9E9E9E", "#545454", "#000000", "#0808FD", "#007A7E", "#B045B0", "#800080", "#1A539E", "#880015", "#FF91CB", "#784315"]);
 function textOn(stored: string): string {
   const hex = stored.toUpperCase();
   const fill = drawn(hex);

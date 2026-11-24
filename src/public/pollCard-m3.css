@@ -23,6 +23,14 @@
   letter-spacing:var(--md-sys-typescale-body-medium-tracking);
   color:var(--md-sys-color-on-surface-variant);
 }
+/* The title, subtitle and top-right icons are a section of their own, closed by a 2px rule from
+   edge to edge of the card: the section reaches out over the face's 22px side padding (pollCard.css)
+   and restores it inside, so nothing in it moves sideways. */
+.card-viewport:not(.card-shell-viewport) .card-face .question-wrap{
+  margin:0 -22px 12px;
+  padding:0 22px 8px;
+  border-bottom:2px solid var(--line);
+}
 
 .card-face .result-label,
 .card-face .result-pct,
@@ -191,13 +199,22 @@
 .card-face .voting-list.is-multi .vote-radio.is-selected{ background:var(--md-sys-color-primary); }
 .card-face .voting-list.is-multi .vote-radio.is-selected::after{ transform:translate(-50%, -50%) rotate(45deg) scale(1); }
 
-/* A selected row: an amber fill with its mark and label in the row's own text colour (COLOR-CONTRAST.md). */
-.card-face .vote-row.is-selected{ box-shadow:inset 0 0 0 2px var(--choice-selected); color:var(--on-choice-selected); }
-.card-face .vote-row.is-selected .vote-label{ color:var(--on-choice-selected); }
-.card-face .vote-row.is-selected .vote-radio{ border-color:var(--on-choice-selected); }
-.card-face .vote-row.is-selected .vote-radio::after{ background:var(--on-choice-selected); }
-.card-face .voting-list.is-multi .vote-row.is-selected .vote-radio{ background:var(--on-choice-selected); }
-.card-face .voting-list.is-multi .vote-row.is-selected .vote-radio::after{ background:none; border-color:var(--choice-selected); }
+/* A selected row is drawn in its choice's bar colours from the front face: the bar's fill, with its mark and label in
+   the bar's text-on-fill colour; a row without a bar colour keeps the amber fill (COLOR-CONTRAST.md). */
+.card-face .vote-row{
+  --vote-selected-fill:var(--bar-fill, var(--choice-selected));
+  --vote-selected-ink:var(--bar-ink-on-fill, var(--on-choice-selected));
+}
+:root[data-theme="dark"] .card-face .vote-row{
+  --vote-selected-fill:var(--bar-fill-dark, var(--choice-selected));
+  --vote-selected-ink:var(--bar-ink-on-fill-dark, var(--on-choice-selected));
+}
+.card-face .vote-row.is-selected{ background:var(--vote-selected-fill); color:var(--vote-selected-ink); }
+.card-face .vote-row.is-selected .vote-label{ color:var(--vote-selected-ink); }
+.card-face .vote-row.is-selected .vote-radio{ border-color:var(--vote-selected-ink); }
+.card-face .vote-row.is-selected .vote-radio::after{ background:var(--vote-selected-ink); }
+.card-face .voting-list.is-multi .vote-row.is-selected .vote-radio{ background:var(--vote-selected-ink); }
+.card-face .voting-list.is-multi .vote-row.is-selected .vote-radio::after{ background:none; border-color:var(--vote-selected-fill); }
 
 .card-face .poll-totals,
 .card-face .poll-voted,
@@ -346,7 +363,7 @@
   margin:0 0 8px;
   padding:4px 0 0 14px;
   border-radius:var(--md-sys-shape-corner-small);
-  background:var(--md-sys-color-surface-container-low);
+  background:var(--poll-notes-background);
   font-family:var(--md-sys-typescale-font);
   font-weight:var(--md-sys-typescale-body-medium-weight);
   font-size:var(--md-sys-typescale-body-medium-size);
@@ -355,13 +372,31 @@
   color:var(--md-sys-color-on-surface);
 }
 .card-face .poll-notes[hidden]{ display:none; }
+/* Up to two and a half lines: notes that overflow stop halfway along the third line, in an ellipsis. The text box
+   is a flex item so the spacer's 100% height resolves; the spacer pushes the half-width cut down to the last line. */
+.card-face .poll-notes{ cursor:pointer; }
+.card-face .poll-notes-frame{ display:flex; }
 .card-face .poll-notes-text{
   display:-webkit-box;
   -webkit-box-orient:vertical;
-  -webkit-line-clamp:2;
-  line-clamp:2;
+  -webkit-line-clamp:3;
+  line-clamp:3;
   overflow:hidden;
   overflow-wrap:anywhere;
+}
+.card-face .poll-notes-text.is-clipped::before{
+  content:'';
+  float:right;
+  width:0;
+  height:calc(100% - var(--md-sys-typescale-body-medium-line-height));
+}
+.card-face .poll-notes-cut{ display:none; }
+.card-face .poll-notes-text.is-clipped .poll-notes-cut{
+  display:block;
+  float:right;
+  clear:both;
+  width:50%;
+  height:var(--md-sys-typescale-body-medium-line-height);
 }
 .card-face .poll-notes-more{
   display:flex;
@@ -372,7 +407,7 @@
   padding:0 12px;
   border:0;
   border-radius:var(--md-sys-shape-corner-full);
-  background:color-mix(in srgb, var(--md-sys-color-primary) 8%, transparent);
+  background:var(--poll-notes-background);
   filter:none;
   font-family:var(--md-sys-typescale-font);
   font-weight:var(--md-sys-typescale-label-medium-weight);
@@ -381,13 +416,9 @@
   color:var(--md-sys-color-primary);
   cursor:pointer;
 }
-.card-face .poll-notes-more-chevron{
-  width:18px;
-  height:18px;
-  flex:0 0 auto;
-}
 .card-face .poll-notes-more[hidden]{ display:none; }
-.card-face .poll-notes-more:hover{ background:color-mix(in srgb, var(--md-sys-color-primary) 16%, transparent); }
+/* On hover, the fill it had before the notes took --poll-notes-background. */
+.card-face .poll-notes-more:hover{ background:color-mix(in srgb, var(--md-sys-color-primary) 16%, var(--md-sys-color-surface-container-low)); }
 .card-face .poll-notes-more:focus-visible{
   outline:3px solid var(--md-sys-color-secondary);
   outline-offset:2px;

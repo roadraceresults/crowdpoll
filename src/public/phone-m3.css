@@ -88,8 +88,9 @@
   .tab-notice,
   .tab-empty{ font-size:var(--md-sys-typescale-body-medium-size); line-height:var(--md-sys-typescale-body-medium-line-height); }
   .tab-notice-close{ width:48px; height:48px; }
-  .search-tab-form{ height:64px; padding:0 8px 0 20px; }
+  .search-tab-form{ height:64px; padding:0 8px; }
   .search-tab-form input{ align-self:stretch; font-size:var(--md-sys-typescale-body-large-size); }
+  .search-tab-form .search-icon-btn,
   .search-tab-form .header-search-clear{ width:48px; height:48px; }
 
   .site-footer{ width:calc(100% - 32px); padding:20px 16px 16px; font-size:calc(var(--md-sys-typescale-body-small-size) + 4px); line-height:calc(var(--md-sys-typescale-body-small-line-height) * 1.5); }

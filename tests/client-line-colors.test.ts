@@ -26,7 +26,7 @@ beforeAll(async () => {
   const block = script.slice(script.indexOf("RESULTS_PALETTE_ENTRIES = ["));
   const automatic = (block.slice(0, block.indexOf("];")).match(/#[0-9A-Fa-f]{6}/g) ?? []).map((hex) => hex.toUpperCase());
   const manual = BAR_PALETTE.map((entry) => entry.hex.toUpperCase());
-  colors = [...new Set([...automatic, "#006120", "#F91010", ...manual])];
+  colors = [...new Set([...automatic, "#006120", "#EC0606", ...manual])];
   page = await openPage(ctx, "index.html");
 });
 

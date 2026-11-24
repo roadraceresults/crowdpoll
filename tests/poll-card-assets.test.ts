@@ -191,7 +191,7 @@ describe("pollCard.js choice colours", () => {
     const res = await request(ctx.app).get("/pollCard.js");
     expect(res.status).toBe(200);
     expect(res.text).toContain("SEMANTIC_AFFIRMATIVE_COLOR = '#006120'");
-    expect(res.text).toContain("SEMANTIC_NEGATIVE_COLOR = '#F91010'");
+    expect(res.text).toContain("SEMANTIC_NEGATIVE_COLOR = '#EC0606'");
   });
 
   it("matches whole words only, with no g flag on either rule", async () => {
@@ -244,7 +244,7 @@ describe("pollCard.js choice colours", () => {
   }
 
   const GREEN = "#006120";
-  const RED = "#F91010";
+  const RED = "#EC0606";
 
   it("keeps the colour of every label that holds no new word (SC-002)", async () => {
     const colorFor = await servedSemanticColorFor();

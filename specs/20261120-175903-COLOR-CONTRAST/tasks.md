@@ -268,6 +268,110 @@ passing (FR-011, FR-016, C4, C13).
   scheme in `src/public/m3-tokens.css`, starting as the roles they replaced; wired in `header-fixed-m3.css`,
   `header-tab-bar-m3.css` and `single-column-m3.css`; the Tab Bar's Required pairs in `COLOR-CONTRAST.md` move to the
   tokens; tests in `tests/m3-assets.test.ts`, `tests/header-fixed-sheet.test.ts`, `tests/phone-sheets.test.ts`
+- [X] T044 (TWEAK08) Two horizontal glows over the header, one from each edge of the window, drawn by
+  `#site-header::before` in `src/public/header-fixed-m3.css` from `--header-glow-left-*` and `--header-glow-right-*`
+  (colour and strength per scheme, `at` and `size` shared, in `src/public/m3-tokens.css`); test in
+  `tests/m3-assets.test.ts`
+- [X] T045 (TWEAK09) The header's glows run through the Tab Bar and the narrow-screen strip under it as one band:
+  `--header-glows` in `src/public/m3-tokens.css`, drawn by `#site-header::before`, `.tab-bar-wrap::after` (with the Tab
+  Bar's line on top) and `.tab-bar-wrap::before` in `src/public/header-fixed-m3.css`; tests in `tests/m3-assets.test.ts`
+  and `tests/header-fixed-sheet.test.ts`
+- [X] T046 (TWEAK10) The header's glow layer is `position:fixed`, the window's width and the header's height
+  (`--fixed-chrome-height-header`), so it no longer widens the header's scroll width and `headerFit.js` stops hiding the
+  Search field; `src/public/header-fixed-m3.css`; tests in `tests/header-fixed-sheet.test.ts` and `tests/m3-assets.test.ts`
+- [X] T047 (TWEAK11) The header's wordmark has a transparent ground in both schemes (its light fills, already
+  transparent in Dark, made transparent in `src/public/header-tab-bar-m3.css`); the Home, Watching and Search tab icons
+  sit in the same `#8093a7` circle as the others in `src/public/index.html`, their glyph in `color="#e8edf2"` mapped to
+  `--paper` / `--tab-bar-background`; tests in `tests/tab-bar-assets.test.ts`
+- [X] T048 (TWEAK12) The Home tab icon's house is a solid shape in the circle's light colour, with its door cut
+  through, 25% larger (scale 0.75); `src/public/index.html`; test in `tests/tab-bar-assets.test.ts`
+- [X] T049 (TWEAK13) The header's Search field and the Search tab's field take a poll card's border,
+  `1px solid var(--line)`, in `src/public/header-tab-bar-m3.css` and `src/public/single-column-m3.css`; test in
+  `tests/m3-assets.test.ts`
+- [X] T050 (TWEAK14) A result bar's track tint is a lever: `--bar-track-tint` (90%) and `--bar-track-tint-dark`
+  (80%) in the shared `:root` of `src/public/m3-tokens.css`, read once by `src/public/pollCard.js` (`trackTintFromCss`,
+  the constants as fallback) as the most card colour a track may hold; `tests/color-contrast.test.ts` derives the bars
+  with the tokens' values and checks `pollCard.js` read them
+- [X] T051 (TWEAK15) A result bar's track contrast with the card is a lever: `--bar-track-contrast` and
+  `--bar-track-contrast-dark` (1.5) in `src/public/m3-tokens.css`, read once by `src/public/pollCard.js`
+  (`trackContrastFromCss`, `RESULTS_TRACK_TARGET_CONTRAST` as fallback); `tests/color-contrast.test.ts` checks each track
+  against the token's ratio
+- [X] T052 (TWEAK16) On phones the card title runs under the Share, Watch and Maximize icons from its second line:
+  `src/public/phone-card-m3.css` no longer sets the title float's `height:36px` (one phone title line is 35px), so the
+  shared one-line `1lh` applies; `tests/phone-sheets.test.ts` checks the phone float sets no height of its own
+- [X] T053 (TWEAK17) A poll card's title, subtitle and top-right icons are a section of their own, closed by a 2px
+  `var(--line)` rule from edge to edge (`.question-wrap` in `src/public/pollCard-m3.css`, reaching over the face's 22px
+  side padding; not on card-shell pages); the phone sheet's own `.question-wrap` margin is removed;
+  `tests/m3-assets.test.ts` checks the rule and the padding it matches
+- [X] T054 (TWEAK18) The header's Search field and the Search tab's field are filled from one token,
+  `--search-field-background` (was `--header-search-background`; the Search tab's field took `--md-sys-color-surface`), set
+  per scheme in `src/public/m3-tokens.css` and used by `header-tab-bar-m3.css` and `single-column-m3.css`;
+  `tests/m3-assets.test.ts` checks both uses; `COLOR-CONTRAST.md` Techniques item 8 and the Change log
+- [X] T055 (TWEAK19) The Search tab's field matches the header's Search field: the header's magnifier as a submit button
+  (`.search-icon-btn`) first in `#searchTabForm` (`src/public/index.html`), fully rounded with the header's padding and gap
+  (`single-column-m3.css`), 48px magnifier in the phone layout (`phone-m3.css`); tests in
+  `tests/client-search-tab-field.test.ts` and `tests/m3-assets.test.ts`
+- [X] T056 (TWEAK20) The page glows no longer tint the footer: `.site-footer` in `src/public/footer-m3.css` is
+  `position:relative; z-index:1`, above `.page-decor` (fixed, z-index 0) as `.page` is; `tests/client-footer.test.ts`
+  checks it; `COLOR-CONTRAST.md` Techniques item 7
+- [X] T057 (TWEAK21) The filled icon buttons share `--icon-button-background` in `src/public/m3-tokens.css` (`#C0D2C8` in
+  Light, `var(--md-sys-color-secondary-container)` in Dark): `--tab-refresh-background` (Refresh), `.back-arrow`
+  (`back-arrow-m3.css`) and `.vote-bar .icon-btn` (`phone-card-m3.css`); `--md-sys-color-secondary-container` keeps
+  `#D1E8D5` for chips, tonal buttons and pressed segments; a Required pair for the glyph on it (3:1) in
+  `COLOR-CONTRAST.md`, with Techniques item 8 and a Change log row; tests in `tests/m3-assets.test.ts` and
+  `tests/back-arrow-sheet.test.ts`
+- [X] T058 (TWEAK22) The base palette is the reviewed original again (darkslategray `#404040`, gray `#7D7D7D`, coral
+  `#FC8E45` back in their places) in `src/public/pollCard.js`, and `src/polls/barPalette.ts` holds it as `RESULTS_PALETTE`
+  with `BAR_PALETTE` = Yes (`#006120`) and No (`#F91010`) followed by it; `tests/bar-palette.test.ts` keeps the two files
+  in step; the admin, poll-save and wizard tests follow the new creator palette; `COLOR-CONTRAST.md` Result colours and
+  Change log. Open: the replacements for coral, darkslategray and gray (TWEAK22's options)
+- [X] T059 (TWEAK25) The palette tests follow the list instead of pinning it: `tests/bar-palette.test.ts` checks the
+  automatic colours are unique and not Yes or No, `BAR_PALETTE` is Yes, No and the list, and `pollCard.js` holds the same
+  list in the same order however its entries are written; `tests/color-contrast.test.ts` reads the base palette against
+  `RESULTS_PALETTE`; `tests/client-admin-wizard.test.ts` takes the swatches from `BAR_PALETTE`; the `pollCard.js` comment
+  and `COLOR-CONTRAST.md` no longer give a count
+- [X] T060 (TWEAK26) Palette names are the nearest CSS named colours (maroon, mediumvioletred, darkcyan, mediumorchid,
+  olive), in `src/public/pollCard.js` and `src/polls/barPalette.ts`, now in the same order; a Dark palette,
+  `RESULTS_PALETTE_ENTRIES_DARK` (a copy of the Light list), with `darkTwinOf` used by `darkBarColorsFor` and by
+  `lineGraph.js` in Dark; tests in `tests/bar-palette.test.ts` and `tests/color-contrast.test.ts`; `COLOR-CONTRAST.md`
+  Result colours
+- [ ] T061 (TWEAK27, temporary) Every bar is drawn half filled while the palettes are chosen: `PALETTE_PREVIEW_HALF_FILL`
+  in `src/public/pollCard.js` (`setFillWidth`); remove it, and this task, once the palettes are final;
+  `tests/bar-palette.test.ts` fails while it is on
+- [X] T062 (TWEAK28) The Dark palette is paired with the Light one by position, the stored Light hex naming the position:
+  Yes and No get Dark twins (`SEMANTIC_AFFIRMATIVE_COLOR_DARK`, `SEMANTIC_NEGATIVE_COLOR_DARK` in `src/public/pollCard.js`);
+  the Dark list gets CSS names; `src/polls/barPalette.ts` holds the same Dark list (`RESULTS_PALETTE_DARK`,
+  `BAR_PALETTE_DARK`) and `/api/config` serves each picker colour with its `darkHex` (`SERVED_BAR_PALETTE`,
+  `postman/openapi.json`); the admin swatches show `--swatch-dark` in Dark (`adminCard.js` `paintSwatch`,
+  `admin-card-m3.css`); tests in `tests/bar-palette.test.ts`, `tests/color-contrast.test.ts`,
+  `tests/client-admin-wizard.test.ts`
+- [X] T063 (TWEAK29) White text on seven Dark colours: Yes `#00872C`, No `#EC0606`, mediumvioletred `#D900B6`, royalblue
+  `#006EFE`, mediumorchid `#C434C4`, chocolate `#C84F00`, olivedrab `#4F8400` (darkened until white reaches 4.5:1) in
+  `src/public/pollCard.js` and `src/polls/barPalette.ts`, each listed with white in `TEXT_ON_FILL_OVERRIDES`;
+  mediumspringgreen `#02F2A4` left as it was, with black text; test in `tests/color-contrast.test.ts`
+- [X] T064 (TWEAK30) A selected vote row is drawn in its choice's bar colours from the front face: `renderVotingOptions`
+  in `src/public/pollCard.js` sets `--bar-fill`, `--bar-ink-on-fill` and their `-dark` twins from `resultColors()`;
+  `src/public/pollCard-m3.css` `--vote-selected-fill` / `--vote-selected-ink` (amber when a row has no bar colour);
+  test in `tests/client-wide-card.test.ts`; `COLOR-CONTRAST.md` house rules
+- [X] T065 (TWEAK31) White text on No and olive in Light: No `#F91010` → `#EC0606`, olive `#817F26` → `#7B7924` in
+  `src/public/pollCard.js` and `src/polls/barPalette.ts`, listed with white in `TEXT_ON_FILL_OVERRIDES`; the tests'
+  `#F91010` became `#EC0606`; test in `tests/color-contrast.test.ts`
+- [X] T066 (TWEAK33) A card's notes and their Read more button are filled with `--poll-notes-background` (`#E0E0E0` in
+  Light, `--md-sys-color-surface-container-low` in Dark) in `src/public/m3-tokens.css` and `src/public/pollCard-m3.css`;
+  Read more keeps its previous fill on hover; the button reads "Read more..." without the chevron (`src/public/pollCard.js`);
+  two Required pairs in `COLOR-CONTRAST.md`; test in `tests/client-poll-notes.test.ts`
+- [X] T067 (TWEAK34) A wide card's notes show up to two and a half lines: three clamped lines, the last cut to half
+  its width when the notes overflow (`is-clipped`, the `.poll-notes-cut` float in `src/public/pollCard-m3.css`; the
+  phone keeps one full line); the notes HTML moves into `.poll-notes-body`; a click anywhere in the notes opens the
+  maximized notes, as Read more does (`src/public/pollCard.js`); tests in `tests/client-poll-notes.test.ts` and
+  `tests/client-wide-card.test.ts`
+- [X] T068 (TWEAK35, TWEAK36) The CrowdPoll green shades, 5% to 100% of `#2C6A46`, are written once as
+  `--crowdpoll-green-*-percent` in `src/public/m3-tokens.css` and once as `CROWDPOLL_GREEN_*_PERCENT` in
+  `src/brandColors.ts` (the emails); the roles and rules that used a nearby green name the chosen shade by `var()`
+  (`m3-tokens.css`, `site.css`, `pollCard.css`), the email's header, button and footer rule use the server constants
+  (`src/email/templates.ts`, fixture updated), `#F7F8F5` button text becomes white; the Google borders, the email's
+  grey text and the legacy palettes keep theirs; `COLOR-CONTRAST.md` CrowdPoll green shades and Change log; tests in
+  `tests/color-contrast.test.ts` and `tests/m3-assets.test.ts`
 
 ---
 
