@@ -307,30 +307,15 @@
 .submit-vote-btn[hidden],
 .poll-closed-message[hidden]{ display:none; }
 
-/* 008-POLL-CARD-BACK-SIDE FR-007: the two primary buttons carry the same
-   .btn-vote rules, so they matched only while pollCard.css's min-width:25%
-   floor exceeded both labels -- at narrow card widths "Submit vote" won and
-   "Vote" stayed short. Both buttons now contain hidden copies of every label
-   the back button may show and all children share one grid cell, so each
-   column resolves to the widest and the pair matches at every width.
+/* The width comes from the hidden sizer labels, stacked in one grid cell with the visible label, which takes
+   no width of its own. A grid, not .btn-primary's flex: a row flex container is as wide as the SUM of its
+   items. site.css loads after pollCard.css, so display:grid wins at equal specificity, and .vote-btn[hidden]
+   above still outranks it. */
+.vote-btn, .submit-vote-btn, .top-submit-btn{ display:grid; justify-content:center; align-content:center; }
 
-   The grid is load-bearing, not stylistic: .btn-primary sets display:flex, and
-   a row flex container's max-content width is the SUM of its items -- a sizer
-   laid out beside the label would make this button about twice as wide as
-   intended. Both buttons stack their children, since the back button's label
-   changes between "Submit vote" and "Remove vote" without moving.
-
-   Two cascade facts this relies on: site.css loads after pollCard.css
-   (index.html), so display:grid beats .btn-primary's display:flex at equal
-   specificity; and .vote-btn[hidden] above (0,2,0) still beats .vote-btn
-   (0,1,0), so 007-closed-state's hiding of the button keeps working. */
-.vote-btn, .submit-vote-btn{ display:grid; justify-content:center; align-content:center; }
-
-/* FIX017: the front action row is space-between with Live Results on the left
-   and Vote on the right; on the Live Results tab the link is hidden, which
-   would leave Vote as the first item, at the left. It keeps the right edge. */
-.card-front .actions .vote-btn{ margin-left:auto; }
-.vote-btn > *, .submit-vote-btn > *{ grid-area:1 / 1; }
+.card-front .actions .live-link{ margin-left:auto; }
+.vote-btn > *, .submit-vote-btn > *, .top-submit-btn > *{ grid-area:1 / 1; }
+.vote-btn > .btn-vote-label, .submit-vote-btn > .btn-vote-label, .top-submit-btn > .btn-vote-label{ width:0; min-width:100%; }
 .btn-vote-sizer{ visibility:hidden; height:0; overflow:hidden; }
 
 /* FR-001: replaces "Live Results" (front) in place.

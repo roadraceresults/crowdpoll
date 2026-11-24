@@ -36,6 +36,7 @@
   --md-sys-color-on-surface:#1E2422;
   --md-sys-color-on-surface-variant:#414942;
   --md-sys-color-surface-container-low:var(--crowdpoll-green-10-percent);
+  --md-sys-color-surface-container-lowest:#FFFFFF;
   --md-sys-color-surface-container:var(--crowdpoll-green-10-percent);
   --md-sys-color-surface-container-high:var(--crowdpoll-green-5-percent);     /*#E5EAE2; */
   --md-sys-color-surface-container-highest:var(--crowdpoll-green-20-percent);
@@ -137,6 +138,7 @@
   --md-sys-color-on-surface:var(--crowdpoll-green-20-percent);
   --md-sys-color-on-surface-variant:var(--crowdpoll-green-30-percent);
   --md-sys-color-surface-container-low:#181D19;
+  --md-sys-color-surface-container-lowest:#0A0F0B;
   --md-sys-color-surface-container:#1C211D;
   --md-sys-color-surface-container-high:#262B27;
   --md-sys-color-surface-container-highest:#313631;

@@ -480,17 +480,12 @@ body.card-demo-page .page-decor{
   }
   .is-guest .live-bars i{ animation:none; }
 
-  /* Front-face action row: Live Results (navigation) on the left,
-     Vote on the right. */
   .card-front .actions{
     flex-direction:row;
     align-items:center;
     justify-content:space-between;
   }
 
-  /* Back-face action row: Back arrow on the left, Submit vote on the
-     right. Clicking the arrow flips back to Results-mode without
-     submitting a vote. */
   .card-back .actions{
     flex-direction:row;
     align-items:center;

@@ -12,10 +12,11 @@ let ctx: TestContext;
 let page: BrowserPage | null = null;
 let users = 0;
 
-const SCRIPTS = ["app.js", "addChoiceDialog.js", "pollCard.js", "voteClient.js", "deltaClient.js", "tabs.js", "trending.js", "newest.js", "searchTab.js", "liveResults.js"];
+const MAX_CHOICES = 12;
+const SCRIPTS = ["app.js", "sharePoll.js", "pollCard.js", "voteClient.js", "deltaClient.js", "tabs.js", "trending.js", "newest.js", "searchTab.js", "liveResults.js"];
 
 beforeAll(async () => {
-  ctx = await startTestContext({ ENV_MAX_CHOICES: "4", ENV_MIN_VOTE_REFRESH_INTERVAL: "5000" });
+  ctx = await startTestContext({ ENV_MAX_CHOICES: String(MAX_CHOICES), ENV_MIN_VOTE_REFRESH_INTERVAL: "5000", ENV_MIN_MANUAL_REFRESH_INTERVAL: "100" });
 });
 
 afterAll(async () => {
@@ -37,6 +38,13 @@ async function person(permissions?: string[]) {
   return { ...forged, email };
 }
 
+const LUNCH = [
+  { id: "c1", label: "Pizza", position: 0 },
+  { id: "c2", label: "Sushi", position: 1 }
+];
+
+const many = (count: number) => Array.from({ length: count }, (_, i) => ({ id: `m${i + 1}`, label: `Choice ${i + 1}`, position: i }));
+
 async function seed(viewer: { email: string }, overrides: Partial<Poll> = {}): Promise<Poll> {
   const poll = makePoll({
     _id: randomUUID(),
@@ -45,10 +53,7 @@ async function seed(viewer: { email: string }, overrides: Partial<Poll> = {}): P
     pollSharingMode: "Anyone With The Link",
     voteMutability: "Dynamic-Vote Poll",
     votersAddChoices: true,
-    choices: [
-      { id: "c1", label: "Pizza", position: 0 },
-      { id: "c2", label: "Sushi", position: 1 }
-    ],
+    choices: LUNCH,
     ...overrides
   });
   await polls(ctx).insertOne(poll);
@@ -58,67 +63,87 @@ async function seed(viewer: { email: string }, overrides: Partial<Poll> = {}): P
 
 let shownTab = "shared-with-you";
 
-async function openShared(cookie: string, tab = "shared-with-you"): Promise<BrowserPage> {
+async function openShared(cookie: string, tab = "shared-with-you", beforeScripts?: (window: BrowserPage["window"]) => void): Promise<BrowserPage> {
   shownTab = tab;
-  const opened = await openPage(ctx, "index.html", { cookie, url: ON_TRENDING, scripts: SCRIPTS });
+  const opened = await openPage(ctx, "index.html", { cookie, url: ON_TRENDING, scripts: SCRIPTS, beforeScripts });
   await opened.click(`.tab[data-tab="${tab}"]`);
   await opened.settle(50);
   return opened;
 }
 
-const card = (p: BrowserPage) => p.document.querySelector(`.tab-panel[data-panel="${shownTab}"] .card-viewport`) as HTMLElement | null;
-const addButton = (p: BrowserPage) => card(p)?.querySelector(".add-choice-btn") as HTMLButtonElement | null;
-const dialog = (p: BrowserPage) => p.document.querySelector(".add-choice-dialog") as HTMLElement | null;
-const field = (p: BrowserPage) => dialog(p)!.querySelector(".add-choice-input") as HTMLInputElement;
-const saveBtn = (p: BrowserPage) => dialog(p)!.querySelector(".add-choice-save") as HTMLButtonElement;
-const errorLine = (p: BrowserPage) => card(p)!.querySelector(".poll-vote-error") as HTMLElement;
-const votingLabels = (p: BrowserPage) =>
-  Array.from(card(p)!.querySelectorAll(".voting-list .vote-row")).map((row) => row.textContent?.trim() ?? "");
+const card = (p: BrowserPage) => p.document.querySelector(`.tab-panel[data-panel="${shownTab}"] .card-viewport`) as HTMLElement;
+const flipped = (p: BrowserPage) => card(p).querySelector(".card-flip")!.classList.contains("is-flipped");
+const voteRow = (p: BrowserPage) => card(p).querySelector(".voting-list > .add-own-item") as HTMLLIElement | null;
+const field = (p: BrowserPage) => voteRow(p)!.querySelector(".add-own-input") as HTMLInputElement;
+const counter = (p: BrowserPage) => voteRow(p)!.querySelector(".add-own-counter")!.textContent;
+const support = (p: BrowserPage) => p.document.getElementById(field(p).getAttribute("aria-describedby")!) as HTMLElement;
+const rowShown = (p: BrowserPage) => Boolean(voteRow(p) && !voteRow(p)!.hidden);
+const ballot = (p: BrowserPage) => Array.from(card(p).querySelectorAll(".voting-list > .vote-row")) as HTMLElement[];
+const ballotLabels = (p: BrowserPage) => ballot(p).map((row) => row.textContent?.trim() ?? "");
+const ticked = (p: BrowserPage) => ballot(p).filter((row) => row.classList.contains("is-selected")).map((row) => row.textContent?.trim());
+const choicePosts = (p: BrowserPage) => p.requests.filter((r) => r.method === "POST" && r.url.endsWith("/choices"));
+const snackbar = (p: BrowserPage) => p.document.querySelector(".m3-snackbar")?.textContent ?? "";
 
 async function flip(p: BrowserPage) {
-  (card(p)!.querySelector(".vote-btn") as HTMLButtonElement).click();
+  (card(p).querySelector(".vote-btn") as HTMLButtonElement).click();
   await p.settle();
 }
 
-function type(p: BrowserPage, text: string) {
-  const input = field(p);
+function type(p: BrowserPage, text: string, input: HTMLInputElement = field(p)) {
+  input.focus();
   input.value = text;
   input.dispatchEvent(new p.window.Event("input", { bubbles: true }));
 }
 
-function key(p: BrowserPage, name: string, target: Element = p.document.activeElement!) {
+function key(p: BrowserPage, name: string, target: Element = field(p)) {
   target.dispatchEvent(new p.window.KeyboardEvent("keydown", { key: name, bubbles: true, cancelable: true }));
 }
 
-async function openDialog(p: BrowserPage) {
-  await flip(p);
-  addButton(p)!.click();
+async function enter(p: BrowserPage, input: HTMLInputElement = field(p)) {
+  key(p, "Enter", input);
   await p.settle();
 }
 
-describe("the Add Choice button", () => {
-  it("shows on the voting face of a Private poll that takes new choices", async () => {
+function touchOnly(window: BrowserPage["window"]) {
+  window.matchMedia = ((query: string) => ({
+    matches: query === "(pointer: coarse)",
+    media: query,
+    addEventListener: () => {},
+    removeEventListener: () => {}
+  })) as unknown as typeof window.matchMedia;
+}
+
+describe("the add-your-own row on the voting face", () => {
+  it("is the ballot's last row on a Private poll that takes new choices, compact and maximized, with no Add Choice button or dialog", async () => {
     const voter = await person();
     await seed(voter);
     page = await openShared(voter.cookie);
     await flip(page);
-    expect(addButton(page)!.hidden).toBe(false);
-    expect(addButton(page)!.textContent).toBe("Add Choice");
-    const actions = Array.from(card(page)!.querySelector(".card-back .actions")!.children).map((el) => el.className);
-    expect(actions[1]).toContain("add-choice-btn");
+    expect(rowShown(page)).toBe(true);
+    const row = voteRow(page)!;
+    expect(card(page).querySelector(".voting-list")!.lastElementChild).toBe(row);
+    expect(page.document.querySelector(".add-choice-btn")).toBeNull();
+    expect((page.window as unknown as { AddChoiceDialog?: unknown }).AddChoiceDialog).toBeUndefined();
+
+    (card(page).querySelector(".card-back .maximize-btn") as HTMLButtonElement).click();
+    await page.settle();
+    expect(card(page).classList.contains("maximized-card-viewport")).toBe(true);
+    expect(voteRow(page)).toBe(row);
+    expect(card(page).querySelector(".voting-list")!.lastElementChild).toBe(row);
+    expect(row.hidden).toBe(false);
   });
 
-  it("is hidden when the setting is off, the poll is not open, the vote is final, or a grant is missing", async () => {
+  it("is hidden when the setting is off, the poll is not open, the vote is final, a grant is missing or the poll is full", async () => {
     const offVoter = await person();
     await seed(offVoter, { votersAddChoices: false });
     page = await openShared(offVoter.cookie);
-    expect(addButton(page)!.hidden).toBe(true);
+    expect(rowShown(page)).toBe(false);
     page.close();
 
     const closedVoter = await person();
     await seed(closedVoter, { pollState: "CLOSED", endAt: new Date() });
     page = await openShared(closedVoter.cookie);
-    expect(addButton(page)!.hidden).toBe(true);
+    expect(rowShown(page)).toBe(false);
     page.close();
 
     const finalVoter = await person();
@@ -126,19 +151,26 @@ describe("the Add Choice button", () => {
     await ctx.db.insertInto("votes").values({ poll_id: finalPoll._id, email: finalVoter.email, user_name: "", choice_ids: ["c1"], voted_at: new Date() }).execute();
     await countVote(ctx.cache, finalPoll._id, ["c1"], [], true, new Date());
     page = await openShared(finalVoter.cookie);
-    expect(addButton(page)!.hidden).toBe(true);
+    expect(rowShown(page)).toBe(false);
     page.close();
 
     const noVote = await person(["View Polls"]);
     await seed(noVote);
     page = await openShared(noVote.cookie);
-    expect(addButton(page)?.hidden ?? true).toBe(true);
+    expect(page.document.querySelector(".add-own-item:not([hidden])")).toBeNull();
     page.close();
 
     const noView = await person(["Vote on Polls"]);
     await seed(noView);
     page = await openShared(noView.cookie);
-    expect(page.document.querySelector(".add-choice-btn:not([hidden])")).toBeNull();
+    expect(page.document.querySelector(".add-own-item:not([hidden])")).toBeNull();
+    page.close();
+
+    const fullVoter = await person();
+    await seed(fullVoter, { choices: many(MAX_CHOICES) });
+    page = await openShared(fullVoter.cookie);
+    await flip(page);
+    expect(rowShown(page)).toBe(false);
   });
 
   it("stays for the creator after their final vote", async () => {
@@ -149,119 +181,152 @@ describe("the Add Choice button", () => {
     await ctx.db.insertInto("votes").values({ poll_id: poll._id, email: creator.email, user_name: "", choice_ids: ["c1"], voted_at: new Date() }).execute();
     await countVote(ctx.cache, poll._id, ["c1"], [], true, new Date());
     page = await openShared(creator.cookie, "your-polls");
-    expect(addButton(page)!.hidden).toBe(false);
+    await flip(page);
+    expect(rowShown(page)).toBe(true);
   });
 
   it("is never offered to a guest", async () => {
     const someone = await person();
     await seed(someone);
     page = await openPage(ctx, "index.html", { scripts: SCRIPTS });
-    expect(page.document.querySelector(".add-choice-btn:not([hidden])")).toBeNull();
-  });
-});
-
-describe("pressing Add Choice", () => {
-  it("loads the latest choices first, keeping the counts, and opens the dialog", async () => {
-    const voter = await person();
-    const poll = await seed(voter);
-    await countVote(ctx.cache, poll._id, ["c1"], [], true, new Date());
-    page = await openShared(voter.cookie);
-    await ctx.db
-      .updateTable("polls")
-      .set({ choices: JSON.stringify([...poll.choices, { id: "c3", label: "Curry", position: 2 }]) })
-      .where("id", "=", poll._id)
-      .execute();
-    await openDialog(page);
-    expect(page.requests.some((r) => r.url === `/api/me/polls/${poll._id}`)).toBe(true);
-    expect(votingLabels(page).join(" ")).toContain("Curry");
-    expect(card(page)!.querySelector(".poll-totals")!.textContent).toBe("1 vote");
-    expect(dialog(page)).not.toBeNull();
-    expect(page.document.activeElement).toBe(field(page));
-    expect(dialog(page)!.querySelector(".m3-field-counter")!.textContent).toBe("0 / 35");
+    expect(page.document.querySelector(".add-own-item:not([hidden])")).toBeNull();
   });
 
-  it("says so, and opens nothing, when the choices cannot be loaded or the poll is full", async () => {
-    const voter = await person();
-    const poll = await seed(voter);
-    page = await openShared(voter.cookie);
-    await flip(page);
-    await ctx.db.insertInto("poll_bans").values({ poll_id: poll._id, email: voter.email }).execute();
-    addButton(page)!.click();
-    await page.settle();
-    expect(errorLine(page).hidden).toBe(false);
-    expect(errorLine(page).textContent).toBe("Couldn't load the latest choices. Try again.");
-    expect(dialog(page)).toBeNull();
-
-    await ctx.db.deleteFrom("poll_bans").where("poll_id", "=", poll._id).execute();
-    const four = ["A", "B", "C", "D"].map((label, position) => ({ id: `f${position}`, label, position }));
-    await ctx.db.updateTable("polls").set({ choices: JSON.stringify(four) }).where("id", "=", poll._id).execute();
-    addButton(page)!.click();
-    await page.settle();
-    expect(errorLine(page).textContent).toBe("This poll already has the most choices allowed (4).");
-    expect(dialog(page)).toBeNull();
-  });
-});
-
-describe("the dialog", () => {
-  it("saves with Enter, and the new choice is last and unselected, the selection kept", async () => {
+  it("is a single-line text field with a counter and a support line after the ballot", async () => {
     const voter = await person();
     await seed(voter);
     page = await openShared(voter.cookie);
     await flip(page);
-    (card(page)!.querySelector(".voting-list .vote-row") as HTMLElement).click();
-    const selectedBefore = card(page)!.querySelectorAll(".voting-list .is-selected, .voting-list [aria-pressed='true'], .voting-list [aria-checked='true']").length;
-    addButton(page)!.click();
-    await page.settle();
-    type(page, "Tacos");
-    key(page, "Enter", field(page));
-    await page.settle();
-    expect(dialog(page)).toBeNull();
-    expect(votingLabels(page)[votingLabels(page).length - 1]).toContain("Tacos");
-    const rows = Array.from(card(page)!.querySelectorAll(".voting-list .vote-row"));
-    const last = rows[rows.length - 1]!;
-    expect(last.matches(".is-selected, [aria-pressed='true'], [aria-checked='true']")).toBe(false);
-    expect(card(page)!.querySelectorAll(".voting-list .is-selected, .voting-list [aria-pressed='true'], .voting-list [aria-checked='true']").length).toBe(selectedBefore);
-    expect(card(page)!.querySelector(".card-flip")!.classList.contains("is-flipped")).toBe(true);
+    const input = field(page);
+    expect(input.type).toBe("text");
+    expect(input.getAttribute("autocomplete")).toBe("off");
+    expect(input.getAttribute("enterkeyhint")).toBe("enter");
+    expect(input.maxLength).toBe(35);
+    expect(input.getAttribute("aria-label")).toBe("Add your own choice");
+    expect(input.placeholder).toBe("Enter your own choice, then press Enter.");
+    expect(support(page).classList.contains("add-own-support")).toBe(true);
+    expect(support(page).getAttribute("aria-live")).toBe("polite");
+    expect(support(page).hidden).toBe(true);
+    expect(support(page).previousElementSibling!.classList.contains("voting-scroll-wrap")).toBe(true);
+    expect(counter(page)).toBe("");
   });
 
-  it("keeps an added choice through a vote for it, on the card and in the creator's voter count (TWEAK01)", async () => {
+  it("asks for the return key where the only pointer is a touch screen", async () => {
+    const voter = await person();
+    await seed(voter);
+    page = await openShared(voter.cookie, "shared-with-you", touchOnly);
+    await flip(page);
+    expect(field(page).placeholder).toBe("Enter your own choice, then press ↵.");
+  });
+});
+
+describe("Enter in the add-your-own row", () => {
+  it("adds the trimmed choice once, unticked and last, keeping the ticks, the text field and its focus", async () => {
+    const voter = await person();
+    const poll = await seed(voter);
+    page = await openShared(voter.cookie);
+    await flip(page);
+    ballot(page)[0]!.click();
+    const before = ticked(page);
+    type(page, "  Tacos ");
+    await enter(page);
+    expect(choicePosts(page)).toHaveLength(1);
+    expect(choicePosts(page)[0]!.url).toBe(`/api/polls/${poll._id}/choices`);
+    expect(choicePosts(page)[0]!.body).toEqual({ label: "Tacos" });
+    expect(ballotLabels(page).at(-1)).toBe("Tacos");
+    expect(ticked(page)).toEqual(before);
+    expect(field(page).value).toBe("");
+    expect(page.document.activeElement).toBe(field(page));
+    expect(flipped(page)).toBe(true);
+    expect(snackbar(page)).toBe("Choice added");
+  });
+
+  it("keeps an added choice through a vote for it, on the card and in the creator's voter count", async () => {
     const voter = await person();
     const poll = await seed(voter);
     await ctx.db.updateTable("polls").set({ created_by_id: voter.userId }).where("id", "=", poll._id).execute();
     await upsertRelation(ctx.db, voter.email, poll._id, "created");
     page = await openShared(voter.cookie, "your-polls");
-    await openDialog(page);
+    await flip(page);
     type(page, "Tacos");
-    key(page, "Enter", field(page));
-    await page.settle();
-    const rows = Array.from(card(page)!.querySelectorAll(".voting-list .vote-row")) as HTMLElement[];
-    rows[rows.length - 1]!.click();
-    (card(page)!.querySelector(".submit-vote-btn") as HTMLButtonElement).click();
+    await enter(page);
+    ballot(page).at(-1)!.click();
+    (card(page).querySelector(".submit-vote-btn") as HTMLButtonElement).click();
     await page.settle(300);
-    expect(card(page)!.querySelector(".card-flip")!.classList.contains("is-flipped")).toBe(false);
-    const front = card(page)!.querySelector(".card-front")!.textContent!.replace(/\s+/g, " ");
+    expect(flipped(page)).toBe(false);
+    const front = card(page).querySelector(".card-front")!.textContent!.replace(/\s+/g, " ");
     expect(front).toContain("Tacos100%");
     expect(front).toContain("1 vote");
-    // Each voting row shows only its choice's label, with no vote count after it.
-    expect([...votingLabels(page)].sort()).toEqual(["Pizza", "Sushi", "Tacos"]);
+    expect([...ballotLabels(page)].sort()).toEqual(["Pizza", "Sushi", "Tacos"]);
     await flushDirty({ db: ctx.db, cache: ctx.cache });
     const list = await request(ctx.app).get("/api/admin/polls").set("Cookie", voter.cookie);
     expect(list.body.polls.find((p: { pid: string }) => p.pid === poll._id).voteCount).toBe(1);
   });
 
-  it("closes with Escape and with Cancel, returning focus to the button", async () => {
+  it("sends nothing while the field is empty or holds a listed choice, which it names as you type, ignoring case and spacing", async () => {
     const voter = await person();
     await seed(voter);
     page = await openShared(voter.cookie);
-    await openDialog(page);
+    await flip(page);
+    type(page, "   ");
+    await enter(page);
+    type(page, "  pizza ");
+    expect(support(page).hidden).toBe(false);
+    expect(support(page).textContent).toBe("This poll already has that choice.");
+    expect(field(page).getAttribute("aria-invalid")).toBe("true");
+    await enter(page);
+    expect(choicePosts(page)).toHaveLength(0);
+    type(page, "Pizza place");
+    expect(support(page).hidden).toBe(true);
+    expect(field(page).hasAttribute("aria-invalid")).toBe(false);
+    expect(counter(page)).toBe("11 / 35");
+  });
+
+  it("cuts a paste to fit, with line breaks made spaces, and Escape empties the field", async () => {
+    const voter = await person();
+    await seed(voter);
+    page = await openShared(voter.cookie);
+    await flip(page);
+    const paste = new page.window.Event("paste", { bubbles: true, cancelable: true }) as Event & { clipboardData: unknown };
+    paste.clipboardData = { getData: () => "first line\nsecond line " + "x".repeat(35) };
+    field(page).dispatchEvent(paste);
+    expect(field(page).value).toBe(("first line second line " + "x".repeat(35)).slice(0, 35));
+    expect(counter(page)).toBe("35 / 35");
     key(page, "Escape");
-    expect(dialog(page)).toBeNull();
-    expect(page.document.activeElement).toBe(addButton(page));
-    addButton(page)!.click();
-    await page.settle();
-    (dialog(page)!.querySelector(".add-choice-cancel") as HTMLButtonElement).click();
-    expect(dialog(page)).toBeNull();
-    expect(page.document.activeElement).toBe(addButton(page));
+    expect(field(page).value).toBe("");
+    expect(counter(page)).toBe("");
+  });
+
+  it("shows a refusal under the row, keeping the text and focus: the server's words, a wait, or a failure", async () => {
+    const voter = await person();
+    await seed(voter);
+    page = await openShared(voter.cookie);
+    await flip(page);
+    type(page, "shit");
+    await enter(page);
+    expect(support(page).textContent).toBe("This choice uses language that isn't allowed.");
+    expect(field(page).value).toBe("shit");
+    expect(field(page).getAttribute("aria-invalid")).toBe("true");
+    expect(page.document.activeElement).toBe(field(page));
+
+    for (const k of await ctx.cache.scan("floor:*")) await ctx.cache.del(k);
+    type(page, "Tacos");
+    await enter(page);
+    expect(support(page).hidden).toBe(true);
+    type(page, "Curry");
+    await enter(page);
+    expect(support(page).textContent).toBe("Please wait a moment and try again.");
+    expect(field(page).value).toBe("Curry");
+
+    const served = page.window.fetch;
+    page.window.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (init?.method === "POST") throw new TypeError("offline");
+      return served(input, init);
+    }) as typeof fetch;
+    type(page, "Ramen");
+    await enter(page);
+    expect(support(page).textContent).toBe("Your choice could not be added. Please try again.");
+    expect(field(page).value).toBe("Ramen");
   });
 
   it("logs nothing to the console", async () => {
@@ -270,59 +335,212 @@ describe("the dialog", () => {
     page = await openShared(voter.cookie);
     const logged: unknown[] = [];
     for (const method of ["log", "warn", "error"] as const) page.window.console[method] = (...args: unknown[]) => void logged.push(args);
-    await openDialog(page);
+    await flip(page);
     type(page, "Tacos");
-    saveBtn(page).click();
-    await page.settle();
+    await enter(page);
     expect(logged).toEqual([]);
   });
+});
 
-  it("stops at 35 characters, and a paste is cut to fit with line breaks made spaces", async () => {
+describe("a row in use through live updates", () => {
+  it("keeps the same field, its text, caret and focus when the poll is applied again", async () => {
     const voter = await person();
-    await seed(voter);
+    const poll = await seed(voter);
     page = await openShared(voter.cookie);
-    await openDialog(page);
-    expect(field(page).maxLength).toBe(35);
-    const paste = new page.window.Event("paste", { bubbles: true, cancelable: true }) as Event & { clipboardData: unknown };
-    paste.clipboardData = { getData: () => "first line\nsecond line " + "x".repeat(35) };
-    field(page).dispatchEvent(paste);
-    expect(field(page).value).toBe(("first line second line " + "x".repeat(35)).slice(0, 35));
-    expect(dialog(page)!.querySelector(".m3-field-counter")!.textContent).toBe("35 / 35");
-  });
-
-  it("refuses a listed choice as you type, ignoring case and spacing", async () => {
-    const voter = await person();
-    await seed(voter);
-    page = await openShared(voter.cookie);
-    await openDialog(page);
-    type(page, "  pizza ");
-    expect(dialog(page)!.querySelector(".m3-field-support")!.textContent).toBe("This poll already has that choice.");
-    expect(saveBtn(page).disabled).toBe(true);
-    type(page, "Pizza place");
-    expect(saveBtn(page).disabled).toBe(false);
-  });
-
-  it("shows the server's refusal under the field and keeps the text; too soon asks to wait", async () => {
-    const voter = await person();
-    await seed(voter);
-    page = await openShared(voter.cookie);
-    await openDialog(page);
-    type(page, "shit");
-    saveBtn(page).click();
-    await page.settle();
-    expect(dialog(page)!.querySelector(".m3-field-support")!.textContent).toBe("This choice uses language that isn't allowed.");
-    expect(field(page).value).toBe("shit");
-    for (const key of await ctx.cache.scan("floor:*")) await ctx.cache.del(key);
+    await flip(page);
+    const input = field(page);
     type(page, "Tacos");
-    saveBtn(page).click();
+    input.setSelectionRange(1, 3);
+    const tabs = (page.window as unknown as { Tabs: { applyAddedChoices(tab: string, pid: string, answer: object): void } }).Tabs;
+    tabs.applyAddedChoices(shownTab, poll._id, { contentVersion: 99, choices: [...LUNCH, { id: "c3", label: "Curry", position: 2 }] });
     await page.settle();
-    expect(dialog(page)).toBeNull();
-    addButton(page)!.click();
+    expect(ballotLabels(page)).toContain("Curry");
+    expect(field(page)).toBe(input);
+    expect(input.value).toBe("Tacos");
+    expect([input.selectionStart, input.selectionEnd]).toEqual([1, 3]);
+    expect(page.document.activeElement).toBe(input);
+  });
+
+  it("keeps focus and caret when the grid moves the card", async () => {
+    const voter = await person();
+    const first = await seed(voter, { title: "First" });
+    const second = await seed(voter, { title: "Second" });
+    page = await openShared(voter.cookie);
+    const w = page.window as unknown as {
+      Tabs: { createGrid(el: Element, opts: object): { render(state: object): void } };
+      DeltaClient: { createTabState(): { order: string[]; cards: Map<string, unknown>; counts: Map<string, unknown>; overlay: Map<string, unknown> } };
+    };
+    const gridEl = page.document.createElement("div");
+    page.document.body.appendChild(gridEl);
+    const grid = w.Tabs.createGrid(gridEl, { tab: "shared-with-you" });
+    const state = w.DeltaClient.createTabState();
+    for (const pid of [first._id, second._id]) {
+      const body = (await request(ctx.app).get(`/api/me/polls/${pid}`).set("Cookie", voter.cookie)).body;
+      state.cards.set(pid, body.poll);
+      state.counts.set(pid, body.counts);
+      state.overlay.set(pid, body.overlay);
+    }
+    state.order = [first._id, second._id];
+    grid.render(state);
+    const moved = gridEl.children[1] as HTMLElement;
+    (moved.querySelector(".vote-btn") as HTMLButtonElement).click();
     await page.settle();
-    type(page, "Curry");
-    saveBtn(page).click();
+    const input = moved.querySelector(".voting-list .add-own-input") as HTMLInputElement;
+    type(page, "Tacos", input);
+    input.setSelectionRange(2, 2);
+    state.order = [second._id, first._id];
+    grid.render(state);
+    expect(gridEl.firstElementChild).toBe(moved);
+    expect(page.document.activeElement).toBe(input);
+    expect([input.selectionStart, input.selectionEnd]).toEqual([2, 2]);
+    expect(input.value).toBe("Tacos");
+  });
+
+  it("counts as a bar: a ballot that fits only without it opens maximized", async () => {
+    const voter = await person();
+    await seed(voter, { choices: many(10) });
+    page = await openShared(voter.cookie);
+    Object.defineProperty(card(page).querySelector(".voting-scroll-wrap")!, "clientHeight", { configurable: true, get: () => 259 });
+    await flip(page);
+    expect(card(page).classList.contains("maximized-card-viewport")).toBe(true);
+    expect(flipped(page)).toBe(true);
+  });
+
+  it("holds a compact Voting Center open while its row has focus or text, and turns it at the next update after", async () => {
+    const voter = await person();
+    const poll = await seed(voter, { choices: [...LUNCH, { id: "c3", label: "Curry", position: 2 }] });
+    page = await openShared(voter.cookie);
+    await flip(page);
+    type(page, "Tac");
+    Object.defineProperty(card(page).querySelector(".voting-scroll-wrap")!, "clientHeight", { configurable: true, get: () => 51 });
+    const tabs = (page.window as unknown as { Tabs: { applyAddedChoices(tab: string, pid: string, answer: object): void } }).Tabs;
+    const again = () => tabs.applyAddedChoices(shownTab, poll._id, { contentVersion: 1, choices: poll.choices });
+    again();
     await page.settle();
-    expect(dialog(page)!.querySelector(".m3-field-support")!.textContent).toBe("Please wait a moment and try again.");
-    expect(field(page).value).toBe("Curry");
+    expect(flipped(page)).toBe(true);
+    expect(field(page).value).toBe("Tac");
+
+    field(page).value = "";
+    field(page).dispatchEvent(new page.window.Event("input", { bubbles: true }));
+    again();
+    await page.settle();
+    expect(flipped(page)).toBe(true);
+
+    field(page).blur();
+    again();
+    await page.settle();
+    expect(flipped(page)).toBe(false);
+  });
+});
+
+describe("filling the poll from the row", () => {
+  it("hides the row and moves focus to the enabled Cast button", async () => {
+    const voter = await person();
+    await seed(voter, { choices: many(MAX_CHOICES - 1) });
+    page = await openShared(voter.cookie);
+    await flip(page);
+    ballot(page)[0]!.click();
+    type(page, "Last one");
+    await enter(page);
+    expect(rowShown(page)).toBe(false);
+    expect(field(page).value).toBe("");
+    expect(page.document.activeElement).toBe(card(page).querySelector(".submit-vote-btn"));
+  });
+
+  it("moves focus to Maximize when Cast is disabled", async () => {
+    const voter = await person();
+    await seed(voter, { choices: many(MAX_CHOICES - 1) });
+    page = await openShared(voter.cookie);
+    await flip(page);
+    type(page, "Last one");
+    await enter(page);
+    expect(rowShown(page)).toBe(false);
+    expect(page.document.activeElement).toBe(card(page).querySelector(".card-back .maximize-btn"));
+  });
+});
+
+describe("the add-your-own row on the results face", () => {
+  const resultsRow = (p: BrowserPage) => card(p).querySelector(".results-list > .add-own-item") as HTMLLIElement | null;
+  const resultsField = (p: BrowserPage) => resultsRow(p)!.querySelector(".add-own-input") as HTMLInputElement;
+  const bars = (p: BrowserPage) => Array.from(card(p).querySelectorAll(".results-list > .result-row")) as HTMLElement[];
+  const roomForTen = (p: BrowserPage) =>
+    Object.defineProperty(card(p).querySelector(".results-scroll-wrap")!, "clientHeight", { configurable: true, get: () => 259 });
+  const redraw = async (p: BrowserPage) => {
+    p.window.dispatchEvent(new p.window.Event("resize"));
+    await p.settle(150);
+  };
+
+  it("is the last row, after More choices on a compact card and after every bar maximized", async () => {
+    const voter = await person();
+    await seed(voter, { choices: many(11) });
+    page = await openShared(voter.cookie);
+    roomForTen(page);
+    await redraw(page);
+    const row = resultsRow(page)!;
+    expect(row.hidden).toBe(false);
+    expect(card(page).querySelector(".results-list")!.lastElementChild).toBe(row);
+    expect(row.previousElementSibling!.classList.contains("more-item")).toBe(true);
+
+    (card(page).querySelector(".card-front .maximize-btn") as HTMLButtonElement).click();
+    await page.settle();
+    expect(resultsRow(page)).toBe(row);
+    expect(card(page).querySelector(".results-list")!.lastElementChild).toBe(row);
+    expect(row.hidden).toBe(false);
+  });
+
+  it("takes one bar's place on a full compact card; a viewer who may not add sees today's bars", async () => {
+    const voter = await person();
+    await seed(voter, { choices: many(11) });
+    page = await openShared(voter.cookie);
+    roomForTen(page);
+    await redraw(page);
+    expect(bars(page)).toHaveLength(8);
+    page.close();
+
+    const other = await person();
+    await seed(other, { choices: many(11), votersAddChoices: false });
+    page = await openShared(other.cookie);
+    roomForTen(page);
+    await redraw(page);
+    expect(resultsRow(page)?.hidden ?? true).toBe(true);
+    expect(bars(page)).toHaveLength(9);
+    expect(card(page).querySelector(".results-list .more-row")).not.toBeNull();
+  });
+
+  it("neither turns nor maximizes the card when clicked", async () => {
+    const voter = await person();
+    await seed(voter);
+    page = await openShared(voter.cookie);
+    resultsField(page).click();
+    resultsRow(page)!.click();
+    await page.settle();
+    expect(flipped(page)).toBe(false);
+    expect(card(page).classList.contains("maximized-card-viewport")).toBe(false);
+  });
+
+  it("adds a choice that shows at 0% on the results, here and on the poll's other cards", async () => {
+    const voter = await person();
+    await seed(voter);
+    page = await openShared(voter.cookie);
+    await page.click('.tab[data-tab="home"]');
+    await page.settle(400);
+    shownTab = "home";
+    type(page, "Tacos", resultsField(page));
+    await enter(page, resultsField(page));
+    expect(flipped(page)).toBe(false);
+    expect(card(page).querySelector(".card-front")!.textContent!.replace(/\s+/g, " ")).toContain("Tacos0%");
+    expect(page.document.activeElement).toBe(resultsField(page));
+    const shared = page.document.querySelector('.tab-panel[data-panel="shared-with-you"] .card-viewport .card-front')!;
+    expect(shared.textContent).toContain("Tacos");
+  });
+
+  it("moves focus to Voting Center once the poll is full", async () => {
+    const voter = await person();
+    await seed(voter, { choices: many(MAX_CHOICES - 1) });
+    page = await openShared(voter.cookie);
+    type(page, "Last one", resultsField(page));
+    await enter(page, resultsField(page));
+    expect(resultsRow(page)!.hidden).toBe(true);
+    expect(page.document.activeElement).toBe(card(page).querySelector(".vote-btn"));
   });
 });

@@ -157,20 +157,12 @@
   .card-flip:not(.maximized-card-flip) .card-face .icon-btn{ width:48px; height:48px; overflow:visible; }
   .card-face .icon-btn svg,
   .card-flip:not(.maximized-card-flip) .card-face .icon-btn svg{ width:28px; height:28px; }
-  .card-face .add-choice-btn{
-    position:relative;
-    min-height:48px;
-    padding:0 20px;
-    font-size:var(--md-sys-typescale-label-large-size);
-    line-height:var(--md-sys-typescale-label-large-line-height);
-  }
   .card-face .btn-vote::after,
   .card-face .live-link::after,
   .card-face .icon-btn::after,
   .card-face .question-row .bookmark-btn::after,
   .card-face .question-row .share-btn::after,
   .card-face .question-row .maximize-btn::after,
-  .card-face .add-choice-btn::after,
   .card-face .poll-notes-more::after,
   .vote-bar .icon-btn::after,
   .vote-bar .vote-bar-submit::after{ content:''; position:absolute; inset:-8px; }

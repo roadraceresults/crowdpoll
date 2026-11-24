@@ -5,6 +5,51 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/20261122-012539-VOTING-CENTER-UI/plan.md` (research R1–R20, `data-model.md` — the add-your-own row's client
+state and the visibility and layout rules, nothing stored; the contract `contracts/ui.md` V1–V22 and the quickstart live
+alongside it).
+The requirements report is `requirements/20261122-012539-voting-center-ui/requirements-report.md`: 23 findings, all
+resolved.
+What was built:
+- **A client-only change** (R1): everything is in `src/public/` and `README.md`; `POST /api/polls/:pid/choices`, the
+  vote and bookmark routes, payloads, tables and `postman/openapi.json` are unchanged. The server still checks who may
+  add, duplicates, the maximum, the label length and the add rate (429).
+- **The add-your-own row replaces the Add Choice dialog** (R2, R10): `createAddOwnRow` builds, once per face, an
+  `li.add-own-item` (`input.add-own-input`, `span.add-own-counter`) and a `p.add-own-support` (`aria-live`) under the
+  face's bar area. `renderPollResults` / `renderVotingOptions` clear every child except `li.add-own-item`, insert the
+  rows before it and append it when missing; the in-place results path counts it. `addChoiceDialog.js`, its button,
+  ripple selector and rules are gone; `add-choice-m3.css` became `add-own-m3.css` (`LAYER_ORDER` follows).
+- **Who sees it** (R3): `mayAddChoice()` (unchanged) and below `maxChoices`, not editing and published; both faces,
+  compact and maximized, every tab and `/poll/<pid>`. A hidden row keeps its element, `hidden` and emptied.
+- **It is one bar** (R4, R5): both renderers take `addOwn`; the layout counts it, `fitting()` reserves a place for it,
+  `ballotOpensMaximized()` compares `data.length + addOwn` with the capacity, and the forced turn-back of a compact
+  Voting Center waits while the row has focus or text. It is last: after "More choices" / "Show all" on the front, after
+  the choices on the back. A click on it only focuses it (R6).
+- **Adding** (R7, R8): Enter calls `saveChoice(label)`; nothing is sent while a request is in flight, for empty text or
+  a duplicate (`keyOf`). Success empties the field, keeps focus and shows the "Choice added" snackbar; a refusal keeps
+  the text, sets `aria-invalid` and shows the message in the support line. The placeholder says "↵" on a touch-only
+  device, "Enter" otherwise; Escape empties the field. Its look is tokens only, with the new
+  `--md-sys-color-surface-container-lowest` (`#FFFFFF` / `#0A0F0B`) (R9).
+- **A grid reorder keeps a row in use** (R18): `createGrid`'s `render` in `tabs.js` notes a focused `.add-own-input` and
+  its selection and re-focuses it (`preventScroll`) after `insertBefore` moves the card.
+- **Buttons** (R11, R12): "Cast Your Vote"; "Cast this vote" / "Cast these votes" / "Remove vote". The sizers keep the
+  old labels ("Submit vote(s)", "Remove vote"), and `.btn-vote-label` is `width:0; min-width:100%`, so the width is
+  unchanged; `fitLabel` shrinks the label in 0.5px steps to 9px, then wraps. The primary button is on the left, the
+  flip-back on the right, the phone `#voteBar` likewise; Live Results keeps the right edge on the front.
+- **Long ballots** (R13, R14): a maximized desktop ballot of 10 or more choices shows `hr.top-divider` and
+  `.actions--top` (`.top-submit-btn`, `.top-back-btn`) under the title, kept in step with the bottom row by `syncTopRow`;
+  the names differ because `tabs.js` and the suites find `.submit-vote-btn` / `.back-btn` by `querySelector`. A
+  multiple-choice ballot shows "You may select more than one choice." (`.multi-help`) under each shown action row.
+- **Follow** (R15, R16): the maximized back face's `.question-row` has a `.bookmark-btn` between Share and Maximize
+  (hidden on a compact card by `pollCard-m3.css`); `bookmarkBtns` keeps both faces in step. Watch reads "Follow" /
+  "Following" everywhere users see it; the tab name `watching`, `#watching-eye`, `bookmark` routes and
+  `mayWatch`/`canWatch` keep their names.
+- **Who Voted** (R17): the date column is "Vote Cast Date".
+- Nothing stored; no cookie, storage key, route, address or setting (R20).
+
+No server, route, payload, table, address or setting change.
+
+The plan merged with it (branch `color-scheme`):
 `specs/20261120-175903-COLOR-CONTRAST/plan.md` (research R1–R12, `data-model.md` — colour roles per scheme, contrast
 pairs, the result-colour derivation, the palette, nothing stored; the contracts `contracts/colors.md` C1–C14,
 `contracts/guardrail.md` G1–G8 and the quickstart live alongside it).
@@ -1486,7 +1531,8 @@ cnt:<pid>` and a flush sweep (2 s then, 10 s since feature 20261028), every read
 shedding, the budget controller and CPU autoscaling interlock at three speeds (R11, R12); the membership version hashes the set of
 ids (R10); a full Live Results tab refuses a further poll with `409 live-cap` (FIX028);
 Bookmark is "Favorites" in the UI only — routes, tables and identifiers keep the old word
-(FIX026). Before 017: `specs/016-POLL-SETTINGS-CHANGE/` (three-field visibility;
+(FIX026); likewise Watch is "Follow" in the UI only — the tab name `watching`, `mayWatch`/`canWatch` and the
+`#watching-eye` symbols keep their names (20261122 VOTING-CENTER-UI R16). Before 017: `specs/016-POLL-SETTINGS-CHANGE/` (three-field visibility;
 `isInvitationOnly()` is a two-field test taking the poll). Stored enumerations remain verbatim.
 Prior implemented features are documented in
 `specs/001-user-auth/`, `specs/002-smtp-env-config/`, `specs/003-profile-menu-consolidation/`,

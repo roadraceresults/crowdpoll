@@ -125,6 +125,9 @@
   .tab-bar .tab:hover:not(.is-active):not(:disabled):not([aria-disabled="true"]){ background:var(--paper-raised); }
 
   .tab-bar .tab[hidden]{ display:none; }
+  /* The pages without tabs of their own draw each tab as a link to the home page (pageTabBar.js). */
+  .tab-bar a.tab,
+  .tab-bar a.tab:hover{ text-decoration:none; }
   .tab-bar .tab:disabled{
     opacity:.45;
     cursor:not-allowed;

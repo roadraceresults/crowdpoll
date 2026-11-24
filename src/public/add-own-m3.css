@@ -1,0 +1,52 @@
+/* Material 3 outlined text field: https://m3.material.io/components/text-fields/specs */
+
+.add-own-item{
+  position:relative;
+  display:flex;
+  align-items:center;
+  box-sizing:border-box;
+  border:1px solid var(--md-sys-color-outline);
+  border-radius:var(--md-sys-shape-corner-small);
+  background:var(--md-sys-color-surface-container-lowest);
+}
+.add-own-item[hidden]{ display:none; }
+.add-own-item:focus-within{
+  border:2px solid var(--md-sys-color-primary);
+}
+
+.add-own-input{
+  flex:1 1 auto;
+  align-self:stretch;
+  min-width:0;
+  margin:0;
+  padding:0 8px;
+  border:0;
+  outline:none;
+  background:transparent;
+  color:var(--md-sys-color-on-surface);
+  font-family:var(--md-sys-typescale-font);
+  font-size:var(--md-sys-typescale-body-medium-size);
+}
+.add-own-input::placeholder{
+  color:var(--md-sys-color-on-surface-variant);
+  font-style:italic;
+  opacity:1;
+}
+
+.add-own-counter{
+  flex:0 0 auto;
+  padding-right:8px;
+  text-align:right;
+  color:var(--md-sys-color-on-surface-variant);
+  font-family:var(--md-sys-typescale-font);
+  font-size:var(--md-sys-typescale-body-small-size);
+}
+
+.add-own-support{
+  margin:4px 0 0;
+  color:var(--md-sys-color-error);
+  font-family:var(--md-sys-typescale-font);
+  font-size:var(--md-sys-typescale-body-small-size);
+  line-height:var(--md-sys-typescale-body-small-line-height);
+}
+.add-own-support[hidden]{ display:none; }

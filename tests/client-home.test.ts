@@ -61,7 +61,7 @@ describe("the home page in a browser", () => {
     page = await openPage(ctx, "index.html");
     const tabs = Array.from(page.document.querySelectorAll("#tabBar .tab"));
     expect(tabs.map((t) => t.getAttribute("data-tab"))).toEqual(["home", "your-polls", "shared-with-you", "your-votes", "trending", "newest", "watching", "live", "search"]);
-    expect(tabs.map((t) => t.textContent!.replace(/\u00a0/g, " ").trim())).toEqual(["Home", "Your Polls", "Shared With You", "Your Votes", "Trending", "Newest", "Watching", "Live Results", "Search"]);
+    expect(tabs.map((t) => t.textContent!.replace(/\u00a0/g, " ").trim())).toEqual(["Home", "Your Polls", "Shared With You", "Your Votes", "Trending", "Newest", "Following", "Live Results", "Search"]);
     expect((tabs[0] as HTMLElement).hidden).toBe(true);
     expect(tabs[4]!.classList.contains("is-active")).toBe(true);
     const panels = Array.from(page.document.querySelectorAll(".tab-panel"));
@@ -87,7 +87,7 @@ describe("the home page in a browser", () => {
 
   it("each tab's icon is decorative and the label alone is the accessible name", async () => {
     page = await openPage(ctx, "index.html");
-    const labels = ["Home", "Your Polls", "Shared With You", "Your Votes", "Trending", "Newest", "Watching", "Live Results", "Search"];
+    const labels = ["Home", "Your Polls", "Shared With You", "Your Votes", "Trending", "Newest", "Following", "Live Results", "Search"];
     const tabs = Array.from(page.document.querySelectorAll("#tabBar .tab"));
     tabs.forEach((tab, i) => {
       const icon = tab.firstElementChild!;
@@ -326,7 +326,7 @@ describe("a bar's percentage", () => {
     expect(totals).toContain("2 voters");
   });
 
-  it("labels Submit in the plural on a multiple-choice poll, and both buttons' sizers with it and with Remove vote", async () => {
+  it("labels Cast for one vote until two are ticked, and keeps both buttons' sizers on the Submit and Remove vote widths", async () => {
     await polls(ctx).insertMany([
       makePoll({ title: "Pick any", choiceMode: "Multiple-Choice Poll", voteMutability: "Dynamic-Vote Poll" }),
       makePoll({ title: "Pick one", voteMutability: "Final-Vote Poll" }),
@@ -339,8 +339,8 @@ describe("a bar's percentage", () => {
       const sizers = (button: string) => Array.from(card.querySelectorAll(`${button} .btn-vote-sizer`)).map((el) => el.textContent);
       return { label: card.querySelector(".submit-vote-btn .btn-vote-label")!.textContent, front: sizers(".vote-btn"), back: sizers(".submit-vote-btn") };
     };
-    expect(labelsOf("Pick any")).toEqual({ label: "Submit votes", front: ["Submit votes", "Remove vote"], back: ["Submit votes", "Remove vote"] });
-    expect(labelsOf("Pick one")).toEqual({ label: "Submit vote", front: ["Submit vote", ""], back: ["Submit vote", ""] });
+    expect(labelsOf("Pick any")).toEqual({ label: "Cast this vote", front: ["Submit votes", "Remove vote"], back: ["Submit votes", "Remove vote"] });
+    expect(labelsOf("Pick one")).toEqual({ label: "Cast this vote", front: ["Submit vote", ""], back: ["Submit vote", ""] });
   });
 });
 
@@ -1133,17 +1133,17 @@ describe("bookmarking from a card in a browser", () => {
     await trendingSweep(ctx, ctx.config, ctx.trendingPublisher);
     page = await openPage(ctx, "index.html", { cookie, url: ON_TRENDING });
     const button = () => page!.document.querySelector('.tab-panel[data-panel="trending"] .bookmark-btn') as HTMLButtonElement;
-    expect(button().getAttribute("aria-label")).toBe("Watch");
+    expect(button().getAttribute("aria-label")).toBe("Follow");
     await page.settle(1250);
     await page.click('.tab-panel[data-panel="trending"] .bookmark-btn');
     expect(page.requests.filter((r) => r.url === `/api/polls/${poll._id}/bookmark` && r.method === "POST").length).toBe(1);
-    expect(button().getAttribute("aria-label")).toBe("Watching");
+    expect(button().getAttribute("aria-label")).toBe("Following");
     expect(button().getAttribute("aria-pressed")).toBe("true");
     expect(await ctx.db.selectFrom("bookmarks").selectAll().where("poll_id", "=", poll._id).execute()).toHaveLength(1);
     await page.settle(1250);
     await page.click('.tab-panel[data-panel="trending"] .bookmark-btn');
     expect(page.requests.filter((r) => r.url === `/api/polls/${poll._id}/bookmark` && r.method === "DELETE").length).toBe(1);
-    expect(button().getAttribute("aria-label")).toBe("Watch");
+    expect(button().getAttribute("aria-label")).toBe("Follow");
     expect(requestsTo(page, "/api/tabs").length).toBe(0);
   });
 });
@@ -1171,7 +1171,7 @@ describe("the watch cap in a browser (FIX027)", () => {
       expect(dialog).not.toBeNull();
       expect(dialog.getAttribute("role")).toBe("dialog");
       expect(dialog.querySelector(".modal-text")!.textContent).toBe(
-        "You have reached the maximum number of polls you can watch. The limit is 1. Please stop watching a poll on the Watching tab before watching another."
+        "You have reached the maximum number of polls you can follow. The limit is 1. Please stop following a poll on the Following tab before following another."
       );
       expect(card.querySelector(".bookmark-btn")!.getAttribute("aria-pressed")).toBe("false");
       (dialog.querySelector(".modal-ok") as HTMLButtonElement).click();
@@ -1204,7 +1204,7 @@ describe("a bookmark and the personal tabs in a browser", () => {
     // Straight back to Watching, inside the floor the bookmark just took: the poll is already there.
     await page.click('.tab[data-tab="watching"]');
     expect(page.cardTitles("watching")).toEqual(["New favourite"]);
-    expect(page.document.querySelector('.tab-panel[data-panel="watching"] .bookmark-btn')!.getAttribute("aria-label")).toBe("Watching");
+    expect(page.document.querySelector('.tab-panel[data-panel="watching"] .bookmark-btn')!.getAttribute("aria-label")).toBe("Following");
     expect(requestsTo(page, "/api/tabs/watching/refresh").length).toBe(1);
 
     // Once the floor passes the tab confirms its copy with one request and keeps the poll.
@@ -1236,7 +1236,7 @@ describe("a bookmark and the personal tabs in a browser", () => {
     await page.click('.tab[data-tab="watching"]');
     expect(page.cardTitles("watching")).toEqual(["Voted and marked"]);
     const button = () => page!.document.querySelector('.tab-panel[data-panel="watching"] .bookmark-btn') as HTMLButtonElement;
-    expect(button().getAttribute("aria-label")).toBe("Watching");
+    expect(button().getAttribute("aria-label")).toBe("Following");
     await page.settle(1250);
     await page.click('.tab-panel[data-panel="watching"] .bookmark-btn');
     expect(await ctx.db.selectFrom("bookmarks").selectAll().where("poll_id", "=", poll._id).execute()).toHaveLength(0);
@@ -1513,7 +1513,7 @@ describe("the Live Results tab's overlay (FIX011)", () => {
       await livePage.settle(300);
       expect(livePage.cardTitles("live")).toEqual(["Private and kept", "Watch and keep"]);
       expect(requestsTo(livePage, "/api/me/polls").length).toBe(2);
-      const buttons = Array.from(livePage.document.querySelectorAll('.tab-panel[data-panel="live"] .bookmark-btn'));
+      const buttons = Array.from(livePage.document.querySelectorAll('.tab-panel[data-panel="live"] .card-front .bookmark-btn'));
       expect(buttons.map((b) => b.getAttribute("aria-pressed"))).toEqual(["true", "false"]);
     } finally {
       livePage?.close();
@@ -1664,7 +1664,7 @@ describe("the voting side says when a vote will be anonymous", () => {
 });
 
 describe("why a poll is listed in a personal tab (FIX020)", () => {
-  it("Watching cards say You are watching, and You voted when they did", async () => {
+  it("Watching cards say You are following, and You voted when they did", async () => {
     const me = "why-listed@example.com";
     const { cookie } = await forgeSession(ctx, me);
     const voted = makePoll({ title: "Voted one", currentVotes: [{ emailAddress: me, userName: "", choiceIds: ["c1"], votedAt: new Date() }] });
@@ -1684,10 +1684,10 @@ describe("why a poll is listed in a personal tab (FIX020)", () => {
     const lineOf = (title: string) => cardOf(title).querySelector(".poll-listed-because") as HTMLElement;
     expect(votedOf("Voted one").textContent).toBe("You voted");
     expect(votedOf("Voted one").hidden).toBe(false);
-    expect(lineOf("Voted one").textContent).toBe("You are watching");
+    expect(lineOf("Voted one").textContent).toBe("You are following");
     expect(lineOf("Voted one").hidden).toBe(false);
     expect(votedOf("Marked one").hidden).toBe(true);
-    expect(lineOf("Marked one").textContent).toBe("You are watching");
+    expect(lineOf("Marked one").textContent).toBe("You are following");
     // TRENDING cards carry no such line.
     expect(page.document.querySelector('.tab-panel[data-panel="trending"] .poll-voted')!.hasAttribute("hidden")).toBe(true);
     expect(page.document.querySelector('.tab-panel[data-panel="trending"] .poll-listed-because')!.hasAttribute("hidden")).toBe(true);

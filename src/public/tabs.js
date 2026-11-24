@@ -128,11 +128,11 @@
   }
 
   const EMPTY_LINES = {
-    home: "Nothing here yet. Polls shared with you, your polls, your votes, the polls you watch and what's trending will appear here.",
+    home: "Nothing here yet. Polls shared with you, your polls, your votes, the polls you follow and what's trending will appear here.",
     "your-polls": "You haven't created any polls yet.",
     "shared-with-you": "Nothing has been shared with you yet.",
     "your-votes": "You haven't voted in any polls yet.",
-    watching: "You aren't watching any polls yet."
+    watching: "You aren't following any polls yet."
   };
 
   function emptyLine(name) {
@@ -346,6 +346,9 @@
       // A card is moved only when its position is wrong: re-appending an element
       // that is already in place takes it out of the document and back, which
       // blurs whatever the visitor had focused.
+      const typing = document.activeElement && document.activeElement.classList.contains("add-own-input") && gridEl.contains(document.activeElement)
+        ? { input: document.activeElement, start: document.activeElement.selectionStart, end: document.activeElement.selectionEnd }
+        : null;
       const kept = keptCard();
       if (kept && gridEl.firstElementChild !== kept.element) gridEl.insertBefore(kept.element, gridEl.firstElementChild);
       const first = kept ? 1 : 0;
@@ -356,6 +359,10 @@
           gridEl.insertBefore(card.element, gridEl.children[position + first] || null);
         }
       });
+      if (typing && typing.input.isConnected && document.activeElement !== typing.input) {
+        typing.input.focus({ preventScroll: true });
+        typing.input.setSelectionRange(typing.start, typing.end);
+      }
       if (barred) emptyState(cardOpts.tab, "");
     }
 
@@ -1126,8 +1133,8 @@
     if (res.status === 409 && body.error === "bookmark-cap") {
       settle("refresh", body.nextRefreshMs);
       modal(
-        "You have reached the maximum number of polls you can watch. The limit is " + body.limit +
-        ". Please stop watching a poll on the Watching tab before watching another."
+        "You have reached the maximum number of polls you can follow. The limit is " + body.limit +
+        ". Please stop following a poll on the Following tab before following another."
       );
       return;
     }

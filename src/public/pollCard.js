@@ -602,24 +602,26 @@ function syncInkOnFill(row){
   overlay.replaceChildren(...copies);
 }
 
-function renderPollResults(wrap, list, allData, layoutFor, paletteOffset, palette, view){
+function renderPollResults(wrap, list, allData, layoutFor, paletteOffset, palette, view, addOwn){
   if (!wrap || !list) return;
 
   const data = view ? view.shown : allData;
   const lastRow = view ? view.lastRow : null;
   const count = data.length;
+  const drawnRows = count + (lastRow ? 1 : 0);
 
   // Measured before any DOM changes: the bar area is absolutely
   // positioned (see .bar-scroll-inner in the CSS), so the wrap's size
   // is content-independent by construction. Measuring first is what
   // lets the in-place path below skip the clear-and-rebuild entirely.
-  const layout = layoutFor(count + (lastRow ? 1 : 0), wrap);
+  const layout = layoutFor(drawnRows + (addOwn ? 1 : 0), wrap);
   const { barHeight, gap } = layout;
   const compact = barHeight < RESULTS_COMPACT_THRESHOLD;
   const phone = Boolean(layout.phone);
 
   const fontSize = scaleFontSize(barHeight);
   const pad = phone ? PHONE_BAR_PAD : scalePad(fontSize);
+  placeAddOwnRow(list, addOwn, barHeight);
 
   // Computed once, before the in-place/rebuild fork, so both paths color
   // the bars from the same array.
@@ -689,9 +691,9 @@ function renderPollResults(wrap, list, allData, layoutFor, paletteOffset, palett
     a choice added/removed, or a switch into/out of compact mode all
     still fall through to a full rebuild.
   */
-  const signature = [count, barHeight, gap, compact, fontSize, pad, phone, lastRow ? lastRow.className : ''].join('|');
-  if (list.dataset.renderSignature === signature && list.children.length === count + (lastRow ? 1 : 0)){
-    if (lastRow) setLastRow(list.lastElementChild.firstElementChild, lastRow);
+  const signature = [count, barHeight, gap, compact, fontSize, pad, phone, lastRow ? lastRow.className : '', Boolean(addOwn)].join('|');
+  if (list.dataset.renderSignature === signature && barRowsOf(list).length === drawnRows){
+    if (lastRow) setLastRow(list.querySelector(':scope > .more-item').firstElementChild, lastRow);
     const rows = data.map((item, i) => {
       const row = list.children[i];
       const label = row.querySelector('.result-label');
@@ -721,8 +723,9 @@ function renderPollResults(wrap, list, allData, layoutFor, paletteOffset, palett
     return;
   }
 
-  list.innerHTML = '';
+  barRowsOf(list).forEach((row) => row.remove());
   list.style.rowGap = gap + 'px';
+  const anchor = list.querySelector(':scope > .add-own-item');
 
   const rows = data.map((item, i) => {
     const color = colors[i];
@@ -748,7 +751,7 @@ function renderPollResults(wrap, list, allData, layoutFor, paletteOffset, palett
     pct.style.right = pad + 'px';
 
     row.append(fill, label, pct);
-    list.appendChild(row);
+    list.insertBefore(row, anchor);
 
     return { row, label, pct: item.pct, color };
   });
@@ -764,7 +767,7 @@ function renderPollResults(wrap, list, allData, layoutFor, paletteOffset, palett
       button.style.fontSize = fontSize + 'px';
     }
     item.appendChild(button);
-    list.appendChild(item);
+    list.insertBefore(item, anchor);
   }
 
   applyTruncation(rows);
@@ -781,6 +784,21 @@ function renderPollResults(wrap, list, allData, layoutFor, paletteOffset, palett
       rows.forEach(({ row, pct }) => setFillWidth(row, pct));
     }, 60);
   });
+}
+
+/* Every child of a bar list but the add-your-own row, which outlives the redraws so a voter's
+   typing, caret and focus survive a live update. */
+function barRowsOf(list){
+  return Array.from(list.children).filter((child) => !child.classList.contains('add-own-item'));
+}
+
+function placeAddOwnRow(list, addOwn, barHeight){
+  const held = list.querySelector(':scope > .add-own-item');
+  if (held && held !== addOwn) held.hidden = true;
+  if (!addOwn) return;
+  addOwn.hidden = false;
+  addOwn.style.height = barHeight + 'px';
+  if (addOwn.parentElement !== list) list.appendChild(addOwn);
 }
 
 function setLastRow(button, lastRow){
@@ -814,19 +832,81 @@ function scaleRadioSize(barHeight){
   return Math.max(VOTE_RADIO_MIN, Math.min(VOTE_RADIO_MAX, barHeight - 2, barHeight * 0.55));
 }
 
+const WIDTH_SETTING_LABELS = { single: 'Submit vote', multiple: 'Submit votes', removal: 'Remove vote' };
+const LABEL_FONT_FLOOR = 9;
+const fittedLabels = new WeakMap();
+
+function fitLabel(button){
+  const label = button && button.querySelector('.btn-vote-label');
+  if (!label) return;
+  const fitted = fittedLabels.get(button);
+  if (fitted && fitted.text === label.textContent && fitted.width === label.clientWidth) return;
+  label.style.fontSize = '';
+  label.style.whiteSpace = '';
+  let size = parseFloat(getComputedStyle(label).fontSize);
+  while (label.scrollWidth > label.clientWidth && size > LABEL_FONT_FLOOR){
+    size = Math.max(LABEL_FONT_FLOOR, size - 0.5);
+    label.style.fontSize = size + 'px';
+  }
+  if (label.scrollWidth > label.clientWidth) label.style.whiteSpace = 'normal';
+  fittedLabels.set(button, { text: label.textContent, width: label.clientWidth });
+}
+
+const ADD_OWN_TOO_SOON = 'Please wait a moment and try again.';
+const ADD_OWN_DUPLICATE = 'This poll already has that choice.';
+const ADD_OWN_FAILED = 'Your choice could not be added. Please try again.';
+
+const keyOf = (label) => String(label).trim().replace(/\s+/g, ' ').toLowerCase();
+
+let addOwnRowsBuilt = 0;
+
+function addOwnPlaceholder(){
+  const touchOnly = Boolean(window.matchMedia) && window.matchMedia('(pointer: coarse)').matches && !window.matchMedia('(any-pointer: fine)').matches;
+  return 'Enter your own choice, then press ' + (touchOnly ? '↵' : 'Enter') + '.';
+}
+
+function createAddOwnRow(wrap, maxLength){
+  const supportId = 'add-own-support-' + ++addOwnRowsBuilt;
+  const item = document.createElement('li');
+  item.className = 'add-own-item';
+  item.hidden = true;
+  const input = document.createElement('input');
+  input.className = 'add-own-input';
+  input.type = 'text';
+  input.autocomplete = 'off';
+  input.setAttribute('enterkeyhint', 'enter');
+  input.maxLength = maxLength;
+  input.placeholder = addOwnPlaceholder();
+  input.setAttribute('aria-label', 'Add your own choice');
+  input.setAttribute('aria-describedby', supportId);
+  const counter = document.createElement('span');
+  counter.className = 'add-own-counter';
+  counter.setAttribute('aria-hidden', 'true');
+  item.append(input, counter);
+  const support = document.createElement('p');
+  support.className = 'add-own-support';
+  support.id = supportId;
+  support.setAttribute('aria-live', 'polite');
+  support.hidden = true;
+  wrap.after(support);
+  return { item, input, counter, support };
+}
+
 // colorOf(item) is the hex the choice's bar has on the front face; a selected row is drawn in that bar's colours.
-function renderVotingOptions(wrap, list, data, layoutFor, colorOf){
+function renderVotingOptions(wrap, list, data, layoutFor, addOwn, colorOf){
   if (!wrap || !list) return;
 
   const count = data.length;
 
-  list.innerHTML = '';
+  barRowsOf(list).forEach((row) => row.remove());
 
-  const layout = layoutFor(count, wrap);
+  const layout = layoutFor(count + (addOwn ? 1 : 0), wrap);
   const { barHeight, gap } = layout;
   const compact = barHeight < RESULTS_COMPACT_THRESHOLD;
 
   const phone = Boolean(layout.phone);
+  placeAddOwnRow(list, addOwn, barHeight);
+  const anchor = list.querySelector(':scope > .add-own-item');
 
   list.style.rowGap = gap + 'px';
 
@@ -872,7 +952,7 @@ function renderVotingOptions(wrap, list, data, layoutFor, colorOf){
       row.appendChild(label);
     }
 
-    list.appendChild(row);
+    list.insertBefore(row, anchor);
     return { row, label };
   });
 
@@ -927,7 +1007,6 @@ function initPollCard(viewport, opts){
   const votingList = viewport.querySelector('.voting-list');
 
   const submitBtn = viewport.querySelector('.submit-vote-btn');
-  const addChoiceBtn = viewport.querySelector('.add-choice-btn');
 
   // 007-closed-state: front (Live Results link/Vote) and back (choice
   // bars/Submit vote) elements swapped for a closed message once a poll
@@ -937,7 +1016,7 @@ function initPollCard(viewport, opts){
   const liveX = viewport.querySelector('.live-x');
   const removeMode = typeof opts.onClose === 'function';
   const voteBtn = viewport.querySelector('.vote-btn');
-  const bookmarkBtn = viewport.querySelector('.bookmark-btn');
+  const bookmarkBtns = viewport.querySelectorAll('.bookmark-btn');
   const shareBtns = viewport.querySelectorAll('.share-btn');
   const voteNoticeFront = viewport.querySelector('.card-front .poll-vote-notice');
   const closedMessageFront = viewport.querySelector('.card-front .poll-closed-message');
@@ -961,7 +1040,6 @@ function initPollCard(viewport, opts){
      state so it survives a flip the system forced (W1/W3) and is restored when the
      poll reopens (W5). null means "nothing pending — use the recorded vote". */
   let pendingSelection = null;
-  let submitLabel = 'Submit vote';
   let layoutFor = measuredBarLayout;
   const palette = expandPalette(RESULTS_PALETTE_ENTRIES.map(e => e.hex), opts.choiceBounds && opts.choiceBounds.maxChoices);
   const paletteOffset = paletteOffsetFor(opts.pid, palette.length);
@@ -986,7 +1064,7 @@ function initPollCard(viewport, opts){
 
   function ballotOpensMaximized(){
     if (!data || isMaximized) return false;
-    return isPhoneLayout() ? essential().hiddenCount > 0 : data.length > capacity(votingWrap);
+    return isPhoneLayout() ? essential().hiddenCount > 0 : data.length + (showsAddOwnRow() ? 1 : 0) > capacity(votingWrap);
   }
 
   function votedChoices(){
@@ -997,8 +1075,9 @@ function initPollCard(viewport, opts){
 
   function fitting(){
     const places = capacity(resultsWrap);
-    if (data.length <= places) return { shown: data, hiddenCount: 0, hiddenShare: 0 };
-    return fittingChoices(data, (poll && poll.myChoiceIds) || [], Math.max(0, places - 1));
+    const addOwn = showsAddOwnRow() ? 1 : 0;
+    if (data.length <= places - addOwn) return { shown: data, hiddenCount: 0, hiddenShare: 0 };
+    return fittingChoices(data, (poll && poll.myChoiceIds) || [], Math.max(0, places - 1 - addOwn));
   }
 
   function rankedView(){
@@ -1039,7 +1118,7 @@ function initPollCard(viewport, opts){
 
   function renderBallot(){
     const hexById = new Map(resultColors().map((c) => [c.id, c.hex]));
-    renderVotingOptions(votingWrap, votingList, ballot(), votingLayoutFor, (item) => hexById.get(item.id));
+    renderVotingOptions(votingWrap, votingList, ballot(), votingLayoutFor, shownAddOwnItem('vote'), (item) => hexById.get(item.id));
   }
 
   function rebuildData(selectedIds){
@@ -1066,13 +1145,37 @@ function initPollCard(viewport, opts){
 
   // FR-023: submission disabled until at least one choice is selected, unless the
   // empty selection removes the vote the viewer holds.
+  const topDivider = viewport.querySelector('.top-divider');
+  const topRow = viewport.querySelector('.actions--top');
+  const topSubmitBtn = viewport.querySelector('.top-submit-btn');
+  const multiHelps = viewport.querySelectorAll('.multi-help');
+
+  function syncTopRow(){
+    if (!topRow || !submitBtn) return;
+    const shown = isMaximized && !isPhoneLayout() && Boolean(poll) && poll.choices.length >= 10 && !submitBtn.hidden;
+    topDivider.hidden = !shown;
+    topRow.hidden = !shown;
+    topSubmitBtn.querySelector('.btn-vote-label').textContent = submitBtn.querySelector('.btn-vote-label').textContent;
+    const sizers = submitBtn.querySelectorAll('.btn-vote-sizer');
+    topSubmitBtn.querySelectorAll('.btn-vote-sizer').forEach((el, i) => { el.textContent = sizers[i] ? sizers[i].textContent : ''; });
+    topSubmitBtn.disabled = submitBtn.disabled;
+    topSubmitBtn.hidden = submitBtn.hidden;
+    if (shown) fitLabel(topSubmitBtn);
+    const multiple = Boolean(poll) && poll.choiceMode === 'Multiple-Choice Poll';
+    multiHelps.forEach((help) => {
+      help.hidden = !multiple || submitBtn.hidden || (help.previousElementSibling === topRow && !shown);
+    });
+  }
+
   function updateSubmitState(){
     if (!submitBtn) return;
     const empty = selectedIds().length === 0;
     const removal = empty && holdsVote();
     submitBtn.disabled = (empty && !removal) || Boolean(viewerBlockedReason());
     const label = submitBtn.querySelector('.btn-vote-label');
-    if (label) label.textContent = removal ? 'Remove vote' : submitLabel;
+    if (label) label.textContent = removal ? 'Remove vote' : (selectedIds().length >= 2 ? 'Cast these votes' : 'Cast this vote');
+    fitLabel(submitBtn);
+    syncTopRow();
     if (opts.onSelection) opts.onSelection(opts.pid, selectedIds().length);
   }
 
@@ -1128,11 +1231,11 @@ function initPollCard(viewport, opts){
     viewport.querySelectorAll('.question').forEach((el) => { el.textContent = poll.title; });
     viewport.querySelectorAll('.subtitle').forEach((el) => { el.textContent = poll.subtitle || ''; });
     setNotes(poll.notesPreviewHtml || '');
-    // A multiple-choice ballot submits several votes. Both buttons' sizers carry the
-    // labels the back button may show (008 FR-007), so Vote, Submit and Remove vote
-    // keep one width; the visible label is written by updateSubmitState.
-    submitLabel = poll.choiceMode === 'Multiple-Choice Poll' ? 'Submit votes' : 'Submit vote';
-    const widths = [submitLabel, poll.voteMutability === 'Dynamic-Vote Poll' ? 'Remove vote' : ''];
+    // The buttons keep the width these labels gave them before Cast; fitLabel shrinks a longer label into it.
+    const widths = [
+      poll.choiceMode === 'Multiple-Choice Poll' ? WIDTH_SETTING_LABELS.multiple : WIDTH_SETTING_LABELS.single,
+      poll.voteMutability === 'Dynamic-Vote Poll' ? WIDTH_SETTING_LABELS.removal : ''
+    ];
     [voteBtn, submitBtn].forEach((btn) => {
       if (btn) btn.querySelectorAll('.btn-vote-sizer').forEach((el, i) => { el.textContent = widths[i] || ''; });
     });
@@ -1166,7 +1269,7 @@ function initPollCard(viewport, opts){
     if (anonymousEl) anonymousEl.hidden = !poll.anonymousVotes;
     const because = viewport.querySelector('.poll-listed-because');
     if (because){
-      const words = { invited: 'You were invited', linked: 'You opened the link', created: 'Your poll', bookmarked: 'You are watching', trending: 'Trending' };
+      const words = { invited: 'You were invited', linked: 'You opened the link', created: 'Your poll', bookmarked: 'You are following', trending: 'Trending' };
       const parts = reasons.map((r) => words[r]).filter(Boolean);
       because.textContent = parts.join(' · ');
       because.hidden = parts.length === 0;
@@ -1307,16 +1410,18 @@ function initPollCard(viewport, opts){
     if (voteBtn) voteBtn.hidden = true;
     if (submitBtn) submitBtn.hidden = true;
     if (liveLink && !removeMode) liveLink.hidden = true;
-    if (bookmarkBtn) bookmarkBtn.hidden = true;
+    bookmarkBtns.forEach((btn) => { btn.hidden = true; });
     syncTitleIcons();
     if (cardFlip.classList.contains('is-flipped')) cardFlip.classList.remove('is-flipped');
   }
 
-  /* The title wraps around one icon or two: .has-bookmark tells the stylesheet the Watch
-     button shows, where :has() would — Chromium before 105 (Opera 83) has no :has(). */
+  /* .has-bookmark tells the stylesheet the Follow button shows, where :has() would — Chromium before 105
+     (Opera 83) has no :has(). */
   function syncTitleIcons(){
-    const row = bookmarkBtn && bookmarkBtn.closest('.question-row');
-    if (row) row.classList.toggle('has-bookmark', !bookmarkBtn.hidden);
+    bookmarkBtns.forEach((btn) => {
+      const row = btn.closest('.question-row');
+      if (row) row.classList.toggle('has-bookmark', !btn.hidden && getComputedStyle(btn).display !== 'none');
+    });
   }
 
   var SHAREABLE_STATES = ['WAITING TO OPEN', 'OPEN', 'CLOSED'];
@@ -1343,24 +1448,147 @@ function initPollCard(viewport, opts){
     return !finalVoteCast || poll.ownPoll === true;
   }
 
-  function updateAddChoice(){
-    if (addChoiceBtn) addChoiceBtn.hidden = !mayAddChoice();
+  const maxChoices = (opts.choiceBounds && opts.choiceBounds.maxChoices) || 50;
+  const choiceLabelMax = (opts.choiceBounds && opts.choiceBounds.choiceLabelMax) || 35;
+
+  function showsAddOwnRow(){
+    return mayAddChoice() && poll.choices.length < maxChoices && !isEditing() && !poll.notPublished;
+  }
+
+  const addOwnRows = { results: null, vote: null };
+
+  function addOwnRow(face){
+    if (!addOwnRows[face]){
+      addOwnRows[face] = createAddOwnRow(face === 'vote' ? votingWrap : resultsWrap, choiceLabelMax);
+      wireAddOwnRow(addOwnRows[face], face);
+    }
+    return addOwnRows[face];
+  }
+
+  function addOwnInUse(face){
+    const row = addOwnRows[face];
+    return Boolean(row) && (row.input.value !== '' || document.activeElement === row.input);
+  }
+
+  function focusAfterFilling(face){
+    const primary = face === 'vote' ? submitBtn : voteBtn;
+    const target = primary && !primary.hidden && !primary.disabled
+      ? primary
+      : viewport.querySelector((face === 'vote' ? '.card-back' : '.card-front') + ' .maximize-btn');
+    if (target) target.focus();
+  }
+
+  function wireAddOwnRow(row, face){
+    const { input, counter, support } = row;
+    let busy = false;
+
+    function showSupport(text){
+      support.textContent = text;
+      support.hidden = !text;
+      if (text) input.setAttribute('aria-invalid', 'true');
+      else input.removeAttribute('aria-invalid');
+    }
+
+    function isListed(){
+      const key = keyOf(input.value);
+      return key !== '' && Boolean(poll) && poll.choices.some((choice) => keyOf(choice.label) === key);
+    }
+
+    function update(){
+      counter.textContent = input.value ? input.value.length + ' / ' + choiceLabelMax : '';
+      showSupport(isListed() ? ADD_OWN_DUPLICATE : '');
+    }
+
+    async function add(){
+      const label = input.value.trim();
+      if (busy || label === '' || isListed()) return;
+      busy = true;
+      input.setAttribute('aria-busy', 'true');
+      const result = await saveChoice(label);
+      busy = false;
+      input.removeAttribute('aria-busy');
+      if (result.ok){
+        input.value = '';
+        update();
+        if (window.SharePoll) window.SharePoll.snackbar('Choice added');
+        if (poll.choices.length >= maxChoices) focusAfterFilling(face);
+        else input.focus();
+        return;
+      }
+      showSupport(result.status === 429 ? ADD_OWN_TOO_SOON : result.error || ADD_OWN_FAILED);
+      input.focus();
+    }
+
+    input.addEventListener('input', update);
+    input.addEventListener('paste', (event) => {
+      const pasted = event.clipboardData && event.clipboardData.getData('text');
+      if (typeof pasted !== 'string') return;
+      event.preventDefault();
+      const flat = pasted.replace(/\r\n|\r|\n/g, ' ');
+      const start = input.selectionStart ?? input.value.length;
+      const end = input.selectionEnd ?? input.value.length;
+      const room = choiceLabelMax - (input.value.length - (end - start));
+      const inserted = flat.slice(0, Math.max(0, room));
+      input.value = input.value.slice(0, start) + inserted + input.value.slice(end);
+      const caret = start + inserted.length;
+      input.setSelectionRange(caret, caret);
+      update();
+    });
+    input.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape'){
+        input.value = '';
+        update();
+        return;
+      }
+      if (event.key !== 'Enter') return;
+      event.preventDefault();
+      add();
+    });
+  }
+
+  function clearAddOwnRows(){
+    Object.values(addOwnRows).forEach(clearAddOwnRow);
+  }
+
+  function shownAddOwnItem(face){
+    return showsAddOwnRow() ? addOwnRow(face).item : null;
+  }
+
+  function clearAddOwnRow(row){
+    if (!row) return;
+    row.input.value = '';
+    row.counter.textContent = '';
+    row.support.textContent = '';
+    row.support.hidden = true;
+    row.input.removeAttribute('aria-invalid');
+  }
+
+  function syncAddOwnRows(){
+    const shown = showsAddOwnRow();
+    Object.values(addOwnRows).forEach((row) => {
+      if (!row) return;
+      row.input.placeholder = addOwnPlaceholder();
+      if (!shown) clearAddOwnRow(row);
+    });
   }
 
   function render(){
     if (!data) return;
     votingList?.classList.toggle('is-multi', Boolean(poll) && poll.choiceMode !== 'Single-Choice Poll');
-    if (!isPhoneLayout() && ballotOpensMaximized() && cardFlip.classList.contains('is-flipped')){
+    if (!isPhoneLayout() && ballotOpensMaximized() && cardFlip.classList.contains('is-flipped') && !addOwnInUse('vote')){
       pendingSelection = selectedIds();
       cardFlip.classList.remove('is-flipped');
     }
-    renderPollResults(resultsWrap, resultsList, data, resultsLayoutFor, paletteOffset, palette, resultsView());
+    renderPollResults(resultsWrap, resultsList, data, resultsLayoutFor, paletteOffset, palette, resultsView(), shownAddOwnItem('results'));
     renderBallot();
+    syncAddOwnRows();
     updateSubmitState();
     updateClosedState();
     updateActionButtons();
     updateStateMessage();
-    updateAddChoice();
+    fitLabel(voteBtn);
+    fitLabel(submitBtn);
+    syncTopRow();
   }
 
   /*
@@ -1400,11 +1628,11 @@ function initPollCard(viewport, opts){
   }
 
   /* The card actions: Vote on every tab, Live Results
-     everywhere but the Live Results tab, Watch everywhere a tab sets showBookmark, and
+     everywhere but the Live Results tab, Follow everywhere a tab sets showBookmark, and
      the X that removes the poll on the Live Results tab alone. Guests are sent to log in by the first three. */
   function updateActionButtons(){
     if (voteBtn && opts.showVote === false) voteBtn.hidden = true;
-    if (bookmarkBtn && opts.showBookmark === false) bookmarkBtn.hidden = true;
+    if (opts.showBookmark === false) bookmarkBtns.forEach((btn) => { btn.hidden = true; });
     syncTitleIcons();
     if (liveLink){
       if (opts.showLive === false) liveLink.hidden = true;
@@ -1421,12 +1649,14 @@ function initPollCard(viewport, opts){
       if (removeMode) liveLink.setAttribute('aria-label', name);
       else liveLink.removeAttribute('aria-label');
     }
-    if (bookmarkBtn && poll){
+    if (poll){
       const bookmarked = Boolean(poll.bookmarked);
-      bookmarkBtn.hidden = opts.showBookmark === false || poll.mayWatch === false;
-      bookmarkBtn.setAttribute('aria-label', bookmarked ? 'Watching' : 'Watch');
-      bookmarkBtn.title = bookmarked ? 'Stop watching this poll' : 'Watch this poll';
-      bookmarkBtn.setAttribute('aria-pressed', bookmarked ? 'true' : 'false');
+      bookmarkBtns.forEach((btn) => {
+        btn.hidden = opts.showBookmark === false || poll.mayWatch === false;
+        btn.setAttribute('aria-label', bookmarked ? 'Following' : 'Follow');
+        btn.title = bookmarked ? 'Stop following this Poll' : 'Follow this Poll';
+        btn.setAttribute('aria-pressed', bookmarked ? 'true' : 'false');
+      });
       syncTitleIcons();
     }
   }
@@ -1449,9 +1679,11 @@ function initPollCard(viewport, opts){
     activateLiveLink();
   });
 
-  bookmarkBtn?.addEventListener('click', () => {
-    if (opts.showBookmark === false || !requireSignIn()) return;
-    if (opts.onBookmark) opts.onBookmark(opts.pid, !(poll && poll.bookmarked), poll);
+  bookmarkBtns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (opts.showBookmark === false || !requireSignIn()) return;
+      if (opts.onBookmark) opts.onBookmark(opts.pid, !(poll && poll.bookmarked), poll);
+    });
   });
 
   shareBtns.forEach((btn) => {
@@ -1490,6 +1722,7 @@ function initPollCard(viewport, opts){
   }
 
   resultsList?.addEventListener('click', (event) => {
+    if (event.target.closest('.add-own-item')) return;
     const showAllRow = event.target.closest('.show-all-row');
     if (showAllRow){
       const expanding = showAllRow.getAttribute('aria-expanded') !== 'true';
@@ -1535,6 +1768,7 @@ function initPollCard(viewport, opts){
   });
 
   function setMaximized(on, how){
+    clearAddOwnRows();
     isMaximized = on;
     choiceView = on && how && how.choices === 'voted' ? 'voted' : 'essential';
     layoutFor = on ? (count) => maximizedBarLayout(count, opts.choiceBounds) : measuredBarLayout;
@@ -1606,6 +1840,7 @@ function initPollCard(viewport, opts){
 
   // The ballot always starts at the card's top: Vote sits at the bottom of the results, which can be far below it.
   function showVoteFace(){
+    clearAddOwnRows();
     rebuildData(pendingSelection !== null ? pendingSelection : (poll ? poll.myChoiceIds || [] : []));
     cardFlip.classList.add('is-flipped');
     render();
@@ -1615,10 +1850,14 @@ function initPollCard(viewport, opts){
   // Left-arrow button — always just flips back without submitting.
   // Flipping back from a long maximized ballot shortens the page under the reader: back to the card's top.
   viewport.querySelector('.back-btn')?.addEventListener('click', () => {
+    clearAddOwnRows();
     cardFlip.classList.remove('is-flipped');
     renderBallot();
     if (isMaximized) scrollToCardTop();
   });
+
+  topSubmitBtn?.addEventListener('click', () => submitBtn.click());
+  viewport.querySelector('.top-back-btn')?.addEventListener('click', () => viewport.querySelector('.back-btn').click());
 
   // Submit posts the current selection through the vote client; the response
   // carries the poll's live counts and the voter's choices, which the owning tab
@@ -1635,6 +1874,7 @@ function initPollCard(viewport, opts){
     const result = await window.VoteClient.submit(opts.pid, ids);
     if (result.ok){
       pendingSelection = null;
+      clearAddOwnRows();
       cardFlip.classList.remove('is-flipped');
       if (opts.onVoted) opts.onVoted(opts.pid, result.outcome);
       holdVoteButton(result.outcome.nextRefreshMs || 0);
@@ -1656,21 +1896,6 @@ function initPollCard(viewport, opts){
     showVoteError(result.error || 'Your vote could not be recorded. Please try again.');
     render();
   });
-
-  async function latestDetail(){
-    try {
-      const res = await fetch('/api/me/polls/' + encodeURIComponent(opts.pid));
-      if (!res.ok) return null;
-      const body = await res.json();
-      const state = window.DeltaClient.createTabState();
-      state.cards.set(opts.pid, body.poll);
-      state.counts.set(opts.pid, body.counts);
-      state.overlay.set(opts.pid, body.overlay);
-      return window.DeltaClient.toPollDetail(state, opts.pid);
-    } catch {
-      return null;
-    }
-  }
 
   function applyAddedChoices(answer){
     const held = new Map(poll.choices.map((c) => [c.id, c]));
@@ -1703,30 +1928,6 @@ function initPollCard(viewport, opts){
     const known = typeof body.error === 'string' && body.error !== 'too-soon' && body.error !== 'busy';
     return { status: res.status, error: known ? body.error : '' };
   }
-
-  addChoiceBtn?.addEventListener('click', async () => {
-    if (!mayAddChoice()) return;
-    clearVoteError();
-    addChoiceBtn.disabled = true;
-    addChoiceBtn.setAttribute('aria-busy', 'true');
-    const detail = await latestDetail();
-    addChoiceBtn.disabled = false;
-    addChoiceBtn.removeAttribute('aria-busy');
-    if (!detail){
-      showVoteError("Couldn't load the latest choices. Try again.");
-      return;
-    }
-    applyPoll(detail);
-    const bounds = opts.choiceBounds || {};
-    const max = bounds.maxChoices || 50;
-    if (poll.choices.length >= max){
-      showVoteError('This poll already has the most choices allowed (' + max + ').');
-      return;
-    }
-    if (!mayAddChoice() || !window.AddChoiceDialog) return;
-    addChoiceBtn.focus();
-    window.AddChoiceDialog.open({ choices: poll.choices, maxLength: bounds.choiceLabelMax || 35, onSave: saveChoice });
-  });
 
   function holdVoteButton(ms){
     if (!voteBtn) return;
@@ -1832,9 +2033,9 @@ const POLL_CARD_TEMPLATE = `
               <button class="share-btn" type="button" title="Share poll" aria-label="Share poll" hidden>
                 <svg class="share-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
               </button>
-              <!-- The Watch control: aria-pressed chooses between the outline eye and the
+              <!-- The Follow control: aria-pressed chooses between the outline eye and the
                    filled one (the symbols live once in index.html). -->
-              <button class="bookmark-btn" type="button" aria-pressed="false" aria-label="Watch" title="Watch this poll">
+              <button class="bookmark-btn" type="button" aria-pressed="false" aria-label="Follow" title="Follow this Poll">
                 <svg class="watch-icon watch-icon--off" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#watching-eye"/></svg>
                 <svg class="watch-icon watch-icon--on" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#watching-eye-on"/></svg>
               </button>
@@ -1859,27 +2060,17 @@ const POLL_CARD_TEMPLATE = `
           </div>
 
           <div class="actions">
+            <!-- The sizer spans hold the widest labels these buttons showed before Cast; the visible label fits the width they set. -->
+            <button class="btn-primary btn-vote vote-btn" type="button"><span class="btn-vote-label">Cast Your Vote</span><span class="btn-vote-sizer" aria-hidden="true"></span><span class="btn-vote-sizer" aria-hidden="true"></span></button>
             <a class="live-link" href="#" role="button" title="Add to Live Results">
               <span class="live-bars" aria-hidden="true"><i></i><i></i><i></i></span>
               <span class="live-x" aria-hidden="true" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg></span>
               <span class="live-link-label">Live Results</span>
             </a>
             <p class="poll-closed-message" hidden></p>
-            <!-- 012 FR-042: takes the same slot as the closed message, and takes
-                 precedence over it while the poll is being edited. -->
             <p class="poll-editing-message" hidden></p>
             <p class="poll-state-message" hidden></p>
-            <!-- 012 FR-057: shown when this viewer may not vote — banned, not invited,
-                 or the poll is full. Results stay readable; only the controls go. -->
             <p class="poll-blocked-message" hidden></p>
-            <!-- 008 FR-007: the two .btn-vote-sizer spans carry every label the
-                 back button may show (Submit vote(s), Remove vote), so both
-                 primary buttons resolve to one width at every card size. Three
-                 things it depends on: setText writes the same pair into both
-                 buttons; the visible label needs its own span (a bare text node
-                 becomes an anonymous grid item that site.css's child rule can't
-                 stack); and aria-hidden keeps the button from announcing them. -->
-            <button class="btn-primary btn-vote vote-btn" type="button"><span class="btn-vote-label">Vote</span><span class="btn-vote-sizer" aria-hidden="true"></span><span class="btn-vote-sizer" aria-hidden="true"></span></button>
           </div>
           <!-- FIX022: the vote count and, on the personal tabs, why the poll is
                listed (FIX020) sit under the action row. -->
@@ -1905,6 +2096,10 @@ const POLL_CARD_TEMPLATE = `
               <button class="share-btn" type="button" title="Share poll" aria-label="Share poll" hidden>
                 <svg class="share-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
               </button>
+              <button class="bookmark-btn" type="button" aria-pressed="false" aria-label="Follow" title="Follow this Poll">
+                <svg class="watch-icon watch-icon--off" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#watching-eye"/></svg>
+                <svg class="watch-icon watch-icon--on" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#watching-eye-on"/></svg>
+              </button>
               <button class="maximize-btn" type="button" aria-label="Maximize Poll Card" title="Maximize Poll">
                 <svg class="maximize-icon" viewBox="-2 -2 28 28" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="1.125" y="1.125" width="21.75" height="21.75" rx="4.125"/><path d="M14 10L19 5M14.5 5H19V9.5M10 14L5 19M5 14.5V19H9.5"/></svg>
                 <svg class="minimize-icon" viewBox="-2 -2 28 28" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" hidden><rect x="1.125" y="1.125" width="21.75" height="21.75" rx="4.125"/><path d="M19.5 4.5L14 10M18 10H14V6M4.5 19.5L10 14M6 14H10V18"/></svg>
@@ -1912,6 +2107,15 @@ const POLL_CARD_TEMPLATE = `
             </div>
             <p class="subtitle"></p>
           </div>
+
+          <hr class="top-divider" hidden>
+          <div class="actions actions--top" hidden>
+            <button class="btn-primary btn-vote top-submit-btn" type="button" disabled><span class="btn-vote-label">Cast this vote</span><span class="btn-vote-sizer" aria-hidden="true"></span><span class="btn-vote-sizer" aria-hidden="true"></span></button>
+            <button class="icon-btn top-back-btn" type="button" aria-label="Back to results without voting">
+              <svg viewBox="-143 -218 1193 1193" fill="currentColor" aria-hidden="true" focusable="false"><path fill-rule="evenodd" d="M12 11H712V528H12Z M73 70V466H648V70Z"/><path d="M125 130h470v65H125zM125 243h385v65H125zM124 351h332v65H124z"/><g transform="matrix(-1 0 0 1 900 0)" style="fill:var(--md-sys-color-primary);stroke:var(--md-sys-color-primary)" stroke-linejoin="round"><path d="M163 169C81 187 6 245 6 335C7 553 293 623 468 628V531C339 526 118 484 77 331C76 283 123 252 163 236Z" stroke-width="80"/><path d="M468 431L695 579L468 746Z" stroke-width="56"/><path d="M468 431L695 579L720 541L493 393Z" stroke="none"/><circle cx="468" cy="431" r="42" stroke="none"/></g><path d="M648 11h64v289h-64z"/><g transform="matrix(-1 0 0 1 900 0)"><path d="M163 169C81 187 6 245 6 335C7 553 293 623 468 628V531C339 526 118 484 77 331C76 283 123 252 163 236Z"/><path d="M468 431L695 579L468 746Z"/></g></svg>
+            </button>
+          </div>
+          <p class="multi-help" hidden>You may select more than one choice.</p>
 
           <div class="bar-scroll-wrap voting-scroll-wrap">
             <div class="bar-scroll-inner">
@@ -1924,21 +2128,14 @@ const POLL_CARD_TEMPLATE = `
           <p class="poll-vote-error" hidden></p>
 
           <div class="actions">
-            <!-- Flips back to the front: a page with an arrow curving round it to the front, filled
-                 like Submit, so it is never mistaken for the page's Back arrow. The gaps where the
-                 arrow crosses the page are painted in the button's colour, not masked, since a mask's
-                 id would repeat on every card. -->
+            <button class="btn-primary btn-vote submit-vote-btn" type="button" disabled><span class="btn-vote-label">Cast this vote</span><span class="btn-vote-sizer" aria-hidden="true"></span><span class="btn-vote-sizer" aria-hidden="true"></span></button>
+            <!-- The gaps where the arrow crosses the page are painted in the button's colour, not
+                 masked, since a mask's id would repeat on every card. -->
             <button class="icon-btn back-btn" type="button" aria-label="Back to results without voting">
               <svg viewBox="-143 -218 1193 1193" fill="currentColor" aria-hidden="true" focusable="false"><path fill-rule="evenodd" d="M12 11H712V528H12Z M73 70V466H648V70Z"/><path d="M125 130h470v65H125zM125 243h385v65H125zM124 351h332v65H124z"/><g transform="matrix(-1 0 0 1 900 0)" style="fill:var(--md-sys-color-primary);stroke:var(--md-sys-color-primary)" stroke-linejoin="round"><path d="M163 169C81 187 6 245 6 335C7 553 293 623 468 628V531C339 526 118 484 77 331C76 283 123 252 163 236Z" stroke-width="80"/><path d="M468 431L695 579L468 746Z" stroke-width="56"/><path d="M468 431L695 579L720 541L493 393Z" stroke="none"/><circle cx="468" cy="431" r="42" stroke="none"/></g><path d="M648 11h64v289h-64z"/><g transform="matrix(-1 0 0 1 900 0)"><path d="M163 169C81 187 6 245 6 335C7 553 293 623 468 628V531C339 526 118 484 77 331C76 283 123 252 163 236Z"/><path d="M468 431L695 579L468 746Z"/></g></svg>
             </button>
-            <button class="add-choice-btn" type="button" hidden>Add Choice</button>
-            <!-- 008 FR-007: the same label span and sizer pair as the front's Vote
-                 button, so "Submit vote" and "Remove vote" share one width. -->
-            <button class="btn-primary btn-vote submit-vote-btn" type="button" disabled><span class="btn-vote-label">Submit vote</span><span class="btn-vote-sizer" aria-hidden="true"></span><span class="btn-vote-sizer" aria-hidden="true"></span></button>
           </div>
-          <!-- 008 FR-004 / FIX022: the same count as the front, in the same place
-               (under the action row), so the two faces keep equal height and the
-               choices and results regions line up (FR-001). -->
+          <p class="multi-help" hidden>You may select more than one choice.</p>
           <div class="card-foot">
             <!-- The anonymity note shares the count's line, as "You voted" does on the front;
                  how this ballot works takes a line of its own, like the front's
@@ -1958,7 +2155,7 @@ const POLL_CARD_TEMPLATE = `
 
 window.M3Ripple?.add(
   '.card-face .btn-vote, .card-face .icon-btn, .card-face .bookmark-btn, .card-face .share-btn, .card-face .maximize-btn, ' +
-  '.card-face .live-link, .card-face .vote-row, .maximized-card-close, .card-face .add-choice-btn, ' +
+  '.card-face .live-link, .card-face .vote-row, .maximized-card-close, .card-face .top-back-btn, ' +
   '.card-face .poll-notes-more'
 );
 

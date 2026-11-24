@@ -45,7 +45,7 @@ These colours are the brand: their values never change, in either scheme.
 | `--ink` | `--choice-unselected` | 7 | both | a vote row's label |
 | `--on-choice-selected` | `--choice-selected` | 7 | both | a selected row's label, radio and check |
 | `--md-sys-color-on-surface-variant` | `--choice-unselected` | 3 | both | an unselected row's radio ring |
-| `--paper-raised` | `--paper` | 1.1 | both | a card is a different tone from the page |
+| `--paper-raised` | `--paper` | 1.1 | dark | a card is a different tone from the page (in Light both are white: the page's glows set the card apart, Techniques 2 and 7) |
 | `--line` | `--paper-raised` | 1.5–<3 | both | a card's border is seen on the card, without outshouting its content |
 | `--line` | `--paper` | 1.5–<3 | both | a card's border is seen on the page |
 | `--ink` | `--paper` | 4.5 | both | text on the page |
@@ -109,7 +109,9 @@ itself with black text.
 ## Techniques
 
 1. **An edge on every option**: a vote row has a 1 px `outline` border (3:1 on the card) and keeps a light fill.
-2. **A wider tonal step**: the page is darker than the card in both schemes, and the card's border is visible on both.
+2. **A wider tonal step**: in Dark the page is darker than the card (1.1:1 or more). In Light the page and the card
+   are both white (`#FFFFFF`); the card stands apart by the page's glows (Technique 7), which tint the page green
+   around and behind every card, by its shadow and by its border, which stays 1.5:1 or more on the white page.
 3. **A saturated selected state from the amber (tertiary) family, never green**: a selected row is `#643F00` with
    white text in Light and `#FFB956` with `#462B00` text in Dark, 3:1 or more from an unselected row; its radio, dot
    and check take the row's text colour.
@@ -124,9 +126,10 @@ itself with black text.
 7. **The page background**: `--paper` with two faint glows fixed to the window (`.page-decor`), moss green at the top
    left and amber at the bottom right, each fading out at 60% of its radii. Each glow's colour and strength are set per
    scheme (`--page-glow-1-color`, `--page-glow-1-strength`, `--page-glow-2-color`, `--page-glow-2-strength`), its size
-   and centre once (`--page-glow-N-size`, `--page-glow-N-at`), all in `m3-tokens.css`. They are decoration, not part of
-   any Required pair: text never relies on them. They are drawn under the page's content and the footer, so the
-   footer keeps its own colours.
+   and centre once (`--page-glow-N-size`, `--page-glow-N-at`), all in `m3-tokens.css`. They are not part of any
+   Required pair: text never relies on them. In Light they are what sets a card apart from the white page, so a glow
+   change there is checked by eye, on a monitor and a phone, that every card still stands clear of the page. They are
+   drawn under the page's content and the footer, so the footer keeps its own colours.
 8. **The header and the Tab Bar** take their colours from their own tokens, set per scheme in `m3-tokens.css`:
    `--header-background`, `--header-divider`, `--header-text`, `--header-link`, `--header-button`,
    `--on-header-button`; `--tab-bar-background`, `--tab-bar-divider`, `--tab-text`,
@@ -178,6 +181,7 @@ White is not one of them: it stays `#FFFFFF`. The Google sign-in button's border
 
 | Colour | Light before → after | Dark before → after |
 |---|---|---|
+| `--paper` (page) | `#E5EAE2` → `#FFFFFF`, the same as the card: the page's glows set the card apart, and the 1.1:1 card-on-page pair is now Dark only | `#0A0E0B` (unchanged) |
 | `--md-sys-color-primary`, Dark `--md-sys-color-inverse-primary` | `#2C6A46` → 100% (same value) | `#2C6A46` → 100% (same value) |
 | `--md-sys-color-surface-container-high` | `#F4F8F6` → 5% (same value) | `#262B27` (unchanged) |
 | `--md-sys-color-surface-container`, `-low`, `--md-sys-color-inverse-on-surface`, `--header-paper` | `#EAEFE8`, `#F1F3EE`, `#EDF2EB`, `#E5EAE2` → 10% | unchanged |

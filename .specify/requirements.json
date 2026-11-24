@@ -1,5 +1,5 @@
 {
-    "requirements_directory": "requirements/20261120-175903-color-contrast",
+    "requirements_directory": "requirements/20261122-012539-voting-center-ui",
     "last_written": {
         "requirements/20261119-144614-poll-admin-improvements/requirements.md": "5a632c9a791267982f804fd8a086dd1c546ec635bea608e1c4397b96722c39ca",
         "requirements/20261119-144614-poll-admin-improvements/requirements-report.md": "8b9fcf1024c584371f460914ab4d0782c030ab75f8e649fda873fe62e32c4420",
@@ -109,6 +109,8 @@
         "requirements/20261119-182343-deep-links/requirements-report.md": "729deeafcd2d5909b0f8d4ea4f4cd617df61aeb70be47f5936556db686d6459d",
         "requirements/20261118-074312-keep-notes-edits/requirements.md": "00fa7a35280069361db92ca125f64b8b080f493a88988e4785a54b2ea9f53401",
         "requirements/20261118-074312-keep-notes-edits/requirements-report.md": "9f69d7d8fee6f50cdc322e0028324f99718ca12aeb01455127d30266371c284a",
+        "requirements/20261122-012539-voting-center-ui/requirements.md": "4e0c27c1eb92cff7facdf45c854723968508df8f92859947cfcf4e10eaa1c8bf",
+        "requirements/20261122-012539-voting-center-ui/requirements-report.md": "226103ad0314aac2b75ae92e8d193ba919b8b5126aa20369fc328ce44aea7a97",
         "requirements/20261120-175903-color-contrast/requirements.md": "5b4b7abf2b0c89605242b6056099af755aa7ab68bc69d26be355d417c4835119",
         "requirements/20261120-175903-color-contrast/requirements-report.md": "44706c7cbbb08cb77eb33c0b5160e031bfe75be044546790e57ecc2381ce4d53"
     }

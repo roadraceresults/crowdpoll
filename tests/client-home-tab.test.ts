@@ -81,7 +81,7 @@ describe("landing", () => {
     expect(homeTab(page).hidden).toBe(false);
     expect(page.document.querySelector("#tabBar .tab")!.getAttribute("data-tab")).toBe("home");
     expect(page.cardTitles("home")).toEqual(["Shared and watched", "My own", "Popular"]);
-    expect(reasonOf(homeCard(page, "Shared and watched"))).toBe("You were invited · You are watching");
+    expect(reasonOf(homeCard(page, "Shared and watched"))).toBe("You were invited · You are following");
     expect(reasonOf(homeCard(page, "My own"))).toBe("Your poll");
     expect(reasonOf(homeCard(page, "Popular"))).toBe("Trending");
 
@@ -122,7 +122,7 @@ describe("landing", () => {
     const empty = page.document.querySelector('.tab-panel[data-panel="home"] .tab-empty') as HTMLElement;
     expect(empty.hidden).toBe(false);
     expect(empty.textContent).toBe(
-      "Nothing here yet. Polls shared with you, your polls, your votes, the polls you watch and what's trending will appear here."
+      "Nothing here yet. Polls shared with you, your polls, your votes, the polls you follow and what's trending will appear here."
     );
   });
 });
@@ -206,7 +206,7 @@ describe("keeping Home's order while the user acts on it", () => {
     const card = homeCard(page!, "Watch me");
     (card.querySelector(".card-front .bookmark-btn") as HTMLButtonElement).click();
     await page!.settle(50);
-    expect(reasonOf(card)).toBe("Trending · You are watching");
+    expect(reasonOf(card)).toBe("Trending · You are following");
     expect(lastHomeBody(page!).keepOrder).toBe(true);
     expect(page!.cardTitles("home")).toEqual(before);
   });
@@ -234,7 +234,7 @@ describe("keeping Home's order while the user acts on it", () => {
     const card = homeCard(page, "Watched");
     (card.querySelector(".card-front .bookmark-btn") as HTMLButtonElement).click();
     await page.settle(50);
-    expect(reasonOf(card)).not.toContain("You are watching");
+    expect(reasonOf(card)).not.toContain("You are following");
     expect(lastHomeBody(page).keepOrder).toBe(true);
     expect(page.cardTitles("home")).toEqual(before);
   });

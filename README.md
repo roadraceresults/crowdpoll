@@ -2,9 +2,9 @@
 
 A real-time opinion-poll site with passwordless login, built in TypeScript with Express,
 PostgreSQL and [BetterAuth](https://better-auth.com). Visitors browse polls on a
-nine-tab home page (Home, Your Polls, Shared With You, Your Votes, Trending, Newest, Watching, Live Results,
+nine-tab home page (Home, Your Polls, Shared With You, Your Votes, Trending, Newest, Following, Live Results,
 Search — each tab with its own icon, under a rule that runs the full width of the window), vote
-once per poll (or change their vote on a poll that allows it), watch the polls they care about,
+once per poll (or change their vote on a poll that allows it), follow the polls they care about,
 and follow up to five polls update live. Administrators create, edit, screen and moderate polls. Login emails a
 one-time login link (no passwords, ever), or goes through Google, Apple, Microsoft or Amazon: `ENV_SIGNIN_METHOD`
 chooses the email link alone (`native`), the providers alone (`oauth`) or both.
@@ -19,13 +19,13 @@ delivery network.
 ## For end users
 
 - **Home** — where a logged-in visitor lands: one list gathering, in this order, the polls shared
-  with you (10 at most), your own polls (10), the polls you voted in (10), every poll you watch, and
+  with you (10 at most), your own polls (10), the polls you voted in (10), every poll you follow, and
   ten from Trending, each poll once, at its first place. Open polls appear for two months after
   they opened, closed polls for a week after they closed, and polls waiting to open always; drafts,
   rejected and archived polls never do. Each card says why it is listed ("You were invited",
-  "Your poll", "You voted", "You are watching", "Trending"). Every card of a private poll, on any
+  "Your poll", "You voted", "You are following", "Trending"). Every card of a private poll, on any
   tab, also says "Private", after "You voted" on the same line. The list is rebuilt when something
-  you did changes it, and at least every two hours; voting on or watching a card on Home does not
+  you did changes it, and at least every two hours; voting on or following a card on Home does not
   move it until you next open Home. Guests do not see the tab, and the avatar menu's first item,
   **Home**, opens it from any page.
 - **Trending** — the polls with the most recent votes, first on every visit. Nothing on it
@@ -34,7 +34,7 @@ delivery network.
 - **Newest** — the public polls opened most recently, newest first (fifty at most); a poll an
   administrator re-opens counts as new, and a poll under edit keeps its place. **Refresh** works
   as on Trending.
-- **Your Polls**, **Shared With You**, **Your Votes** and **Watching** — the private tabs come
+- **Your Polls**, **Shared With You**, **Your Votes** and **Following** — the private tabs come
   first. Log in to see them; **Refresh** can be pressed a few times in a row, then once every 5
   seconds, and its tooltip says how long is left while it waits.
   - **Your Polls** — every poll you created, public and private, in every state, newest first. A
@@ -47,7 +47,7 @@ delivery network.
     becomes the ordinary card once published. Any link to a poll you may not see answers "That poll
     isn't available."
   - **Your Votes** — every poll you voted in, public and private.
-  - **Watching** — only the polls you chose to watch.
+  - **Following** — only the polls you chose to follow. Its address keeps the name `?tab=watching`.
 - **Human check before logging in** — **Login**, **Create Account** and an invitation open on a
   "Vote protection" card: tick **I am not a Bot or AI Agent** (it follows your Color Scheme in Site Settings), and the page's own
   card appears in its place. The check runs on CrowdPoll's own servers and sets no cookie; **What this
@@ -59,18 +59,23 @@ delivery network.
   poll's live card on Trending, maximized; a logged-in visitor goes to the poll as before.
 - **Search** — type words in the box and press Enter: titles match first, then subtitles, then
   choices, then keywords and notes; a misspelt title is still found. At most 200 results are shown.
-- **Vote** — press **Vote** on a card, pick your choice(s) and **Submit vote** (**Submit votes** on a multiple-choice poll). The card shows
+- **Voting Center** — press **Cast Your Vote** (the first button on a card) to turn the card to its voting
+  side, pick your choice(s) and press **Cast this vote** (**Cast these votes** once two or more are
+  ticked); the button that turns the card back without voting sits at the right. The card shows
   the new counts at once. On a very busy site the card may say your vote is *queued*; it has
   been counted and will be stored within moments. Under the count, the voting side says
   *Multiple-choice poll* and *You may change your vote* when they apply. On a poll that says
   *You may change your vote*, un-set every choice and the button reads **Remove vote**: pressing
   it withdraws your vote, and you may vote again later.
-- **Add Choice** — on a Private poll whose creator lets voters add choices, the voting side of
-  the card has an **Add Choice** button while the poll is open. Type a choice of up to 35
-  characters and press **Save**: it appears last on the card at once, for every voter, and can be
-  voted for straight away. A choice the poll already has (ignoring capitals and spaces), a full
-  poll, or language that isn't allowed is refused with the reason in the dialog. On a Final-Vote
-  poll you can add choices only until you have voted.
+- **Add your own choice** — on a Private poll whose creator lets voters add choices, both sides of
+  the card end with a row reading "Enter your own choice, then press Enter." while the poll is open
+  and below its maximum number of choices. Type a choice of up to 35 characters and press Enter: it
+  appears last on the card at once, unticked, for every voter, your ticks stay as they were, and
+  **Choice added** shows briefly. A choice the poll already has (ignoring capitals and spaces) is
+  named under the row as you type, and a refusal (language that isn't allowed, adding too soon) is
+  shown there with your text kept. Escape empties the row; live updates never disturb what you are
+  typing. The row takes the place of one bar. On a Final-Vote poll you can add choices only until
+  you have voted.
 - **Live Results** — press **Live Results** on any card to watch it update every few seconds
   in the Live Results tab (every 2 seconds, easing off to every 10 while nothing changes; up to
   five polls; a sixth is refused until you remove one). On that tab the same link reads
@@ -78,18 +83,19 @@ delivery network.
   while you watched it. After 30 minutes without any interaction the tab asks whether to continue.
   Live Results is offered only when `ENV_LIVE_RESULTS` is `1`; it is off by default, and then
   neither the tab nor the cards' control appears, and a link naming the tab opens the usual one.
-- **Watch** — the eye on a card puts a poll in Watching until it is archived or has been closed or
-  inactive for six months; press it again to stop. Up to 200 polls. You can watch a poll you may
-  see (public, or private and invited to or opened by you); a poll you lose access to leaves
-  Watching and comes back if access returns. Voting never watches a poll.
+- **Follow** — the eye on a card (and on the maximized voting side) puts a poll in Following until
+  it is archived or has been closed or inactive for six months; press it again to stop. Up to 200
+  polls. You can follow a poll you may see (public, or private and invited to or opened by you); a
+  poll you lose access to leaves Following and comes back if access returns. Voting never follows a
+  poll.
 - **Notes** — a poll may have notes under its title: the card shows their first two lines, with
   **Show more ⌄** when there is more. **Show more ⌄** opens the poll maximized, with the whole notes
   above its line graph; where the notes sit under the card, the page opens at them, with the card's
-  **Vote** button just above.
+  **Cast Your Vote** button just above.
 - **Long polls** — nothing scrolls inside a card. A card shows as many choices as it has room for.
   When a poll has more, the card shows its leading choices and any choice you voted for, then a row
   such as **More choices · 18%**; the percentage is the share those choices hold together, and is
-  shown on single-choice polls only. The row opens the poll maximized. **Vote** on a poll whose
+  shown on single-choice polls only. The row opens the poll maximized. **Cast Your Vote** on a poll whose
   ballot does not fit in the card opens the poll maximized on its voting side, which lists every
   choice.
 - **Maximize** — click a card's title or subtitle, **Show more ⌄**, or the maximize icon at the right
@@ -115,14 +121,14 @@ delivery network.
   poll maximized: a guest on a public poll goes to its own page; anyone else lands on the tab the
   address named when that tab fits them (Search only with search words; Trending, Newest and Home
   only for a published public poll; Shared With You only for a private poll someone else created),
-  and otherwise on Your Polls, Shared With You, Your Votes, Watching or Home, the first that holds the
-  poll for them. The tab rides through logging in. Opening a link never watches the poll; the poll
+  and otherwise on Your Polls, Shared With You, Your Votes, Following or Home, the first that holds the
+  poll for them. The tab rides through logging in. Opening a link never follows the poll; the poll
   shows first in the tab after you close it, even when the tab's list holds it further down, until
   the tab's next list from the server.
 - **Who voted** — on a private poll whose **Users can see who voted for what** switch is on, the
   maximized view shows who voted for what, below the notes and above the line graph, to everyone who
   may see the poll's results (and to administrators). It lists current votes only, by name (never an
-  address), each with its date; hover over a date for the time. **Sort by Voter** (the default) groups
+  address), each with its **Vote Cast Date**; hover over a date for the time. **Sort by Voter** (the default) groups
   each voter's choices; **Sort by Choice** groups each choice's voters, in the order of the bars, and
   leaves out choices nobody picked. The sort lasts while the poll stays open. The panel grows to fit
   the list and follows the bars: when the counts change it is fetched again, so a new vote appears a
@@ -180,14 +186,17 @@ delivery network.
   together, and is shown on single-choice polls only. The title takes up to three lines, and the subtitle
   and the notes one line each. Tap the title, the **more choices** row or the notes line to open
   the poll maximized; the notes line opens it with the notes showing. A bar opens it maximized too.
-- **A bar opens the poll, then votes** — where a card offers **Vote**, clicking or tapping a bar opens the
-  poll maximized, on its results, for a guest too; in the maximized view a bar does what **Vote** does (a
-  guest is sent to log in). On a poll with no **Vote**, such as a closed one, a bar opens the poll maximized
+- **A bar opens the poll, then votes** — where a card offers **Cast Your Vote**, clicking or tapping a bar opens the
+  poll maximized, on its results, for a guest too; in the maximized view a bar does what **Cast Your Vote** does (a
+  guest is sent to log in). On a poll with no **Cast Your Vote**, such as a closed one, a bar opens the poll maximized
   in the phone layout and does nothing at wider widths.
 - **Voting on a phone** — the voting side always lists every choice. On a card that shows all its choices,
-  **Vote** turns the card over where it is. On a longer poll, **Vote** opens the poll maximized on its
+  **Cast Your Vote** turns the card over where it is. On a longer poll, **Cast Your Vote** opens the poll maximized on its
   voting side: the full ballot scrolls with the page, and **Back**, the number of choices you have
-  selected and **Submit vote** stay fixed at the bottom of the screen, above the cookie notice.
+  selected and **Cast this vote** stay fixed at the bottom of the screen, above the cookie notice.
+- **Long ballots** — on a wide screen, a maximized voting side with ten or more choices repeats
+  **Cast** and the turn-back button under the title, above a divider. A multiple-choice ballot says
+  "You may select more than one choice." under its Cast buttons.
 - **A maximized poll on a phone** — the poll fills the column and shows its choices by the same rule as
   on a wide screen (see **Maximize** above). Under the card a tab bar reads **Read More** (the poll's
   notes), **Polling History** (the vote history graph) and **Who Voted**. One of them shows at a time:
@@ -340,8 +349,8 @@ whatever is stored for their account.
 - **Vote on Polls** — without it, every poll card says "You do not have permission to vote." and
   offers no vote.
 - **View Polls** — without it, no tab shows any poll card, only "You do not have permission to view
-  polls."; searching and adding a poll to Watching or Live Results are refused, though removing one
-  still works. Nothing already watched is deleted. Signed out, public polls show as
+  polls."; searching and adding a poll to Following or Live Results are refused, though removing one
+  still works. Nothing already followed is deleted. Signed out, public polls show as
   for any guest.
 
 **Inviting people.** On an *Only people you invite* poll, the admin card has an **Invitees** panel below its counts

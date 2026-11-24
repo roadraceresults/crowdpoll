@@ -6,74 +6,20 @@ The full description, every earlier feature's decisions and the settings table a
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-`specs/20261120-175903-COLOR-CONTRAST/plan.md` (research R1–R12, `data-model.md` — colour roles per scheme, contrast
-pairs, the result-colour derivation, the palette, nothing stored; the contracts `contracts/colors.md` C1–C14,
-`contracts/guardrail.md` G1–G8 and the quickstart live alongside it).
-The requirements report is `requirements/20261120-175903-color-contrast/requirements-report.md`: 14 findings, all resolved.
+`specs/20261122-012539-VOTING-CENTER-UI/plan.md` (research R1–R20, `data-model.md` — the add-your-own row's client
+state and the visibility and layout rules, nothing stored; the contract `contracts/ui.md` V1–V22 and the quickstart live
+alongside it).
+The requirements report is `requirements/20261122-012539-voting-center-ui/requirements-report.md`: 23 findings, all
+resolved. Client-only: no route, payload or address changes.
 Decisions that are easy to get wrong:
-- **`m3-tokens.css` sets the aliases for both schemes** (`:root:not([data-theme="dark"])` and `:root[data-theme="dark"]`);
-  the legacy `:root` palettes in `tabs.css`, `pollCard.css` and `site.css` are shadowed, not edited (R1).
-- **One lift rule**: every result fill is drawn through `lineColorOn(fill, card)` in both schemes; stored colours never
-  change (R5).
-- **Text on a bar's fill is ≥ 4.5:1** (black or white); 7:1 holds on tracks and vote rows (R7).
-- **The guideline is the test's data**: `tests/color-contrast.test.ts` reads the tables of `COLOR-CONTRAST.md` (R10).
-
-The plan before it:
-`specs/20261119-182343-DEEP-LINKS/plan.md` (research R1–R10, `data-model.md` — tab names, the link request, `chooseTab`
-and the address states, nothing stored; the contracts `contracts/links.md` L1–L12, `contracts/share.md` S1–S9 and the
-quickstart live alongside it).
-The requirements report is `requirements/20261119-182343-deep-links/requirements-report.md`: 15 findings, all resolved.
-Decisions that are easy to get wrong:
-- **The server chooses the tab** when `GET /?PID=` is opened (`chooseTab` in `sharedLink.ts`): the address's `tab` is a hint
-  kept only when it fits the visitor, else Your Polls → Shared With You → Your Votes → Watching → Home; the browser never
-  re-decides on Minimize (R2).
-- **A maximized poll's address is `/?tab=<tab>&PID=<pid>`**: a card's maximize pushes that address, a landing replaces it,
-  every close and tab change removes `PID`; `/poll/<pid>` keeps its own address (R1, R3).
-- **Opening a link writes nothing new** (no automatic Watch); a linked poll's card, closed, stays first in the grid until the
-  tab's next server answer, whether or not the list holds it (`linkedPid`, `keptPid`, `releaseKept`); a Watch, a Remove or
-  returning to the tab keeps it; a card maximized from the grid returns to its place (R4, TWEAK01).
-- **Shared With You is kept only for a visitor who did not create the poll**: that list never shows one's own polls (R2).
-- **`tab` rides beside `PID` through every login path**, validated by `parseTab`; invitation links carry none (R6).
-- **Share** (`sharePoll.js`) offers `/?PID=<pid>` only, by `navigator.share` or the clipboard, on published states
-  (`WAITING TO OPEN`, `OPEN`, `CLOSED`); the admin "Copy poll link" uses the same `SharePoll.link` (R8).
-
-The plan merged with it (branch `poll-admin`):
-`specs/20261119-144614-POLL-ADMIN-IMPROVEMENTS/plan.md` (research R1–R16, `data-model.md` — one column, two payload
-fields, the row's and the Choices field's states; the contracts `contracts/api.md` A1–A6, `contracts/ui.md` U1–U17 and
-the quickstart live alongside it).
-The requirements report is `requirements/20261119-144614-poll-admin-improvements/requirements-report.md`: 18 findings,
-all resolved; where it speaks of choices "locked by votes" and a "... view" link, the plan's R13 is right (neither
-exists).
-Decisions that are easy to get wrong:
-- **Every admin list is rows**: `adminList.js` has one list path; this supersedes "Search view only" below, and the
-  other row rules there now hold in every view and the creator's list (R1–R3).
-- **The open-poll link is a sibling of the row's button**, shown only while the server says `canWatch`, which is
-  `mayWatchMany` unchanged: unpublished polls never have it (R4, R5).
-- **`choicesInEnteredOrder` reorders only what is drawn**: `pollCard.js` keeps `data` share-sorted as the ranking;
-  `inDisplayOrder` is applied to the results shown and the ballot, nowhere else (R7).
-- **An info icon is never inside a `<label>`**: rows that take one are a `div` with `<label for>` parts (R10).
-- **The Choices field is a preview or today's textarea**, decided by `wizard.choicesOpen`; `commitChoices()` runs
-  wherever `commitNotes()` does (R12).
-
-The plan before it:
-`specs/20261118-160304-CLIENT-CODE-OBFUSCATION/plan.md` (research R1–R15, `data-model.md` — build inputs, mode and
-checks, nothing stored; the contract `contracts/build.md` B1–B16 and the quickstart live alongside it).
-The requirements report is `requirements/20261118-160304-client-code-obfuscation/requirements-report.md`: 14 findings,
-all resolved; where it speaks of the obfuscator's "light" setting, the plan's R2 is right (no wrapper, rotation or
-shuffling: the fuller setting fails the size limit).
-Decisions that are easy to get wrong:
-- **Build-time only**: `devScripts/build-assets.ts` transforms the copy in `dist/public`, then fingerprints those
-  bytes; `src/public/`, `npm run dev` and `npm test` are untouched, and nothing under `src/` reads the switch (R8, R9).
-- **No top-level, global or property name is renamed**: the scripts share one global scope (R3).
-- **`ENV_OBFUSCATE_ASSETS`** is `on`, `off` or unset (on); any other value stops the build; it is not in `loadConfig` (R9).
-- **The build stops and removes `dist/public`** when a file in scope is unchanged, the gzip total grew, a script does
-  not compile or a page reference is missing (R8).
-- **ES2020 is pinned** for the scripts, and no built script creates code from text (R4, R5).
-- **Source maps** only with `npm run build -- --source-maps`, in the git-ignored `dist-maps/` (R11);
-  `npm run test:built` runs the client suites on `dist/public` (R12).
-- **Each script's decoder has its own names** (`decoderPrefix`: `_pollCard_a`, `_pollCard_b`): the scripts share one
-  global scope, and with one name for all a later script answers an earlier one's lookups; two scripts whose names
-  give the same prefix stop the build.
+- **The add-your-own row is never re-created by a render**: `renderPollResults` / `renderVotingOptions` clear every
+  child except `li.add-own-item`, and the grid re-focuses a row it moved, so live updates keep text, caret and focus (R2, R18).
+- **The row counts as one bar** in the layout, `fitting()` and `ballotOpensMaximized()` (R4); it shows while
+  `mayAddChoice()` (unchanged) and the poll is below `maxChoices` (R3).
+- **The top action row's buttons are `.top-submit-btn` / `.top-back-btn`**, kept in step by `syncTopRow`; `tabs.js`
+  and the suites find `.submit-vote-btn` / `.back-btn` by `querySelector` (R13).
+- **The button sizers keep today's labels** ("Submit vote(s)", "Remove vote"); "Cast Your Vote" and "Cast these votes"
+  shrink to fit (R11).
 <!-- SPECKIT END -->
 
 ## Project Overview
@@ -166,6 +112,7 @@ npx vitest run -t "name of the test"   # tests matching a name
 - A back arrow or Cancel that leaves a page goes through `window.SiteBack` (`backArrow.js`), never its own
   `history.back()`; a new home tab joins `TAB_NAMES` in `tabs.js`, and tab changes use `replaceState`, never `pushState`.
 - Bookmark is "Favorites" in the UI only; routes, tables and identifiers keep `bookmark`; stored enumerations stay verbatim.
+- Watch is "Follow" in the UI only; the tab name `watching`, `mayWatch`/`canWatch` and the `#watching-eye` symbols keep their names.
 
 ## Architecture Notes
 

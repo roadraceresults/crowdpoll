@@ -174,7 +174,7 @@ describe("Sort by Voter", () => {
     expect(section.getAttribute("aria-labelledby")).toBe(section.querySelector("h2")!.id);
     expect(page.segment("Sort by Voter").getAttribute("aria-pressed")).toBe("true");
     expect(page.segment("Sort by Choice").getAttribute("aria-pressed")).toBe("false");
-    expect(page.headers()).toEqual(["Voter", "Choice", "Date"]);
+    expect(page.headers()).toEqual(["Voter", "Choice", "Vote Cast Date"]);
 
     const groups = page.groups();
     expect(firstCells(groups)).toEqual(["ann", "Ann", "bob", "Voter 9", "Voter 10"]);
@@ -233,7 +233,7 @@ describe("Sort by Choice", () => {
     expect(page.segment("Sort by Voter").getAttribute("aria-pressed")).toBe("false");
     expect(page.segment("Sort by Choice").querySelector("svg[aria-hidden='true']")).not.toBeNull();
     expect(page.segment("Sort by Voter").querySelector("svg")).toBeNull();
-    expect(page.headers()).toEqual(["Choice", "Voter", "Date"]);
+    expect(page.headers()).toEqual(["Choice", "Voter", "Vote Cast Date"]);
     const groups = page.groups();
     expect(firstCells(groups)).toEqual(["Option 2", "Option 3"]);
     expect(groups[1]!.map((row) => row[row.length - 2])).toEqual(["Al", "Bea", "Cy"]);

@@ -214,7 +214,7 @@
     const byVoter = state.sort === SORT_BY_VOTER;
     const choices = barOrder(state.detail);
     const groups = byVoter ? voterGroups(state.report, choices) : choiceGroups(state.report, choices);
-    const headings = byVoter ? ["Voter", "Choice", "Date"] : ["Choice", "Voter", "Date"];
+    const headings = byVoter ? ["Voter", "Choice", "Vote Cast Date"] : ["Choice", "Voter", "Vote Cast Date"];
     const node = element("table", "who-voted-table");
     const head = element("thead");
     const headRow = element("tr");

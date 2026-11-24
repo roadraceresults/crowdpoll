@@ -119,7 +119,6 @@ describe("touch targets in the phone layout (contract P3)", () => {
       ".card-face .icon-btn",
       ".card-face .question-row .bookmark-btn",
       ".card-face .question-row .maximize-btn",
-      ".card-face .add-choice-btn",
       ".vote-bar .icon-btn",
       ".vote-bar .vote-bar-submit"
     ]
@@ -554,12 +553,12 @@ describe("the flip-back button and the Submit bar", () => {
     expect(read("pollCard.js")).not.toContain('<path d="M11 18l-6-6 6-6"/>');
   });
 
-  it("fills it like an enabled Submit vote, a size up on the card, its glyph filling the button", () => {
-    const card = /\.card-face \.back-btn\{([^}]*)\}/.exec(read("pollCard-m3.css"))![1]!;
+  it("fills it and the top flip-back button like an enabled Cast button, a size up on the card, its glyph filling the button", () => {
+    const card = /\.card-face \.back-btn,\s*\.card-face \.top-back-btn\{([^}]*)\}/.exec(read("pollCard-m3.css"))![1]!;
     expect(card).toContain("background:var(--md-sys-color-primary);");
     expect(card).toContain("color:var(--md-sys-color-on-primary);");
     expect(card).toContain("width:40px;");
-    expect(read("pollCard-m3.css")).toContain(".card-face .back-btn svg{ width:40px; height:40px; }");
+    expect(read("pollCard-m3.css")).toContain(".card-face .back-btn svg,\n.card-face .top-back-btn svg{ width:40px; height:40px; }");
     expect(read("phone-card-m3.css")).toContain(".vote-bar .vote-bar-back svg{ width:48px; height:48px; }");
     const bar = /\.vote-bar \.vote-bar-back\{([^}]*)\}/.exec(read("phone-card-m3.css"))![1]!;
     expect(bar).toContain("background:var(--md-sys-color-primary);");
