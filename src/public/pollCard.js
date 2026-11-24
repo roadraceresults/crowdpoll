@@ -577,7 +577,7 @@ function clipToWidth(width){
 // TEMPORARY, for choosing the palettes: true draws every bar half filled, whatever its share (the percentage
 // shown stays the real one), so each colour's fill and track can be compared. Remove once the palettes are final;
 // tests/bar-palette.test.ts fails while it is true.
-const PALETTE_PREVIEW_HALF_FILL = true;
+const PALETTE_PREVIEW_HALF_FILL = false;
 
 function setFillWidth(row, pct){
   const shown = PALETTE_PREVIEW_HALF_FILL ? 50 : pct;

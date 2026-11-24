@@ -335,9 +335,10 @@ passing (FR-011, FR-016, C4, C13).
   `RESULTS_PALETTE_ENTRIES_DARK` (a copy of the Light list), with `darkTwinOf` used by `darkBarColorsFor` and by
   `lineGraph.js` in Dark; tests in `tests/bar-palette.test.ts` and `tests/color-contrast.test.ts`; `COLOR-CONTRAST.md`
   Result colours
-- [ ] T061 (TWEAK27, temporary) Every bar is drawn half filled while the palettes are chosen: `PALETTE_PREVIEW_HALF_FILL`
+- [X] T061 (TWEAK27, temporary) Every bar is drawn half filled while the palettes are chosen: `PALETTE_PREVIEW_HALF_FILL`
   in `src/public/pollCard.js` (`setFillWidth`); remove it, and this task, once the palettes are final;
-  `tests/bar-palette.test.ts` fails while it is on
+  `tests/bar-palette.test.ts` fails while it is on. Turned off 2026-11-24 (`false`): bars show their real share again;
+  the switch stays in the code, off, until it is removed
 - [X] T062 (TWEAK28) The Dark palette is paired with the Light one by position, the stored Light hex naming the position:
   Yes and No get Dark twins (`SEMANTIC_AFFIRMATIVE_COLOR_DARK`, `SEMANTIC_NEGATIVE_COLOR_DARK` in `src/public/pollCard.js`);
   the Dark list gets CSS names; `src/polls/barPalette.ts` holds the same Dark list (`RESULTS_PALETTE_DARK`,
