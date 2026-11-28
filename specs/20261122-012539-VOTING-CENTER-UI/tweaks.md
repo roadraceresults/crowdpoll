@@ -6,7 +6,7 @@
 |---|---|
 | Feature directory | `specs/20261122-012539-VOTING-CENTER-UI` |
 | Tweak file created | 2026-11-24 07:43 |
-| Last updated | 2026-11-24 07:54 |
+| Last updated | 2026-11-24 18:44 |
 
 Legend: `[ ]` open · `[X]` Resolved · `[-]` Resolved (manually)  
 (or accepted as-is) by the developer.
@@ -56,10 +56,65 @@ The results face's `.vote-btn` now reads "Cast Your Vote"; the ballot face is st
 
 2026-11-24 07:54  
 
-## TWEAK02 <short title here>  
+## TWEAK02 Desktop Layout Down To 481px  
+[-] Resolved (accepted as-is)  
+[ ] Run Tests  
+
+I'm not sure exactly how to describe this,  
+but when the viewport is 642 pixels wide,  the layout is good.  
+![alt text](image.png)  
+
+But at 640px everything is scaled up too much.  
+![alt text](image-1.png)  
+
+I would prefer the layout remained the same all the way down to 481px.  
+
+### RECOMMENDATION
+
+What you see at 640px is the phone layout.  
+It starts at `max-width: 640px`, and about 25 sheets and scripts use that query: `m3-tokens.css` (the larger type scale), `phone-*.css`, `single-column-m3.css`, the `header-*` sheets, `pollCard.js` `PHONE_LAYOUT_QUERY`, `headerFit.js` and `adminCard.js`.  
+That boundary was decided by the FIXED-WIDTH-640 feature (`CLAUDE_COMPLETE.md`, "One boundary, 640 px inclusive").  
+`viewportWidth.js` lays a device held 481–639px wide out at `width=640`, so phones in landscape and small tablets get the phone layout.  
+`phone-sheets.test.ts` refuses `max-width: 480px`.  
+So this tweak reverses an earlier requirement.  
+
+- **Option A** _(recommended)_: keep the phone layout to 640px on touch screens, and use it only up to 480px with a mouse.  
+  Every phone query becomes `(max-width: 480px), (max-width: 640px) and (pointer: coarse)`, and every wide-side query its negation, in CSS and JS alike.  
+  `viewportWidth.js` is unchanged.  
+  - Pros: a desktop window 481–640px wide keeps the layout you like;
+    phones and tablets keep the touch-sized layout FIXED-WIDTH-640 was built for.  
+  - Cons: about 25 queries and the suites that pin them change (`phone-sheets`, `single-column-sheets`, `tab-bar-assets`, `m3-assets`, `header-fixed-sheet`, `single-row-header-sheet`, `legal-pages`, `admin-search-assets`, `poll-card-assets`, `tests/helpers/phone-page.ts`);
+    DevTools' responsive mode without touch emulation shows the desktop layout down to 481px, while a real phone shows the phone layout.  
+
+- **Option B**: move the boundary to 480px for every device.  
+  Every `max-width: 640px` becomes `max-width: 480px`, the wide side `480.02px`.  
+  `viewportWidth.js` lays a device held 481–639px wide out at its own width instead of 640.  
+  - Pros: one simple boundary, the same on every device.  
+  - Cons: phones in landscape and small tablets get the desktop layout, with smaller touch targets and type;
+    it undoes FIXED-WIDTH-640's R1 and R3 and its device checklist;
+    the desktop header and tab bar must still fit at 481px, which is unverified.  
+
+- **Option C**: keep the phone layout from 640px down, but use the larger phone type scale only at 480px and below.  
+  - Pros: one block in `m3-tokens.css` changes.  
+  - Cons: the cards still go full width and the header still changes at 640px, so the layout is not "the same down to 481px".  
+
+Whichever option is taken, the tests are written but not run (Run Tests not ticked).  
+The artifacts updated are: this feature's `spec.md` (a new assumption), `plan.md` and `tasks.md` (a new task);
+`CLAUDE.md` and `CLAUDE_COMPLETE.md` (the boundary rule);
+`README.md` where it describes the phone layout.  
+The FIXED-WIDTH-640 requirements document may need the same change (not edited).  
+
+2026-11-24 17:45  
+
+### ACCEPTED RECOMMENDATION
+
+Resolution: accepted as-is by the developer (2026-11-24 18:44)  
+
+## TWEAK03 <short title here>  
 [ ] Resolved  
 [ ] Run Tests  
 tweak requirements...  
+
 
 
 
